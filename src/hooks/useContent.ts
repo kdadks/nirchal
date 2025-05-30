@@ -31,13 +31,24 @@ export interface ContactInfo {
   order: number;
 }
 
-type ContentType = 'about' | 'faqs' | 'privacy' | 'contact';
+type ContentType = 'about' | 'faqs' | 'privacy' | 'contact' | 'products';
+
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  image_url: string;
+  category: string;
+  featured: boolean;
+}
 
 type ContentTypeMap = {
   about: AboutSection;
   faqs: FAQ;
   privacy: PrivacySection;
   contact: ContactInfo;
+  products: Product;
 };
 
 export function useContent<T extends ContentType>(type: T): {

@@ -1,229 +1,204 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
-import { ShoppingBag, Check } from 'lucide-react';
-import ProductTabs from '../components/product/ProductTabs';
-import { useProducts } from '../hooks/useData';
-import { useReviews } from '../hooks/useReviews';
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import type { ReviewFormData } from '../types';
+import { useProducts } from '../hooks/useAdmin';
+import type { ProductVariant } from '../types/admin';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const products = useProducts();
-  const initialProduct = products.find(p => p.id === id);
-  const { product, addReview } = useReviews(initialProduct || products[0]);
-  const { addToCart } = useCart();
-  const [selectedImage, setSelectedImage] = useState<string>(initialProduct?.images[0] || '');
+  const navigate = useNavigate();
+  const { products, loading } = useProducts();
+  const { addItem } = useCart();
+  
   const [selectedSize, setSelectedSize] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedImage, setSelectedImage] = useState<number>(0);
+  const [isAdding, setIsAdding] = useState(false);
 
-  // Reset success message after 2 seconds
-  useEffect(() => {
-    if (showSuccess) {
-      const timer = setTimeout(() => {
-        setShowSuccess(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showSuccess]);
+  const product = products.find(p => p.id === Number(id));
 
-  // Update selected image when product changes
-  useEffect(() => {
-    if (initialProduct) {
-      setSelectedImage(initialProduct.images[0]);
-    }
-  }, [initialProduct]);
-
-  if (!initialProduct) {
+  if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 mt-20">
-        <p>Product not found</p>
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="animate-pulse">
+              <div className="bg-gray-200 h-96 rounded-lg mb-4"></div>
+              <div className="grid grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
+                ))}
+              </div>
+            </div>
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const handleAddReview = (formData: ReviewFormData) => {
-    addReview(formData);
+  if (!product) {
+    navigate('/products');
+    return null;
+  }
+
+  const handleAddToCart = async () => {
+    setIsAdding(true);
+    try {
+      const selectedVariant = product.variants.find(
+        v => v.size === selectedSize && v.color === selectedColor
+      );
+
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.sale_price || product.price,
+        image: product.images[0]?.image_url || '/placeholder-product.jpg',
+        variantId: selectedVariant?.id,
+        size: selectedSize,
+        color: selectedColor
+      });
+
+      navigate('/cart');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    } finally {
+      setIsAdding(false);
+    }
   };
 
-  return (
-    <>
-      <Helmet>
-        <title>{`${product.name} | Your Store Name`}</title>
-        <meta name="description" content={product.description} />
-      </Helmet>
+  const sizes = Array.from(new Set(product.variants.map(v => v.size))).filter(Boolean);
+  const colors = Array.from(new Set(product.variants.map(v => v.color))).filter(Boolean);
 
-      <div className="container mx-auto px-4 py-8 mt-20">
-        {/* Product Hero Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          {/* Product Images */}
-          <div className="space-y-4">
-            <div className="relative pb-[100%] bg-gray-100 rounded-lg overflow-hidden">
+  const hasVariants = sizes.length > 0 || colors.length > 0;
+  const canAddToCart = !hasVariants || (selectedSize && selectedColor);
+
+  return (
+    <div className="container mx-auto px-4 py-16">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Images */}
+          <div>
+            <div className="mb-4">
               <img
-                src={selectedImage || product.images[0]}
+                src={product.images[selectedImage]?.image_url || '/placeholder-product.jpg'}
                 alt={product.name}
-                className="absolute inset-0 w-full h-full object-cover rounded-lg transition-opacity duration-300"
+                className="w-full h-96 object-cover rounded-lg"
               />
             </div>
-            <div className="grid grid-cols-4 gap-4">
-              {product.images.map((image, index) => (
-                <div
-                  key={index}
-                  className={`relative pb-[100%] bg-gray-100 rounded cursor-pointer overflow-hidden ${
-                    selectedImage === image ? 'ring-2 ring-primary-600' : ''
-                  }`}
-                  onClick={() => setSelectedImage(image)}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.name} view ${index + 1}`}
-                    className="absolute inset-0 w-full h-full object-cover hover:opacity-80 transition-opacity duration-200"
-                  />
-                </div>
-              ))}
-            </div>
+            {product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-4">
+                {product.images.map((image, index) => (
+                  <button
+                    key={image.id}
+                    onClick={() => setSelectedImage(index)}
+                    className={`relative rounded-lg overflow-hidden ${
+                      selectedImage === index ? 'ring-2 ring-primary-500' : ''
+                    }`}
+                  >
+                    <img
+                      src={image.image_url}
+                      alt={`${product.name} view ${index + 1}`}
+                      className="w-full h-24 object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Product Info */}
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-serif font-bold mb-2">{product.name}</h1>
-              <p className="text-gray-600">{product.description}</p>
-            </div>
+          {/* Details */}
+          <div>
+            <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
+              {product.name}
+            </h1>
 
-            <div>
-              <div className="flex items-baseline space-x-4">
-                <span className="text-2xl font-bold">₹{product.price.toLocaleString()}</span>
-                {product.originalPrice && (
-                  <span className="text-gray-500 line-through">
-                    ₹{product.originalPrice.toLocaleString()}
-                  </span>
-                )}
-                {product.discountPercentage && (
-                  <span className="text-green-600">
-                    {product.discountPercentage}% OFF
-                  </span>
-                )}
-              </div>
-              <div className="mt-2 flex items-center space-x-2">
-                <div className="flex text-yellow-400">
-                  {'★'.repeat(Math.floor(product.rating))}
-                  <span className="text-gray-300">
-                    {'★'.repeat(5 - Math.floor(product.rating))}
-                  </span>
-                </div>
-                <span className="text-gray-600">
-                  ({product.reviewCount} reviews)
+            <div className="flex items-baseline space-x-4 mb-6">
+              <span className="text-2xl font-medium text-gray-900">
+                ₹{(product.sale_price || product.price).toLocaleString()}
+              </span>
+              {product.sale_price && (
+                <span className="text-lg text-gray-500 line-through">
+                  ₹{product.price.toLocaleString()}
                 </span>
-              </div>
+              )}
             </div>
 
-            {/* Product Details */}
-            <div className="space-y-4">
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-900">Color</h3>
-                <p className="mt-1">{product.color}</p>
-              </div>
+            <div className="prose prose-lg mb-8">
+              <p>{product.description}</p>
+            </div>
 
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-900">Size</h3>
-                <div className="grid grid-cols-4 gap-2 mt-2">
-                  {product.sizes.map(size => (
+            {sizes.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">Size</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {sizes.map(size => (
                     <button
                       key={size}
-                      className={`border rounded-md py-2 text-sm font-medium hover:border-gray-400 ${
-                        selectedSize === size ? 'border-primary-600 bg-primary-50' : ''
-                      }`}
-                      onClick={() => {
-                        setSelectedSize(size);
-                        setError('');
-                      }}
+                      onClick={() => setSelectedSize(size!)}
+                      className={`border rounded-md py-2 text-sm font-medium
+                        ${selectedSize === size
+                          ? 'border-primary-500 text-primary-500'
+                          : 'border-gray-300 text-gray-900 hover:bg-gray-50'
+                        }`}
                     >
                       {size}
                     </button>
                   ))}
                 </div>
               </div>
+            )}
 
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-900">Fabric</h3>
-                <p className="mt-1">{product.fabric}</p>
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-900">Occasion</h3>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {product.occasion?.map(occ => (
-                    <span
-                      key={occ}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100"
+            {colors.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">Color</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {colors.map(color => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color!)}
+                      className={`border rounded-md py-2 text-sm font-medium
+                        ${selectedColor === color
+                          ? 'border-primary-500 text-primary-500'
+                          : 'border-gray-300 text-gray-900 hover:bg-gray-50'
+                        }`}
                     >
-                      {occ}
-                    </span>
+                      {color}
+                    </button>
                   ))}
                 </div>
               </div>
-
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium text-gray-900">
-                  Availability
-                </h3>
-                <p className={`mt-1 ${
-                  product.stockStatus === 'In Stock'
-                    ? 'text-green-600'
-                    : product.stockStatus === 'Low Stock'
-                    ? 'text-yellow-600'
-                    : 'text-red-600'
-                }`}>
-                  {product.stockStatus}
-                </p>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <p className="text-red-600 text-sm">{error}</p>
             )}
 
-            {/* Add to Cart Button */}
             <button
-              className="w-full bg-primary-600 text-white py-3 px-6 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-400 disabled:cursor-not-allowed relative"
-              disabled={product.stockStatus === 'Out of Stock'}
-              onClick={() => {
-                if (!selectedSize) {
-                  setError('Please select a size');
-                  return;
-                }
-                addToCart(product, selectedSize, 1);
-                setShowSuccess(true);
-              }}
+              onClick={handleAddToCart}
+              disabled={!canAddToCart || isAdding}
+              className={`w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500
+                ${(!canAddToCart || isAdding) ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
             >
-              <span className="flex items-center justify-center">
-                {showSuccess ? (
-                  <>
-                    <Check className="h-5 w-5 mr-2" />
-                    Added to Cart!
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBag className="h-5 w-5 mr-2" />
-                    {product.stockStatus === 'Out of Stock' ? 'Out of Stock' : 'Add to Cart'}
-                  </>
-                )}
-              </span>
+              <ShoppingBag className="w-5 h-5 mr-2" />
+              {isAdding ? 'Adding...' : 'Add to Cart'}
             </button>
+
+            {hasVariants && !canAddToCart && (
+              <p className="mt-2 text-sm text-red-600">
+                Please select {!selectedSize ? 'size' : 'color'} to continue
+              </p>
+            )}
           </div>
         </div>
-
-        {/* Tabs Section */}
-        <ProductTabs 
-          product={product}
-          onAddReview={handleAddReview}
-        />
       </div>
-    </>
+    </div>
   );
 };
 

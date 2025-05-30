@@ -1,265 +1,288 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import Layout from '../components/layout/Layout';
 import { useCart } from '../contexts/CartContext';
 
-interface ShippingDetails {
-  fullName: string;
+interface CheckoutForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
-  country: string;
+  pincode: string;
+  paymentMethod: 'cod' | 'online';
 }
 
 const CheckoutPage: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  const { cart, subtotal, clearCart } = useCart();
   const navigate = useNavigate();
-  const [activeStep, setActiveStep] = useState(1);
-  const [shippingDetails, setShippingDetails] = useState<ShippingDetails>({
-    fullName: '',
+  const { state: { items, total }, clearCart } = useCart();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState<CheckoutForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
     address: '',
     city: '',
     state: '',
-    zipCode: '',
-    country: ''
+    pincode: '',
+    paymentMethod: 'cod'
   });
-  const shippingCost = 10; // Fixed shipping cost for demo
-  const total = subtotal + shippingCost;
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login?redirect=checkout');
-    }
-    if (cart.length === 0) {
-      navigate('/cart');
-    }
-  }, [isAuthenticated, cart, navigate]);
+  if (items.length === 0) {
+    navigate('/cart');
+    return null;
+  }
 
-  const handleShippingSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveStep(2);
-  };
+    setIsSubmitting(true);
 
-  const handlePayment = async () => {
     try {
       // Here you would typically:
-      // 1. Send shipping details to your backend
-      // 2. Create a payment intent with your payment provider
-      // 3. Handle the payment confirmation
+      // 1. Validate the form
+      // 2. Create an order in your database
+      // 3. Process payment if online payment
+      // 4. Send confirmation email
       
-      // For demo purposes, we'll simulate a successful payment
-      setTimeout(() => {
-        clearCart();
-        navigate('/order-confirmation');
-      }, 1500);
+      // For now, we'll just simulate a delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      clearCart();
+      navigate('/order-confirmation');
     } catch (error) {
-      console.error('Payment failed:', error);
+      console.error('Checkout error:', error);
+      alert('There was an error processing your order. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="space-y-8">
-          {/* Checkout Steps */}
-          <div className="flex justify-center">
-            <nav className="flex items-center space-x-4">
-              <span className={`${activeStep >= 1 ? 'text-primary-600' : 'text-gray-400'}`}>
-                Shipping
-              </span>
-              <span className="text-gray-300">→</span>
-              <span className={`${activeStep >= 2 ? 'text-primary-600' : 'text-gray-400'}`}>
-                Payment
-              </span>
-            </nav>
-          </div>
+    <Layout>
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
+            Checkout
+          </h1>
 
-          {/* Shipping Form */}
-          {activeStep === 1 && (
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-2xl font-medium mb-6">Shipping Details</h2>
-              <form onSubmit={handleShippingSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Form */}
+            <div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={form.firstName}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={form.lastName}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                    Full Name
+                  <label className="block text-sm font-medium text-gray-700">
+                    Email
                   </label>
                   <input
-                    type="text"
-                    id="fullName"
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleInputChange}
                     required
-                    value={shippingDetails.fullName}
-                    onChange={(e) => setShippingDetails({...shippingDetails, fullName: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
+
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
                     Address
                   </label>
                   <input
                     type="text"
-                    id="address"
+                    name="address"
+                    value={form.address}
+                    onChange={handleInputChange}
                     required
-                    value={shippingDetails.address}
-                    onChange={(e) => setShippingDetails({...shippingDetails, address: e.target.value})}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700">
                       City
                     </label>
                     <input
                       type="text"
-                      id="city"
+                      name="city"
+                      value={form.city}
+                      onChange={handleInputChange}
                       required
-                      value={shippingDetails.city}
-                      onChange={(e) => setShippingDetails({...shippingDetails, city: e.target.value})}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
                   <div>
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700">
                       State
                     </label>
                     <input
                       type="text"
-                      id="state"
+                      name="state"
+                      value={form.state}
+                      onChange={handleInputChange}
                       required
-                      value={shippingDetails.state}
-                      onChange={(e) => setShippingDetails({...shippingDetails, state: e.target.value})}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
-                      ZIP Code
-                    </label>
-                    <input
-                      type="text"
-                      id="zipCode"
-                      required
-                      value={shippingDetails.zipCode}
-                      onChange={(e) => setShippingDetails({...shippingDetails, zipCode: e.target.value})}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="country" className="block text-sm font-medium text-gray-700">
-                      Country
-                    </label>
-                    <input
-                      type="text"
-                      id="country"
-                      required
-                      value={shippingDetails.country}
-                      onChange={(e) => setShippingDetails({...shippingDetails, country: e.target.value})}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-                >
-                  Continue to Payment
-                </button>
-              </form>
-            </div>
-          )}
 
-          {/* Payment Section */}
-          {activeStep === 2 && (
-            <div className="bg-white p-6 rounded-lg shadow space-y-6">
-              <h2 className="text-2xl font-medium">Payment</h2>
-              
-              {/* Order Summary */}
-              <div className="border-t border-b py-4">
-                <div className="flex justify-between mb-2">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span>Shipping</span>
-                  <span>${shippingCost.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Payment Methods */}
-              <div className="space-y-4">
-                <div className="border rounded-md p-4">
-                  <label className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      defaultChecked
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                    />
-                    <span>Credit/Debit Card</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Card Details Form */}
-              <div className="space-y-4">
                 <div>
-                  <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700">
-                    Card Number
+                  <label className="block text-sm font-medium text-gray-700">
+                    PIN Code
                   </label>
                   <input
                     type="text"
-                    id="cardNumber"
-                    placeholder="1234 5678 9012 3456"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    name="pincode"
+                    value={form.pincode}
+                    onChange={handleInputChange}
+                    required
+                    pattern="[0-9]{6}"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <label htmlFor="expiry" className="block text-sm font-medium text-gray-700">
-                      Expiry Date
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Payment Method
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cod"
+                        checked={form.paymentMethod === 'cod'}
+                        onChange={handleInputChange}
+                        className="text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="ml-2">Cash on Delivery</span>
                     </label>
-                    <input
-                      type="text"
-                      id="expiry"
-                      placeholder="MM/YY"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    />
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="online"
+                        checked={form.paymentMethod === 'online'}
+                        onChange={handleInputChange}
+                        className="text-primary-600 focus:ring-primary-500"
+                      />
+                      <span className="ml-2">Online Payment</span>
+                    </label>
                   </div>
-                  <div>
-                    <label htmlFor="cvv" className="block text-sm font-medium text-gray-700">
-                      CVV
-                    </label>
-                    <input
-                      type="text"
-                      id="cvv"
-                      placeholder="123"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                    />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
+                    isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isSubmitting ? 'Processing...' : 'Place Order'}
+                </button>
+              </form>
+            </div>
+
+            {/* Order Summary */}
+            <div>
+              <div className="bg-gray-50 rounded-lg p-6">
+                <h2 className="text-lg font-medium text-gray-900 mb-4">
+                  Order Summary
+                </h2>
+                <div className="space-y-4">
+                  {items.map((item) => (
+                    <div key={`${item.id}-${item.variantId}`} className="flex">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-20 h-20 object-cover rounded"
+                      />
+                      <div className="ml-4 flex-1">
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {item.name}
+                        </h3>
+                        {item.size && (
+                          <p className="text-sm text-gray-500">Size: {item.size}</p>
+                        )}
+                        {item.color && (
+                          <p className="text-sm text-gray-500">Color: {item.color}</p>
+                        )}
+                        <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                      </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        ₹{(item.price * item.quantity).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t mt-6 pt-6">
+                  <div className="flex justify-between text-base font-medium text-gray-900">
+                    <span>Subtotal</span>
+                    <span>₹{total.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-500 mt-2">
+                    <span>Shipping</span>
+                    <span>Calculated at next step</span>
                   </div>
                 </div>
               </div>
-
-              <button
-                onClick={handlePayment}
-                className="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Pay ${total.toFixed(2)}
-              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

@@ -13,7 +13,8 @@ export const tables = {
   about: 'about_sections',
   faqs: 'faqs',
   privacy: 'privacy_sections',
-  contact: 'contact_info'
+  contact: 'contact_info',
+  products: 'products'
 } as const;
 
 // Add TypeScript types for our database schema
@@ -49,6 +50,17 @@ export type Tables = {
     type: string;
     value: string;
     order_num: number;
+    created_at: string;
+    updated_at: string;
+  };
+  products: {
+    id: number;
+    name: string;
+    price: number;
+    description: string;
+    image_url: string;
+    category: string;
+    featured: boolean;
     created_at: string;
     updated_at: string;
   };

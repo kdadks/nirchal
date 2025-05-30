@@ -1,68 +1,79 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Link, Navigate } from 'react-router-dom';
+import { CheckCircle } from 'lucide-react';
+import Layout from '../components/layout/Layout';
+import { useCart } from '../contexts/CartContext';
 
 const OrderConfirmationPage: React.FC = () => {
-  const { user } = useAuth();
-  const orderNumber = Math.random().toString(36).substr(2, 9).toUpperCase();
+  const { state: { items } } = useCart();
+
+  // Redirect if there are no items (meaning no order was just placed)
+  if (items.length > 0) {
+    return <Navigate to="/cart" replace />;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
-          <div className="text-center">
-            <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-green-100">
-              <svg
-                className="h-6 w-6 text-green-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h2 className="mt-4 text-2xl font-medium text-gray-900">Order Confirmed!</h2>
-            <p className="mt-2 text-gray-600">
-              Thank you for your order, {user?.name}. We'll send you shipping confirmation when your order ships.
-            </p>
+    <Layout>
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
+            <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
 
-          <div className="border-t border-b py-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Order Number</span>
-              <span className="font-medium">{orderNumber}</span>
-            </div>
+          <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
+            Thank You for Your Order!
+          </h1>
+          
+          <p className="text-lg text-gray-600 mb-8">
+            Your order has been successfully placed and will be processed shortly.
+          </p>
+
+          <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Order Details
+            </h2>
+            <dl className="space-y-3">
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Order Number</dt>
+                <dd className="text-gray-900 font-medium">#ORD123456</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Status</dt>
+                <dd className="text-green-600 font-medium">Confirmed</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Estimated Delivery</dt>
+                <dd className="text-gray-900 font-medium">3-5 Business Days</dd>
+              </div>
+            </dl>
           </div>
 
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              We'll send you shipping confirmation and an order update when your order ships.
-              You can check the status of your order at any time in your order history.
+            <p className="text-gray-600">
+              We'll send you an email confirmation with order details and tracking information once your order ships.
             </p>
+            <p className="text-gray-600">
+              If you have any questions about your order, please contact our customer support.
+            </p>
+          </div>
 
-            <div className="flex justify-center space-x-4">
-              <Link
-                to="/orders"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                View Order
-              </Link>
-              <Link
-                to="/"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
-              >
-                Continue Shopping
-              </Link>
-            </div>
+          <div className="mt-8 space-x-4">
+            <Link
+              to="/products"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+            >
+              Continue Shopping
+            </Link>
+            <Link
+              to="/contact"
+              className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Contact Support
+            </Link>
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

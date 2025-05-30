@@ -1,110 +1,115 @@
 import React from 'react';
-import { ShoppingBag, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import CartItem from '../components/cart/CartItem';
+import { Trash2 } from 'lucide-react';
+import Layout from '../components/layout/Layout';
 import { useCart } from '../contexts/CartContext';
 
 const CartPage: React.FC = () => {
-  const { cart, totalItems, subtotal, clearCart } = useCart();
-  
-  // Calculate shipping cost (free for orders above ₹5000)
-  const shippingCost = subtotal > 5000 ? 0 : 150;
-  
-  // Calculate total amount
-  const totalAmount = subtotal + shippingCost;
+  const { state: { items, total }, updateQuantity, removeItem } = useCart();
 
-  if (cart.length === 0) {
+  if (items.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-16 min-h-screen pt-24">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <ShoppingBag size={36} className="text-gray-400" />
+      <Layout>
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
+              Your Cart is Empty
+            </h1>
+            <p className="text-gray-600 mb-8">
+              Looks like you haven't added any items to your cart yet.
+            </p>
+            <Link
+              to="/products"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+            >
+              Continue Shopping
+            </Link>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Your Cart is Empty</h1>
-          <p className="text-gray-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
-          <Link 
-            to="/" 
-            className="inline-block bg-primary-600 text-white px-8 py-3 rounded-md font-medium hover:bg-primary-700 transition-colors"
-          >
-            Continue Shopping
-          </Link>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen pt-24">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-6">
-          Shopping Cart ({totalItems} {totalItems === 1 ? 'item' : 'items'})
-        </h1>
-        
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Cart Items */}
-          <div className="flex-grow">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              {cart.map((item) => (
-                <CartItem key={item.product.id} item={item} />
-              ))}
-              
-              <div className="flex justify-between mt-6 pt-6 border-t border-gray-200">
-                <button 
-                  onClick={clearCart}
-                  className="text-red-500 hover:text-red-600 transition-colors"
-                >
-                  Clear Cart
-                </button>
-                
-                <Link 
-                  to="/" 
-                  className="text-primary-600 hover:text-primary-700 transition-colors flex items-center"
-                >
-                  Continue Shopping
-                  <ChevronRight size={16} className="ml-1" />
-                </Link>
+    <Layout>
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
+            Shopping Cart
+          </h1>
+
+          <div className="space-y-6 mb-8">
+            {items.map((item) => (
+              <div key={`${item.id}-${item.variantId}`} className="flex items-center border-b pb-6">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-24 h-24 object-cover rounded"
+                />
+                <div className="flex-1 ml-6">
+                  <h3 className="text-lg font-medium text-gray-900">{item.name}</h3>
+                  {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
+                  {item.color && <p className="text-sm text-gray-600">Color: {item.color}</p>}
+                  <div className="flex items-center mt-2">
+                    <select
+                      value={item.quantity}
+                      onChange={(e) => updateQuantity(item.id, Number(e.target.value), item.variantId)}
+                      className="border border-gray-300 rounded-md text-base"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        <option key={num} value={num}>
+                          {num}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => removeItem(item.id, item.variantId)}
+                      className="ml-4 text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                </div>
+                <div className="text-right ml-6">
+                  <p className="text-lg font-medium text-gray-900">
+                    ₹{(item.price * item.quantity).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    ₹{item.price.toLocaleString()} each
+                  </p>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-          
-          {/* Order Summary */}
-          <div className="lg:w-80">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-32">
-              <h2 className="text-xl font-medium text-gray-900 mb-4">Order Summary</h2>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>₹{subtotal.toLocaleString()}</span>
-                </div>
-                
-                <div className="flex justify-between text-gray-600">
-                  <span>Shipping</span>
-                  <span>{shippingCost === 0 ? 'Free' : `₹${shippingCost}`}</span>
-                </div>
-                
-                <div className="pt-3 mt-3 border-t border-gray-200 flex justify-between font-medium text-gray-900">
-                  <span>Total</span>
-                  <span>₹{totalAmount.toLocaleString()}</span>
-                </div>
-              </div>
-              
+
+          <div className="border-t pt-8">
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-lg text-gray-900">Subtotal</span>
+              <span className="text-2xl font-medium text-gray-900">
+                ₹{total.toLocaleString()}
+              </span>
+            </div>
+            <div className="text-sm text-gray-500 mb-6">
+              Shipping and taxes calculated at checkout
+            </div>
+            <div className="flex justify-between">
+              <Link
+                to="/products"
+                className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Continue Shopping
+              </Link>
               <Link
                 to="/checkout"
-                className="block w-full bg-primary-600 text-white py-3 rounded-md font-medium hover:bg-primary-700 transition-colors text-center"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
               >
                 Proceed to Checkout
               </Link>
-              
-              <div className="mt-4 text-xs text-gray-500 text-center">
-                <p>Free shipping on orders above ₹5,000</p>
-                <p className="mt-1">Taxes calculated at checkout</p>
-              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

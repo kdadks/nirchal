@@ -1,176 +1,176 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { Grid, List, SlidersHorizontal } from 'lucide-react';
-import InfiniteScroll from 'react-infinite-scroll-component';
-import { products } from '../data/mockData';
-import ProductCard from '../components/product/ProductCard';
-import ProductFilters from '../components/product/ProductFilters';
-import ProductSort from '../components/product/ProductSort';
-import { Product } from '../types';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Filter } from 'lucide-react';
+import { useProducts } from '../hooks/useAdmin';
+import type { ProductWithDetails } from '../types/admin';
 
-type Filters = {
-  priceRange: [number, number];
-  categories: string[];
-  ratings: number[];
-  availability: string[];
-};
+const sortOptions = [
+  { value: 'price-asc', label: 'Price: Low to High' },
+  { value: 'price-desc', label: 'Price: High to Low' },
+  { value: 'newest', label: 'Newest First' },
+  { value: 'popular', label: 'Most Popular' },
+];
+
+const filterCategories = [
+  { value: 'sarees', label: 'Sarees' },
+  { value: 'lehengas', label: 'Lehengas' },
+  { value: 'kurtis', label: 'Kurtis' },
+  { value: 'dresses', label: 'Dresses' },
+];
 
 const ProductListingPage: React.FC = () => {
-  const [displayProducts, setDisplayProducts] = useState<Product[]>([]);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(1);
-  const [isGridView, setIsGridView] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<Filters>({
-    priceRange: [0, 50000],
-    categories: [],
-    ratings: [],
-    availability: []
-  });
-  const [sortOption, setSortOption] = useState('featured');
+  const { products, loading } = useProducts();
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState('newest');
 
-  const ITEMS_PER_PAGE = 12;
+  const toggleFilter = () => setIsFilterOpen(!isFilterOpen);
 
-  const filterProducts = useCallback((products: Product[]) => {
-    return products.filter(product => {
-      const priceInRange = product.price >= selectedFilters.priceRange[0] && 
-                          product.price <= selectedFilters.priceRange[1];
-      
-      const categoryMatch = selectedFilters.categories.length === 0 || 
-                          selectedFilters.categories.includes(product.category);
-      
-      const ratingMatch = selectedFilters.ratings.length === 0 || 
-                         selectedFilters.ratings.includes(Math.floor(product.rating));
-      
-      const availabilityMatch = selectedFilters.availability.length === 0 || 
-                               selectedFilters.availability.includes(product.stockStatus);
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
 
-      return priceInRange && categoryMatch && ratingMatch && availabilityMatch;
-    });
-  }, [selectedFilters]);
-
-  const sortProducts = useCallback((products: Product[]) => {
-    const sortedProducts = [...products];
-    switch (sortOption) {
-      case 'price-low':
-        return sortedProducts.sort((a, b) => a.price - b.price);
-      case 'price-high':
-        return sortedProducts.sort((a, b) => b.price - a.price);
+  const sortProducts = (products: ProductWithDetails[]) => {
+    switch (sortBy) {
+      case 'price-asc':
+        return [...products].sort((a, b) => a.price - b.price);
+      case 'price-desc':
+        return [...products].sort((a, b) => b.price - a.price);
       case 'newest':
-        return sortedProducts.sort((a, b) => (a.isNew === b.isNew) ? 0 : a.isNew ? -1 : 1);
-      case 'rating':
-        return sortedProducts.sort((a, b) => b.rating - a.rating);
+        return [...products].sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
       default:
-        return sortedProducts.sort((a, b) => (a.isFeatured === b.isFeatured) ? 0 : a.isFeatured ? -1 : 1);
+        return products;
     }
-  }, [sortOption]);
+  };
 
-  const loadMoreProducts = useCallback(() => {
-    const filteredProducts = filterProducts(products);
-    const sortedProducts = sortProducts(filteredProducts);
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    const end = page * ITEMS_PER_PAGE;
-    const newProducts = sortedProducts.slice(start, end);
+  const filteredProducts = products
+    .filter(product => 
+      selectedCategories.length === 0 || 
+      selectedCategories.includes(product.category?.slug || '')
+    );
 
-    if (page === 1) {
-      setDisplayProducts(newProducts);
-    } else {
-      setDisplayProducts(prev => [...prev, ...newProducts]);
-    }
-
-    setHasMore(end < sortedProducts.length);
-    setPage(prev => prev + 1);
-  }, [filterProducts, sortProducts, page]);
-
-  useEffect(() => {
-    setPage(1);
-    loadMoreProducts();
-  }, [selectedFilters, sortOption, loadMoreProducts]);
+  const sortedProducts = sortProducts(filteredProducts);
 
   return (
-    <div className="min-h-screen pt-24">
-      <Helmet>
-        <title>All Products - Nirchal</title>
-        <meta name="description" content="Browse our complete collection of premium Indian ethnic wear" />
-      </Helmet>
-
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-2">
-              All Products
-            </h1>
-            <p className="text-gray-600">
-              {displayProducts.length} products found
-            </p>
-          </div>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+          <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4 md:mb-0">
+            Shop Collection
+          </h1>
 
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden flex items-center space-x-2 text-gray-600"
+              onClick={toggleFilter}
+              className="flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
-              <SlidersHorizontal size={20} />
-              <span>Filters</span>
+              <Filter size={20} className="mr-2" />
+              Filter
             </button>
 
-            <ProductSort value={sortOption} onChange={setSortOption} />
-
-            <div className="hidden md:flex items-center space-x-2 border-l pl-4">
-              <button
-                onClick={() => setIsGridView(true)}
-                className={`p-2 rounded-md ${isGridView ? 'bg-primary-50 text-primary-600' : 'text-gray-400'}`}
-                aria-label="Grid view"
-              >
-                <Grid size={20} />
-              </button>
-              <button
-                onClick={() => setIsGridView(false)}
-                className={`p-2 rounded-md ${!isGridView ? 'bg-primary-50 text-primary-600' : 'text-gray-400'}`}
-                aria-label="List view"
-              >
-                <List size={20} />
-              </button>
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="pl-4 pr-8 py-2 border border-gray-300 rounded-md text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {sortOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Filters */}
-          <div className={`md:w-64 ${showFilters ? 'block' : 'hidden md:block'}`}>
-            <ProductFilters
-              filters={selectedFilters}
-              onChange={setSelectedFilters}
-            />
-          </div>
+        <div className="flex">
+          {/* Filters Sidebar */}
+          <div className={`
+            fixed md:relative inset-0 z-40 bg-white w-80 transition-transform duration-300 ease-in-out
+            ${isFilterOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          `}>
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4 md:hidden">
+                <h2 className="text-lg font-medium">Filters</h2>
+                <button onClick={toggleFilter} className="text-gray-500">
+                  ✕
+                </button>
+              </div>
 
-          {/* Product Grid */}
-          <div className="flex-1">
-            <InfiniteScroll
-              dataLength={displayProducts.length}
-              next={loadMoreProducts}
-              hasMore={hasMore}
-              loader={<div className="text-center py-4">Loading more products...</div>}
-              endMessage={<div className="text-center py-4">No more products to load.</div>}
-            >
-              <div className={`grid ${
-                isGridView 
-                  ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' 
-                  : 'grid-cols-1'
-              } gap-6`}>
-                {displayProducts.map(product => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                  />
+              <div>
+                <h3 className="font-medium mb-2">Categories</h3>
+                {filterCategories.map(category => (
+                  <label key={category.value} className="flex items-center space-x-2 mb-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedCategories.includes(category.value)}
+                      onChange={() => toggleCategory(category.value)}
+                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-gray-700">{category.label}</span>
+                  </label>
                 ))}
               </div>
-            </InfiniteScroll>
+            </div>
+          </div>
+
+          {/* Products Grid */}
+          <div className="flex-1 ml-0 md:ml-8">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-gray-200 h-80 rounded-lg mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {sortedProducts.map((product) => (
+                  <Link 
+                    key={product.id} 
+                    to={`/products/${product.id}`}
+                    className="group"
+                  >
+                    <div className="relative rounded-lg overflow-hidden mb-4">
+                      <img
+                        src={product.images?.[0]?.image_url || '/placeholder-product.jpg'}
+                        alt={product.name}
+                        className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {product.sale_price && (
+                        <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded">
+                          Sale
+                        </div>
+                      )}
+                    </div>
+                    <h3 className="font-medium text-gray-900 mb-1">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-lg font-medium text-gray-900">
+                        ₹{product.sale_price || product.price}
+                      </span>
+                      {product.sale_price && (
+                        <span className="text-sm text-gray-500 line-through">
+                          ₹{product.price}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
