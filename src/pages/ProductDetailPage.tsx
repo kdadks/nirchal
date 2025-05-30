@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import { ShoppingBag, Check } from 'lucide-react';
 import ProductTabs from '../components/product/ProductTabs';
 import { useProducts } from '../hooks/useData';
 import { useReviews } from '../hooks/useReviews';
+import { useCart } from '../contexts/CartContext';
 import type { ReviewFormData } from '../types';
 
 const ProductDetailPage: React.FC = () => {
@@ -11,7 +13,21 @@ const ProductDetailPage: React.FC = () => {
   const products = useProducts();
   const initialProduct = products.find(p => p.id === id);
   const { product, addReview } = useReviews(initialProduct || products[0]);
+  const { addToCart } = useCart();
   const [selectedImage, setSelectedImage] = useState<string>(initialProduct?.images[0] || '');
+  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // Reset success message after 2 seconds
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
 
   // Update selected image when product changes
   useEffect(() => {
@@ -117,7 +133,13 @@ const ProductDetailPage: React.FC = () => {
                   {product.sizes.map(size => (
                     <button
                       key={size}
-                      className="border rounded-md py-2 text-sm font-medium hover:border-gray-400"
+                      className={`border rounded-md py-2 text-sm font-medium hover:border-gray-400 ${
+                        selectedSize === size ? 'border-primary-600 bg-primary-50' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedSize(size);
+                        setError('');
+                      }}
                     >
                       {size}
                     </button>
@@ -160,11 +182,37 @@ const ProductDetailPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <p className="text-red-600 text-sm">{error}</p>
+            )}
+
             {/* Add to Cart Button */}
             <button
-              className="w-full bg-primary-600 text-white py-3 px-6 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full bg-primary-600 text-white py-3 px-6 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-400 disabled:cursor-not-allowed relative"
+              disabled={product.stockStatus === 'Out of Stock'}
+              onClick={() => {
+                if (!selectedSize) {
+                  setError('Please select a size');
+                  return;
+                }
+                addToCart(product, selectedSize, 1);
+                setShowSuccess(true);
+              }}
             >
-              Add to Cart
+              <span className="flex items-center justify-center">
+                {showSuccess ? (
+                  <>
+                    <Check className="h-5 w-5 mr-2" />
+                    Added to Cart!
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="h-5 w-5 mr-2" />
+                    {product.stockStatus === 'Out of Stock' ? 'Out of Stock' : 'Add to Cart'}
+                  </>
+                )}
+              </span>
             </button>
           </div>
         </div>

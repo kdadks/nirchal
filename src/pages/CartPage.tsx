@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShoppingBag, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import CartItem from '../components/cart/CartItem';
 import { useCart } from '../contexts/CartContext';
 
@@ -89,9 +89,12 @@ const CartPage: React.FC = () => {
                 </div>
               </div>
               
-              <button className="w-full bg-primary-600 text-white py-3 rounded-md font-medium hover:bg-primary-700 transition-colors">
+              <Link
+                to="/checkout"
+                className="block w-full bg-primary-600 text-white py-3 rounded-md font-medium hover:bg-primary-700 transition-colors text-center"
+              >
                 Proceed to Checkout
-              </button>
+              </Link>
               
               <div className="mt-4 text-xs text-gray-500 text-center">
                 <p>Free shipping on orders above ₹5,000</p>

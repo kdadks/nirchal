@@ -13,6 +13,8 @@ import ProductDetailPage from './pages/ProductDetailPage';
 import ProductReviewPage from './pages/ProductReviewPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
+import CheckoutPage from './pages/CheckoutPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import AboutPage from './pages/footer/AboutPage';
 import ContactPage from './pages/footer/ContactPage';
 import PrivacyPolicyPage from './pages/footer/PrivacyPolicyPage';
@@ -63,7 +65,23 @@ function App() {
                         <ProtectedRoute>
                           <CartPage />
                         </ProtectedRoute>
-                      } 
+                      }
+                    />
+                    <Route
+                      path="/checkout"
+                      element={
+                        <ProtectedRoute>
+                          <CheckoutPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/order-confirmation"
+                      element={
+                        <ProtectedRoute>
+                          <OrderConfirmationPage />
+                        </ProtectedRoute>
+                      }
                     />
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/contact" element={<ContactPage />} />
