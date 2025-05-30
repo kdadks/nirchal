@@ -4,42 +4,42 @@ export const categories: Category[] = [
   {
     id: 'sarees',
     name: 'Sarees',
-    image: 'https://images.pexels.com/photos/8396886/pexels-photo-8396886.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image: 'https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     description: 'Elegant sarees for every occasion',
     featured: true
   },
   {
     id: 'lehengas',
     name: 'Lehengas',
-    image: 'https://images.pexels.com/photos/2064507/pexels-photo-2064507.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image: 'https://images.pexels.com/photos/2836486/pexels-photo-2836486.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     description: 'Stunning lehengas for celebrations',
     featured: true
   },
   {
     id: 'suits',
     name: 'Salwar Suits',
-    image: 'https://images.pexels.com/photos/13009871/pexels-photo-13009871.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image: 'https://images.pexels.com/photos/4124201/pexels-photo-4124201.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     description: 'Comfortable and stylish suits',
     featured: true
   },
   {
     id: 'kurtis',
     name: 'Kurtis',
-    image: 'https://images.pexels.com/photos/14622875/pexels-photo-14622875.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image: 'https://images.pexels.com/photos/8396651/pexels-photo-8396651.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     description: 'Modern kurtis for everyday wear',
     featured: true
   },
   {
     id: 'gowns',
     name: 'Gowns',
-    image: 'https://images.pexels.com/photos/973401/pexels-photo-973401.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image: 'https://images.pexels.com/photos/2916814/pexels-photo-2916814.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     description: 'Elegant gowns for special occasions',
     featured: false
   },
   {
     id: 'accessories',
     name: 'Accessories',
-    image: 'https://images.pexels.com/photos/230290/pexels-photo-230290.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+    image: 'https://images.pexels.com/photos/1454171/pexels-photo-1454171.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     description: 'Beautiful accessories to complete your look',
     featured: false
   }
@@ -178,7 +178,7 @@ export const products: Product[] = [
     category: 'accessories',
     subcategory: 'jewelry',
     occasion: ['Wedding', 'Festival'],
-    fabric: null,
+    fabric: undefined,
     color: 'Gold',
     sizes: ['Free Size'],
     description: 'Exquisite Kundan jewelry set including necklace, earrings, and maang tikka. Adorned with pearls and colored stones for a traditional yet contemporary look.',
