@@ -71,7 +71,36 @@ export const products: Product[] = [
     isNew: false,
     rating: 4.8,
     reviewCount: 125,
-    stockStatus: 'In Stock'
+    stockStatus: 'In Stock',
+    specifications: {
+      'Material': 'Pure Banarasi Silk',
+      'Length': '6.3 meters',
+      'Width': '45 inches',
+      'Weight': '900 grams',
+      'Care': 'Dry clean only',
+      'Blouse': 'Unstitched blouse piece included'
+    },
+    reviews: [
+      {
+        id: '1',
+        userId: 'user1',
+        userName: 'Priya Singh',
+        rating: 5,
+        comment: 'Beautiful saree! The quality is excellent and the zari work is stunning.',
+        createdAt: '2025-04-15T10:30:00Z',
+        helpful: 12,
+        images: ['https://example.com/review1.jpg']
+      },
+      {
+        id: '2',
+        userId: 'user2',
+        userName: 'Meera Patel',
+        rating: 4,
+        comment: 'Very good quality, but slightly heavy to wear for long duration.',
+        createdAt: '2025-04-10T15:20:00Z',
+        helpful: 8
+      }
+    ]
   },
   {
     id: '2',
@@ -94,7 +123,27 @@ export const products: Product[] = [
     isNew: true,
     rating: 4.9,
     reviewCount: 87,
-    stockStatus: 'In Stock'
+    stockStatus: 'In Stock',
+    specifications: {
+      'Material': 'Velvet with Net Dupatta',
+      'Style': 'Semi-stitched',
+      'Blouse': 'Included with heavy embroidery',
+      'Length': 'Floor length',
+      'Weight': '2.5 kg',
+      'Care': 'Dry clean only'
+    },
+    reviews: [
+      {
+        id: '3',
+        userId: 'user3',
+        userName: 'Anjali Sharma',
+        rating: 5,
+        comment: 'Perfect for wedding! Got so many compliments.',
+        createdAt: '2025-05-01T09:15:00Z',
+        helpful: 15,
+        images: ['https://example.com/review3.jpg', 'https://example.com/review4.jpg']
+      }
+    ]
   },
   {
     id: '3',
@@ -117,7 +166,25 @@ export const products: Product[] = [
     isNew: false,
     rating: 4.7,
     reviewCount: 154,
-    stockStatus: 'Low Stock'
+    stockStatus: 'Low Stock',
+    specifications: {
+      'Material': 'Georgette',
+      'Style': 'Floor length',
+      'Set Includes': 'Kurta, Bottom, Dupatta',
+      'Length': '58 inches',
+      'Care': 'Dry clean recommended'
+    },
+    reviews: [
+      {
+        id: '4',
+        userId: 'user4',
+        userName: 'Ritu Kapoor',
+        rating: 5,
+        comment: 'The embroidery work is exquisite. Perfect fit!',
+        createdAt: '2025-04-28T14:20:00Z',
+        helpful: 10
+      }
+    ]
   },
   {
     id: '4',
@@ -140,7 +207,25 @@ export const products: Product[] = [
     isNew: true,
     rating: 4.5,
     reviewCount: 210,
-    stockStatus: 'In Stock'
+    stockStatus: 'In Stock',
+    specifications: {
+      'Material': '100% Cotton',
+      'Length': '44 inches',
+      'Neck Type': 'Round Neck',
+      'Sleeve': 'Three-Quarter',
+      'Care': 'Machine wash'
+    },
+    reviews: [
+      {
+        id: '5',
+        userId: 'user5',
+        userName: 'Neha Gupta',
+        rating: 4,
+        comment: 'Comfortable for daily wear. Good quality cotton.',
+        createdAt: '2025-05-05T11:30:00Z',
+        helpful: 7
+      }
+    ]
   },
   {
     id: '5',
@@ -163,7 +248,25 @@ export const products: Product[] = [
     isNew: true,
     rating: 4.6,
     reviewCount: 78,
-    stockStatus: 'In Stock'
+    stockStatus: 'In Stock',
+    specifications: {
+      'Material': 'Satin with Net',
+      'Style': 'A-line',
+      'Length': 'Floor length',
+      'Sleeves': 'Full sleeves',
+      'Care': 'Dry clean only'
+    },
+    reviews: [
+      {
+        id: '6',
+        userId: 'user6',
+        userName: 'Anita Desai',
+        rating: 5,
+        comment: 'Stunning design! Perfect for cocktail parties.',
+        createdAt: '2025-05-10T16:45:00Z',
+        helpful: 9
+      }
+    ]
   },
   {
     id: '6',
@@ -186,7 +289,25 @@ export const products: Product[] = [
     isNew: false,
     rating: 4.8,
     reviewCount: 92,
-    stockStatus: 'In Stock'
+    stockStatus: 'In Stock',
+    specifications: {
+      'Material': 'Kundan, Pearls',
+      'Set Includes': 'Necklace, Earrings, Maang Tikka',
+      'Plating': '22K Gold',
+      'Stone Type': 'Artificial Kundan',
+      'Care': 'Store in jewelry box'
+    },
+    reviews: [
+      {
+        id: '7',
+        userId: 'user7',
+        userName: 'Pooja Verma',
+        rating: 5,
+        comment: 'Absolutely gorgeous set! Looks very premium.',
+        createdAt: '2025-05-12T13:20:00Z',
+        helpful: 11
+      }
+    ]
   },
   {
     id: '7',
@@ -209,7 +330,26 @@ export const products: Product[] = [
     isNew: false,
     rating: 4.9,
     reviewCount: 65,
-    stockStatus: 'Low Stock'
+    stockStatus: 'Low Stock',
+    specifications: {
+      'Material': 'Patola Silk',
+      'Length': '6.3 meters',
+      'Width': '47 inches',
+      'Weaving': 'Double Ikat',
+      'Care': 'Dry clean only',
+      'Blouse': 'Unstitched blouse piece included'
+    },
+    reviews: [
+      {
+        id: '8',
+        userId: 'user8',
+        userName: 'Shalini Mehta',
+        rating: 5,
+        comment: 'A masterpiece! The craftsmanship is outstanding.',
+        createdAt: '2025-05-15T10:10:00Z',
+        helpful: 14
+      }
+    ]
   },
   {
     id: '8',
@@ -232,7 +372,25 @@ export const products: Product[] = [
     isNew: true,
     rating: 4.6,
     reviewCount: 82,
-    stockStatus: 'In Stock'
+    stockStatus: 'In Stock',
+    specifications: {
+      'Material': 'Chiffon',
+      'Length': '2.5 meters',
+      'Width': '42 inches',
+      'Border': 'Zari work',
+      'Care': 'Dry clean recommended'
+    },
+    reviews: [
+      {
+        id: '9',
+        userId: 'user9',
+        userName: 'Kavita Reddy',
+        rating: 4,
+        comment: 'Beautiful dupatta, the zari work is very elegant.',
+        createdAt: '2025-05-18T09:30:00Z',
+        helpful: 6
+      }
+    ]
   }
 ];
 

@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import ProductCard from '../components/product/ProductCard';
 import ProductFilters from '../components/product/ProductFilters';
 import ProductSort from '../components/product/ProductSort';
+import type { Product, Category } from '../types';
 import { products, categories } from '../data/mockData';
-import { Product } from '../types';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -43,24 +43,30 @@ const CategoryPage = () => {
     setCurrentPage(1);
   }, [filters]);
   
+  // Use mock data directly
+  const allProducts = products;
+  const allCategories = categories;
+
   // Apply filters and get category products
-  const categoryProducts = products.filter(product => {
-    if (categoryId && product.category !== categoryId) return false;
-    
-    // Price range filter
-    if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) return false;
-    
-    // Categories filter (if any selected)
-    if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false;
-    
-    // Ratings filter
-    if (filters.ratings.length > 0 && !filters.ratings.some(rating => product.rating >= rating)) return false;
-    
-    // Availability filter
-    if (filters.availability.length > 0 && !filters.availability.includes(product.stockStatus)) return false;
-    
-    return true;
-  });
+  const categoryProducts = useMemo(() => {
+    return allProducts.filter((product: Product) => {
+      if (categoryId && product.category !== categoryId) return false;
+      
+      // Price range filter
+      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) return false;
+      
+      // Categories filter (if any selected)
+      if (filters.categories.length > 0 && !filters.categories.includes(product.category)) return false;
+      
+      // Ratings filter
+      if (filters.ratings.length > 0 && !filters.ratings.some(rating => product.rating >= rating)) return false;
+      
+      // Availability filter
+      if (filters.availability.length > 0 && !filters.availability.includes(product.stockStatus)) return false;
+      
+      return true;
+    });
+  }, [allProducts, categoryId, filters]);
   
   // Sort products
   const sortedProducts = [...categoryProducts].sort((a, b) => {
@@ -86,7 +92,10 @@ const CategoryPage = () => {
   const paginatedProducts = sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   // Get category details
-  const category = categories.find(cat => cat.id === categoryId);
+  const category = useMemo(() =>
+    allCategories.find((cat: Category) => cat.id === categoryId),
+    [allCategories, categoryId]
+  );
 
   // Reset to first page when category changes
   useEffect(() => {
@@ -98,7 +107,12 @@ const CategoryPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Debug logs
+  console.log('Categories:', allCategories);
+  console.log('Category ID:', categoryId);
+
   if (!categoryId) {
+    console.log('Rendering all categories view');
     return (
       <>
         <Helmet>
@@ -117,7 +131,7 @@ const CategoryPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((cat) => (
+            {allCategories.map((cat: Category) => (
               <div key={cat.id} className="group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <Link to={`/category/${cat.id}`} className="block">
                   <div className="relative h-64">
@@ -144,6 +158,7 @@ const CategoryPage = () => {
     );
   }
 
+  console.log('Selected category:', category);
   if (!category) {
     return <div className="container mx-auto px-4 py-8">Category not found</div>;
   }

@@ -51,11 +51,11 @@ const Header: React.FC = () => {
                 {category.name}
               </Link>
             ))}
-            <Link 
-              to="/collections"
+            <Link
+              to="/categories"
               className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
             >
-              Collections
+              All Categories
             </Link>
           </nav>
 
@@ -207,12 +207,12 @@ const Header: React.FC = () => {
                   {category.name}
                 </Link>
               ))}
-              <Link 
-                to="/collections"
+              <Link
+                to="/categories"
                 className="py-3 border-b border-gray-100 text-gray-700"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Collections
+                All Categories
               </Link>
               {isAuthenticated ? (
                 <>

@@ -18,6 +18,10 @@ export interface Product {
   rating: number;
   reviewCount: number;
   stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' | 'Pre-Order';
+  specifications?: {
+    [key: string]: string;
+  };
+  reviews: Review[];
 }
 
 export interface Category {
@@ -59,4 +63,21 @@ export interface FilterOptions {
   fabrics: string[];
   occasions: string[];
   sizes: string[];
+}
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  helpful: number;
+  images?: string[];
+}
+
+export interface ReviewFormData {
+  rating: number;
+  comment: string;
+  images?: File[];
 }
