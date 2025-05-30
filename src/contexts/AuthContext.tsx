@@ -17,8 +17,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Define AuthProvider as a named function for better Fast Refresh
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -30,7 +29,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setIsLoading(false);
   }, []);
-  const login = async (email: string, _password: string) => {
+
+  const login = async (email: string, password: string) => {
     try {
       // Here you would typically make an API call to authenticate
       // For demo purposes, we'll simulate a successful login
@@ -52,7 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('user');
   };
-  const register = async (name: string, email: string, _password: string) => {
+
+  const register = async (name: string, email: string, password: string) => {
     try {
       // Here you would typically make an API call to register
       // For demo purposes, we'll simulate a successful registration
@@ -86,11 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 };
 
-// Named function for better Fast Refresh
-export function useAuth(): AuthContextType {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};

@@ -181,7 +181,7 @@ const HomePage: React.FC = () => {
                   const successMsg = form.parentElement?.querySelector('.success-message');
                   if (successMsg) {
                     successMsg.classList.remove('hidden');
-                    window.setTimeout(() => {
+                    setTimeout(() => {
                       successMsg.classList.add('hidden');
                     }, 3000);
                   }
