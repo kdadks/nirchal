@@ -13,7 +13,7 @@ interface ShippingDetails {
 }
 
 const CheckoutPage: React.FC = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { cart, subtotal, clearCart } = useCart();
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(1);
