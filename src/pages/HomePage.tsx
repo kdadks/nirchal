@@ -1,7 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { usePublicProducts } from '../hooks/usePublicProducts';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const HomePage: React.FC = () => {
   return (
@@ -54,34 +52,25 @@ const HomePage: React.FC = () => {
             Featured Products
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {(() => {
-              const { products, loading, error } = usePublicProducts(true);
-              
-              if (loading) return <LoadingSpinner />;
-              if (error) return <p className="text-red-500 text-center col-span-4">Error loading products</p>;
-              
-              return products.slice(0, 4).map((product) => (
-                <Link 
-                  to={`/products/${product.id}`} 
-                  key={product.id} 
-                  className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <div className="h-64 bg-gray-200">
-                    {product.images?.[0]?.image_url && (
-                      <img 
-                        src={product.images[0].image_url} 
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">{product.name}</h3>
-                    <p className="text-gray-600">₹{product.price.toLocaleString()}</p>
-                  </div>
-                </Link>
-              ));
-            })()}
+            {/* Static Featured Products */}
+            {[
+              { id: 1, name: 'Silk Saree', price: 9999 },
+              { id: 2, name: 'Designer Lehenga', price: 15999 },
+              { id: 3, name: 'Embroidered Kurti', price: 2999 },
+              { id: 4, name: 'Traditional Anarkali', price: 7999 }
+            ].map((product) => (
+              <Link
+                to={`/products/${product.id}`}
+                key={product.id}
+                className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="h-64 bg-gray-200" />
+                <div className="p-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{product.name}</h3>
+                  <p className="text-gray-600">₹{product.price.toLocaleString()}</p>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

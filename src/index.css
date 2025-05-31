@@ -1,9 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
 
-/* @tailwind directives require Tailwind CSS build process. Uncomment if using Tailwind CLI or PostCSS. */
-/* @tailwind base; */
-/* @tailwind components; */
-/* @tailwind utilities; */
+/* Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --color-primary-50: #f2f6fc;

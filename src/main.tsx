@@ -1,8 +1,6 @@
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
-import { AuthProvider } from './contexts/AuthContext';
-import { CartProvider } from './contexts/CartContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import App from './App';
@@ -18,11 +16,7 @@ root.render(
   <ErrorBoundary>
     <Suspense fallback={<LoadingSpinner />}>
       <HelmetProvider>
-        <AuthProvider>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </AuthProvider>
+        <App />
       </HelmetProvider>
     </Suspense>
   </ErrorBoundary>

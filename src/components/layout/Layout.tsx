@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { ShoppingBag, Menu, X } from 'lucide-react';
-import { useCart } from '../../contexts/CartContext';
 
 const Layout: React.FC = () => {
   const location = useLocation();
-  const { state: { items } } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const cartItemCount = items.reduce((total, item) => total + item.quantity, 0);
+  // Initialize with empty cart for now
+  const cartItemCount = 0;
 
   // Don't render header/footer for admin routes
   if (isAdminRoute) {
