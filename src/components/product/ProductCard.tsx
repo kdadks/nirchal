@@ -16,7 +16,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleAddToCart = () => {
     // Default to first size if there are sizes
     const defaultSize = product.sizes[0] || 'Free Size';
-    addToCart(product, defaultSize, 1);
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0],
+      size: defaultSize
+    });
   };
 
   return (
