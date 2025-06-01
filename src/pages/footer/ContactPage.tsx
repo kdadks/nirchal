@@ -1,10 +1,8 @@
 import React from 'react';
-import Layout from '../../components/layout/Layout';
 
 const ContactPage: React.FC = () => {
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-16">
+    <div className="container mx-auto px-4 py-16">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
             Contact Us
@@ -111,7 +109,6 @@ const ContactPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </Layout>
   );
 };
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../components/layout/Layout';
 import { useCart } from '../contexts/CartContext';
 
 interface CheckoutForm {
@@ -66,8 +65,7 @@ const CheckoutPage: React.FC = () => {
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-16">
+    <div className="container mx-auto px-4 py-16">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
             Checkout
@@ -282,7 +280,6 @@ const CheckoutPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </Layout>
   );
 };
 

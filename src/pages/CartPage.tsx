@@ -1,38 +1,34 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
-import Layout from '../components/layout/Layout';
 import { useCart } from '../contexts/CartContext';
 
 const CartPage: React.FC = () => {
-  const { state: { items, total }, updateQuantity, removeItem } = useCart();
+  const { state: { items, total }, updateQuantity, removeFromCart } = useCart();
 
   if (items.length === 0) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
-              Your Cart is Empty
-            </h1>
-            <p className="text-gray-600 mb-8">
-              Looks like you haven't added any items to your cart yet.
-            </p>
-            <Link
-              to="/products"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-            >
-              Continue Shopping
-            </Link>
-          </div>
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
+            Your Cart is Empty
+          </h1>
+          <p className="text-gray-600 mb-8">
+            Looks like you haven't added any items to your cart yet.
+          </p>
+          <Link
+            to="/products"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+          >
+            Continue Shopping
+          </Link>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-16">
+    <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
             Shopping Cart
@@ -63,7 +59,7 @@ const CartPage: React.FC = () => {
                       ))}
                     </select>
                     <button
-                      onClick={() => removeItem(item.id, item.variantId)}
+                      onClick={() => removeFromCart(item.id, item.variantId)}
                       className="ml-4 text-red-600 hover:text-red-800"
                     >
                       <Trash2 size={20} />
@@ -109,7 +105,6 @@ const CartPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </Layout>
   );
 };
 

@@ -16,7 +16,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
   const { addToWishlist, isInWishlist } = useWishlist();
 
   const handleAddToCart = () => {
-    addToCart(product, selectedSize, quantity);
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0],
+      size: selectedSize
+    });
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
