@@ -7,7 +7,8 @@ import { categories } from '../../data/mockData';
 
 const Header: React.FC = () => {
   const { totalItems } = useCart();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, signOut } = useAuth();
+  const isAuthenticated = !!user;
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -94,8 +95,8 @@ const Header: React.FC = () => {
                       Orders
                     </Link>
                     <button
-                      onClick={() => {
-                        logout();
+                      onClick={async () => {
+                        await signOut();
                         navigate('/');
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -234,8 +235,8 @@ const Header: React.FC = () => {
                     Orders
                   </Link>
                   <button
-                    onClick={() => {
-                      logout();
+                    onClick={async () => {
+                      await signOut();
                       setMobileMenuOpen(false);
                       navigate('/');
                     }}

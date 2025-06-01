@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 interface CartItem {
-  id: number;
+  id: string;
   name: string;
   price: number;
   image: string;
   quantity: number;
-  variantId?: number;
+  variantId?: string;
   size?: string;
   color?: string;
 }
@@ -18,16 +18,18 @@ interface CartState {
 
 type CartAction =
   | { type: 'ADD_ITEM'; payload: CartItem }
-  | { type: 'REMOVE_ITEM'; payload: { id: number; variantId?: number } }
-  | { type: 'UPDATE_QUANTITY'; payload: { id: number; variantId?: number; quantity: number } }
+  | { type: 'REMOVE_ITEM'; payload: { id: string; variantId?: string } }
+  | { type: 'UPDATE_QUANTITY'; payload: { id: string; variantId?: string; quantity: number } }
   | { type: 'CLEAR_CART' };
 
 interface CartContextType {
   state: CartState;
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (id: number, variantId?: number) => void;
-  updateQuantity: (id: number, quantity: number, variantId?: number) => void;
+  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  removeFromCart: (id: string, variantId?: string) => void;
+  updateQuantity: (id: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
+  totalItems: number;
+  addItem: (item: Omit<CartItem, 'quantity'>) => void; // alias for addToCart
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -130,7 +132,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const removeItem = (id: number, variantId?: number) => {
+  const removeItem = (id: string, variantId?: string) => {
     try {
       dispatch({ type: 'REMOVE_ITEM', payload: { id, variantId } });
     } catch (error) {
@@ -138,7 +140,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateQuantity = (id: number, quantity: number, variantId?: number) => {
+  const updateQuantity = (id: string, quantity: number, variantId?: string) => {
     try {
       dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity, variantId } });
     } catch (error) {
@@ -158,10 +160,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <CartContext.Provider
       value={{
         state,
-        addItem,
-        removeItem,
+        addToCart: addItem,
+        addItem,  // provide both names for compatibility
+        removeFromCart: removeItem,
         updateQuantity,
-        clearCart
+        clearCart,
+        totalItems: state.items.reduce((sum, item) => sum + item.quantity, 0)
       }}
     >
       {children}

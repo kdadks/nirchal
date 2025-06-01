@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, tables, Tables } from '../config/supabase';
+import { supabase, tables } from '../config/supabase';
 
 export interface AboutSection {
   id: number;

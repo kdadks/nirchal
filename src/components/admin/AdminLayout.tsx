@@ -6,7 +6,6 @@ import {
   Package,
   Settings,
   LogOut,
-  ChevronDown,
   Menu,
   X
 } from 'lucide-react';

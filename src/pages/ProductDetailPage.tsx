@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useProducts } from '../hooks/useAdmin';
-import type { ProductVariant } from '../types/admin';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,7 +15,7 @@ const ProductDetailPage: React.FC = () => {
   const [selectedImage, setSelectedImage] = useState<number>(0);
   const [isAdding, setIsAdding] = useState(false);
 
-  const product = products.find(p => p.id === Number(id));
+  const product = products.find(p => p.id === (id ? parseInt(id, 10) : undefined));
 
   if (loading) {
     return (
@@ -59,11 +58,11 @@ const ProductDetailPage: React.FC = () => {
       );
 
       addItem({
-        id: product.id,
+        id: product.id.toString(),
         name: product.name,
         price: product.sale_price || product.price,
         image: product.images[0]?.image_url || '/placeholder-product.jpg',
-        variantId: selectedVariant?.id,
+        variantId: selectedVariant?.id?.toString(),
         size: selectedSize,
         color: selectedColor
       });
