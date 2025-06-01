@@ -1,113 +1,102 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
+import { useContent } from '../../hooks/useContent';
+import { Scale, UserCheck, ShoppingBag, AlertCircle, Copyright } from 'lucide-react';
 
 const TermsPage: React.FC = () => {
-  return (
-    <div className="container mx-auto px-4 py-16">
+  const { data: terms, loading, error } = useContent('terms');
+
+  const getIconForTitle = (title: string) => {
+    if (title.toLowerCase().includes('accept')) return <Scale className="w-8 h-8 text-primary-600" />;
+    if (title.toLowerCase().includes('account')) return <UserCheck className="w-8 h-8 text-primary-600" />;
+    if (title.toLowerCase().includes('product')) return <ShoppingBag className="w-8 h-8 text-primary-600" />;
+    if (title.toLowerCase().includes('intellectual')) return <Copyright className="w-8 h-8 text-primary-600" />;
+    return <AlertCircle className="w-8 h-8 text-primary-600" />;
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 pt-24">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
-            Terms & Conditions
-          </h1>
-
-          <div className="prose prose-lg max-w-none">
-            <section className="mb-8">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Acceptance of Terms
-              </h2>
-              <p className="text-gray-600 mb-4">
-                By accessing and using our website, you accept and agree to be bound by the terms and conditions. These terms apply to all visitors, users, and others who access or use our service.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Use License
-              </h2>
-              <ol className="list-decimal pl-6 text-gray-600 space-y-2">
-                <li>
-                  Permission is granted to temporarily download one copy of the materials (information or software) on Nirchal's website for personal, non-commercial transitory viewing only.
-                </li>
-                <li>
-                  This is the grant of a license, not a transfer of title, and under this license you may not:
-                  <ul className="list-disc pl-6 mt-2 space-y-1">
-                    <li>Modify or copy the materials</li>
-                    <li>Use the materials for any commercial purpose</li>
-                    <li>Attempt to decompile or reverse engineer any software</li>
-                    <li>Remove any copyright or other proprietary notations</li>
-                    <li>Transfer the materials to another person</li>
-                  </ul>
-                </li>
-              </ol>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Account Terms
-              </h2>
-              <ul className="list-disc pl-6 text-gray-600 space-y-2">
-                <li>You must be 18 years or older to use this service</li>
-                <li>You must provide accurate and complete information when creating an account</li>
-                <li>You are responsible for maintaining the security of your account</li>
-                <li>You must notify us immediately of any unauthorized use of your account</li>
-                <li>We reserve the right to refuse service to anyone at any time</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Payment Terms
-              </h2>
-              <ul className="list-disc pl-6 text-gray-600 space-y-2">
-                <li>All prices are in Indian Rupees (INR)</li>
-                <li>Prices are subject to change without notice</li>
-                <li>We accept major credit cards, UPI, and other payment methods as specified</li>
-                <li>Payment information is always encrypted and secure</li>
-                <li>Orders are subject to verification and acceptance</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Disclaimer
-              </h2>
-              <p className="text-gray-600 mb-4">
-                The materials on Nirchal's website are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Limitations
-              </h2>
-              <p className="text-gray-600 mb-4">
-                In no event shall Nirchal or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on our website.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Governing Law
-              </h2>
-              <p className="text-gray-600">
-                These terms and conditions are governed by and construed in accordance with the laws of India, and you irrevocably submit to the exclusive jurisdiction of the courts in that location.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Contact Information
-              </h2>
-              <p className="text-gray-600">
-                For any questions regarding these terms, please contact us:
-              </p>
-              <ul className="text-gray-600 mt-2">
-                <li>Email: legal@nirchal.com</li>
-                <li>Phone: +91 123 456 7890</li>
-                <li>Address: [Your Business Address]</li>
-              </ul>
-            </section>
+          <div className="animate-pulse space-y-8">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex space-x-4">
+                <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full"></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 pt-24">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-red-600">Error loading terms of service. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 pt-24">
+      <Helmet>
+        <title>Terms of Service - Nirchal</title>
+        <meta name="description" content="Read Nirchal's terms of service and user agreement." />
+      </Helmet>
+
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
+          Terms of Service
+        </h1>
+
+        <div className="prose max-w-none text-gray-600 mb-8">
+          <p>
+            Please read these terms of service carefully before using our website or services. 
+            By using Nirchal, you agree to be bound by the following terms and conditions.
+          </p>
+        </div>
+
+        <div className="space-y-8">
+          {terms
+            .sort((a, b) => a.order_num - b.order_num)
+            .map((section) => (
+              <div key={section.id} className="flex space-x-6">
+                {getIconForTitle(section.title)}
+                <div>
+                  <h2 className="text-xl font-serif font-semibold text-gray-900 mb-2">
+                    {section.title}
+                  </h2>
+                  <p className="text-gray-600 leading-relaxed">
+                    {section.content}
+                  </p>
+                </div>
+              </div>
+            ))}
+        </div>
+
+        <div className="mt-12 p-6 bg-primary-50 rounded-lg">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Questions About Our Terms?
+          </h2>
+          <p className="text-gray-600 mb-4">
+            If you have any questions about our terms of service, please don't hesitate to contact our customer service team.
+          </p>
+          <a
+            href="/contact"
+            className="inline-block bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition duration-200"
+          >
+            Contact Us
+          </a>
+        </div>
+      </div>
+    </div>
   );
 };
 

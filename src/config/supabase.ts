@@ -1,14 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = 'https://tazrvokohjfzicdzzxia.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRhenJ2b2tvaGpmemljZHp6eGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2MDQ3MzcsImV4cCI6MjA2NDE4MDczN30.veEaE0AicfPqYFug_1EXlpnsICUsXf-T0VW7dD0ijUc';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
-}
+// Log initialization
+console.log('Initializing Supabase with:', {
+  url: supabaseUrl,
+  anonKey: supabaseAnonKey ? 'present' : 'missing'
+});
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Export table names
 export const tables = {
   about: 'about_sections',
   faqs: 'faqs',
@@ -17,7 +20,7 @@ export const tables = {
   products: 'products'
 } as const;
 
-// Add TypeScript types for our database schema
+// TypeScript types for our database schema
 export type Tables = {
   about_sections: {
     id: number;

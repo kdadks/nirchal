@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { supabase, tables } from '../config/supabase';
+import { supabase } from '../config/supabase';
 
 export interface AboutSection {
   id: number;
   title: string | null;
   content: string;
-  order: number;
+  order_num: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface FAQ {
@@ -13,7 +15,9 @@ export interface FAQ {
   category: string;
   question: string;
   answer: string;
-  order: number;
+  order_num: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PrivacySection {
@@ -21,71 +25,118 @@ export interface PrivacySection {
   title: string | null;
   content: string;
   list_items: string[] | null;
-  order: number;
+  order_num: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ContactInfo {
   id: number;
   type: string;
   value: string;
-  order: number;
+  order_num: number;
+  created_at: string;
+  updated_at: string;
 }
 
-type ContentType = 'about' | 'faqs' | 'privacy' | 'contact' | 'products';
-
-export interface Product {
+export interface ShippingInfo {
   id: number;
-  name: string;
-  price: number;
-  description: string;
-  image_url: string;
-  category: string;
-  featured: boolean;
+  title: string;
+  content: string;
+  order_num: number;
+  created_at: string;
+  updated_at: string;
 }
+
+export interface ReturnPolicy {
+  id: number;
+  title: string;
+  content: string;
+  order_num: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Terms {
+  id: number;
+  title: string;
+  content: string;
+  order_num: number;
+  created_at: string;
+  updated_at: string;
+}
+
+type ContentType = 'about' | 'faqs' | 'privacy' | 'contact' | 'shipping' | 'return' | 'terms';
 
 type ContentTypeMap = {
   about: AboutSection;
   faqs: FAQ;
   privacy: PrivacySection;
   contact: ContactInfo;
-  products: Product;
+  shipping: ShippingInfo;
+  return: ReturnPolicy;
+  terms: Terms;
+};
+
+const tableMap: Record<ContentType, string> = {
+  about: 'about_sections',
+  faqs: 'faqs',
+  privacy: 'privacy_sections',
+  contact: 'contact_info',
+  shipping: 'shipping_info',
+  return: 'return_policy',
+  terms: 'terms'
 };
 
 export function useContent<T extends ContentType>(type: T): {
   data: ContentTypeMap[T][];
   loading: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
 } {
   const [data, setData] = useState<ContentTypeMap[T][]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchContent() {
-      try {
-        const { data: result, error: err } = await supabase
-          .from(tables[type])
-          .select('*')
-          .order('order_num');
+  async function fetchContent() {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log(`[useContent] Fetching ${type} data...`);
+      console.log('[useContent] Supabase client:', !!supabase);
+      console.log('[useContent] Table name:', tableMap[type]);
 
-        if (err) throw err;
+      const { data: result, error: err } = await supabase
+        .from(tableMap[type])
+        .select('*')
+        .order('order_num');
 
-        // Transform the data to match our interface expectations
-        const transformedData = result.map(item => ({
-          ...item,
-          order: item.order_num,
-        })) as ContentTypeMap[T][];
+      console.log(`[useContent] ${type} Query result:`, result);
+      console.log(`[useContent] ${type} Query error:`, err);
 
-        setData(transformedData);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'An error occurred');
-      } finally {
-        setLoading(false);
+      if (err) {
+        console.error(`[useContent] Error fetching ${type}:`, err);
+        throw err;
       }
-    }
 
+      if (!result) {
+        console.warn(`[useContent] No ${type} data returned`);
+        setData([]);
+        return;
+      }
+
+      setData(result as ContentTypeMap[T][]);
+    } catch (e) {
+      console.error(`[useContent] Error in fetchContent for ${type}:`, e);
+      setError(e instanceof Error ? e.message : 'An error occurred while fetching data');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     fetchContent();
   }, [type]);
 
-  return { data, loading, error };
+  return { data, loading, error, refetch: fetchContent };
 }

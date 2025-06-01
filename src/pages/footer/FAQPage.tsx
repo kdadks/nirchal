@@ -1,11 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useContent } from '../../hooks/useContent';
+import { supabase } from '../../config/supabase';
 
 const FAQPage: React.FC = () => {
   const [openItem, setOpenItem] = useState<number | null>(null);
   const { data: faqs, loading, error } = useContent('faqs');
+
+  useEffect(() => {
+    // Direct test of Supabase connection
+    async function testSupabase() {
+      console.log('Testing Supabase connection...');
+      try {
+        const { data, error } = await supabase
+          .from('faqs')
+          .select('*')
+          .order('order_num');
+        
+        console.log('Direct Supabase test results:');
+        console.log('Data:', data);
+        console.log('Error:', error);
+      } catch (e) {
+        console.error('Supabase test error:', e);
+      }
+    }
+
+    testSupabase();
+  }, []);
+
+  useEffect(() => {
+    console.log('FAQPage data:', faqs);
+    console.log('FAQPage loading:', loading);
+    console.log('FAQPage error:', error);
+  }, [faqs, loading, error]);
 
   if (loading) {
     return (
@@ -32,7 +60,29 @@ const FAQPage: React.FC = () => {
     return (
       <div className="container mx-auto px-4 py-8 pt-24">
         <div className="max-w-3xl mx-auto">
-          <p className="text-red-600">Error loading FAQs. Please try again later.</p>
+          <p className="text-red-600">Error loading FAQs: {error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!faqs || faqs.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8 pt-24">
+        <div className="max-w-3xl mx-auto">
+          <p className="text-gray-600">No FAQs found. Data: {JSON.stringify(faqs)}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+            onClick={() => window.location.reload()}
+          >
+            Refresh
+          </button>
         </div>
       </div>
     );
