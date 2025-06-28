@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ShoppingBag, Menu, X } from 'lucide-react';
 
-const Layout: React.FC = () => {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -11,7 +15,7 @@ const Layout: React.FC = () => {
 
   // Don't render header/footer for admin routes
   if (isAdminRoute) {
-    return <Outlet />;
+    return <>{children}</>;
   }
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -99,7 +103,7 @@ const Layout: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-grow">
-        <Outlet />
+        {children}
       </main>
 
       {/* Footer */}
