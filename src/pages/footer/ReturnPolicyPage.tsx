@@ -1,96 +1,40 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { useContent } from '../../hooks/useContent';
-import { RefreshCcw, Clock, PackageX, CreditCard, Award } from 'lucide-react';
 
-const ReturnPolicyPage: React.FC = () => {
-  const { data: returnInfo, loading, error } = useContent('return');
 
-  const getIconForTitle = (title: string) => {
-    if (title.toLowerCase().includes('window')) return <Clock className="w-8 h-8 text-primary-600" />;
-    if (title.toLowerCase().includes('process')) return <RefreshCcw className="w-8 h-8 text-primary-600" />;
-    if (title.toLowerCase().includes('refund')) return <CreditCard className="w-8 h-8 text-primary-600" />;
-    if (title.toLowerCase().includes('exchange')) return <Award className="w-8 h-8 text-primary-600" />;
-    return <PackageX className="w-8 h-8 text-primary-600" />;
-  };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8 pt-24">
-        <div className="max-w-3xl mx-auto">
-          <div className="animate-pulse space-y-8">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex space-x-4">
-                <div className="h-8 w-8 bg-gray-200 rounded"></div>
-                <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8 pt-24">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-red-600">Error loading return policy information. Please try again later.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-8 pt-24">
-      <Helmet>
-        <title>Return Policy - Nirchal</title>
-        <meta name="description" content="Learn about Nirchal's return and exchange policies, refund process, and more." />
-      </Helmet>
-
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-8">
-          Return Policy
-        </h1>
-
-        <div className="space-y-8">
-          {returnInfo
-            .sort((a, b) => a.order_num - b.order_num)
-            .map((info) => (
-              <div key={info.id} className="flex space-x-6">
-                {getIconForTitle(info.title)}
-                <div>
-                  <h2 className="text-xl font-serif font-semibold text-gray-900 mb-2">
-                    {info.title}
-                  </h2>
-                  <p className="text-gray-600 leading-relaxed">
-                    {info.content}
-                  </p>
-                </div>
-              </div>
-            ))}
-        </div>
-
-        <div className="mt-12 p-6 bg-primary-50 rounded-lg">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Need Help with Returns?
-          </h2>
-          <p className="text-gray-600 mb-4">
-            If you have any questions about returns or need to initiate a return, our customer service team is here to help.
-          </p>
-          <a
-            href="/contact"
-            className="inline-block bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition duration-200"
-          >
-            Contact Us
-          </a>
-        </div>
+const ReturnPolicyPage: React.FC = () => (
+  <>
+    <Helmet>
+      <title>Return Policy - Nirchal</title>
+      <meta name="description" content="Read Nirchal's return policy for information on returns, exchanges, and refunds." />
+    </Helmet>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-16">
+      <div className="container mx-auto px-4 max-w-3xl">
+        <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl shadow-lg p-8 mb-10 text-center">
+          <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">Return & Refund Policy</h1>
+          <p className="text-xl text-primary-100 mb-2">We want you to love your purchase. If you are not satisfied, you may return eligible items within 30 days of delivery.</p>
+        </section>
+        <section className="bg-white rounded-xl shadow p-8">
+          <h2 className="font-semibold text-xl mb-2 text-primary-700">Return Conditions</h2>
+          <ul className="list-disc ml-6 text-gray-700 mb-4">
+            <li>Items must be unused, unwashed, and in original packaging</li>
+            <li>Custom-made or altered items are not eligible</li>
+            <li>Return request must be initiated within 30 days</li>
+          </ul>
+          <h2 className="font-semibold text-xl mb-2 text-primary-700">How to Return</h2>
+          <ul className="list-disc ml-6 text-gray-700 mb-4">
+            <li>Log in to your account and select the order</li>
+            <li>Choose the item(s) to return and follow the instructions</li>
+            <li>Pack the item securely and ship to the provided address</li>
+          </ul>
+          <h2 className="font-semibold text-xl mb-2 text-primary-700">Refunds</h2>
+          <p className="mb-4 text-gray-700">Refunds are processed within 7 business days after we receive and inspect your return. Refunds are issued to the original payment method.</p>
+          <p className="mt-8 text-gray-600">For questions, contact us at <a href="mailto:returns@nirchal.com" className="text-primary-600 underline">returns@nirchal.com</a>.</p>
+        </section>
       </div>
     </div>
-  );
-};
+  </>
+);
 
 export default ReturnPolicyPage;

@@ -111,37 +111,25 @@ const FAQPage: React.FC = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white py-20">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h1 className="font-display text-4xl md:text-5xl font-bold mb-6">
-                Frequently Asked Questions
-              </h1>
-              <p className="text-xl text-orange-100 mb-8">
-                Find answers to common questions about our products, services, and policies
-              </p>
-              
-              {/* Search Bar */}
-              <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search frequently asked questions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 rounded-full text-gray-900 text-lg focus:outline-none focus:ring-4 focus:ring-orange-200 shadow-lg"
-                />
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-16">
+        <div className="container mx-auto px-4 max-w-3xl">
+          {/* Hero Section */}
+          <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl shadow-lg p-8 mb-10 text-center">
+            <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
+            <p className="text-xl text-primary-100 mb-6">Find answers to common questions about our products, services, and policies</p>
+            {/* Search Bar */}
+            <div className="relative max-w-xl mx-auto mb-4">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search frequently asked questions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 rounded-full text-gray-900 text-lg focus:outline-none focus:ring-4 focus:ring-orange-200 shadow"
+              />
             </div>
-          </div>
-        </section>
-
-        {/* Category Filter */}
-        <section className="py-8 bg-white border-b border-gray-200">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-wrap justify-center gap-2 md:gap-4">
+            {/* Category Filter */}
+            <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-2">
               {categories.map((category) => {
                 const IconComponent = category.icon;
                 return (
@@ -160,20 +148,16 @@ const FAQPage: React.FC = () => {
                 );
               })}
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* FAQ Content */}
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
+          {/* FAQ Content */}
+          <section className="mb-10">
+            <div>
               {filteredFAQs.length === 0 ? (
                 <div className="text-center py-16">
                   <HelpCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-2xl font-semibold text-gray-600 mb-2">No FAQs Found</h3>
-                  <p className="text-gray-500">
-                    Try adjusting your search terms or category filter.
-                  </p>
+                  <p className="text-gray-500">Try adjusting your search terms or category filter.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -197,13 +181,10 @@ const FAQPage: React.FC = () => {
                           )}
                         </div>
                       </button>
-                      
                       {expandedItems.includes(faq.id) && (
                         <div className="px-6 pb-5">
                           <div className="h-px bg-gradient-to-r from-orange-200 to-pink-200 mb-4"></div>
-                          <p className="text-gray-600 leading-relaxed">
-                            {faq.answer}
-                          </p>
+                          <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
                         </div>
                       )}
                     </div>
@@ -211,50 +192,40 @@ const FAQPage: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Contact Section */}
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <h2 className="font-display text-3xl font-bold text-gray-900 mb-4">
-                Still have questions?
-              </h2>
-              <p className="text-xl text-gray-600 mb-8">
-                Our customer support team is here to help you with any questions or concerns.
-              </p>
-              
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-8 rounded-xl">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Email Support</h3>
-                  <p className="text-gray-600 mb-4">Get detailed help via email</p>
-                  <a
-                    href="mailto:support@nirchal.com"
-                    className="inline-block bg-gradient-to-r from-primary-500 to-accent-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
-                  >
-                    Send Email
-                  </a>
-                </div>
-                
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Live Chat</h3>
-                  <p className="text-gray-600 mb-4">Chat with our AI assistant</p>
-                  <button
-                    onClick={() => {
-                      // This would trigger the AI chatbot
-                      const chatbot = document.querySelector('[data-chatbot-trigger]') as HTMLElement;
-                      if (chatbot) chatbot.click();
-                    }}
-                    className="inline-block bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
-                  >
-                    Start Chat
-                  </button>
-                </div>
+          {/* Contact Section */}
+          <section className="bg-white rounded-xl shadow p-8 text-center">
+            <h2 className="font-display text-2xl font-bold text-gray-900 mb-4">Still have questions?</h2>
+            <p className="text-lg text-gray-600 mb-8">Our customer support team is here to help you with any questions or concerns.</p>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-8 rounded-xl">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Email Support</h3>
+                <p className="text-gray-600 mb-4">Get detailed help via email</p>
+                <a
+                  href="mailto:support@nirchal.com"
+                  className="inline-block bg-gradient-to-r from-primary-500 to-accent-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                >
+                  Send Email
+                </a>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">Live Chat</h3>
+                <p className="text-gray-600 mb-4">Chat with our AI assistant</p>
+                <button
+                  onClick={() => {
+                    // This would trigger the AI chatbot
+                    const chatbot = document.querySelector('[data-chatbot-trigger]') as HTMLElement;
+                    if (chatbot) chatbot.click();
+                  }}
+                  className="inline-block bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                >
+                  Start Chat
+                </button>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
     </>
   );
