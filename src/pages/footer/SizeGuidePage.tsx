@@ -1,5 +1,5 @@
+
 import React, { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Ruler } from 'lucide-react';
 
 interface SizeChart {
@@ -11,52 +11,40 @@ interface SizeChart {
 }
 
 const SizeGuidePage: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] = useState('sarees');
+  // Set default to first category for guaranteed match
+  const [selectedCategory, setSelectedCategory] = useState('kurtis/suits/dresses');
 
   const sizeCharts: SizeChart[] = [
     {
-      category: 'sarees',
-      measurements: ['Length', 'Width', 'Blouse Size'],
+      category: 'kurtis/suits/dresses',
+      measurements: ['Bust', 'Waist', 'Hip'],
       sizes: {
-        'Standard': ['5.5m', '1.1m', '0.8m'],
-        'Extra Long': ['6m', '1.1m', '0.8m'],
-        'Half Saree': ['4m', '1.1m', '0.8m']
+        'XS': ['32', '26', '36'],
+        'S': ['34', '28', '38'],
+        'M': ['36', '30', '40'],
+        'L': ['38', '32', '42'],
+        'XL': ['40', '34', '44'],
+        'XXL': ['42', '36', '46'],
+        '3XL': ['44', '38', '48']
       }
     },
     {
       category: 'lehengas',
-      measurements: ['Bust', 'Waist', 'Hip', 'Length'],
+      measurements: ['Waist', 'Hip', 'Length'],
       sizes: {
-        'XS': ['32"', '26"', '35"', '40"'],
-        'S': ['34"', '28"', '37"', '40"'],
-        'M': ['36"', '30"', '39"', '40"'],
-        'L': ['38"', '32"', '41"', '40"'],
-        'XL': ['40"', '34"', '43"', '40"'],
-        'XXL': ['42"', '36"', '45"', '40"']
+        'XS': ['26', '36', '40'],
+        'S': ['28', '38', '40'],
+        'M': ['30', '40', '41'],
+        'L': ['32', '42', '41'],
+        'XL': ['34', '44', '42'],
+        'XXL': ['36', '46', '42']
       }
     },
     {
-      category: 'kurtis',
-      measurements: ['Bust', 'Waist', 'Hip', 'Length'],
+      category: 'sarees',
+      measurements: ['Saree Length', 'Blouse Fabric', 'Petticoat Waist'],
       sizes: {
-        'XS': ['34"', '28"', '36"', '38"'],
-        'S': ['36"', '30"', '38"', '38"'],
-        'M': ['38"', '32"', '40"', '39"'],
-        'L': ['40"', '34"', '42"', '39"'],
-        'XL': ['42"', '36"', '44"', '40"'],
-        'XXL': ['44"', '38"', '46"', '40"']
-      }
-    },
-    {
-      category: 'suits',
-      measurements: ['Bust', 'Waist', 'Hip', 'Length', 'Sleeve'],
-      sizes: {
-        'XS': ['34"', '28"', '36"', '44"', '22"'],
-        'S': ['36"', '30"', '38"', '44"', '22"'],
-        'M': ['38"', '32"', '40"', '45"', '22"'],
-        'L': ['40"', '34"', '42"', '45"', '23"'],
-        'XL': ['42"', '36"', '44"', '46"', '23"'],
-        'XXL': ['44"', '38"', '46"', '46"', '23"']
+        'Standard': ['5.5m–6m', '0.8m', '28–44" (adjustable)']
       }
     }
   ];
@@ -83,84 +71,82 @@ const SizeGuidePage: React.FC = () => {
   const selectedChart = sizeCharts.find(chart => chart.category === selectedCategory);
 
   return (
-    <div className="container mx-auto px-4 py-8 pt-24">
-      <Helmet>
-        <title>Size Guide - Nirchal</title>
-        <meta name="description" content="Find your perfect fit with our detailed size guide" />
-      </Helmet>
-
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <Ruler className="w-8 h-8 text-primary-600" />
-          <h1 className="text-3xl font-serif font-bold text-gray-900">Size Guide</h1>
-        </div>
-
-        {/* Category Selection */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {sizeCharts.map(chart => (
-            <button
-              key={chart.category}
-              className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
-                selectedCategory === chart.category
-                  ? 'bg-primary-600 text-white'
-                  : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-              onClick={() => setSelectedCategory(chart.category)}
-            >
-              {chart.category}
-            </button>
-          ))}
-        </div>
-
-        {selectedChart && (
-          <>
-            {/* Size Chart */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-8">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="px-6 py-4 font-semibold text-gray-900">Size</th>
-                      {selectedChart.measurements.map(measurement => (
-                        <th key={measurement} className="px-6 py-4 font-semibold text-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-16">
+      <div className="container mx-auto px-4 max-w-3xl">
+        <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl shadow-lg p-8 mb-10 text-center">
+          <div className="flex items-center gap-3 justify-center mb-4">
+            <Ruler className="w-8 h-8 text-white" />
+            <h1 className="font-display text-4xl md:text-5xl font-bold">Size Guide</h1>
+          </div>
+          <p className="text-xl text-primary-100 mb-2">Find your perfect fit with our detailed size guide</p>
+        </section>
+        <section className="bg-white rounded-xl shadow p-8 mb-8">
+          {/* Category Selection */}
+          <div className="flex flex-wrap gap-2 mb-8">
+            {sizeCharts.map(chart => {
+              // Prettify category label for display
+              let label = chart.category
+                .replace('kurtis/suits/dresses', 'Kurtis / Suits / Dresses')
+                .replace('lehengas', 'Lehengas')
+                .replace('sarees', 'Sarees');
+              return (
+                <button
+                  key={chart.category}
+                  className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
+                    selectedCategory === chart.category
+                      ? 'bg-primary-600 text-white'
+                      : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setSelectedCategory(chart.category)}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {selectedChart && (
+            <div className="overflow-x-auto mb-8">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-6 py-4 font-semibold text-gray-900">Size</th>
+                    {selectedChart.measurements.map(measurement => (
+                      <th key={measurement} className="px-6 py-4 font-semibold text-gray-900">
+                        {measurement}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(selectedChart.sizes).map(([size, measurements]) => (
+                    <tr key={size} className="border-t border-gray-200">
+                      <td className="px-6 py-4 font-medium text-gray-900">{size}</td>
+                      {measurements.map((measurement, index) => (
+                        <td key={index} className="px-6 py-4 text-gray-600">
                           {measurement}
-                        </th>
+                        </td>
                       ))}
                     </tr>
-                  </thead>
-                  <tbody>
-                    {Object.entries(selectedChart.sizes).map(([size, measurements]) => (
-                      <tr key={size} className="border-t border-gray-200">
-                        <td className="px-6 py-4 font-medium text-gray-900">{size}</td>
-                        {measurements.map((measurement, index) => (
-                          <td key={index} className="px-6 py-4 text-gray-600">
-                            {measurement}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            {/* How to Measure */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">How to Measure</h2>
-              <div className="space-y-4">
-                {howToMeasure.map(item => (
-                  <div key={item.measurement}>
-                    <h3 className="font-medium text-gray-900 mb-1">{item.measurement}</h3>
-                    <p className="text-gray-600">{item.instruction}</p>
-                  </div>
-                ))}
-              </div>
+          )}
+          {/* How to Measure */}
+          <div className="bg-primary-50 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-primary-900 mb-4">How to Measure</h2>
+            <div className="space-y-4">
+              {howToMeasure.map(item => (
+                <div key={item.measurement}>
+                  <h3 className="font-medium text-primary-900 mb-1">{item.measurement}</h3>
+                  <p className="text-primary-800">{item.instruction}</p>
+                </div>
+              ))}
             </div>
-          </>
-        )}
-
+          </div>
+        </section>
         {/* Additional Notes */}
-        <div className="mt-8 p-4 bg-primary-50 rounded-lg">
+        <section className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold text-primary-900 mb-2">Important Notes:</h2>
           <ul className="list-disc pl-5 text-primary-800 space-y-1">
             <li>All measurements are in inches unless specified otherwise</li>
@@ -168,7 +154,7 @@ const SizeGuidePage: React.FC = () => {
             <li>If between sizes, choose the larger size</li>
             <li>Custom sizing available for select products</li>
           </ul>
-        </div>
+        </section>
       </div>
     </div>
   );
