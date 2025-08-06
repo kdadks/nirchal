@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../config/supabase';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import type {
   Product,
   Category,
@@ -10,15 +10,26 @@ import type {
 
 // Categories
 export const useCategories = () => {
+  const { supabase } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Only fetch if supabase client is available
   useEffect(() => {
+    if (!supabase) return;
     fetchCategories();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
+
+  // Debug: log categories and error
+  React.useEffect(() => {
+    if (error) console.error('[Categories] Error:', error);
+    if (categories) console.log('[Categories] Data:', categories);
+  }, [categories, error]);
 
   const fetchCategories = async () => {
+    if (!supabase) return;
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -35,19 +46,38 @@ export const useCategories = () => {
   };
 
   const createCategory = async (data: CategoryFormData) => {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
+      // Log session, user, and insert data before insert
+      const session = await supabase.auth.getSession();
+      console.log('[createCategory] Supabase session:', session);
+      console.log('[createCategory] Insert data:', data);
+      if (session.data.session) {
+        console.log('[createCategory] Session user id:', session.data.session.user.id);
+        console.log('[createCategory] Session user role:', session.data.session.user.role);
+      } else {
+        console.log('[createCategory] No session user');
+      }
+
       const { error } = await supabase
         .from('categories')
         .insert([data]);
 
-      if (error) throw error;
+      if (error) {
+        // Log and throw detailed error
+        console.error('[createCategory] Supabase error:', error);
+        throw new Error(error.message || 'Error creating category');
+      }
       await fetchCategories();
     } catch (e) {
+      // Log any unexpected error
+      console.error('[createCategory] Unexpected error:', e);
       throw e instanceof Error ? e : new Error('Error creating category');
     }
   };
 
   const updateCategory = async (id: number, data: Partial<CategoryFormData>) => {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { error } = await supabase
         .from('categories')
@@ -62,6 +92,7 @@ export const useCategories = () => {
   };
 
   const deleteCategory = async (id: number) => {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { error } = await supabase
         .from('categories')
@@ -88,28 +119,41 @@ export const useCategories = () => {
 
 // Products
 export const useProducts = () => {
+  const { supabase } = useAuth();
   const [products, setProducts] = useState<ProductWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!supabase) return;
     fetchProducts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
+
+  // Debug: log products and error
+  React.useEffect(() => {
+    if (error) console.error('[Products] Error:', error);
+    if (products) console.log('[Products] Data:', products);
+  }, [products, error]);
 
   const fetchProducts = async () => {
+    if (!supabase) return;
     try {
       const { data, error } = await supabase
         .from('products')
         .select(`
           *,
-          category:categories(*),
+          category:categories!products_category_id_fkey(*),
           images:product_images(*),
-          variants:product_variants(*),
-          inventory:inventory(*)
+          variants:product_variants(*)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // Debug: log raw response
+      console.log('[Supabase products] data:', data);
+      console.log('[Supabase products] error:', error);
+
+      if (error && !data) throw error;
       setProducts(data as ProductWithDetails[] || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error fetching products');
@@ -119,9 +163,9 @@ export const useProducts = () => {
   };
 
   const createProduct = async (data: ProductFormData): Promise<Product> => {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { images, variants, inventory, ...productData } = data;
-      
       // Insert product
       const { data: newProduct, error: productError } = await supabase
         .from('products')
@@ -188,6 +232,7 @@ export const useProducts = () => {
   };
 
   const updateProduct = async (id: number, data: Partial<ProductFormData>) => {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { error } = await supabase
         .from('products')
@@ -202,6 +247,7 @@ export const useProducts = () => {
   };
 
   const deleteProduct = async (id: number) => {
+    if (!supabase) throw new Error('Supabase client not initialized');
     try {
       const { error } = await supabase
         .from('products')

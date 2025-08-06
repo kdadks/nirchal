@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -28,7 +27,7 @@ import AdminRoutes from './routes/AdminRoutes';
 
 const router = createBrowserRouter([
   {
-    path: '*',
+    path: '/',
     element: <Layout><AppRoutes /></Layout>,
     children: [
       { path: '', element: <HomePage /> },
@@ -49,7 +48,13 @@ const router = createBrowserRouter([
       { path: 'admin/*', element: <AdminRoutes isAuthenticated={true} /> },
     ],
   },
-]);
+], {
+  // Remove unsupported 'future' options for react-router v7
+  // future: {
+  //   v7_startTransition: true,
+  //   v7_relativeSplatPath: true,
+  // },
+});
 
 const App: React.FC = () => {
   return (

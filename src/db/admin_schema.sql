@@ -142,9 +142,14 @@ ALTER TABLE inventory_history ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
--- Admin can do everything
-CREATE POLICY "Admins have full access" ON categories
-    FOR ALL USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated can select categories" ON categories;
+CREATE POLICY "Authenticated can select categories" ON categories
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated can insert categories" ON categories;
+CREATE POLICY "Authenticated can insert categories" ON categories
+  FOR INSERT TO authenticated WITH CHECK (auth.role() = 'authenticated');
 
 CREATE POLICY "Admins have full access" ON products
     FOR ALL USING (auth.role() = 'authenticated');

@@ -37,12 +37,12 @@ const AboutPage: React.FC = () => {
               </p>
             </div>
             <div className="relative">
-              <img 
-                src="https://images.pexels.com/photos/8839887/pexels-photo-8839887.jpeg?auto=compress&cs=tinysrgb&w=600" 
-                alt="Indian artisan at work" 
-                className="rounded-2xl shadow-2xl"
+              <img
+                src="/heroimage1.png"
+                alt="Woman in ethnic saree outfit"
+                className="rounded-2xl shadow-2xl w-full h-auto max-h-96 object-cover"
+                loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary-900/20 to-transparent rounded-2xl"></div>
             </div>
           </div>
         </div>

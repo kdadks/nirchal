@@ -1,3 +1,4 @@
+/* global FileList */
 import React, { useState } from 'react';
 import { Review, ReviewFormData } from '../../types';
 import { format } from 'date-fns';
