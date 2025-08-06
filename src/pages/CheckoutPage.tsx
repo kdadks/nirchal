@@ -1,3 +1,4 @@
+/* global setTimeout, HTMLSelectElement */
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle } from 'lucide-react';

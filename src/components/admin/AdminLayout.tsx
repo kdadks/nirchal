@@ -27,6 +27,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: <LayoutDashboard className="h-5 w-5" />
     },
     {
+      name: 'Categories',
+      path: '/admin/categories',
+      icon: <Package className="h-5 w-5 rotate-90" />
+    },
+    {
       name: 'Products',
       path: '/admin/products',
       icon: <Package className="h-5 w-5" />

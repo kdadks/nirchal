@@ -1,3 +1,4 @@
+/* global HTMLElement */
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp, Search, HelpCircle, Package, CreditCard, Truck, RefreshCw } from 'lucide-react';

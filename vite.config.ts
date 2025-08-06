@@ -1,6 +1,13 @@
+
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { defineConfig } from 'vite';
 import reactSWC from '@vitejs/plugin-react-swc';
 import path from 'path';
+
+// Polyfill __dirname for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // https://vitejs.dev/config/
 export default defineConfig({

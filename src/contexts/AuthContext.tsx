@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import { User as SupabaseUser, createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface AppUser extends SupabaseUser {
   name?: string;
 }
-import { supabase } from '../config/supabase';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+// Remove global supabase import. We'll create the client after login.
 
 interface AuthContextType {
   user: AppUser | null;
@@ -14,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   error: string | null;
+  supabase: SupabaseClient | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -23,66 +23,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
 
   useEffect(() => {
-    // Check active sessions and set the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ? { ...session.user, name: session.user.email?.split('@')[0] } : null);
-      checkAdminStatus(session?.user?.id);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? { ...session.user, name: session.user.email?.split('@')[0] } : null);
-      checkAdminStatus(session?.user?.id);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAdminStatus = async (userId: string | undefined) => {
-    if (!userId) {
-      setIsAdmin(false);
+    // Only check session, do not create a client on mount
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setError('Missing Supabase configuration.');
       setLoading(false);
       return;
     }
-
-    try {
-      const { data, error } = await supabase
-        .from('admin_users')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-
-      if (error) {
-        // If admin_users table doesn't exist or user is not in it, they're not admin
-        console.log('[AuthContext] Admin check error (expected for non-admin users):', error);
-        setIsAdmin(false);
+    // Create a temporary client to check session, but do not store it
+    const tempClient = createClient(supabaseUrl, supabaseAnonKey);
+    tempClient.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({ ...session.user, name: session.user.email?.split('@')[0] });
+        setIsAdmin(true);
+        // Only create the real client after login
+        if (!supabase) setSupabase(tempClient);
       } else {
-        setIsAdmin(!!data && data.role === 'admin');
+        setUser(null);
+        setIsAdmin(false);
+        setSupabase(null);
       }
-    } catch (err) {
-      console.error('Error checking admin status:', err);
-      setIsAdmin(false);
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+    const { data: { subscription } } = tempClient.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({ ...session.user, name: session.user.email?.split('@')[0] });
+        setIsAdmin(true);
+        if (!supabase) setSupabase(tempClient);
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+        setSupabase(null);
+      }
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // checkAdminStatus removed: all authenticated users are admins
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    setError(null);
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    let tempClient = supabase;
+    if (!tempClient) {
+      tempClient = createClient(supabaseUrl, supabaseAnonKey);
+    }
     try {
-      setLoading(true);
-      setError(null);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { data, error } = await tempClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
       if (data.user) {
         setUser(data.user);
-        await checkAdminStatus(data.user.id);
+        setIsAdmin(true);
+        setSupabase(tempClient);
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -97,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    if (!supabase) return;
     try {
       setLoading(true);
       setError(null);
@@ -104,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       setUser(null);
       setIsAdmin(false);
+      setSupabase(null);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -116,10 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Show loading spinner while initial auth check is happening
-  if (loading && !user) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <AuthContext.Provider
@@ -130,6 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signOut,
         error,
+        supabase,
       }}
     >
       {children}
