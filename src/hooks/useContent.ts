@@ -1,5 +1,17 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../config/supabase';
+
+import { createClient } from '@supabase/supabase-js';
+
+// Lazy singleton pattern for Supabase client
+let supabase: ReturnType<typeof createClient> | null = null;
+function getSupabaseClient() {
+  if (!supabase) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return supabase;
+}
 
 export interface AboutSection {
   id: number;
@@ -103,6 +115,8 @@ export function useContent<T extends ContentType>(type: T): {
     setError(null);
     try {
       console.log(`[useContent] Fetching ${type} data...`);
+
+      const supabase = getSupabaseClient();
       console.log('[useContent] Supabase client:', !!supabase);
       console.log('[useContent] Table name:', tableMap[type]);
 
@@ -125,7 +139,7 @@ export function useContent<T extends ContentType>(type: T): {
         return;
       }
 
-      setData(result as ContentTypeMap[T][]);
+      setData(result as unknown as ContentTypeMap[T][]);
     } catch (e) {
       console.error(`[useContent] Error in fetchContent for ${type}:`, e);
       setError(e instanceof Error ? e.message : 'An error occurred while fetching data');

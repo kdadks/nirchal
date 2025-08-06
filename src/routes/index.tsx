@@ -11,6 +11,7 @@ import CheckoutPage from '../pages/CheckoutPage';
 import OrderConfirmationPage from '../pages/OrderConfirmationPage';
 
 // Footer Pages
+// Update the path below to match the actual location and name of AboutPage
 import AboutPage from '../pages/footer/AboutPage';
 import SizeGuidePage from '../pages/footer/SizeGuidePage';
 import FAQPage from '../pages/footer/FAQPage';
@@ -25,7 +26,7 @@ import LoginPage from '../pages/admin/LoginPage';
 import AdminRoutes from './AdminRoutes';
 
 export const AppRoutes: React.FC = () => {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
 
   return (
     <Routes>
@@ -51,7 +52,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/admin/login" element={<LoginPage />} />
       <Route 
         path="/admin/*" 
-        element={<AdminRoutes isAuthenticated={!!user} isAdmin={isAdmin} />} 
+        element={<AdminRoutes isAuthenticated={!!user} />} 
       />
     </Routes>
   );

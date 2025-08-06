@@ -1,3 +1,4 @@
+/* global File */
 // Product Types
 export interface Product {
   id: string;
