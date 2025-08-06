@@ -12,6 +12,7 @@ import OrderConfirmationPage from '../pages/OrderConfirmationPage';
 
 // Footer Pages
 import AboutPage from '../pages/footer/AboutPage';
+import SizeGuidePage from '../pages/footer/SizeGuidePage';
 import FAQPage from '../pages/footer/FAQPage';
 import PrivacyPolicyPage from '../pages/footer/PrivacyPolicyPage';
 import ContactPage from '../pages/footer/ContactPage';
@@ -38,6 +39,7 @@ export const AppRoutes: React.FC = () => {
 
       {/* Footer Pages */}
       <Route path="/about" element={<AboutPage />} />
+      <Route path="/size-guide" element={<SizeGuidePage />} />
       <Route path="/faq" element={<FAQPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       <Route path="/contact" element={<ContactPage />} />
