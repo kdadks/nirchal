@@ -1,229 +1,262 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { ChevronDown, Search, HelpCircle, MessageCircle, Phone } from 'lucide-react';
-import { useContent } from '../../hooks/useContent';
+import { ChevronDown, ChevronUp, Search, HelpCircle, Package, CreditCard, Truck, RefreshCw } from 'lucide-react';
+
+interface FAQ {
+  id: number;
+  question: string;
+  answer: string;
+  category: 'general' | 'orders' | 'shipping' | 'returns' | 'payments';
+}
+
+const faqs: FAQ[] = [
+  {
+    id: 1,
+    category: 'general',
+    question: 'What is Nirchal?',
+    answer: 'Nirchal is a premium Indian ethnic wear boutique offering authentic traditional and contemporary designs. We specialize in sarees, lehengas, gowns, and other ethnic wear crafted by skilled artisans from across India.'
+  },
+  {
+    id: 2,
+    category: 'orders',
+    question: 'How do I place an order?',
+    answer: 'You can place an order by browsing our collection, selecting your desired items, choosing the right size, and adding them to your cart. Proceed to checkout, fill in your shipping details, and complete the payment.'
+  },
+  {
+    id: 3,
+    category: 'orders',
+    question: 'Can I modify or cancel my order?',
+    answer: 'Orders can be modified or cancelled within 2 hours of placing them. After that, the order goes into processing and cannot be changed. Please contact our customer support team immediately if you need to make changes.'
+  },
+  {
+    id: 4,
+    category: 'shipping',
+    question: 'What are your shipping charges?',
+    answer: 'We offer free shipping on orders above ₹2,999. For orders below this amount, shipping charges are ₹99 within India. Express delivery is available for an additional ₹199.'
+  },
+  {
+    id: 5,
+    category: 'shipping',
+    question: 'How long does delivery take?',
+    answer: 'Standard delivery takes 3-7 business days within India. Express delivery takes 1-3 business days. International shipping takes 7-14 business days depending on the destination.'
+  },
+  {
+    id: 6,
+    category: 'returns',
+    question: 'What is your return policy?',
+    answer: 'We offer a 30-day return policy from the date of delivery. Items must be unused, with original tags and packaging. Custom-made or altered items cannot be returned.'
+  },
+  {
+    id: 7,
+    category: 'returns',
+    question: 'How do I return an item?',
+    answer: 'Log into your account, go to "My Orders", select the item you want to return, and follow the return process. You can also contact our customer support for assistance.'
+  },
+  {
+    id: 8,
+    category: 'payments',
+    question: 'What payment methods do you accept?',
+    answer: 'We accept all major credit/debit cards, net banking, UPI, digital wallets like Paytm, PhonePe, Google Pay, and cash on delivery (COD) for eligible orders.'
+  },
+  {
+    id: 9,
+    category: 'payments',
+    question: 'Is my payment information secure?',
+    answer: 'Yes, all payments are processed through secure, encrypted gateways. We do not store your payment information on our servers. All transactions are PCI DSS compliant.'
+  },
+  {
+    id: 10,
+    category: 'general',
+    question: 'Do you offer custom sizing?',
+    answer: 'Yes, we offer custom sizing for most of our products. During checkout, select "Custom Size" and provide your measurements. Custom-sized items take 7-10 additional days to process.'
+  }
+];
+
+const categories = [
+  { key: 'all', label: 'All', icon: HelpCircle },
+  { key: 'general', label: 'General', icon: HelpCircle },
+  { key: 'orders', label: 'Orders', icon: Package },
+  { key: 'shipping', label: 'Shipping', icon: Truck },
+  { key: 'returns', label: 'Returns', icon: RefreshCw },
+  { key: 'payments', label: 'Payments', icon: CreditCard }
+];
 
 const FAQPage: React.FC = () => {
-  const [openItem, setOpenItem] = useState<number | null>(null);
+  const [expandedItems, setExpandedItems] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const { data: faqs, loading, error } = useContent('faqs');
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-zinc-50">
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-4xl mx-auto">
-            <div className="animate-pulse space-y-8">
-              <div className="h-12 bg-zinc-200 rounded-lg w-1/3"></div>
-              <div className="h-12 bg-zinc-200 rounded-lg w-full"></div>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="bg-white rounded-2xl p-6 shadow-soft">
-                  <div className="h-6 bg-zinc-200 rounded w-3/4 mb-4"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-zinc-200 rounded w-full"></div>
-                    <div className="h-4 bg-zinc-200 rounded w-5/6"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+  const toggleExpanded = (id: number) => {
+    setExpandedItems(prev =>
+      prev.includes(id)
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
     );
-  }
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-red-600 text-2xl">⚠️</span>
-          </div>
-          <h2 className="text-xl font-semibold text-zinc-900 mb-2">Something went wrong</h2>
-          <p className="text-zinc-600">Error loading FAQs: {error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const categories = Array.from(new Set(faqs.map(faq => faq.category)));
-  
-  // Filter FAQs based on search term and selected category
-  const filteredFaqs = faqs.filter(faq => {
+  const filteredFAQs = faqs.filter(faq => {
     const matchesSearch = faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const groupedFaqs = selectedCategory === 'all'
-    ? categories.reduce((acc, category) => {
-        acc[category] = filteredFaqs.filter(faq => faq.category === category);
-        return acc;
-      }, {} as Record<string, typeof faqs>)
-    : { [selectedCategory]: filteredFaqs };
-
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <>
       <Helmet>
         <title>Frequently Asked Questions - Nirchal</title>
-        <meta name="description" content="Find answers to commonly asked questions about Nirchal's products and services" />
+        <meta
+          name="description"
+          content="Find answers to common questions about Nirchal's ethnic wear collection, shipping, returns, and more."
+        />
       </Helmet>
 
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white">
-        <div className="container mx-auto px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <HelpCircle size={32} className="text-white" />
-            </div>
-            <h1 className="font-display text-4xl lg:text-6xl font-bold mb-6">
-              Frequently Asked <span className="text-orange-400">Questions</span>
-            </h1>
-            <p className="text-xl lg:text-2xl text-zinc-300 leading-relaxed max-w-3xl mx-auto">
-              Find quick answers to common questions about our products, orders, and services.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto">
-          {/* Search and Filter */}
-          <div className="bg-white rounded-2xl p-6 shadow-soft mb-8">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white py-20">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto text-center">
+              <h1 className="font-display text-4xl md:text-5xl font-bold mb-6">
+                Frequently Asked Questions
+              </h1>
+              <p className="text-xl text-orange-100 mb-8">
+                Find answers to common questions about our products, services, and policies
+              </p>
+              
+              {/* Search Bar */}
+              <div className="relative max-w-2xl mx-auto">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search FAQs..."
+                  placeholder="Search frequently asked questions..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200"
+                  className="w-full pl-12 pr-4 py-4 rounded-full text-gray-900 text-lg focus:outline-none focus:ring-4 focus:ring-orange-200 shadow-lg"
                 />
               </div>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-3 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 min-w-[200px]"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
+        </section>
 
-          {/* FAQ Content */}
-          <div className="space-y-8">
-            {Object.entries(groupedFaqs).map(([category, categoryFaqs]) => {
-              if (categoryFaqs.length === 0) return null;
-              
-              return (
-                <div key={category}>
-                  {selectedCategory === 'all' && (
-                    <h2 className="font-display text-2xl font-bold text-zinc-900 mb-6">
-                      {category}
-                    </h2>
-                  )}
-                  
-                  <div className="space-y-4">
-                    {categoryFaqs
-                      .sort((a, b) => a.order_num - b.order_num)
-                      .map((faq) => {
-                        const isOpen = openItem === faq.id;
+        {/* Category Filter */}
+        <section className="py-8 bg-white border-b border-gray-200">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-wrap justify-center gap-2 md:gap-4">
+              {categories.map((category) => {
+                const IconComponent = category.icon;
+                return (
+                  <button
+                    key={category.key}
+                    onClick={() => setSelectedCategory(category.key)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+                      selectedCategory === category.key
+                        ? 'bg-gradient-to-r from-primary-500 to-accent-500 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    <IconComponent className="w-4 h-4" />
+                    <span>{category.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
 
-                        return (
-                          <div
-                            key={faq.id}
-                            className="bg-white rounded-2xl shadow-soft overflow-hidden hover:shadow-lg transition-shadow duration-300"
-                          >
-                            <button
-                              className="w-full flex items-center justify-between p-6 text-left hover:bg-zinc-50 transition-colors duration-200"
-                              onClick={() => setOpenItem(isOpen ? null : faq.id)}
-                            >
-                              <span className="font-semibold text-zinc-900 text-lg pr-4">
-                                {faq.question}
-                              </span>
-                              <div className={`w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0 transition-transform duration-200 ${
-                                isOpen ? 'rotate-180' : ''
-                              }`}>
-                                <ChevronDown size={16} className="text-orange-600" />
-                              </div>
-                            </button>
-                            
-                            {isOpen && (
-                              <div className="px-6 pb-6 text-zinc-700 leading-relaxed border-t border-zinc-100">
-                                <div className="pt-4">
-                                  {faq.answer}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
+        {/* FAQ Content */}
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              {filteredFAQs.length === 0 ? (
+                <div className="text-center py-16">
+                  <HelpCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-2xl font-semibold text-gray-600 mb-2">No FAQs Found</h3>
+                  <p className="text-gray-500">
+                    Try adjusting your search terms or category filter.
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-
-          {/* No Results */}
-          {filteredFaqs.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-zinc-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search size={24} className="text-zinc-500" />
-              </div>
-              <h3 className="text-xl font-semibold text-zinc-900 mb-2">No FAQs found</h3>
-              <p className="text-zinc-600">
-                Try adjusting your search terms or browse all categories.
-              </p>
+              ) : (
+                <div className="space-y-4">
+                  {filteredFAQs.map((faq) => (
+                    <div
+                      key={faq.id}
+                      className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300"
+                    >
+                      <button
+                        onClick={() => toggleExpanded(faq.id)}
+                        className="w-full px-6 py-5 text-left focus:outline-none focus:ring-4 focus:ring-orange-200 hover:bg-orange-50 transition-colors duration-300"
+                      >
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-gray-900 text-lg pr-4">
+                            {faq.question}
+                          </h3>
+                          {expandedItems.includes(faq.id) ? (
+                            <ChevronUp className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                          )}
+                        </div>
+                      </button>
+                      
+                      {expandedItems.includes(faq.id) && (
+                        <div className="px-6 pb-5">
+                          <div className="h-px bg-gradient-to-r from-orange-200 to-pink-200 mb-4"></div>
+                          <p className="text-gray-600 leading-relaxed">
+                            {faq.answer}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+        </section>
 
-          {/* Contact Support */}
-          <div className="mt-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 text-white">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <MessageCircle size={32} className="text-white" />
-              </div>
-              <h2 className="font-display text-3xl font-bold mb-4">
+        {/* Contact Section */}
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto text-center">
+              <h2 className="font-display text-3xl font-bold text-gray-900 mb-4">
                 Still have questions?
               </h2>
-              <p className="text-orange-100 mb-8 text-lg max-w-2xl mx-auto">
-                If you couldn't find the answer you were looking for, our support team is here to help you.
+              <p className="text-xl text-gray-600 mb-8">
+                Our customer support team is here to help you with any questions or concerns.
               </p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto">
-                <a
-                  href="mailto:support@nirchal.com"
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  <MessageCircle size={18} />
-                  Email Support
-                </a>
-                <a
-                  href="tel:+911234567890"
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200 flex items-center justify-center gap-2"
-                >
-                  <Phone size={18} />
-                  Call Us
-                </a>
-              </div>
-              
-              <div className="mt-6 text-orange-100 text-sm">
-                <p>Email: support@nirchal.com</p>
-                <p>Phone: +91 123 456 7890 (10 AM - 7 PM IST)</p>
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-gradient-to-br from-orange-50 to-pink-50 p-8 rounded-xl">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Email Support</h3>
+                  <p className="text-gray-600 mb-4">Get detailed help via email</p>
+                  <a
+                    href="mailto:support@nirchal.com"
+                    className="inline-block bg-gradient-to-r from-primary-500 to-accent-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                  >
+                    Send Email
+                  </a>
+                </div>
+                
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Live Chat</h3>
+                  <p className="text-gray-600 mb-4">Chat with our AI assistant</p>
+                  <button
+                    onClick={() => {
+                      // This would trigger the AI chatbot
+                      const chatbot = document.querySelector('[data-chatbot-trigger]') as HTMLElement;
+                      if (chatbot) chatbot.click();
+                    }}
+                    className="inline-block bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                  >
+                    Start Chat
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
-    </div>
+    </>
   );
 };
 

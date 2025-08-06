@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, Heart, User } from 'lucide-react';
+import Footer from '../common/Footer';
+import AIChatbot from '../common/AIChatbot';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,33 +25,57 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white shadow-lg border-b border-gray-100 sticky top-0 z-50">
         <nav className="container mx-auto px-4">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             {/* Logo */}
-            <Link to="/" className="font-serif text-2xl font-bold text-gray-900">
-              Nirchal
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-accent-500 to-primary-600 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-xl">N</span>
+              </div>
+              <span className="font-display text-3xl font-bold bg-gradient-to-r from-accent-600 to-primary-600 bg-clip-text text-transparent">
+                Nirchal
+              </span>
             </Link>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link to="/products" className="text-gray-600 hover:text-gray-900">
+              <Link to="/products" className="relative text-gray-700 hover:text-primary-600 transition-colors font-medium text-lg group">
                 Shop
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-accent-500 to-primary-500 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/about" className="text-gray-600 hover:text-gray-900">
+              <Link to="/about" className="relative text-gray-700 hover:text-primary-600 transition-colors font-medium text-lg group">
                 About
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-accent-500 to-primary-500 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/contact" className="text-gray-600 hover:text-gray-900">
+              <Link to="/contact" className="relative text-gray-700 hover:text-primary-600 transition-colors font-medium text-lg group">
                 Contact
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-accent-500 to-primary-500 group-hover:w-full transition-all duration-300"></span>
               </Link>
             </div>
 
-            {/* Cart and Mobile Menu */}
-            <div className="flex items-center">
-              <Link to="/cart" className="relative p-2">
-                <ShoppingBag className="h-6 w-6 text-gray-600" />
+            {/* Right Actions */}
+            <div className="flex items-center space-x-4">
+              {/* Search */}
+              <button className="hidden md:flex items-center justify-center w-10 h-10 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-full transition-all">
+                <Search size={20} />
+              </button>
+              
+              {/* Wishlist */}
+              <button className="hidden md:flex items-center justify-center w-10 h-10 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-full transition-all">
+                <Heart size={20} />
+              </button>
+              
+              {/* User Account */}
+              <button className="hidden md:flex items-center justify-center w-10 h-10 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-full transition-all">
+                <User size={20} />
+              </button>
+              
+              {/* Cart */}
+              <Link to="/cart" className="relative flex items-center justify-center w-10 h-10 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-full transition-all">
+                <ShoppingBag size={20} />
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-accent-500 to-primary-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-semibold">
                     {cartItemCount}
                   </span>
                 )}
@@ -58,43 +84,55 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* Mobile Menu Button */}
               <button
                 onClick={toggleMenu}
-                className="ml-4 p-2 md:hidden"
+                className="md:hidden flex items-center justify-center w-10 h-10 text-gray-600 hover:text-primary-600 hover:bg-gray-50 rounded-full transition-all"
                 aria-label="Menu"
               >
-                {isMenuOpen ? (
-                  <X className="h-6 w-6 text-gray-600" />
-                ) : (
-                  <Menu className="h-6 w-6 text-gray-600" />
-                )}
+                {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             </div>
           </div>
 
           {/* Mobile Menu */}
           {isMenuOpen && (
-            <div className="md:hidden py-4 border-t border-gray-200">
-              <div className="flex flex-col space-y-4">
+            <div className="md:hidden border-t border-gray-100 py-4 bg-white">
+              <div className="space-y-4">
                 <Link
                   to="/products"
-                  className="text-gray-600 hover:text-gray-900"
-                  onClick={toggleMenu}
+                  className="block px-4 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Shop
                 </Link>
                 <Link
                   to="/about"
-                  className="text-gray-600 hover:text-gray-900"
-                  onClick={toggleMenu}
+                  className="block px-4 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   About
                 </Link>
                 <Link
                   to="/contact"
-                  className="text-gray-600 hover:text-gray-900"
-                  onClick={toggleMenu}
+                  className="block px-4 py-2 text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Contact
                 </Link>
+                <div className="border-t border-gray-100 pt-4 mt-4">
+                  <div className="flex items-center justify-around px-4">
+                    <button className="flex flex-col items-center space-y-1 text-gray-600">
+                      <Search size={20} />
+                      <span className="text-xs">Search</span>
+                    </button>
+                    <button className="flex flex-col items-center space-y-1 text-gray-600">
+                      <Heart size={20} />
+                      <span className="text-xs">Wishlist</span>
+                    </button>
+                    <button className="flex flex-col items-center space-y-1 text-gray-600">
+                      <User size={20} />
+                      <span className="text-xs">Account</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -107,78 +145,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-100">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-medium mb-4">About Nirchal</h3>
-              <p className="text-gray-600">
-                Your premier destination for authentic Indian ethnic wear.
-              </p>
-            </div>
+      <Footer />
 
-            <div>
-              <h3 className="text-lg font-medium mb-4">Quick Links</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/about" className="text-gray-600 hover:text-gray-900">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/contact" className="text-gray-600 hover:text-gray-900">
-                    Contact
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/shipping" className="text-gray-600 hover:text-gray-900">
-                    Shipping Info
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/faq" className="text-gray-600 hover:text-gray-900">
-                    FAQ
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium mb-4">Policies</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/privacy-policy" className="text-gray-600 hover:text-gray-900">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/terms" className="text-gray-600 hover:text-gray-900">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/return-policy" className="text-gray-600 hover:text-gray-900">
-                    Return Policy
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium mb-4">Contact Us</h3>
-              <ul className="space-y-2 text-gray-600">
-                <li>Email: support@nirchal.com</li>
-                <li>Phone: +91 123 456 7890</li>
-                <li>10 AM - 7 PM IST (Mon-Sat)</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="mt-12 pt-8 border-t border-gray-200 text-center text-gray-600">
-            <p>&copy; {new Date().getFullYear()} Nirchal. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      {/* AI Chatbot */}
+      <AIChatbot />
     </div>
   );
 };
