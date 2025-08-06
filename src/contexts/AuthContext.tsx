@@ -55,8 +55,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
-      setIsAdmin(!!data && data.role === 'admin');
+      if (error) {
+        // If admin_users table doesn't exist or user is not in it, they're not admin
+        console.log('[AuthContext] Admin check error (expected for non-admin users):', error);
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(!!data && data.role === 'admin');
+      }
     } catch (err) {
       console.error('Error checking admin status:', err);
       setIsAdmin(false);
