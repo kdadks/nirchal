@@ -65,16 +65,7 @@ const CategoriesPage: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     setError(null);
-    // --- DEBUG: Print Supabase client, session, and user ---
-    console.log('[DEBUG] Supabase client:', supabase);
-    if (supabase) {
-      supabase.auth.getSession().then(({ data, error }) => {
-        console.log('[DEBUG] Session from supabase.auth.getSession():', data?.session);
-        console.log('[DEBUG] Error from getSession:', error);
-      });
-    }
-    console.log('[DEBUG] User from useAuth:', user);
-    // --- END DEBUG ---
+    // ...existing code...
     try {
       await createCategory(form);
       setModalOpen(false);
