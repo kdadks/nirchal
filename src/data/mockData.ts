@@ -397,26 +397,34 @@ export const products: Product[] = [
 export const heroSlides = [
   {
     id: 1,
-    title: 'Wedding Collection 2025',
-    subtitle: 'Exquisite bridal wear for your special day',
-    image: 'https://images.pexels.com/photos/2064507/pexels-photo-2064507.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    cta: 'Explore Collection',
-    link: '/category/lehengas'
+    title: 'Exquisite Sarees Collection',
+    subtitle: 'Handwoven silk sarees with intricate designs',
+    image: 'https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&dpr=1',
+    cta: 'Shop Sarees',
+    link: '/products?category=sarees'
   },
   {
     id: 2,
-    title: 'Festive Season Sale',
-    subtitle: 'Up to 30% off on select ethnic wear',
-    image: 'https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    cta: 'Shop Now',
-    link: '/sale'
+    title: 'Designer Lehengas',
+    subtitle: 'Regal lehengas for weddings and celebrations',
+    image: 'https://images.pexels.com/photos/2836486/pexels-photo-2836486.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&dpr=1',
+    cta: 'Explore Lehengas',
+    link: '/products?category=lehengas'
   },
   {
     id: 3,
-    title: 'New Arrivals',
-    subtitle: 'Discover the latest trends in Indian fashion',
-    image: 'https://images.pexels.com/photos/973401/pexels-photo-973401.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-    cta: 'View Collection',
-    link: '/new-arrivals'
+    title: 'Elegant Gowns',
+    subtitle: 'Contemporary gowns with traditional touch',
+    image: 'https://images.pexels.com/photos/2916814/pexels-photo-2916814.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&dpr=1',
+    cta: 'View Gowns',
+    link: '/products?category=gowns'
+  },
+  {
+    id: 4,
+    title: 'Festive Collection',
+    subtitle: 'Perfect outfits for every celebration',
+    image: 'https://images.pexels.com/photos/4124201/pexels-photo-4124201.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&dpr=1',
+    cta: 'Shop Festive',
+    link: '/products'
   }
 ];

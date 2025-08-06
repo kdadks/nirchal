@@ -7,6 +7,7 @@ import App from './App';
 
 // Global styles
 import './index.css';
+import './styles/animations.css';
 
 // Create root with strict error handling
 const root = ReactDOM.createRoot(document.getElementById('root')!);
@@ -23,7 +24,7 @@ root.render(
 );
 
 // Add error logging for development
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   window.onerror = (message, source, lineno, colno, error) => {
     console.error('Global error:', { message, source, lineno, colno, error });
     return false;

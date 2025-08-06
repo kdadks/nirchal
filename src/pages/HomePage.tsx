@@ -1,71 +1,40 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Truck, Shield, Award, RefreshCw } from 'lucide-react';
+import { ArrowRight, Truck, Shield, Award, RefreshCw, Star } from 'lucide-react';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import ProductCard from '../components/product/ProductCard';
+import HeroCarousel from '../components/home/HeroCarousel';
 
 const HomePage: React.FC = () => {
   const { products: featuredProducts, loading: featuredLoading } = usePublicProducts(true);
+  
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <div className="w-full h-full bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900"></div>
-          {/* Overlay pattern */}
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }}></div>
-        </div>
+      {/* Hero Carousel Section */}
+      <HeroCarousel />
 
-        {/* Content */}
-        <div className="relative z-10 container mx-auto px-4 text-center text-white">
-          <div className="max-w-4xl mx-auto animate-fade-in">
-            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
-              Timeless
-              <span className="block text-transparent bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text">
-                Elegance
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl text-zinc-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Discover our curated collection of premium Indian ethnic wear where tradition meets contemporary sophistication
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link
-                to="/products"
-                className="group inline-flex items-center px-8 py-4 bg-white text-zinc-900 font-semibold rounded-full hover:bg-zinc-100 transition-all duration-300 transform hover:scale-105"
-              >
-                Explore Collection
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
-              </Link>
-              <Link
-                to="/about"
-                className="inline-flex items-center px-8 py-4 border-2 border-white text-white font-semibold rounded-full hover:bg-white hover:text-zinc-900 transition-all duration-300"
-              >
-                Our Story
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
+      {/* Special Offers Banner */}
+      <section className="bg-gradient-to-r from-accent-500 to-primary-500 text-white py-4">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center space-x-4 text-center">
+            <Star className="w-5 h-5" />
+            <span className="font-medium">Free Shipping on orders above ₹2,999</span>
+            <span className="hidden md:inline">•</span>
+            <span className="hidden md:inline font-medium">30-day Easy Returns</span>
+            <Star className="w-5 h-5" />
           </div>
         </div>
       </section>
 
       {/* Featured Categories */}
-      <section className="py-20 bg-zinc-50">
+      <section className="py-20 bg-gradient-to-br from-orange-50 to-pink-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-zinc-900 mb-4">
+            <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
               Shop by Category
             </h2>
-            <p className="text-xl text-zinc-600 max-w-2xl mx-auto">
-              Explore our carefully curated collections designed for every occasion
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Discover our handpicked collections of authentic Indian ethnic wear, crafted by skilled artisans from across the country
             </p>
           </div>
           
@@ -74,37 +43,61 @@ const HomePage: React.FC = () => {
               {
                 name: 'Sarees',
                 description: 'Timeless elegance in silk and cotton',
-                image: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                image: 'https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=800&h=1000&dpr=1',
+                link: '/products?category=sarees',
+                badge: 'Traditional'
               },
               {
                 name: 'Lehengas',
                 description: 'Regal designs for special occasions',
-                image: 'https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                image: 'https://images.pexels.com/photos/2836486/pexels-photo-2836486.jpeg?auto=compress&cs=tinysrgb&w=800&h=1000&dpr=1',
+                link: '/products?category=lehengas',
+                badge: 'Bridal'
               },
               {
-                name: 'Kurtis',
-                description: 'Contemporary comfort meets tradition',
-                image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                name: 'Gowns',
+                description: 'Contemporary elegance meets tradition',
+                image: 'https://images.pexels.com/photos/2916814/pexels-photo-2916814.jpeg?auto=compress&cs=tinysrgb&w=800&h=1000&dpr=1',
+                link: '/products?category=gowns',
+                badge: 'Designer'
               }
             ].map((category) => (
               <Link
                 key={category.name}
-                to={`/products?category=${category.name.toLowerCase()}`}
-                className="group relative overflow-hidden rounded-2xl shadow-medium hover:shadow-large transition-all duration-500 transform hover:-translate-y-2"
+                to={category.link}
+                className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
               >
-                <div className="aspect-[4/5] relative">
+                <div className="aspect-[3/4] relative">
                   <img
                     src={category.image}
                     alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://images.pexels.com/photos/794064/pexels-photo-794064.jpeg?auto=compress&cs=tinysrgb&w=400&h=600';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                  <div className="absolute bottom-6 left-6 right-6 text-white">
-                    <h3 className="font-display text-2xl font-bold mb-2">{category.name}</h3>
-                    <p className="text-zinc-200 mb-4">{category.description}</p>
-                    <span className="inline-flex items-center text-sm font-semibold group-hover:translate-x-1 transition-transform duration-300">
-                      Shop Now <ArrowRight className="ml-1 h-4 w-4" />
+                  
+                  {/* Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className="bg-gradient-to-r from-accent-500 to-primary-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                      {category.badge}
                     </span>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-accent-300 transition-colors">
+                      {category.name}
+                    </h3>
+                    <p className="text-gray-200 mb-4 group-hover:text-white transition-colors">
+                      {category.description}
+                    </p>
+                    <div className="flex items-center text-accent-300 group-hover:text-accent-200 transition-colors">
+                      <span className="font-medium mr-2">Explore Collection</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -114,14 +107,14 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Featured Products */}
-      <section className="py-20">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-zinc-900 mb-4">
+            <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
               Trending Now
             </h2>
-            <p className="text-xl text-zinc-600 max-w-2xl mx-auto">
-              Discover our most loved pieces, handpicked by our style experts
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Discover our most loved pieces, handpicked by our style experts and loved by thousands of customers
             </p>
           </div>
           
@@ -129,68 +122,79 @@ const HomePage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="bg-zinc-200 rounded-xl h-80 mb-4"></div>
-                  <div className="h-4 bg-zinc-200 rounded w-3/4 mx-auto mb-2"></div>
-                  <div className="h-4 bg-zinc-200 rounded w-1/2 mx-auto"></div>
+                  <div className="bg-gray-200 aspect-[3/4] rounded-2xl mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
                 </div>
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <div key={product.id} className="transform hover:scale-105 transition-transform duration-300">
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           )}
-          
+
           <div className="text-center mt-12">
             <Link
               to="/products"
-              className="inline-flex items-center px-8 py-4 bg-zinc-900 text-white font-semibold rounded-full hover:bg-zinc-800 transition-all duration-300 transform hover:scale-105"
+              className="inline-flex items-center bg-gradient-to-r from-primary-500 to-accent-500 text-white px-8 py-4 rounded-xl font-medium text-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
             >
               View All Products
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2 w-5 h-5" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-zinc-50">
+      {/* Why Choose Us */}
+      <section className="py-20 bg-gradient-to-br from-primary-50 to-accent-50">
         <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+              Why Choose Nirchal?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              Experience the difference with our commitment to quality, authenticity, and exceptional customer service
+            </p>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
-                icon: <Truck className="h-8 w-8" />,
-                title: "Free Shipping",
-                description: "On orders above ₹2,999 across India"
+                icon: <Truck className="w-12 h-12 text-white" />,
+                title: 'Free Shipping',
+                description: 'Complimentary shipping on all orders above ₹2,999 across India',
+                color: 'from-green-500 to-green-600'
               },
               {
-                icon: <RefreshCw className="h-8 w-8" />,
-                title: "Easy Returns",
-                description: "30-day hassle-free return policy"
+                icon: <Shield className="w-12 h-12 text-white" />,
+                title: 'Secure Payment',
+                description: '100% secure payment gateway with multiple payment options',
+                color: 'from-blue-500 to-blue-600'
               },
               {
-                icon: <Shield className="h-8 w-8" />,
-                title: "Secure Payment",
-                description: "100% secure payment gateway"
+                icon: <Award className="w-12 h-12 text-white" />,
+                title: 'Premium Quality',
+                description: 'Handpicked fabrics and meticulous quality control for every piece',
+                color: 'from-purple-500 to-purple-600'
               },
               {
-                icon: <Award className="h-8 w-8" />,
-                title: "Premium Quality",
-                description: "Handpicked fabrics and craftsmanship"
+                icon: <RefreshCw className="w-12 h-12 text-white" />,
+                title: 'Easy Returns',
+                description: 'Hassle-free 30-day return and exchange policy for your peace of mind',
+                color: 'from-orange-500 to-orange-600'
               }
             ].map((feature, index) => (
               <div key={index} className="text-center group">
-                <div className="w-16 h-16 bg-zinc-900 text-white rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-500 transition-colors duration-300">
+                <div className={`w-20 h-20 bg-gradient-to-r ${feature.color} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}>
                   {feature.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-zinc-900 mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-zinc-600">
-                  {feature.description}
-                </p>
+                <h3 className="text-xl font-bold text-gray-800 mb-4">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -198,25 +202,26 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-20 bg-zinc-900 text-white">
+      <section className="py-20 bg-gradient-to-r from-primary-600 to-accent-600 text-white">
         <div className="container mx-auto px-4 text-center">
-          <div className="max-w-2xl mx-auto">
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-              Stay in Style
-            </h2>
-            <p className="text-xl text-zinc-300 mb-8">
-              Subscribe to our newsletter for exclusive offers and style updates
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-4xl font-bold mb-6">Stay in Style</h2>
+            <p className="text-xl text-primary-100 mb-8 leading-relaxed">
+              Subscribe to our newsletter and be the first to know about new collections, exclusive offers, and styling tips from our fashion experts.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <div className="flex flex-col sm:flex-row max-w-md mx-auto gap-4">
               <input
                 type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 rounded-full text-zinc-900 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Enter your email address"
+                className="flex-1 px-6 py-4 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/20"
               />
-              <button className="px-8 py-3 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors duration-300">
+              <button className="bg-white text-primary-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-300 transform hover:scale-105">
                 Subscribe
               </button>
             </div>
+            <p className="text-sm text-primary-200 mt-4">
+              We respect your privacy. Unsubscribe at any time.
+            </p>
           </div>
         </div>
       </section>

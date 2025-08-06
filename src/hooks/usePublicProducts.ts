@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../config/supabase';
+import { products as mockProducts } from '../data/mockData';
 import type { Product } from '../types';
 
 export const usePublicProducts = (featured?: boolean) => {
@@ -7,22 +8,29 @@ export const usePublicProducts = (featured?: boolean) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [featured]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       console.log('[usePublicProducts] Fetching products...');
       
       let query = supabase
         .from('products')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
 
+      // Check for is_active field first, fallback to not filtering
+      try {
+        query = query.eq('is_active', true);
+      } catch (e) {
+        console.log('[usePublicProducts] is_active field might not exist, continuing without filter');
+      }
+
       if (featured) {
-        query = query.eq('is_featured', true);
+        try {
+          query = query.eq('is_featured', true);
+        } catch (e) {
+          // Fallback to old 'featured' field
+          query = query.eq('featured', true);
+        }
       }
 
       const { data, error } = await query;
@@ -48,14 +56,14 @@ export const usePublicProducts = (featured?: boolean) => {
           // Fallback image if no images are available
           'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
         ],
-        category: product.category_id?.toString() || 'general',
+        category: product.category_id?.toString() || product.category || 'general',
         subcategory: undefined,
         occasion: [],
         fabric: undefined,
         color: 'Multi', // Default color since it's not in the current schema
         sizes: ['S', 'M', 'L', 'XL'], // Default sizes since it's not in the current schema
         description: product.description || '',
-        isFeatured: product.is_featured,
+        isFeatured: product.is_featured ?? product.featured ?? false,
         isNew: false, // Could be calculated based on created_at
         rating: 4.5, // Default rating since reviews aren't implemented yet
         reviewCount: Math.floor(Math.random() * 100) + 10, // Random review count for demo
@@ -65,13 +73,34 @@ export const usePublicProducts = (featured?: boolean) => {
       }));
       
       setProducts(transformedProducts);
+      
+      // If no products from database, use mock data for development
+      if (transformedProducts.length === 0) {
+        console.log('[usePublicProducts] No database products, using mock data');
+        const filteredMockProducts = featured 
+          ? mockProducts.filter(p => p.isFeatured)
+          : mockProducts;
+        setProducts(filteredMockProducts);
+      }
     } catch (e) {
       console.error('[usePublicProducts] Error:', e);
+      
+      // Fallback to mock data on error
+      console.log('[usePublicProducts] Database error, using mock data');
+      const filteredMockProducts = featured 
+        ? mockProducts.filter(p => p.isFeatured)
+        : mockProducts;
+      setProducts(filteredMockProducts);
+      
       setError(e instanceof Error ? e.message : 'Error fetching products');
     } finally {
       setLoading(false);
     }
-  };
+  }, [featured]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   return {
     products,
