@@ -1,10 +1,21 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { categories } from '../../data/mockData';
+import { useCategories } from '../../hooks/useAdmin';
 
 const FeaturedCategories: React.FC = () => {
-  // Filter featured categories
-  const featuredCategories = categories.filter(category => category.featured);
+  // Fetch categories from database
+  const { categories, loading, error } = useCategories();
+
+  if (loading) {
+    return <div className="py-16 text-center">Loading categories...</div>;
+  }
+  if (error) {
+    return <div className="py-16 text-center text-red-600">Error loading categories: {error}</div>;
+  }
+  if (!categories || categories.length === 0) {
+    return <div className="py-16 text-center text-gray-500">No categories found.</div>;
+  }
+  const featuredCategories = categories;
 
   return (
     <section className="py-16 bg-gray-50">
@@ -31,7 +42,7 @@ const FeaturedCategories: React.FC = () => {
                 
                 {/* Image */}
                 <img 
-                  src={category.image}
+                  src={category.image_url || ''}
                   alt={category.name}
                   className="w-full h-80 object-cover transition-transform duration-700 group-hover:scale-110"
                 />

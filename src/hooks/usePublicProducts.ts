@@ -1,18 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-// Only create the client inside the hook, and only once
-let supabase: ReturnType<typeof createClient> | null = null;
-
-export function getSupabaseClient() {
-  if (!supabase) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  }
-  return supabase;
-}
-import { products as mockProducts } from '../data/mockData';
+import { supabase } from '../config/supabase';
 import type { Product } from '../types';
 
 export const usePublicProducts = (featured?: boolean) => {
@@ -22,102 +9,108 @@ export const usePublicProducts = (featured?: boolean) => {
 
   const fetchProducts = useCallback(async () => {
     try {
-      console.log('[usePublicProducts] Fetching products...');
-      if (!supabase) {
-        setProducts([]);
-        setError('Supabase client not initialized');
-        setLoading(false);
-        return;
-      }
       let query = supabase
         .from('products')
-        .select('*')
+        .select(`*, product_images(*), product_variants(*), product_reviews(*)`)
         .order('created_at', { ascending: false });
-
-      // Check for is_active field first, fallback to not filtering
       try {
         query = query.eq('is_active', true);
       } catch (e) {
         console.log('[usePublicProducts] is_active field might not exist, continuing without filter');
       }
-
       if (featured) {
         try {
           query = query.eq('is_featured', true);
         } catch (e) {
-          // Fallback to old 'featured' field
           query = query.eq('featured', true);
         }
       }
-
       const { data, error } = await query;
-
       console.log('[usePublicProducts] Query result:', data);
       console.log('[usePublicProducts] Query error:', error);
-
       if (error) {
         console.error('[usePublicProducts] Supabase error:', error);
         throw error;
       }
-
-      // Transform Supabase data to frontend Product format
-      const transformedProducts = (data || []).map((product: any) => ({
-        id: String(product.id),
-        name: String(product.name ?? ''),
-        price: Number(product.sale_price ?? product.price ?? 0),
-        originalPrice: product.sale_price ? Number(product.price ?? 0) : undefined,
-        discountPercentage: product.sale_price && product.price
-          ? Math.round(((Number(product.price) - Number(product.sale_price)) / Number(product.price)) * 100)
-          : undefined,
-        images: [
-          // Fallback image if no images are available
-          'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'
-        ],
-        category: product.category_id?.toString() || product.category || 'general',
-        subcategory: undefined,
-        occasion: [],
-        fabric: undefined,
-        color: 'Multi', // Default color since it's not in the current schema
-        sizes: ['S', 'M', 'L', 'XL'], // Default sizes since it's not in the current schema
-        description: String(product.description ?? ''),
-        isFeatured: product.is_featured ?? product.featured ?? false,
-        isNew: false, // Could be calculated based on created_at
-        rating: 4.5, // Default rating since reviews aren't implemented yet
-        reviewCount: Math.floor(Math.random() * 100) + 10, // Random review count for demo
-        stockStatus: 'In Stock' as const, // Default stock status
-        specifications: {},
-        reviews: []
-      }));
-
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const transformedProducts = (data || []).map((product: any) => {
+        // Map product_images to public URLs
+        let images: string[] = [];
+        if (Array.isArray(product.product_images) && product.product_images.length > 0) {
+          images = product.product_images.map((img: any) =>
+            img.image_url && !img.image_url.startsWith('http')
+              ? `${supabaseUrl}/storage/v1/object/public/product-images/${img.image_url}`
+              : img.image_url
+          );
+        } else {
+          images = ['https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'];
+        }
+        // Map variants
+        let sizes: string[] = [];
+        let colors: string[] = [];
+        if (Array.isArray(product.product_variants) && product.product_variants.length > 0) {
+          sizes = Array.from(new Set(product.product_variants.map((v: any) => v.size).filter(Boolean)));
+          colors = Array.from(new Set(product.product_variants.map((v: any) => v.color).filter(Boolean)));
+        }
+        // Map reviews
+        const reviews = Array.isArray(product.product_reviews) ? product.product_reviews.map((r: any) => ({
+          id: String(r.id),
+          userId: r.user_id,
+          userName: r.user_name,
+          rating: r.rating,
+          comment: r.comment,
+          createdAt: r.created_at,
+          helpful: r.helpful ?? 0,
+          images: r.images || []
+        })) : [];
+        const rating = reviews.length > 0
+          ? (reviews.reduce((acc: number, r: { rating: number }) => acc + (r.rating || 0), 0) / reviews.length)
+          : 0;
+        return {
+          id: String(product.id),
+          slug: String(product.slug),
+          name: String(product.name ?? ''),
+          price: Number(product.sale_price ?? product.price ?? 0),
+          originalPrice: product.sale_price ? Number(product.price ?? 0) : undefined,
+          discountPercentage: product.sale_price && product.price
+            ? Math.round(((Number(product.price) - Number(product.sale_price)) / Number(product.price)) * 100)
+            : undefined,
+          images,
+          category: product.category_id?.toString() || product.category || 'general',
+          subcategory: undefined,
+          occasion: [],
+          fabric: undefined,
+          color: colors[0] || 'Multi',
+          sizes,
+          description: String(product.description ?? ''),
+          isFeatured: product.is_featured ?? product.featured ?? false,
+          isNew: false,
+          rating,
+          reviewCount: reviews.length,
+          stockStatus: 'In Stock' as const,
+          specifications: {},
+          reviews,
+          variants: product.product_variants || []
+        };
+      });
       setProducts(transformedProducts);
-
-      // If no products from database, use mock data for development
       if (transformedProducts.length === 0) {
-        console.log('[usePublicProducts] No database products, using mock data');
-        const filteredMockProducts = featured 
-          ? mockProducts.filter(p => p.isFeatured)
-          : mockProducts;
-        setProducts(filteredMockProducts);
+        console.log('[usePublicProducts] No database products, returning empty array');
+        setProducts([]);
       }
     } catch (e) {
       console.error('[usePublicProducts] Error:', e);
-
-      // Fallback to mock data on error
-      console.log('[usePublicProducts] Database error, using mock data');
-      const filteredMockProducts = featured 
-        ? mockProducts.filter(p => p.isFeatured)
-        : mockProducts;
-      setProducts(filteredMockProducts);
-
+      console.log('[usePublicProducts] Database error, returning empty array');
+      setProducts([]);
       setError(e instanceof Error ? e.message : 'Error fetching products');
     } finally {
       setLoading(false);
     }
   }, [featured]);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    useEffect(() => {
+      fetchProducts();
+    }, [fetchProducts]);
 
   return {
     products,

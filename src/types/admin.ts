@@ -101,21 +101,29 @@ export interface ProductWithDetails extends Product {
   category: Category | null;
   images: ProductImage[];
   variants: ProductVariant[];
-  inventory: Inventory | null;
+  inventory: Inventory[]; // now always an array
 }
 
 export interface ProductFormImage {
-  file?: File;
-  url?: string;
+  id?: number; // present for existing images
+  product_id?: number;
+  image_url?: string; // present for existing images
+  url?: string; // for previewing new uploads
   alt_text?: string | null;
   is_primary?: boolean;
+  file?: File; // for new uploads
+  existing?: boolean; // true if from DB
+  toDelete?: boolean; // true if marked for deletion
 }
 
 export interface ProductFormVariant {
+  id?: number;
   sku: string | null;
   size: string | null;
   color: string | null;
   price_adjustment: number;
+  quantity?: number;
+  low_stock_threshold?: number;
 }
 
 export interface ProductFormInventory {
@@ -128,5 +136,8 @@ export type ProductFormData = Omit<Product, 'id' | 'created_at' | 'updated_at' |
   variants: ProductFormVariant[];
   inventory: ProductFormInventory;
 };
+
+// For update, allow variantsToDelete
+export type ProductFormDataWithDelete = ProductFormData & { variantsToDelete?: number[] };
 
 export type CategoryFormData = Omit<Category, 'id' | 'created_at' | 'updated_at'>;

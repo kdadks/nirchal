@@ -1,14 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
-import { products } from '../../data/mockData';
+// import { products } from '../../data/mockData';
+import type { Product } from '../../types';
 import { useWishlist } from '../../contexts/WishlistContext';
 
 const TrendingProducts: React.FC = () => {
   const { addToWishlist, isInWishlist } = useWishlist();
   
-  // Filter featured products
-  const featuredProducts = products.filter(product => product.isFeatured).slice(0, 4);
+  // No mock products available, so use an empty array
+  const featuredProducts: Product[] = [];
 
   return (
     <section className="py-16">
@@ -23,7 +24,7 @@ const TrendingProducts: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {featuredProducts.map((product) => (
+          {featuredProducts.map((product: Product) => (
             <div key={product.id} className="group">
               <div className="relative overflow-hidden rounded-lg mb-4">
                 {/* Product image */}

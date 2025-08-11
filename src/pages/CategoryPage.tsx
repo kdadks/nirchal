@@ -5,7 +5,7 @@ import ProductCard from '../components/product/ProductCard';
 import ProductFilters from '../components/product/ProductFilters';
 import ProductSort from '../components/product/ProductSort';
 import type { Product, Category } from '../types';
-import { products, categories } from '../data/mockData';
+import { categories } from '../data/mockData';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -43,9 +43,15 @@ const CategoryPage = () => {
     setCurrentPage(1);
   }, [filters]);
   
-  // Use mock data directly
-  const allProducts = products;
-  const allCategories = categories;
+  // No mock products available, so use an empty array
+  const allProducts: any[] = [];
+  // Use the Category type from types/index, but categories from mockData may not have 'image'.
+  // Add a fallback for image property if needed in rendering.
+  const allCategories: Category[] = categories.map((cat: any) => ({
+    ...cat,
+    image: cat.image_url || '',
+    featured: false,
+  }));
 
   // Apply filters and get category products
   const categoryProducts = useMemo(() => {
