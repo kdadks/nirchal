@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Grid, List, Heart, ShoppingBag, X, SlidersHorizontal } from 'lucide-react';
 import { usePublicProducts } from '../hooks/usePublicProducts';
+import { useCategories } from '../hooks/useAdmin';
 import type { Product } from '../types';
 
 const sortOptions = [
@@ -11,13 +12,7 @@ const sortOptions = [
   { value: 'popular', label: 'Most Popular' },
 ];
 
-const filterCategories = [
-  { value: 'sarees', label: 'Sarees' },
-  { value: 'lehengas', label: 'Lehengas' },
-  { value: 'kurtis', label: 'Kurtis' },
-  { value: 'dresses', label: 'Dresses' },
-  { value: 'suits', label: 'Suits' },
-];
+
 
 const priceRanges = [
   { value: '0-2999', label: 'Under ₹3,000' },
@@ -29,6 +24,7 @@ const priceRanges = [
 
 const ProductListingPage: React.FC = () => {
   const { products, loading, error } = usePublicProducts();
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>([]);
@@ -171,14 +167,17 @@ const ProductListingPage: React.FC = () => {
           {activeFiltersCount > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="text-sm text-zinc-600">Active filters:</span>
-              {selectedCategories.map(category => (
-                <span key={category} className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-900 text-white text-sm rounded-full">
-                  {filterCategories.find(c => c.value === category)?.label}
-                  <button onClick={() => toggleCategory(category)} className="hover:bg-zinc-700 rounded-full p-0.5">
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
+              {selectedCategories.map(categoryId => {
+                const cat = categories?.find(c => String(c.id) === categoryId);
+                return (
+                  <span key={categoryId} className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-900 text-white text-sm rounded-full">
+                    {cat ? cat.name : categoryId}
+                    <button onClick={() => toggleCategory(categoryId)} className="hover:bg-zinc-700 rounded-full p-0.5">
+                      <X size={12} />
+                    </button>
+                  </span>
+                );
+              })}
               {selectedPriceRanges.map(range => (
                 <span key={range} className="inline-flex items-center gap-1 px-3 py-1 bg-zinc-900 text-white text-sm rounded-full">
                   {priceRanges.find(r => r.value === range)?.label}
@@ -215,19 +214,29 @@ const ProductListingPage: React.FC = () => {
                 {/* Categories */}
                 <div>
                   <h3 className="font-semibold text-zinc-900 mb-4">Categories</h3>
-                  <div className="space-y-3">
-                    {filterCategories.map(category => (
-                      <label key={category.value} className="flex items-center cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={selectedCategories.includes(category.value)}
-                          onChange={() => toggleCategory(category.value)}
-                          className="w-4 h-4 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900 focus:ring-2"
-                        />
-                        <span className="ml-3 text-zinc-700 group-hover:text-zinc-900">{category.label}</span>
-                      </label>
-                    ))}
-                  </div>
+                  {categoriesLoading ? (
+                    <div className="text-gray-500">Loading categories...</div>
+                  ) : categoriesError ? (
+                    <div className="text-red-600">Error loading categories: {categoriesError}</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {categories && categories.length > 0 ? (
+                        categories.map(category => (
+                          <label key={category.id} className="flex items-center cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={selectedCategories.includes(String(category.id))}
+                              onChange={() => toggleCategory(String(category.id))}
+                              className="w-4 h-4 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900 focus:ring-2"
+                            />
+                            <span className="ml-3 text-zinc-700 group-hover:text-zinc-900">{category.name}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <div className="text-gray-500">No categories found.</div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Price Range */}
@@ -289,9 +298,9 @@ const ProductListingPage: React.FC = () => {
             ) : (
               <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                 {sortedProducts.map((product) => (
-                  <div key={product.id} className="group product-card bg-white rounded-xl overflow-hidden shadow-soft">
+                  <div key={product.slug} className="group product-card bg-white rounded-xl overflow-hidden shadow-soft">
                     <div className="relative">
-                      <Link to={`/products/${product.id}`}>
+                      <Link to={`/products/${product.slug}`}>
                         <img
                           src={product.images?.[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80'}
                           alt={product.name}
@@ -318,7 +327,7 @@ const ProductListingPage: React.FC = () => {
                     </div>
 
                     <div className="p-4">
-                      <Link to={`/products/${product.id}`}>
+                      <Link to={`/products/${product.slug}`}>
                         <h3 className="font-semibold text-zinc-900 mb-2 group-hover:text-zinc-700 transition-colors duration-200">
                           {product.name}
                         </h3>

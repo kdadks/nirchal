@@ -79,7 +79,7 @@ const DataTable = <T extends Record<string, any>>({
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+  <div className="border rounded-lg overflow-visible">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>

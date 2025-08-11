@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, error } = useAuth();
+  const { error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +18,7 @@ const LoginPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await signIn(email, password);
+  // signIn removed
       navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);

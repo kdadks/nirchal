@@ -15,27 +15,42 @@ const initialForm: CategoryFormData = {
 };
 
 const CategoriesPage: React.FC = () => {
-  const { user, loading: authLoading, supabase } = useAuth();
-  const { categories, loading, createCategory, deleteCategory, refresh } = useCategories();
+  const { user, supabase } = useAuth();
+  const { categories, loading, error, createCategory, updateCategory, deleteCategory, refresh } = useCategories();
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<CategoryFormData>(initialForm);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const columns = [
+    {
+      key: 'image_url',
+      title: 'Image',
+      render: (row: Category) =>
+        row.image_url ? (
+          <img src={row.image_url} alt={row.name} className="w-16 h-16 object-cover rounded" />
+        ) : (
+          <span className="text-gray-400">No Image</span>
+        ),
+    },
     { key: 'name', title: 'Name', sortable: true },
     { key: 'slug', title: 'Slug' },
     { key: 'description', title: 'Description' },
-    { key: 'is_active', title: 'Active', render: (row: Category) => row.is_active ? 'Yes' : 'No' },
+    { key: 'is_active', title: 'Active', render: (row: Category) => (row.is_active ? 'Yes' : 'No') },
   ];
 
   const actions = [
-    // Edit can be added here
+    {
+      label: 'Edit',
+      color: 'primary' as const,
+      onClick: (row: Category) => {
+        setForm(row);
+        setModalOpen(true);
+      },
+    },
     {
       label: 'Delete',
       color: 'danger' as const,
       onClick: async (row: Category) => {
-        if (window.confirm('Delete this category?')) {
+        if (window.confirm('Are you sure you want to delete this category?')) {
           await deleteCategory(row.id);
           refresh();
         }
@@ -57,39 +72,47 @@ const CategoriesPage: React.FC = () => {
     setForm(prev => ({
       ...prev,
       [name]: fieldValue,
-      ...(name === 'name' ? { slug: value.toLowerCase().replace(/\s+/g, '-') } : {})
+      ...(name === 'name' ? { slug: value.toLowerCase().replace(/\s+/g, '-') } : {}),
     }));
   };
 
+  // handleSave: create or update category
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setError(null);
-    // ...existing code...
-    try {
-      await createCategory(form);
-      setModalOpen(false);
-      refresh();
-    } catch (err: any) {
-      setError(err?.message || 'Error creating category');
-    } finally {
-      setSaving(false);
+    let imageUrl = form.image_url || null;
+    if ((form as any).imageFile && supabase) {
+      const file = (form as any).imageFile;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('category-images')
+        .upload(fileName, file);
+      if (uploadError) {
+        alert('Image upload failed: ' + uploadError.message);
+        return;
+      }
+      const { data: publicUrlData } = supabase.storage.from('category-images').getPublicUrl(fileName);
+      imageUrl = publicUrlData?.publicUrl || null;
     }
+    const categoryData = { ...form, image_url: imageUrl };
+    delete (categoryData as any).imageFile;
+    if ((form as any).id) {
+      await updateCategory((form as any).id, categoryData);
+    } else {
+      await createCategory(categoryData);
+    }
+    setModalOpen(false);
+    refresh();
   };
 
-
-  // Debug: log user and session
-  React.useEffect(() => {
-    if (supabase) {
-      supabase.auth.getSession(); // No-op, just to trigger session fetch if needed
-    }
-  }, [user, supabase]);
-
-  if (authLoading) {
-    return <div className="p-8">Loading authentication...</div>;
-  }
   if (!user) {
     return <div className="p-8 text-red-600 font-semibold">You must be logged in to view this page.</div>;
+  }
+  if (loading) {
+    return <div className="p-8">Loading categories...</div>;
+  }
+  if (error) {
+    return <div className="p-8 text-red-600 font-semibold">Error loading categories: {error}</div>;
   }
 
   return (
@@ -103,7 +126,6 @@ const CategoriesPage: React.FC = () => {
           Add Category
         </button>
       </div>
-
       {/* Modal Form */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -115,10 +137,7 @@ const CategoriesPage: React.FC = () => {
               ×
             </button>
             <h2 className="text-xl font-semibold mb-4">Create New Category</h2>
-            {error && (
-              <div className="mb-2 text-red-600 text-sm font-medium">{error}</div>
-            )}
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSave}>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Name</label>
                 <input
@@ -150,16 +169,6 @@ const CategoriesPage: React.FC = () => {
                   className="mt-1 block w-full border rounded px-3 py-2"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Image URL</label>
-                <input
-                  name="image_url"
-                  type="text"
-                  value={form.image_url || ''}
-                  onChange={handleChange}
-                  className="mt-1 block w-full border rounded px-3 py-2"
-                />
-              </div>
               <div className="flex items-center">
                 <input
                   name="is_active"
@@ -168,34 +177,44 @@ const CategoriesPage: React.FC = () => {
                   onChange={handleChange}
                   className="mr-2"
                 />
-                <label className="text-sm">Active</label>
+                <span>Active</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Image</label>
+                <input
+                  name="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files && e.target.files[0];
+                    setForm(prev => ({ ...prev, imageFile: file }));
+                  }}
+                  className="mt-1 block w-full border rounded px-3 py-2"
+                />
+                {form.image_url && (
+                  <img src={form.image_url} alt="Category" className="mt-2 w-16 h-16 object-cover rounded" />
+                )}
               </div>
               <button
                 type="submit"
                 className="w-full bg-primary-600 text-white py-2 rounded mt-2"
-                disabled={saving}
               >
-                {saving ? 'Saving...' : 'Save'}
+                Save
               </button>
             </form>
           </div>
         </div>
       )}
-
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4">All Categories</h2>
-        {loading ? (
-          <div className="py-8 text-center text-gray-500">Loading...</div>
-        ) : error ? (
-          <div className="py-8 text-center text-red-600 font-semibold">{error}</div>
-        ) : categories.length === 0 ? (
+        {categories.length === 0 ? (
           <div className="py-8 text-center text-gray-500">No categories found.</div>
         ) : (
           <DataTable
             columns={columns}
             data={categories}
             actions={actions}
-            isLoading={loading}
+            isLoading={false}
           />
         )}
       </div>

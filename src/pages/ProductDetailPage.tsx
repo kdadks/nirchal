@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ProductReviews from '../components/product/ProductReviews';
+import { useProductReviews } from '../hooks/useProductReviews';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Heart, Share2, Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 
 const ProductDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { products, loading } = usePublicProducts();
   const { addItem } = useCart();
@@ -16,7 +18,13 @@ const ProductDetailPage: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
-  const product = products.find(p => p.id === id);
+  const product = products.find(p => p.slug === slug);
+  const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
+
+  useEffect(() => {
+    if (product?.id) fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   if (loading) {
     return (
@@ -78,7 +86,9 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const sizes = product.sizes || [];
-  const colors = [product.color];
+  const colors = product.variants && product.variants.length > 0
+    ? Array.from(new Set(product.variants.map((v: any) => v.color).filter(Boolean)))
+    : [product.color];
 
   const hasVariants = sizes.length > 0;
   const canAddToCart = !hasVariants || selectedSize;
@@ -117,7 +127,6 @@ const ProductDetailPage: React.FC = () => {
                   alt={product.name}
                   className="w-full h-96 lg:h-[600px] object-cover rounded-2xl"
                 />
-                
                 {/* Sale Badge */}
                 {product.originalPrice && product.originalPrice > product.price && (
                   <div className="absolute top-6 left-6 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
@@ -182,11 +191,11 @@ const ProductDetailPage: React.FC = () => {
                       <Star
                         key={star}
                         size={16}
-                        className="text-yellow-400 fill-current"
+                        className={star <= Math.round(product.rating) ? 'text-yellow-400 fill-current' : 'text-zinc-300'}
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-zinc-600">(4.8) • 124 reviews</span>
+                  <span className="text-sm text-zinc-600">({product.rating.toFixed(1)}) • {product.reviewCount} reviews</span>
                 </div>
 
                 {/* Price */}
@@ -328,10 +337,15 @@ const ProductDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Product Reviews Section */}
+          <div className="max-w-3xl mx-auto mt-12">
+            <ProductReviews reviews={reviews} onAddReview={(form) => addReview(form, { id: 'anonymous', name: 'Anonymous' })} />
+          </div>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default ProductDetailPage;
