@@ -37,7 +37,7 @@ const ProductsPage: React.FC = () => {
     {
       key: 'price',
       title: 'Price',
-      render: (row: ProductWithDetails) => `₹${row.price}`,
+  render: (row: ProductWithDetails) => `₹${row.sale_price ?? row.price}`,
       sortable: true,
     },
     {
@@ -45,10 +45,14 @@ const ProductsPage: React.FC = () => {
       title: 'Image',
       render: (row: ProductWithDetails) => {
         const img = row.images?.find(img => img.is_primary) || row.images?.[0];
-        return img ? (
-          <img src={img.image_url} alt={img.alt_text || ''} className="h-12 w-12 object-cover rounded" />
-        ) : (
-          <span className="text-gray-400">No image</span>
+        if (!img) return <span className="text-gray-400">No image</span>;
+        // Build Supabase Storage public URL
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
+        const publicUrl = img.image_url?.startsWith('http')
+          ? img.image_url
+          : `${supabaseUrl}/storage/v1/object/public/product-images/${img.image_url}`;
+        return (
+          <img src={publicUrl} alt={img.alt_text || ''} className="h-12 w-12 object-cover rounded" />
         );
       },
     },
@@ -62,7 +66,11 @@ const ProductsPage: React.FC = () => {
     {
       key: 'inventory',
       title: 'Stock',
-      render: (row: ProductWithDetails) => row.inventory?.quantity ?? '-',
+      render: (row: ProductWithDetails) => {
+        if (!row.inventory || row.inventory.length === 0) return '-';
+        const total = row.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+        return total;
+      },
     },
   ];
 

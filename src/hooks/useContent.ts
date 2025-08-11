@@ -1,17 +1,5 @@
 import { useEffect, useState } from 'react';
-
-import { createClient } from '@supabase/supabase-js';
-
-// Lazy singleton pattern for Supabase client
-let supabase: ReturnType<typeof createClient> | null = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-  }
-  return supabase;
-}
+import { useAuth } from '../contexts/AuthContext';
 
 export interface AboutSection {
   id: number;
@@ -106,6 +94,7 @@ export function useContent<T extends ContentType>(type: T): {
   error: string | null;
   refetch: () => Promise<void>;
 } {
+  const { supabase } = useAuth();
   const [data, setData] = useState<ContentTypeMap[T][]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,8 +104,12 @@ export function useContent<T extends ContentType>(type: T): {
     setError(null);
     try {
       console.log(`[useContent] Fetching ${type} data...`);
-
-      const supabase = getSupabaseClient();
+      if (!supabase) {
+        setError('Supabase client not initialized');
+        setLoading(false);
+        setData([]);
+        return;
+      }
       console.log('[useContent] Supabase client:', !!supabase);
       console.log('[useContent] Table name:', tableMap[type]);
 
@@ -150,7 +143,8 @@ export function useContent<T extends ContentType>(type: T): {
 
   useEffect(() => {
     fetchContent();
-  }, [type]);
+    // Only refetch when supabase or type changes
+  }, [type, supabase]);
 
   return { data, loading, error, refetch: fetchContent };
 }

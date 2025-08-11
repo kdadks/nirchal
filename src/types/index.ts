@@ -2,6 +2,7 @@
 // Product Types
 export interface Product {
   id: string;
+  slug: string;
   name: string;
   price: number;
   originalPrice?: number;
@@ -23,6 +24,7 @@ export interface Product {
     [key: string]: string;
   };
   reviews: Review[];
+  variants?: any[];
 }
 
 export interface Category {
