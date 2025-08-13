@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface AboutSection {
@@ -99,7 +99,7 @@ export function useContent<T extends ContentType>(type: T): {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function fetchContent() {
+  const fetchContent = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -139,12 +139,12 @@ export function useContent<T extends ContentType>(type: T): {
     } finally {
       setLoading(false);
     }
-  }
+  }, [supabase, type]);
 
   useEffect(() => {
     fetchContent();
     // Only refetch when supabase or type changes
-  }, [type, supabase]);
+  }, [fetchContent]);
 
   return { data, loading, error, refetch: fetchContent };
 }

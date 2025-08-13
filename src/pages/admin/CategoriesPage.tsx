@@ -1,4 +1,4 @@
-/* global HTMLTextAreaElement, JSX, React */
+/* global HTMLTextAreaElement */
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCategories } from '../../hooks/useAdmin';

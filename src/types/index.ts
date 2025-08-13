@@ -13,6 +13,7 @@ export interface Product {
   occasion?: string[];
   fabric?: string;
   color: string;
+  colors: string[];
   sizes: string[];
   description: string;
   isFeatured?: boolean;

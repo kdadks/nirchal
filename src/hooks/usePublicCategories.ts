@@ -1,0 +1,57 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../config/supabase';
+
+export interface PublicCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  image_url?: string;
+  is_active?: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export const usePublicCategories = () => {
+  const [categories, setCategories] = useState<PublicCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCategories = useCallback(async () => {
+    try {
+      setLoading(true);
+      console.log('[usePublicCategories] Fetching categories...');
+      
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+      
+      console.log('[usePublicCategories] Query result:', data);
+      console.log('[usePublicCategories] Query error:', error);
+
+      if (error) {
+        console.error('[usePublicCategories] Supabase error:', error);
+        throw error;
+      }
+
+      setCategories(data || []);
+    } catch (e) {
+      console.error('[usePublicCategories] Error:', e);
+      setError(e instanceof Error ? e.message : 'Error fetching categories');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  return {
+    categories,
+    loading,
+    error,
+    refetch: fetchCategories
+  };
+};
