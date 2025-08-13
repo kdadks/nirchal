@@ -13,14 +13,15 @@ export const usePublicProducts = (featured?: boolean) => {
       setLoading(true);
       setError(null);
       
+      // Start with a basic query without problematic joins like product_reviews
       let query = supabase
         .from('products')
         .select(`
           *,
           product_images(*),
-          product_variants(*),
-          product_reviews(*)
+          product_variants(*)
         `)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
       
       if (featured) {
@@ -133,33 +134,10 @@ export const usePublicProducts = (featured?: boolean) => {
           colors = Array.from(new Set(product.product_variants.map((v: any) => v.color).filter(Boolean)));
         }
 
-        // Map reviews - handle gracefully if reviews aren't accessible
-        let reviews: any[] = [];
-        let reviewCount = 0;
-        let rating = 0;
-        
-        try {
-          if (Array.isArray(product.product_reviews) && product.product_reviews.length > 0) {
-            reviews = product.product_reviews.map((r: any) => ({
-              id: String(r.id),
-              userId: r.user_id,
-              userName: r.user_name,
-              rating: r.rating,
-              comment: r.comment,
-              createdAt: r.created_at,
-              helpful: r.helpful ?? 0,
-              images: r.images || []
-            }));
-            
-            reviewCount = reviews.length;
-            rating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-          }
-        } catch (reviewError) {
-          console.warn('[usePublicProducts] Could not process reviews for product', product.id, ':', reviewError);
-          reviews = [];
-          reviewCount = 0;
-          rating = 0;
-        }
+        // Reviews are not fetched to avoid permission issues
+        const reviews: any[] = [];
+        const reviewCount = 0;
+        const rating = 0;
 
         return {
           id: String(product.id),
