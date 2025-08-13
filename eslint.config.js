@@ -23,6 +23,8 @@ export default [
       globals: {
         React: 'readonly',
         JSX: 'readonly',
+        // Node globals
+        process: 'readonly',
         // Browser globals
         window: 'readonly',
         document: 'readonly',
