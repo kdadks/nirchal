@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, Grid, List } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useProductsWithFilters } from '../hooks/useProductsWithFilters';
 import { useCategories } from '../hooks/useCategories';
 import ProductCard from '../components/product/ProductCard';
@@ -15,12 +16,24 @@ interface ProductFilters {
 }
 
 const ProductListingPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<ProductFilters>({
     sortBy: 'newest'
   });
+
+  // Read category from URL parameters and set it as filter
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get('category');
+    if (categoryFromUrl && categoryFromUrl !== filters.category) {
+      setFilters(prev => ({
+        ...prev,
+        category: categoryFromUrl
+      }));
+    }
+  }, [searchParams, filters.category]);
 
   // Memoize pagination to prevent unnecessary re-renders
   const paginationOptions = useMemo(() => ({

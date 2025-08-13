@@ -3,6 +3,51 @@
  */
 
 /**
+ * Generate a public URL for an image stored in the category-images bucket
+ * @param imagePath - The path/filename of the image in the storage bucket
+ * @returns Full public URL to access the image
+ */
+export const getCategoryImageUrl = (imagePath: string): string => {
+  if (!imagePath) return '';
+  
+  // If already a full URL, return as is
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (!supabaseUrl) {
+    console.error('[Storage Utils] VITE_SUPABASE_URL not found in environment');
+    return '';
+  }
+  
+  // Construct the full storage URL for category images
+  return `${supabaseUrl}/storage/v1/object/public/category-images/${imagePath}`;
+};
+
+/**
+ * Generate multiple possible image URLs for a category based on common naming patterns
+ * @param categorySlug - The category slug
+ * @returns Array of possible image URLs to try
+ */
+export const getCategoryImageUrls = (categorySlug: string): string[] => {
+  if (!categorySlug) return [];
+  
+  const patterns = [
+    `${categorySlug}.jpg`,
+    `${categorySlug}.jpeg`,
+    `${categorySlug}.png`,
+    `${categorySlug}.webp`,
+    `category_${categorySlug}.jpg`,
+    `category-${categorySlug}.jpg`,
+    `${categorySlug}_image.jpg`,
+    `${categorySlug}-image.jpg`
+  ];
+  
+  return patterns.map(pattern => getCategoryImageUrl(pattern));
+};
+
+/**
  * Generate a public URL for an image stored in the product-images bucket
  * @param imagePath - The path/filename of the image in the storage bucket
  * @returns Full public URL to access the image

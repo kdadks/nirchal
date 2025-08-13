@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useCategories } from '../../hooks/useAdmin';
+import { useCategories } from '../../hooks/useCategories';
 
 const FeaturedCategories: React.FC = () => {
   // Fetch categories from database
@@ -33,7 +33,7 @@ const FeaturedCategories: React.FC = () => {
           {featuredCategories.map((category) => (
             <Link 
               key={category.id}
-              to={`/category/${category.id}`}
+              to={`/products?category=${category.slug || category.name}`}
               className="group block"
             >
               <div className="relative overflow-hidden rounded-lg shadow-md">
@@ -42,7 +42,7 @@ const FeaturedCategories: React.FC = () => {
                 
                 {/* Image */}
                 <img 
-                  src={category.image_url || ''}
+                  src={category.image || 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=400&h=320&fit=crop&q=80'}
                   alt={category.name}
                   className="w-full h-80 object-cover transition-transform duration-700 group-hover:scale-110"
                 />

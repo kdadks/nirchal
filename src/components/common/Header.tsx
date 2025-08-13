@@ -3,11 +3,12 @@ import { Heart, ShoppingBag, User, Search, Menu, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { categories } from '../../data/mockData';
+import { useCategories } from '../../hooks/useCategories';
 
 const Header: React.FC = () => {
   const { totalItems } = useCart();
   const { user, signOut } = useAuth();
+  const { categories } = useCategories();
   const isAuthenticated = !!user;
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -46,7 +47,7 @@ const Header: React.FC = () => {
             {categories.slice(0, 4).map(category => (
               <Link 
                 key={category.id}
-                to={`/category/${category.id}`}
+                to={`/products?category=${category.slug || category.name}`}
                 className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
               >
                 {category.name}
@@ -201,7 +202,7 @@ const Header: React.FC = () => {
               {categories.map(category => (
                 <Link 
                   key={category.id}
-                  to={`/category/${category.id}`}
+                  to={`/products?category=${category.slug || category.name}`}
                   className="py-3 border-b border-gray-100 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >
