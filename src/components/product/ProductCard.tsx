@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
@@ -16,6 +16,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const { addToWishlist, isInWishlist } = useWishlist();
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [imageSrc, setImageSrc] = React.useState(product.images[0] || '/placeholder-product.jpg');
   const [imageError, setImageError] = React.useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
@@ -29,6 +30,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
       image: product.images[0],
       size: defaultSize
     });
+    // Navigate to cart page after adding item
+    navigate('/cart');
   };
 
   const handleImageError = () => {
