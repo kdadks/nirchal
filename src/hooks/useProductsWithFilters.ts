@@ -31,12 +31,13 @@ export const useProductsWithFilters = (
       setLoading(true);
       setError(null);
       
-      // Build the query - try to fetch images but handle permission errors gracefully
+      // Build the query - try to fetch images and variants but handle permission errors gracefully
       let query = supabase
         .from('products')
         .select(`
           *,
-          product_images(image_url, is_primary)
+          product_images(image_url, is_primary),
+          product_variants(*)
         `, { count: 'exact' })
         .eq('is_active', true);
 
@@ -239,7 +240,7 @@ export const useProductsWithFilters = (
       }
 
       // Transform to our Product interface
-      const transformedProducts: Product[] = await Promise.all(data.map(async (product: any) => {
+      const transformedProducts = await Promise.all(data.map(async (product: any) => {
         // Handle product images with fallback for permission issues
         let images: string[] = [];
         
@@ -316,8 +317,30 @@ export const useProductsWithFilters = (
           })(),
           fabric: product.fabric || 'Cotton', // Default fabric
           color: product.color || 'Multi-color',
-          colors: [product.color || 'Multi-color'],
-          sizes: ['Free Size'], // Default size
+          colors: (() => {
+            // Map variants to colors
+            if (Array.isArray(product.product_variants) && product.product_variants.length > 0) {
+              const variantColors: string[] = Array.from(new Set(
+                product.product_variants
+                  .map((v: any) => v.color ? String(v.color) : '')
+                  .filter((color: string) => color.trim() !== '')
+              ));
+              return variantColors.length > 0 ? variantColors : [product.color || 'Multi-color'];
+            }
+            return [product.color || 'Multi-color'];
+          })(),
+          sizes: (() => {
+            // Map variants to sizes  
+            if (Array.isArray(product.product_variants) && product.product_variants.length > 0) {
+              const variantSizes: string[] = Array.from(new Set(
+                product.product_variants
+                  .map((v: any) => v.size ? String(v.size) : '')
+                  .filter((size: string) => size.trim() !== '')
+              ));
+              return variantSizes.length > 0 ? variantSizes : ['Free Size'];
+            }
+            return ['Free Size'];
+          })(),
           description: String(product.description || ''),
           isFeatured: product.is_featured || false,
           isNew: false, // Default to false
@@ -330,7 +353,7 @@ export const useProductsWithFilters = (
         };
       }));
 
-      setProducts(transformedProducts);
+      setProducts(transformedProducts as Product[]);
     } catch (err) {
       console.error('[useProductsWithFilters] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch products');
