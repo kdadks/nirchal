@@ -35,6 +35,69 @@ export const usePublicProducts = (featured?: boolean) => {
       
       if (error) {
         console.error('[usePublicProducts] Error:', error.message);
+        const msg = (error.message || '').toLowerCase();
+        const isPermissionIssue = msg.includes('permission denied') || 
+                                  msg.includes('not allowed') || 
+                                  msg.includes('rls');
+        
+        if (isPermissionIssue) {
+          console.warn('[usePublicProducts] Permission denied, attempting fallback without reviews/images:', error.message);
+          // Try a simpler query without joins that might fail due to RLS
+          try {
+            const fallbackQuery = supabase
+              .from('products')
+              .select('*')
+              .eq('is_active', true);
+              
+            if (featured) {
+              fallbackQuery.eq('is_featured', true);
+            }
+            
+            const fallbackResult = await fallbackQuery;
+            if (fallbackResult.error) {
+              console.error('[usePublicProducts] Fallback query also failed:', fallbackResult.error);
+              setProducts([]);
+              return;
+            }
+            
+            // Process fallback data without reviews/images
+            const fallbackProducts = (fallbackResult.data || []).map((product: any) => ({
+              id: String(product.id),
+              slug: product.slug || `product-${product.id}`,
+              name: product.name,
+              price: Number(product.sale_price || product.price),
+              originalPrice: product.sale_price && product.price && product.sale_price !== product.price 
+                ? Number(product.price) : undefined,
+              discountPercentage: product.sale_price && product.price && product.sale_price !== product.price
+                ? Math.round(((product.price - product.sale_price) / product.price) * 100)
+                : undefined,
+              images: ['/placeholder-product.jpg'], // Fallback image
+              category: 'Products',
+              subcategory: product.subcategory,
+              occasion: [],
+              fabric: product.fabric || 'Cotton',
+              color: product.color || 'Multi-color',
+              colors: [product.color || 'Multi-color'],
+              sizes: ['Free Size'],
+              description: product.description || '',
+              isFeatured: Boolean(product.is_featured),
+              isNew: false,
+              rating: 0, // No reviews available
+              reviewCount: 0,
+              stockStatus: 'In Stock' as const,
+              specifications: {},
+              reviews: [],
+              variants: []
+            }));
+            
+            setProducts(fallbackProducts);
+            return;
+          } catch (fallbackError) {
+            console.error('[usePublicProducts] Fallback failed:', fallbackError);
+            setProducts([]);
+            return;
+          }
+        }
         throw error;
       }
       
@@ -70,21 +133,33 @@ export const usePublicProducts = (featured?: boolean) => {
           colors = Array.from(new Set(product.product_variants.map((v: any) => v.color).filter(Boolean)));
         }
 
-        // Map reviews
-        const reviews = Array.isArray(product.product_reviews) ? product.product_reviews.map((r: any) => ({
-          id: String(r.id),
-          userId: r.user_id,
-          userName: r.user_name,
-          rating: r.rating,
-          comment: r.comment,
-          createdAt: r.created_at,
-          helpful: r.helpful ?? 0,
-          images: r.images || []
-        })) : [];
-
-        const rating = reviews.length > 0
-          ? (reviews.reduce((acc: number, r: { rating: number }) => acc + (r.rating || 0), 0) / reviews.length)
-          : 0;
+        // Map reviews - handle gracefully if reviews aren't accessible
+        let reviews: any[] = [];
+        let reviewCount = 0;
+        let rating = 0;
+        
+        try {
+          if (Array.isArray(product.product_reviews) && product.product_reviews.length > 0) {
+            reviews = product.product_reviews.map((r: any) => ({
+              id: String(r.id),
+              userId: r.user_id,
+              userName: r.user_name,
+              rating: r.rating,
+              comment: r.comment,
+              createdAt: r.created_at,
+              helpful: r.helpful ?? 0,
+              images: r.images || []
+            }));
+            
+            reviewCount = reviews.length;
+            rating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+          }
+        } catch (reviewError) {
+          console.warn('[usePublicProducts] Could not process reviews for product', product.id, ':', reviewError);
+          reviews = [];
+          reviewCount = 0;
+          rating = 0;
+        }
 
         return {
           id: String(product.id),
@@ -104,7 +179,7 @@ export const usePublicProducts = (featured?: boolean) => {
           stockQuantity: Number(product.stock_quantity ?? 0),
           stockStatus: product.in_stock ? 'In Stock' : 'Out of Stock',
           rating,
-          reviewCount: reviews.length,
+          reviewCount,
           isNew: Boolean(product.is_new ?? false),
           isFeatured: Boolean(product.is_featured ?? false),
           isSale: Boolean(product.sale_price && product.sale_price < product.price),
