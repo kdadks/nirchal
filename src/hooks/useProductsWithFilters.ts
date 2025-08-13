@@ -131,15 +131,25 @@ export const useProductsWithFilters = (
         count = result.count;
         
         // Handle specific database column errors
-        if (error && (error.message.includes('column') || 
-                     error.message.includes('does not exist') ||
-                     error.message.includes('invalid input syntax for type json'))) {
-          console.warn('[useProductsWithFilters] Column/JSON error, attempting fallback query:', error.message);
-          throw new Error('Schema issue - attempting fallback');
+        if (error) {
+          const msg = (error.message || '').toLowerCase();
+          const isSchemaIssue = msg.includes('column') ||
+                                msg.includes('does not exist') ||
+                                msg.includes('invalid input syntax for type json') ||
+                                msg.includes('json');
+          const isPermissionIssue = msg.includes('permission denied') ||
+                                    msg.includes('not allowed') ||
+                                    msg.includes('rls');
+
+          // If schema/permission issues (most likely product_images blocked by RLS), fallback
+          if (isSchemaIssue || isPermissionIssue) {
+            console.warn('[useProductsWithFilters] Schema/permission issue, attempting fallback query:', error.message);
+            throw new Error('Schema or permission issue - attempting fallback');
+          }
         }
       } catch (err: any) {
-        if (err.message === 'Schema issue - attempting fallback' || 
-            (err.message && (err.message.includes('column') || err.message.includes('json') || err.message.includes('JSON')))) {
+        if (err.message === 'Schema or permission issue - attempting fallback' || 
+            (err.message && (err.message.toLowerCase().includes('column') || err.message.toLowerCase().includes('json') || err.message.toLowerCase().includes('permission')))) {
           console.warn('[useProductsWithFilters] Query failed due to schema issues, using minimal fallback:', err);
         } else {
           console.warn('[useProductsWithFilters] Query failed, falling back to simple query:', err);
@@ -204,14 +214,13 @@ export const useProductsWithFilters = (
       
       if (error) {
         console.error('[useProductsWithFilters] Database error:', error);
-        // Handle various database schema issues more gracefully
-        if (error.message.includes('column') || 
-            error.message.includes('does not exist') ||
-            error.message.includes('invalid input syntax for type json') ||
-            error.message.includes('JSON') ||
-            error.message.includes('json')) {
-          console.warn('[useProductsWithFilters] Database schema issue - some filters may not work:', error.message);
-          // Set empty products instead of throwing error
+        const msg = (error.message || '').toLowerCase();
+        const isSchemaIssue = msg.includes('column') || msg.includes('does not exist') || msg.includes('invalid input syntax for type json') || msg.includes('json');
+        const isPermissionIssue = msg.includes('permission denied') || msg.includes('not allowed') || msg.includes('rls');
+
+        // For schema/permission issues, don't crash UI; return empty list
+        if (isSchemaIssue || isPermissionIssue) {
+          console.warn('[useProductsWithFilters] Database schema/permission issue - returning empty products:', error.message);
           setProducts([]);
           setTotalCount(0);
           setTotalPages(0);
