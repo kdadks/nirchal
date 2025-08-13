@@ -386,7 +386,7 @@ export const useProducts = () => {
 									if (v.id) {
 										variantId = v.id;
 										// Update existing variant
-										  // quantity and low_stock_threshold are unused
+										// quantity and low_stock_threshold are unused
 										const { error: updateVarError } = await supabase
 											.from('product_variants')
 											.update({
@@ -399,7 +399,7 @@ export const useProducts = () => {
 										if (updateVarError) throw updateVarError;
 									} else {
 										// Insert new variant
-										  // quantity and low_stock_threshold are unused
+										// quantity and low_stock_threshold are unused
 										const { data: newVar, error: insertVarError } = await supabase
 											.from('product_variants')
 											.insert({

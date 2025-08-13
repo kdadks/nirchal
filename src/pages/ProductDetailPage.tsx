@@ -86,9 +86,9 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const sizes = product.sizes || [];
-  const colors = product.variants && product.variants.length > 0
-    ? Array.from(new Set(product.variants.map((v: any) => v.color).filter(Boolean)))
-    : [product.color];
+  const colors = product.colors && product.colors.length > 0 
+    ? product.colors 
+    : product.color ? [product.color] : [];
 
   const hasVariants = sizes.length > 0;
   const canAddToCart = !hasVariants || selectedSize;

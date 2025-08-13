@@ -33,7 +33,7 @@ export const AppRoutes: React.FC = () => {
       {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
       <Route path="/products" element={<ProductListingPage />} />
-  <Route path="/products/:slug" element={<ProductDetailPage />} />
+      <Route path="/products/:slug" element={<ProductDetailPage />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
