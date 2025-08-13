@@ -43,16 +43,37 @@ export const useProductsWithFilters = (
 
       // Apply category filter using category_id
       if (filters.category) {
+        console.log('[useProductsWithFilters] Applying category filter:', filters.category);
         try {
-          // Get category ID from category name
+          // Get category ID from category slug (URL parameter uses slug)
           const { data: categoryData } = await supabase
             .from('categories')
-            .select('id')
-            .eq('name', filters.category)
+            .select('id, name, slug')
+            .eq('slug', filters.category)
             .single();
           
+          console.log('[useProductsWithFilters] Category data by slug:', categoryData);
+          
           if (categoryData) {
+            console.log('[useProductsWithFilters] Found category by slug, applying filter with ID:', categoryData.id);
             query = query.eq('category_id', categoryData.id);
+          } else {
+            // Fallback: try matching by name if slug doesn't work
+            console.log('[useProductsWithFilters] Category not found by slug, trying by name');
+            const { data: categoryByName } = await supabase
+              .from('categories')
+              .select('id, name, slug')
+              .eq('name', filters.category)
+              .single();
+            
+            console.log('[useProductsWithFilters] Category data by name:', categoryByName);
+            
+            if (categoryByName) {
+              console.log('[useProductsWithFilters] Found category by name, applying filter with ID:', categoryByName.id);
+              query = query.eq('category_id', categoryByName.id);
+            } else {
+              console.log('[useProductsWithFilters] No category found for:', filters.category);
+            }
           }
         } catch (err) {
           console.warn('[useProductsWithFilters] Could not apply category filter:', err);
@@ -162,6 +183,45 @@ export const useProductsWithFilters = (
           .select('*', { count: 'exact' })
           .eq('is_active', true);
           
+        // Apply category filter in fallback too
+        if (filters.category) {
+          console.log('[useProductsWithFilters] Applying category filter in fallback:', filters.category);
+          try {
+            // Get category ID from category slug (URL parameter uses slug)
+            const { data: categoryData } = await supabase
+              .from('categories')
+              .select('id, name, slug')
+              .eq('slug', filters.category)
+              .single();
+            
+            console.log('[useProductsWithFilters] Fallback - Category data by slug:', categoryData);
+            
+            if (categoryData) {
+              console.log('[useProductsWithFilters] Fallback - Found category by slug, applying filter with ID:', categoryData.id);
+              fallbackQuery = fallbackQuery.eq('category_id', categoryData.id);
+            } else {
+              // Fallback: try matching by name if slug doesn't work
+              console.log('[useProductsWithFilters] Fallback - Category not found by slug, trying by name');
+              const { data: categoryByName } = await supabase
+                .from('categories')
+                .select('id, name, slug')
+                .eq('name', filters.category)
+                .single();
+              
+              console.log('[useProductsWithFilters] Fallback - Category data by name:', categoryByName);
+              
+              if (categoryByName) {
+                console.log('[useProductsWithFilters] Fallback - Found category by name, applying filter with ID:', categoryByName.id);
+                fallbackQuery = fallbackQuery.eq('category_id', categoryByName.id);
+              } else {
+                console.log('[useProductsWithFilters] Fallback - No category found for:', filters.category);
+              }
+            }
+          } catch (err) {
+            console.warn('[useProductsWithFilters] Fallback category filter failed:', err);
+          }
+        }
+          
         // Only apply safe filters in fallback
         if (filters.priceRange) {
           if (filters.priceRange.min > 0) {
@@ -232,6 +292,9 @@ export const useProductsWithFilters = (
 
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / pagination.limit));
+
+      console.log('[useProductsWithFilters] Query completed - Total count:', count, 'Data length:', data?.length);
+      console.log('[useProductsWithFilters] Applied filters:', filters);
 
       if (!data || data.length === 0) {
         console.log('[useProductsWithFilters] No products found with current filters');
