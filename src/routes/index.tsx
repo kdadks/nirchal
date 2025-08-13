@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import HomePage from '../pages/HomePage';
 import ProductListingPage from '../pages/ProductListingPage';
 import ProductDetailPage from '../pages/ProductDetailPage';
+import CategoryPage from '../pages/CategoryPage';
 import CartPage from '../pages/CartPage';
 import CheckoutPage from '../pages/CheckoutPage';
 import OrderConfirmationPage from '../pages/OrderConfirmationPage';
@@ -32,6 +33,8 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/categories" element={<CategoryPage />} />
+      <Route path="/category/:categoryId" element={<CategoryPage />} />
       <Route path="/products" element={<ProductListingPage />} />
       <Route path="/products/:slug" element={<ProductDetailPage />} />
       <Route path="/cart" element={<CartPage />} />
