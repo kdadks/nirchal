@@ -24,7 +24,7 @@ import ShippingPage from './pages/footer/ShippingPage';
 import ReturnPolicyPage from './pages/footer/ReturnPolicyPage';
 import TermsPage from './pages/footer/TermsPage';
 import LoginPage from './pages/admin/LoginPage';
-import AdminRoutes from './routes/AdminRoutes';
+import AdminWrapper from './routes/AdminWrapper';
 
 const router = createBrowserRouter([
   {
@@ -46,7 +46,7 @@ const router = createBrowserRouter([
       { path: 'return-policy', element: <ReturnPolicyPage /> },
       { path: 'terms', element: <TermsPage /> },
       { path: 'admin/login', element: <LoginPage /> },
-      { path: 'admin/*', element: <AdminRoutes isAuthenticated={true} /> },
+      { path: 'admin/*', element: <AdminWrapper /> },
     ],
   },
 ]);

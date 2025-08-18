@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../hooks/useAdmin';
 import DataTable from '../../components/admin/DataTable';
 import type { ProductWithDetails } from '../../types/admin';
+import { Package, Plus, Edit, Trash2, Eye } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -76,13 +77,21 @@ const ProductsPage: React.FC = () => {
 
   const actions = [
     {
+      label: 'View',
+      color: 'default' as const,
+      icon: <Eye className="h-4 w-4" />,
+      onClick: (row: ProductWithDetails) => navigate(`/admin/products/${row.id}`),
+    },
+    {
       label: 'Edit',
       color: 'primary' as const,
+      icon: <Edit className="h-4 w-4" />,
       onClick: (row: ProductWithDetails) => navigate(`/admin/products/edit/${row.id}`),
     },
     {
       label: 'Delete',
       color: 'danger' as const,
+      icon: <Trash2 className="h-4 w-4" />,
       onClick: async (row: ProductWithDetails) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
           await deleteProduct(row.id);
@@ -93,24 +102,48 @@ const ProductsPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Manage Products</h1>
+    <div className="space-y-8">
+      {/* Modern Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-6 lg:mb-0">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl blur opacity-40"></div>
+              <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 p-3 rounded-2xl">
+                <Package className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-3xl font-display font-bold bg-gradient-to-r from-primary-800 to-accent-600 bg-clip-text text-transparent">
+                Products
+              </h1>
+              <p className="text-neutral-600 font-accent">
+                Manage your product catalog and inventory
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <button
-          className="bg-primary-600 text-white px-4 py-2 rounded"
+          className="flex items-center space-x-2 bg-gradient-to-r from-primary-500 to-accent-500 text-white px-6 py-3 rounded-2xl hover:shadow-lg transition-all duration-200 group"
           onClick={() => navigate('/admin/products/create')}
         >
-          Add Product
+          <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-200" />
+          <span className="font-medium">Add Product</span>
         </button>
       </div>
-      <div className="bg-white rounded-xl shadow p-6">
-        <DataTable
-          columns={columns}
-          data={products}
-          actions={actions}
-          isLoading={loading}
-        />
-      </div>
+
+      {/* Products Table */}
+      <DataTable
+        title="Product Catalog"
+        subtitle={`${products?.length || 0} products in your store`}
+        columns={columns}
+        data={products || []}
+        actions={actions}
+        isLoading={loading}
+        searchable={true}
+        filterable={true}
+      />
     </div>
   );
 };
