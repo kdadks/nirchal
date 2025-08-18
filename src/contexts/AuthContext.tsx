@@ -11,6 +11,7 @@ interface AuthContextType {
   user: AppUser | null;
   isAdmin: boolean;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   error: string | null;
   supabase: SupabaseClient;
@@ -50,6 +51,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('AuthContext: Attempting sign in with email:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('AuthContext: Supabase auth error:', error);
+        throw error;
+      }
+      
+      if (data.user) {
+        console.log('AuthContext: Login successful, user:', data.user);
+        setUser({ ...data.user, name: data.user.email?.split('@')[0] });
+        setIsAdmin(true);
+      } else {
+        console.warn('AuthContext: No user data returned');
+        throw new Error('No user data returned from authentication');
+      }
+    } catch (err) {
+      console.error('AuthContext: Sign in error:', err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An error occurred during sign in');
+      }
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     try {
       setLoading(true);
@@ -76,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAdmin,
         loading,
+        signIn,
         signOut,
         error,
         supabase,
