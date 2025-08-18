@@ -10,7 +10,6 @@ import {
   Calendar,
   BarChart3,
   TrendingUp,
-  TrendingDown,
   Activity,
   Eye,
   Plus,
