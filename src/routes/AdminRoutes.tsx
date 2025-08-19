@@ -1,12 +1,12 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from '../components/admin/AdminLayout';
-import AdminDashboard from '../pages/admin/DashboardPage';
+import AdminDashboard from '../pages/admin/AdminDashboard';
 import ProductsPage from '../pages/admin/ProductsPage';
 import CategoriesPage from '../pages/admin/CategoriesPage';
 import CreateProductPage from '../pages/admin/CreateProductPage';
 import EditProductPage from '../pages/admin/EditProductPage';
-// import SettingsPage from '../pages/admin/SettingsPage';
+import SettingsPage from '../pages/admin/SettingsPage';
 
 interface AdminRoutesProps {
   isAuthenticated: boolean;
@@ -25,7 +25,7 @@ const AdminRoutes: React.FC<AdminRoutesProps> = ({ isAuthenticated }) => {
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/create" element={<CreateProductPage />} />
         <Route path="/products/edit/:id" element={<EditProductPage />} />
-        {/* <Route path="/settings" element={<SettingsPage />} /> */}
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </AdminLayout>

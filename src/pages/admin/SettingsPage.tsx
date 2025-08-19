@@ -2,50 +2,85 @@ import React, { useState } from 'react';
 import { 
   Settings, 
   Store, 
-  Palette, 
-  Bell, 
-  Shield, 
-  Globe, 
+  CreditCard, 
+  Receipt, 
+  Search,
   Mail,
   Save,
   User,
-  Database,
-  Key,
-  Monitor,
   Smartphone,
-  CreditCard,
   Package,
   Truck,
-  RefreshCw
+  Eye,
+  EyeOff,
+  ExternalLink
 } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState('shop');
   const [settings, setSettings] = useState({
+    // Shop Settings
     storeName: 'Nirchal',
     storeEmail: 'contact@nirchal.com',
     storePhone: '+91 98765 43210',
     storeAddress: 'Mumbai, Maharashtra, India',
+    storeDescription: 'Premium Indian ethnic wear for the modern woman',
     currency: 'INR',
     timezone: 'Asia/Kolkata',
-    enableNotifications: true,
-    enableSMS: false,
-    enableAnalytics: true,
-    maintenanceMode: false,
     allowGuestCheckout: true,
     autoApproveReviews: false,
     lowStockThreshold: 10,
     orderPrefix: 'ORD',
     enableInventoryTracking: true,
+    
+    // Payment Gateway Settings
+    razorpayEnabled: true,
+    razorpayKeyId: '',
+    razorpayKeySecret: '',
+    stripeEnabled: false,
+    stripePublishableKey: '',
+    stripeSecretKey: '',
+    paypalEnabled: false,
+    paypalClientId: '',
+    paypalClientSecret: '',
+    codEnabled: true,
+    
+    // Billing Settings
+    gstNumber: '',
+    panNumber: '',
+    companyName: 'Nirchal Fashion Pvt Ltd',
+    billingAddress: 'Mumbai, Maharashtra, India',
+    invoicePrefix: 'INV',
+    taxRate: 18,
+    enableGST: true,
+    
+    // SEO Settings
+    siteTitle: 'Nirchal - Premium Indian Ethnic Wear',
+    metaDescription: 'Discover exquisite Indian ethnic wear at Nirchal. Premium sarees, lehengas, and traditional outfits for the modern woman.',
+    metaKeywords: 'indian ethnic wear, sarees, lehengas, traditional clothing, ethnic fashion',
+    ogTitle: 'Nirchal - Premium Indian Ethnic Wear',
+    ogDescription: 'Discover exquisite Indian ethnic wear at Nirchal',
+    ogImage: '',
+    twitterCard: 'summary_large_image',
+    canonicalUrl: 'https://nirchal.com',
+    robotsIndex: true,
+    robotsFollow: true,
+    enableSitemap: true,
+    googleAnalyticsId: '',
+    facebookPixelId: '',
+  });
+
+  const [showSecrets, setShowSecrets] = useState({
+    razorpaySecret: false,
+    stripeSecret: false,
+    paypalSecret: false,
   });
 
   const tabs = [
-    { id: 'general', label: 'General', icon: <Store className="h-5 w-5" /> },
-    { id: 'notifications', label: 'Notifications', icon: <Bell className="h-5 w-5" /> },
-    { id: 'appearance', label: 'Appearance', icon: <Palette className="h-5 w-5" /> },
-    { id: 'security', label: 'Security', icon: <Shield className="h-5 w-5" /> },
-    { id: 'integrations', label: 'Integrations', icon: <Globe className="h-5 w-5" /> },
-    { id: 'advanced', label: 'Advanced', icon: <Database className="h-5 w-5" /> },
+    { id: 'shop', label: 'Shop Settings', icon: <Store className="h-5 w-5" /> },
+    { id: 'payment', label: 'Payment Gateway', icon: <CreditCard className="h-5 w-5" /> },
+    { id: 'billing', label: 'Billing', icon: <Receipt className="h-5 w-5" /> },
+    { id: 'seo', label: 'SEO Settings', icon: <Search className="h-5 w-5" /> },
   ];
 
   const handleSettingChange = (key: string, value: any) => {
@@ -56,6 +91,11 @@ const SettingsPage: React.FC = () => {
     // Save settings logic here
     console.log('Saving settings:', settings);
     // Show success message
+    alert('Settings saved successfully!');
+  };
+
+  const toggleSecret = (field: keyof typeof showSecrets) => {
+    setShowSecrets(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
   return (
@@ -113,7 +153,7 @@ const SettingsPage: React.FC = () => {
 
         {/* Settings Content */}
         <div className="p-8">
-          {activeTab === 'general' && (
+          {activeTab === 'shop' && (
             <div className="space-y-8">
               <div>
                 <h3 className="text-xl font-display font-bold text-primary-800 mb-6">Store Information</h3>
@@ -187,6 +227,19 @@ const SettingsPage: React.FC = () => {
                     className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
                   />
                 </div>
+
+                <div className="mt-6">
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    Store Description
+                  </label>
+                  <textarea
+                    value={settings.storeDescription}
+                    onChange={(e) => handleSettingChange('storeDescription', e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    placeholder="Brief description of your store"
+                  />
+                </div>
               </div>
 
               <div>
@@ -229,47 +282,184 @@ const SettingsPage: React.FC = () => {
                       <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                     </label>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div>
+                      <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                        Low Stock Threshold
+                      </label>
+                      <input
+                        type="number"
+                        value={settings.lowStockThreshold}
+                        onChange={(e) => handleSettingChange('lowStockThreshold', parseInt(e.target.value))}
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                        min="0"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                        Order Prefix
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.orderPrefix}
+                        onChange={(e) => handleSettingChange('orderPrefix', e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                        placeholder="ORD"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {activeTab === 'notifications' && (
+          {activeTab === 'payment' && (
             <div className="space-y-8">
-              <h3 className="text-xl font-display font-bold text-primary-800">Notification Preferences</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-neutral-50 to-blue-50/30 rounded-2xl border border-neutral-200/50">
+              <h3 className="text-xl font-display font-bold text-primary-800">Payment Gateway Configuration</h3>
+              
+              {/* Razorpay */}
+              <div className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50/30 rounded-2xl border border-blue-200/50">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <Bell className="h-5 w-5 text-blue-600" />
+                    <div className="p-2 bg-blue-600 rounded-xl">
+                      <CreditCard className="h-6 w-6 text-white" />
+                    </div>
                     <div>
-                      <p className="font-medium text-primary-800">Email Notifications</p>
-                      <p className="text-sm text-neutral-600">Receive notifications about orders and updates</p>
+                      <h4 className="font-bold text-blue-800">Razorpay</h4>
+                      <p className="text-sm text-blue-600">Accept payments in India</p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={settings.enableNotifications}
-                      onChange={(e) => handleSettingChange('enableNotifications', e.target.checked)}
+                      checked={settings.razorpayEnabled}
+                      onChange={(e) => handleSettingChange('razorpayEnabled', e.target.checked)}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
-
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-neutral-50 to-green-50/30 rounded-2xl border border-neutral-200/50">
-                  <div className="flex items-center space-x-3">
-                    <Smartphone className="h-5 w-5 text-green-600" />
+                
+                {settings.razorpayEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
-                      <p className="font-medium text-primary-800">SMS Notifications</p>
-                      <p className="text-sm text-neutral-600">Send SMS updates to customers</p>
+                      <label className="block text-sm font-medium text-blue-700 mb-2">
+                        Key ID
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.razorpayKeyId}
+                        onChange={(e) => handleSettingChange('razorpayKeyId', e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-blue-200 bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                        placeholder="rzp_live_xxxxxxxxxx"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-blue-700 mb-2">
+                        Key Secret
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showSecrets.razorpaySecret ? 'text' : 'password'}
+                          value={settings.razorpayKeySecret}
+                          onChange={(e) => handleSettingChange('razorpayKeySecret', e.target.value)}
+                          className="w-full px-4 py-3 pr-10 rounded-xl border border-blue-200 bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
+                          placeholder="••••••••••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => toggleSecret('razorpaySecret')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600"
+                        >
+                          {showSecrets.razorpaySecret ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Stripe */}
+              <div className="p-6 bg-gradient-to-r from-purple-50 to-violet-50/30 rounded-2xl border border-purple-200/50">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-purple-600 rounded-xl">
+                      <CreditCard className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-purple-800">Stripe</h4>
+                      <p className="text-sm text-purple-600">Accept international payments</p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={settings.enableSMS}
-                      onChange={(e) => handleSettingChange('enableSMS', e.target.checked)}
+                      checked={settings.stripeEnabled}
+                      onChange={(e) => handleSettingChange('stripeEnabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+                
+                {settings.stripeEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-700 mb-2">
+                        Publishable Key
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.stripePublishableKey}
+                        onChange={(e) => handleSettingChange('stripePublishableKey', e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-purple-200 bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                        placeholder="pk_live_xxxxxxxxxx"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-purple-700 mb-2">
+                        Secret Key
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showSecrets.stripeSecret ? 'text' : 'password'}
+                          value={settings.stripeSecretKey}
+                          onChange={(e) => handleSettingChange('stripeSecretKey', e.target.value)}
+                          className="w-full px-4 py-3 pr-10 rounded-xl border border-purple-200 bg-white focus:border-purple-300 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                          placeholder="••••••••••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => toggleSecret('stripeSecret')}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-purple-400 hover:text-purple-600"
+                        >
+                          {showSecrets.stripeSecret ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Cash on Delivery */}
+              <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50/30 rounded-2xl border border-green-200/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-green-600 rounded-xl">
+                      <Truck className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-green-800">Cash on Delivery</h4>
+                      <p className="text-sm text-green-600">Accept cash payments on delivery</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.codEnabled}
+                      onChange={(e) => handleSettingChange('codEnabled', e.target.checked)}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
@@ -279,108 +469,223 @@ const SettingsPage: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'appearance' && (
+          {activeTab === 'billing' && (
             <div className="space-y-8">
-              <h3 className="text-xl font-display font-bold text-primary-800">Theme & Appearance</h3>
-              <div className="text-center py-12">
-                <Palette className="h-16 w-16 mx-auto text-neutral-400 mb-4" />
-                <p className="text-neutral-600">Theme customization coming soon!</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'security' && (
-            <div className="space-y-8">
-              <h3 className="text-xl font-display font-bold text-primary-800">Security Settings</h3>
-              <div className="space-y-6">
-                <div className="p-6 bg-gradient-to-r from-red-50 to-orange-50/30 rounded-2xl border border-red-200/50">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <Shield className="h-6 w-6 text-red-600" />
-                    <h4 className="font-bold text-red-800">Two-Factor Authentication</h4>
-                  </div>
-                  <p className="text-sm text-red-700 mb-4">
-                    Add an extra layer of security to your admin account
-                  </p>
-                  <button className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors">
-                    Enable 2FA
-                  </button>
-                </div>
-
-                <div className="p-6 bg-gradient-to-r from-yellow-50 to-amber-50/30 rounded-2xl border border-yellow-200/50">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <Key className="h-6 w-6 text-yellow-600" />
-                    <h4 className="font-bold text-yellow-800">API Keys</h4>
-                  </div>
-                  <p className="text-sm text-yellow-700 mb-4">
-                    Manage API keys for integrations and third-party services
-                  </p>
-                  <button className="bg-yellow-600 text-white px-4 py-2 rounded-xl hover:bg-yellow-700 transition-colors">
-                    Manage Keys
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'integrations' && (
-            <div className="space-y-8">
-              <h3 className="text-xl font-display font-bold text-primary-800">Third-party Integrations</h3>
+              <h3 className="text-xl font-display font-bold text-primary-800">Billing & Tax Configuration</h3>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50/30 rounded-2xl border border-blue-200/50">
-                  <CreditCard className="h-8 w-8 text-blue-600 mb-3" />
-                  <h4 className="font-bold text-blue-800 mb-2">Payment Gateways</h4>
-                  <p className="text-sm text-blue-700 mb-4">Configure Razorpay, Stripe, and other payment methods</p>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors text-sm">
-                    Configure
-                  </button>
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.companyName}
+                    onChange={(e) => handleSettingChange('companyName', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                  />
                 </div>
 
-                <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50/30 rounded-2xl border border-green-200/50">
-                  <Truck className="h-8 w-8 text-green-600 mb-3" />
-                  <h4 className="font-bold text-green-800 mb-2">Shipping Partners</h4>
-                  <p className="text-sm text-green-700 mb-4">Connect with delivery services and logistics providers</p>
-                  <button className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-colors text-sm">
-                    Setup
-                  </button>
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    GST Number
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.gstNumber}
+                    onChange={(e) => handleSettingChange('gstNumber', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    placeholder="22AAAAA0000A1Z5"
+                  />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    PAN Number
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.panNumber}
+                    onChange={(e) => handleSettingChange('panNumber', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    placeholder="AAAAA0000A"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    Tax Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.taxRate}
+                    onChange={(e) => handleSettingChange('taxRate', parseFloat(e.target.value))}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                  Billing Address
+                </label>
+                <textarea
+                  value={settings.billingAddress}
+                  onChange={(e) => handleSettingChange('billingAddress', e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-neutral-50 to-amber-50/30 rounded-2xl border border-neutral-200/50">
+                <div className="flex items-center space-x-3">
+                  <Receipt className="h-5 w-5 text-amber-600" />
+                  <div>
+                    <p className="font-medium text-primary-800">Enable GST</p>
+                    <p className="text-sm text-neutral-600">Apply GST to invoices and receipts</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.enableGST}
+                    onChange={(e) => handleSettingChange('enableGST', e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
               </div>
             </div>
           )}
 
-          {activeTab === 'advanced' && (
+          {activeTab === 'seo' && (
             <div className="space-y-8">
-              <h3 className="text-xl font-display font-bold text-primary-800">Advanced Settings</h3>
+              <h3 className="text-xl font-display font-bold text-primary-800">SEO Configuration</h3>
+              
               <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-neutral-50 to-red-50/30 rounded-2xl border border-neutral-200/50">
-                  <div className="flex items-center space-x-3">
-                    <Monitor className="h-5 w-5 text-red-600" />
-                    <div>
-                      <p className="font-medium text-primary-800">Maintenance Mode</p>
-                      <p className="text-sm text-neutral-600">Temporarily disable the store for maintenance</p>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.maintenanceMode}
-                      onChange={(e) => handleSettingChange('maintenanceMode', e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    Site Title
                   </label>
+                  <input
+                    type="text"
+                    value={settings.siteTitle}
+                    onChange={(e) => handleSettingChange('siteTitle', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    placeholder="Your store title for search engines"
+                  />
                 </div>
 
-                <div className="p-6 bg-gradient-to-r from-purple-50 to-violet-50/30 rounded-2xl border border-purple-200/50">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <RefreshCw className="h-6 w-6 text-purple-600" />
-                    <h4 className="font-bold text-purple-800">Cache Management</h4>
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    Meta Description
+                  </label>
+                  <textarea
+                    value={settings.metaDescription}
+                    onChange={(e) => handleSettingChange('metaDescription', e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    placeholder="Brief description for search engines (150-160 characters)"
+                    maxLength={160}
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">{settings.metaDescription.length}/160 characters</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    Meta Keywords
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.metaKeywords}
+                    onChange={(e) => handleSettingChange('metaKeywords', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    placeholder="keyword1, keyword2, keyword3"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                      Google Analytics ID
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.googleAnalyticsId}
+                      onChange={(e) => handleSettingChange('googleAnalyticsId', e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                      placeholder="G-XXXXXXXXXX"
+                    />
                   </div>
-                  <p className="text-sm text-purple-700 mb-4">
-                    Clear cache to improve performance and apply changes
-                  </p>
-                  <button className="bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700 transition-colors">
-                    Clear Cache
-                  </button>
+
+                  <div>
+                    <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                      Facebook Pixel ID
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.facebookPixelId}
+                      onChange={(e) => handleSettingChange('facebookPixelId', e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                      placeholder="123456789012345"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-accent font-medium text-neutral-700 mb-2">
+                    Canonical URL
+                  </label>
+                  <input
+                    type="url"
+                    value={settings.canonicalUrl}
+                    onChange={(e) => handleSettingChange('canonicalUrl', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 transition-all duration-200"
+                    placeholder="https://yourstore.com"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-neutral-50 to-green-50/30 rounded-2xl border border-neutral-200/50">
+                    <div className="flex items-center space-x-3">
+                      <Search className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="font-medium text-primary-800">Allow Search Engine Indexing</p>
+                        <p className="text-sm text-neutral-600">Let search engines index your site</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.robotsIndex}
+                        onChange={(e) => handleSettingChange('robotsIndex', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-neutral-50 to-blue-50/30 rounded-2xl border border-neutral-200/50">
+                    <div className="flex items-center space-x-3">
+                      <ExternalLink className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium text-primary-800">Enable Sitemap Generation</p>
+                        <p className="text-sm text-neutral-600">Automatically generate XML sitemap</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.enableSitemap}
+                        onChange={(e) => handleSettingChange('enableSitemap', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
