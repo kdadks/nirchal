@@ -16,14 +16,24 @@ import {
   RefreshCw,
   Download
 } from 'lucide-react';
+import { useDashboardAnalytics } from '../../hooks/useAdmin';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { analytics, recentOrders, topProducts, loading, error, refresh } = useDashboardAnalytics();
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
 
   const stats = [
     {
       title: 'Total Products',
-      value: '124',
+      value: analytics.totalProducts.toString(),
       change: '+12%',
       changeType: 'increase',
       icon: <Package className="h-6 w-6" />,
@@ -33,7 +43,7 @@ const AdminDashboard: React.FC = () => {
     },
     {
       title: 'Orders Today',
-      value: '12',
+      value: analytics.totalOrders.toString(),
       change: '+8%',
       changeType: 'increase',
       icon: <ShoppingCart className="h-6 w-6" />,
@@ -43,83 +53,24 @@ const AdminDashboard: React.FC = () => {
     },
     {
       title: 'Active Users',
-      value: '1,234',
+      value: analytics.totalCustomers.toLocaleString(),
       change: '+23%',
       changeType: 'increase',
       icon: <Users className="h-6 w-6" />,
       onClick: () => navigate('/admin/users'),
       gradient: 'from-violet-500 to-purple-600',
-      description: 'Monthly active users'
+      description: 'Total customers'
     },
     {
       title: 'Revenue',
-      value: '₹1,24,500',
+      value: formatCurrency(analytics.totalRevenue),
       change: '+15%',
       changeType: 'increase',
       icon: <DollarSign className="h-6 w-6" />,
       onClick: () => navigate('/admin/analytics'),
       gradient: 'from-amber-500 to-orange-600',
-      description: 'This month'
+      description: 'Today'
     }
-  ];
-
-  const recentOrders = [
-    { 
-      id: '#ORD-001', 
-      customer: 'Priya Sharma', 
-      amount: '₹2,499', 
-      status: 'Processing', 
-      time: '2 mins ago',
-      avatar: 'PS'
-    },
-    { 
-      id: '#ORD-002', 
-      customer: 'Arjun Patel', 
-      amount: '₹4,299', 
-      status: 'Shipped', 
-      time: '15 mins ago',
-      avatar: 'AP'
-    },
-    { 
-      id: '#ORD-003', 
-      customer: 'Meera Singh', 
-      amount: '₹1,899', 
-      status: 'Delivered', 
-      time: '1 hour ago',
-      avatar: 'MS'
-    },
-    { 
-      id: '#ORD-004', 
-      customer: 'Rohit Kumar', 
-      amount: '₹3,599', 
-      status: 'Processing', 
-      time: '2 hours ago',
-      avatar: 'RK'
-    }
-  ];
-
-  const topProducts = [
-    { 
-      name: 'Elegant Banarasi Saree', 
-      sales: 45, 
-      revenue: '₹1,12,455', 
-      trend: '+12%',
-      image: '/api/placeholder/48/48'
-    },
-    { 
-      name: 'Royal Lehenga Set', 
-      sales: 23, 
-      revenue: '₹1,05,777', 
-      trend: '+8%',
-      image: '/api/placeholder/48/48'
-    },
-    { 
-      name: 'Designer Anarkali', 
-      sales: 18, 
-      revenue: '₹28,782', 
-      trend: '+15%',
-      image: '/api/placeholder/48/48'
-    },
   ];
 
   const quickActions = [
@@ -170,6 +121,40 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-4" />
+            <p className="text-neutral-600">Loading dashboard data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-4">
+              <p className="font-medium">Error loading dashboard data</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+            <button 
+              onClick={refresh}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Modern Header */}
@@ -195,7 +180,7 @@ const AdminDashboard: React.FC = () => {
         
         <div className="flex items-center space-x-3">
           <button 
-            onClick={() => window.location.reload()}
+            onClick={refresh}
             className="flex items-center space-x-2 px-4 py-2 bg-white rounded-xl border border-neutral-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 group"
           >
             <RefreshCw className="h-4 w-4 text-neutral-600 group-hover:text-primary-600 group-hover:rotate-180 transition-all duration-300" />
@@ -272,25 +257,25 @@ const AdminDashboard: React.FC = () => {
           
           <div className="divide-y divide-neutral-100">
             {recentOrders.map((order, index) => (
-              <div key={index} className="p-6 hover:bg-neutral-50/50 transition-colors group">
+              <div key={order.id || index} className="p-6 hover:bg-neutral-50/50 transition-colors group">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="h-12 w-12 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl flex items-center justify-center text-white font-bold text-sm">
-                      {order.avatar}
+                      {order.avatar_initials}
                     </div>
                     <div>
                       <div className="flex items-center space-x-3 mb-1">
-                        <span className="font-accent font-bold text-primary-800">{order.id}</span>
+                        <span className="font-accent font-bold text-primary-800">{order.order_number}</span>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
                           {order.status}
                         </span>
                       </div>
-                      <p className="text-neutral-700 font-medium">{order.customer}</p>
-                      <p className="text-neutral-500 text-sm">{order.time}</p>
+                      <p className="text-neutral-700 font-medium">{order.customer_name}</p>
+                      <p className="text-neutral-500 text-sm">{order.time_ago}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-display font-bold text-xl text-primary-800">{order.amount}</p>
+                    <p className="font-display font-bold text-xl text-primary-800">{formatCurrency(order.total_amount)}</p>
                     <button className="text-accent-600 hover:text-accent-700 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                       View details
                     </button>
@@ -317,17 +302,21 @@ const AdminDashboard: React.FC = () => {
           
           <div className="p-6 space-y-4">
             {topProducts.map((product, index) => (
-              <div key={index} className="group p-4 rounded-2xl bg-gradient-to-r from-neutral-50/50 to-transparent hover:from-primary-50/50 hover:to-accent-50/30 transition-all duration-200 border border-transparent hover:border-primary-200">
+              <div key={product.id || index} className="group p-4 rounded-2xl bg-gradient-to-r from-neutral-50/50 to-transparent hover:from-primary-50/50 hover:to-accent-50/30 transition-all duration-200 border border-transparent hover:border-primary-200">
                 <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 bg-gradient-to-r from-neutral-200 to-neutral-300 rounded-xl flex items-center justify-center">
-                    <Package className="h-6 w-6 text-neutral-600" />
+                  <div className="h-12 w-12 bg-gradient-to-r from-neutral-200 to-neutral-300 rounded-xl flex items-center justify-center overflow-hidden">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Package className="h-6 w-6 text-neutral-600" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <p className="font-accent font-bold text-primary-800 text-sm mb-1 group-hover:text-primary-600 transition-colors">
                       {product.name}
                     </p>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-600">{product.sales} sales</span>
+                      <span className="text-neutral-600">{product.total_sales} sales</span>
                       <span className="text-emerald-600 font-bold flex items-center">
                         <TrendingUp className="h-3 w-3 mr-1" />
                         {product.trend}
@@ -336,7 +325,7 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-neutral-200">
-                  <p className="font-display font-bold text-primary-800">{product.revenue}</p>
+                  <p className="font-display font-bold text-primary-800">{formatCurrency(product.total_revenue)}</p>
                 </div>
               </div>
             ))}
