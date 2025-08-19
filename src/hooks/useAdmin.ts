@@ -524,3 +524,195 @@ export const useProducts = () => {
 		refresh: fetchProducts
 	};
 };
+
+// Dashboard Analytics
+export const useDashboardAnalytics = () => {
+	const { supabase } = useAuth();
+	const [analytics, setAnalytics] = useState({
+		totalOrders: 0,
+		totalRevenue: 0,
+		totalCustomers: 0,
+		totalProducts: 0
+	});
+	const [recentOrders, setRecentOrders] = useState<any[]>([]);
+	const [topProducts, setTopProducts] = useState<any[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (!supabase) return;
+		fetchDashboardData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [supabase]);
+
+	const fetchDashboardData = async () => {
+		if (!supabase) return;
+		setLoading(true);
+		try {
+			// Check if orders table exists
+			const { error: ordersCheckError } = await supabase
+				.from('orders')
+				.select('id')
+				.limit(1);
+
+			if (ordersCheckError && ordersCheckError.code === '42P01') {
+				// Tables don't exist, use mock data
+				console.log('Using mock data - orders tables not yet created');
+				setAnalytics({
+					totalOrders: 6,
+					totalRevenue: 25294,
+					totalCustomers: 6,
+					totalProducts: 0
+				});
+
+				setRecentOrders([
+					{
+						id: 1,
+						order_number: 'ORD-001',
+						customer_name: 'Priya Sharma',
+						avatar_initials: 'PS',
+						status: 'processing',
+						total_amount: 2499,
+						time_ago: '2 mins ago'
+					},
+					{
+						id: 2,
+						order_number: 'ORD-002',
+						customer_name: 'Arjun Patel',
+						avatar_initials: 'AP',
+						status: 'shipped',
+						total_amount: 4299,
+						time_ago: '15 mins ago'
+					},
+					{
+						id: 3,
+						order_number: 'ORD-003',
+						customer_name: 'Meera Singh',
+						avatar_initials: 'MS',
+						status: 'delivered',
+						total_amount: 1899,
+						time_ago: '1 hour ago'
+					},
+					{
+						id: 4,
+						order_number: 'ORD-004',
+						customer_name: 'Rohit Kumar',
+						avatar_initials: 'RK',
+						status: 'processing',
+						total_amount: 3599,
+						time_ago: '2 hours ago'
+					}
+				]);
+
+				setTopProducts([
+					{
+						id: 1,
+						name: 'Elegant Banarasi Saree',
+						total_sales: 45,
+						total_revenue: 112455,
+						trend: '+12%',
+						image_url: null
+					},
+					{
+						id: 2,
+						name: 'Royal Lehenga Set',
+						total_sales: 23,
+						total_revenue: 105777,
+						trend: '+8%',
+						image_url: null
+					},
+					{
+						id: 3,
+						name: 'Designer Anarkali',
+						total_sales: 18,
+						total_revenue: 28782,
+						trend: '+15%',
+						image_url: null
+					}
+				]);
+			} else {
+				// Real database queries (when tables exist)
+				const today = new Date().toISOString().split('T')[0];
+				
+				// Get today's analytics
+				const { data: todayAnalytics, error: analyticsError } = await supabase
+					.from('daily_analytics')
+					.select('*')
+					.eq('date', today)
+					.single();
+
+				if (analyticsError && analyticsError.code !== 'PGRST116') {
+					console.warn('Analytics error:', analyticsError);
+				}
+
+				// Get total customers count
+				const { count: customersCount, error: customersError } = await supabase
+					.from('customers')
+					.select('*', { count: 'exact', head: true });
+
+				if (customersError) {
+					console.warn('Customers count error:', customersError);
+				}
+
+				// Fetch recent orders
+				const { data: orders, error: ordersError } = await supabase
+					.from('recent_orders_view')
+					.select('*')
+					.limit(5);
+
+				if (ordersError) {
+					console.warn('Recent orders error:', ordersError);
+					setRecentOrders([]);
+				} else {
+					setRecentOrders(orders || []);
+				}
+
+				// Fetch top products
+				const { data: products, error: topProductsError } = await supabase
+					.from('top_products_view')
+					.select('*')
+					.limit(3);
+
+				if (topProductsError) {
+					console.warn('Top products error:', topProductsError);
+					setTopProducts([]);
+				} else {
+					setTopProducts(products || []);
+				}
+
+				// Set analytics data
+				setAnalytics({
+					totalOrders: todayAnalytics?.total_orders || 0,
+					totalRevenue: todayAnalytics?.total_revenue || 0,
+					totalCustomers: customersCount || 0,
+					totalProducts: 0
+				});
+			}
+
+			// Get total products count (this table exists)
+			const { count: productsCount, error: productsError } = await supabase
+				.from('products')
+				.select('*', { count: 'exact', head: true });
+
+			if (productsError) {
+				console.warn('Products count error:', productsError);
+			} else {
+				setAnalytics(prev => ({ ...prev, totalProducts: productsCount || 0 }));
+			}
+
+		} catch (e) {
+			setError(e instanceof Error ? e.message : 'Error fetching dashboard data');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	return {
+		analytics,
+		recentOrders,
+		topProducts,
+		loading,
+		error,
+		refresh: fetchDashboardData
+	};
+};
