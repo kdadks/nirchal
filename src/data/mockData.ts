@@ -4,7 +4,7 @@ import type { Product } from '../types';
 
 export const categories: Category[] = [
   {
-    id: 1,
+    id: '1',
     name: 'Sarees',
     slug: 'sarees',
     description: 'Elegant sarees for every occasion',
@@ -15,7 +15,7 @@ export const categories: Category[] = [
     updated_at: ''
   },
   {
-    id: 2,
+    id: '2',
     name: 'Lehengas',
     slug: 'lehengas',
     description: 'Stunning lehengas for celebrations',
@@ -26,7 +26,7 @@ export const categories: Category[] = [
     updated_at: ''
   },
   {
-    id: 3,
+    id: '3',
     name: 'Suits',
     slug: 'suits',
     description: 'Comfortable and stylish suits',
@@ -37,7 +37,7 @@ export const categories: Category[] = [
     updated_at: ''
   },
   {
-    id: 4,
+    id: '4',
     name: 'Kurtis',
     slug: 'kurtis',
     description: 'Modern kurtis for everyday wear',
@@ -48,7 +48,7 @@ export const categories: Category[] = [
     updated_at: ''
   },
   {
-    id: 5,
+    id: '5',
     name: 'Gowns',
     slug: 'gowns',
     description: 'Elegant gowns for special occasions',
@@ -59,7 +59,7 @@ export const categories: Category[] = [
     updated_at: ''
   },
   {
-    id: 6,
+    id: '6',
     name: 'Accessories',
     slug: 'accessories',
     description: 'Accessories for every look',

@@ -19,7 +19,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
     name: initialData?.name || '',
     slug: initialData?.slug || '',
     description: initialData?.description || '',
-    category_id: initialData?.category_id || 0,
+    category_id: initialData?.category_id || '',
     price: initialData?.price || 0,
     sale_price: initialData?.sale_price || null,
     sku: initialData?.sku || '',
@@ -35,7 +35,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
     }
   });
   // Track variants to delete (by id)
-  const [variantsToDelete, setVariantsToDelete] = useState<number[]>([]);
+  const [variantsToDelete, setVariantsToDelete] = useState<string[]>([]);
 
   // Track if the user has manually edited the slug
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
@@ -195,7 +195,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
             <label className="block text-sm font-medium text-gray-700">Category</label>
             <select
               value={formData.category_id}
-              onChange={(e) => setFormData(prev => ({ ...prev, category_id: Number(e.target.value) }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
               required
             >

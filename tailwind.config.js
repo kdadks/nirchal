@@ -95,10 +95,11 @@ export default {
         },
       },
       fontFamily: {
-        serif: ['Playfair Display', 'serif'],
-        sans: ['Inter', 'sans-serif'],
-        display: ['Playfair Display', 'serif'],
-        accent: ['Poppins', 'sans-serif'],
+        serif: ['Roboto', 'serif'],
+        sans: ['Roboto', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Roboto', 'sans-serif'],
+        accent: ['Roboto', 'sans-serif'],
+        mono: ['Roboto Mono', 'monospace'],
       },
       spacing: {
         '18': '4.5rem',

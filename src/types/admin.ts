@@ -1,10 +1,10 @@
 /* global File */
 export interface Category {
-  id: number;
+  id: string; // UUID
   name: string;
   description: string | null;
   slug: string;
-  parent_id: number | null;
+  parent_id: string | null; // UUID
   image_url: string | null;
   is_active: boolean;
   created_at: string;
@@ -12,11 +12,11 @@ export interface Category {
 }
 
 export interface Product {
-  id: number;
+  id: string; // UUID
   name: string;
   slug: string;
   description: string | null;
-  category_id: number;
+  category_id: string; // UUID
   price: number;
   sale_price: number | null;
   sku: string | null;
@@ -31,8 +31,8 @@ export interface Product {
 }
 
 export interface ProductImage {
-  id: number;
-  product_id: number;
+  id: string; // UUID
+  product_id: string; // UUID
   image_url: string;
   alt_text: string | null;
   is_primary: boolean;
@@ -41,8 +41,8 @@ export interface ProductImage {
 }
 
 export interface ProductVariant {
-  id: number;
-  product_id: number;
+  id: string; // UUID
+  product_id: string; // UUID
   sku: string | null;
   size: string | null;
   color: string | null;
@@ -52,9 +52,9 @@ export interface ProductVariant {
 }
 
 export interface Inventory {
-  id: number;
-  product_id: number;
-  variant_id: number | null;
+  id: string; // UUID  
+  product_id: string; // UUID
+  variant_id: string | null; // UUID
   quantity: number;
   low_stock_threshold: number;
   created_at: string;
@@ -105,8 +105,8 @@ export interface ProductWithDetails extends Product {
 }
 
 export interface ProductFormImage {
-  id?: number; // present for existing images
-  product_id?: number;
+  id?: string; // UUID for existing images
+  product_id?: string; // UUID
   image_url?: string; // present for existing images
   url?: string; // for previewing new uploads
   alt_text?: string | null;
@@ -117,7 +117,7 @@ export interface ProductFormImage {
 }
 
 export interface ProductFormVariant {
-  id?: number;
+  id?: string; // UUID
   sku: string | null;
   size: string | null;
   color: string | null;
@@ -138,6 +138,6 @@ export type ProductFormData = Omit<Product, 'id' | 'created_at' | 'updated_at' |
 };
 
 // For update, allow variantsToDelete
-export type ProductFormDataWithDelete = ProductFormData & { variantsToDelete?: number[] };
+export type ProductFormDataWithDelete = ProductFormData & { variantsToDelete?: string[] };
 
 export type CategoryFormData = Omit<Category, 'id' | 'created_at' | 'updated_at'>;
