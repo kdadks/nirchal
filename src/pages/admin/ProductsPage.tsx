@@ -1,152 +1,234 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../hooks/useAdmin';
 import DataTable from '../../components/admin/DataTable';
 import type { ProductWithDetails } from '../../types/admin';
-import { Package, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Package, Filter } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, loading, deleteProduct, refresh } = useProducts();
+  const { products, loading } = useProducts();
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    status: '',
+    category: '',
+    vendor: ''
+  });
 
   // Debug: log products data
   React.useEffect(() => {
-    if (products) console.log('[ProductsPage] products:', products);
+    if (products && products.length > 0) {
+      console.log(`[ProductsPage] Loaded ${products.length} products with inventory`);
+    }
   }, [products]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(products?.map(p => p.id.toString()) || []);
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  const handleSelectProduct = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(prev => [...prev, productId]);
+    } else {
+      setSelectedProducts(prev => prev.filter(id => id !== productId));
+    }
+  };
 
   const columns = [
     {
-      key: 'name',
-      title: 'Name',
-      render: (row: ProductWithDetails) => (
-        <div className="font-medium">{row.name}</div>
+      key: 'select',
+      title: (
+        <input
+          type="checkbox"
+          checked={products?.length > 0 && selectedProducts.length === products.length}
+          onChange={(e) => handleSelectAll(e.target.checked)}
+          className="admin-checkbox"
+        />
       ),
-      sortable: true,
+      render: (row: ProductWithDetails) => (
+        <input
+          type="checkbox"
+          checked={selectedProducts.includes(row.id.toString())}
+          onChange={(e) => handleSelectProduct(row.id.toString(), e.target.checked)}
+          className="admin-checkbox"
+        />
+      ),
     },
     {
-      key: 'category',
-      title: 'Category',
-      render: (row: ProductWithDetails) => {
-        // Defensive: handle null, array, or object
-        if (!row.category) return '-';
-        if (Array.isArray(row.category)) {
-          return row.category[0]?.name || '-';
-        }
-        return row.category.name || '-';
-      },
-    },
-    {
-      key: 'price',
-      title: 'Price',
-  render: (row: ProductWithDetails) => `₹${row.sale_price ?? row.price}`,
-      sortable: true,
-    },
-    {
-      key: 'images',
-      title: 'Image',
+      key: 'thumbnail',
+      title: '',
       render: (row: ProductWithDetails) => {
         const img = row.images?.find(img => img.is_primary) || row.images?.[0];
-        if (!img) return <span className="text-gray-400">No image</span>;
+        if (!img) {
+          return (
+            <div className="admin-image-placeholder" style={{ width: '40px', height: '40px' }}>
+              <Package className="h-4 w-4" />
+            </div>
+          );
+        }
         // Build Supabase Storage public URL
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
         const publicUrl = img.image_url?.startsWith('http')
           ? img.image_url
           : `${supabaseUrl}/storage/v1/object/public/product-images/${img.image_url}`;
         return (
-          <img src={publicUrl} alt={img.alt_text || ''} className="h-12 w-12 object-cover rounded" />
+          <img 
+            src={publicUrl} 
+            alt={img.alt_text || ''} 
+            style={{ 
+              width: '40px', 
+              height: '40px', 
+              objectFit: 'cover', 
+              borderRadius: '4px',
+              border: '1px solid var(--admin-border)'
+            }} 
+          />
         );
       },
     },
     {
-      key: 'variants',
-      title: 'Variants',
+      key: 'name',
+      title: 'Product',
       render: (row: ProductWithDetails) => (
-        <span>{row.variants?.length || 0}</span>
+        <div className="admin-product-title-wrapper">
+          <button
+            onClick={() => navigate(`/admin/products/edit/${row.id}`)}
+            className="admin-product-title-link"
+          >
+            {row.name}
+          </button>
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      key: 'status',
+      title: 'Status',
+      render: (row: ProductWithDetails) => (
+        <span className={`admin-badge ${row.is_active ? 'admin-badge-success' : 'admin-badge-neutral'}`}>
+          {row.is_active ? 'Active' : 'Inactive'}
+        </span>
       ),
     },
     {
       key: 'inventory',
-      title: 'Stock',
+      title: 'Inventory',
       render: (row: ProductWithDetails) => {
-        if (!row.inventory || row.inventory.length === 0) return '-';
-        const total = row.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-        return total;
+        if (!row.inventory || row.inventory.length === 0) {
+          return <span className="admin-text-muted">No stock</span>;
+        }
+        const totalStock = row.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+        const variantCount = row.variants?.length || 0;
+        
+        return (
+          <div className="admin-text-sm">
+            <div className={`admin-font-mono ${totalStock > 10 ? 'admin-text-success' : totalStock > 0 ? 'admin-text-warning' : 'admin-text-danger'}`}>
+              {totalStock} in stock
+            </div>
+            {variantCount > 0 && (
+              <div className="admin-text-muted admin-text-xs">
+                for {variantCount} variant{variantCount !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+        );
       },
     },
-  ];
-
-  const actions = [
     {
-      label: 'View',
-      color: 'default' as const,
-      icon: <Eye className="h-4 w-4" />,
-      onClick: (row: ProductWithDetails) => navigate(`/admin/products/${row.id}`),
-    },
-    {
-      label: 'Edit',
-      color: 'primary' as const,
-      icon: <Edit className="h-4 w-4" />,
-      onClick: (row: ProductWithDetails) => navigate(`/admin/products/edit/${row.id}`),
-    },
-    {
-      label: 'Delete',
-      color: 'danger' as const,
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: async (row: ProductWithDetails) => {
-        if (window.confirm('Are you sure you want to delete this product?')) {
-          await deleteProduct(row.id);
-          refresh();
+      key: 'category',
+      title: 'Category',
+      render: (row: ProductWithDetails) => {
+        // Defensive: handle null, array, or object
+        if (!row.category) return <span className="admin-text-muted">-</span>;
+        if (Array.isArray(row.category)) {
+          return row.category[0]?.name || <span className="admin-text-muted">-</span>;
         }
+        return row.category.name || <span className="admin-text-muted">-</span>;
       },
     },
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Modern Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-        <div className="mb-6 lg:mb-0">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-gradient-to-r from-emerald-500 to-teal-500 p-3 rounded-2xl">
-                <Package className="h-6 w-6 text-white" />
+    <div>
+      {/* Filters */}
+      {showFilters && (
+        <div className="admin-card" style={{ marginBottom: '16px' }}>
+          <div className="admin-card-content">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              <div className="admin-form-group">
+                <label className="admin-label">Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  className="admin-input"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
-            </div>
-            <div>
-              <h1 className="text-3xl font-display font-bold bg-gradient-to-r from-primary-800 to-accent-600 bg-clip-text text-transparent">
-                Products
-              </h1>
-              <p className="text-neutral-600 font-accent">
-                Manage your product catalog and inventory
-              </p>
+              
+              <div className="admin-form-group">
+                <label className="admin-label">Category</label>
+                <select
+                  value={filters.category}
+                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                  className="admin-input"
+                >
+                  <option value="">All Categories</option>
+                  {/* Add dynamic categories here */}
+                </select>
+              </div>
+              
+              <div className="admin-form-group">
+                <label className="admin-label">Vendor</label>
+                <select
+                  value={filters.vendor}
+                  onChange={(e) => setFilters(prev => ({ ...prev, vendor: e.target.value }))}
+                  className="admin-input"
+                >
+                  <option value="">All Vendors</option>
+                  {/* Add dynamic vendors here */}
+                </select>
+              </div>
             </div>
           </div>
         </div>
-        
-        <button
-          className="flex items-center space-x-2 bg-gradient-to-r from-primary-500 to-accent-500 text-white px-6 py-3 rounded-2xl hover:shadow-lg transition-all duration-200 group"
-          onClick={() => navigate('/admin/products/create')}
-        >
-          <Plus className="h-5 w-5 group-hover:rotate-90 transition-transform duration-200" />
-          <span className="font-medium">Add Product</span>
-        </button>
-      </div>
+      )}
 
       {/* Products Table */}
       <DataTable
-        title="Product Catalog"
-        subtitle={`${products?.length || 0} products in your store`}
         columns={columns}
         data={products || []}
-        actions={actions}
         isLoading={loading}
         searchable={true}
-        filterable={true}
+        filterable={false}
+        title={`Products (${products?.length || 0})`}
+        subtitle="All products in your catalog"
+        headerActions={
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {selectedProducts.length > 0 && (
+              <div className="admin-text-sm admin-text-muted" style={{ marginRight: '8px' }}>
+                {selectedProducts.length} selected
+              </div>
+            )}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+            >
+              <Filter className="h-4 w-4" />
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
+          </div>
+        }
       />
     </div>
   );
 };
 
 export default ProductsPage;
-//

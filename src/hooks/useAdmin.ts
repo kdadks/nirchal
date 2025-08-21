@@ -73,7 +73,7 @@ export const useCategories = () => {
 		}
 	};
 
-	const updateCategory = async (id: number, data: Partial<CategoryFormData>) => {
+	const updateCategory = async (id: string, data: Partial<CategoryFormData>) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
 			const { error } = await supabase
@@ -88,7 +88,7 @@ export const useCategories = () => {
 		}
 	};
 
-	const deleteCategory = async (id: number) => {
+	const deleteCategory = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
 			const { error } = await supabase
@@ -136,22 +136,102 @@ export const useProducts = () => {
 		if (!supabase) return;
 		setLoading(true);
 		try {
-			const { data, error } = await supabase
+			// First fetch products with basic joins
+			const { data: productsData, error: productsError } = await supabase
 				.from('products')
 				.select(`
 					*,
-					category:categories!products_category_id_fkey(*),
+					category:categories(*),
 					images:product_images(*),
-					variants:product_variants(*),
-					inventory:inventory(*)
+					variants:product_variants(*)
 				`)
 				.order('created_at', { ascending: false });
 
-			console.log('[Supabase products] data:', data);
-			console.log('[Supabase products] error:', error);
+			console.log('[Supabase products] productsData:', productsData);
+			console.log('[Supabase products] productsError:', productsError);
 
-			if (error && !data) throw error;
-			setProducts(data as ProductWithDetails[] || []);
+			if (productsError && !productsData) throw productsError;
+
+			// Fetch inventory separately
+			console.log('[Debug] About to fetch inventory...');
+			
+			// Check current user and session
+			const { data: session } = await supabase.auth.getSession();
+			console.log('[Auth Check] Current session:', session?.session?.user?.id);
+			console.log('[Auth Check] User role:', session?.session?.user?.role);
+			console.log('[Auth Check] User email:', session?.session?.user?.email);
+			
+			const { data: inventoryData, error: inventoryError } = await supabase
+				.from('inventory')
+				.select('*');
+
+			console.log('[Supabase inventory] inventoryData:', inventoryData);
+			console.log('[Supabase inventory] inventoryError:', inventoryError);
+			
+			// If we get an empty array, try to understand why
+			if (inventoryData && inventoryData.length === 0) {
+				console.log('[Debug] Inventory table returned empty. Checking if it\'s an RLS issue...');
+				
+				// Try to get just one specific record that we know exists
+				const { data: specificInventory, error: specificError } = await supabase
+					.from('inventory')
+					.select('*')
+					.eq('product_id', '707d596f-902f-4b04-9dac-1e0aa844572a')
+					.limit(1);
+				console.log('[Debug] Specific inventory for product 707d596f:', specificInventory, specificError);
+				
+				// Try a simple count without data
+				const { count: totalCount, error: countErr } = await supabase
+					.from('inventory')
+					.select('*', { count: 'exact', head: true });
+				console.log('[Debug] Total inventory count:', totalCount, 'error:', countErr);
+			}
+
+			// Also try to get count
+			const { count, error: countError } = await supabase
+				.from('inventory')
+				.select('*', { count: 'exact', head: true });
+			
+			console.log('[Inventory Count]', count, 'error:', countError);
+
+			// Test if we can see any data with different conditions
+			const { data: allInventory, error: allError } = await supabase
+				.from('inventory')
+				.select('id, product_id, quantity')
+				.limit(10);
+			
+			console.log('[All Inventory Limited]', allInventory, allError);
+
+			// Try without RLS (this will fail if RLS is enabled but helps debug)
+			try {
+				const { data: rawInventory, error: rawError } = await supabase
+					.rpc('get_inventory_raw');
+				console.log('[Raw Inventory Check]', rawInventory, rawError);
+			} catch (rpcError) {
+				console.log('[RPC Error]', rpcError);
+			}
+
+			if (inventoryError) {
+				console.error('[Inventory Error]', inventoryError);
+			}
+
+			// Manually join inventory to products
+			const productsWithInventory = (productsData || []).map(product => {
+				const productInventory = (inventoryData || []).filter(inv => inv.product_id === product.id);
+				console.log(`[Manual Join] Product ${product.name} (${product.id}) matched inventory:`, productInventory);
+				return {
+					...product,
+					inventory: productInventory
+				};
+			});
+
+			console.log('[Products Debug] productsWithInventory:', productsWithInventory);
+			if (productsWithInventory.length > 0) {
+				console.log('[Products Debug] First product inventory:', productsWithInventory[0]?.inventory);
+				console.log('[Products Debug] All product IDs:', productsWithInventory.map(p => p.id));
+			}
+
+			setProducts(productsWithInventory as ProductWithDetails[] || []);
 		} catch (e) {
 			setError(e instanceof Error ? e.message : 'Error fetching products');
 		} finally {
@@ -162,16 +242,6 @@ export const useProducts = () => {
 	const createProduct = async (data: ProductFormData): Promise<Product> => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			// Log session and user info for debugging RLS
-			const session = await supabase.auth.getSession();
-			console.log('[createProduct] Supabase session:', session);
-			if (session.data.session) {
-				console.log('[createProduct] Session user id:', session.data.session.user.id);
-				console.log('[createProduct] Session user role:', session.data.session.user.role);
-			} else {
-				console.log('[createProduct] No session user');
-			}
-
 			const { images, variants, inventory, variantsToDelete, ...productDataRaw } = data as any;
 				// Convert empty string fields to null, and ensure sku is null if empty
 				const productData = Object.fromEntries(
@@ -181,25 +251,46 @@ export const useProducts = () => {
 					})
 				);
 			// Insert product
-			const { data: newProduct, error: productError } = await supabase
-				.from('products')
-				.insert([productData])
-				.select()
-				.single();
+			console.log('[createProduct] Creating product:', productData.name);
+			console.log('[createProduct] Product data to insert:', productData);
+			
+			let insertResult;
+			try {
+				insertResult = await supabase
+					.from('products')
+					.insert([productData])
+					.select()
+					.single();
+				console.log('[createProduct] Product insert result:', insertResult);
+			} catch (productInsertError) {
+				console.error('[createProduct] Product insert failed:', productInsertError);
+				throw productInsertError;
+			}
 
-			if (productError || !newProduct) throw productError || new Error('Failed to create product');
+			const { data: newProduct, error: productError } = insertResult;
+			if (productError || !newProduct) {
+				console.error('[createProduct] Product creation error:', productError);
+				throw productError || new Error('Failed to create product');
+			}
+			console.log('[createProduct] Product created with ID:', newProduct.id, 'Type:', typeof newProduct.id);
 
 			// Upload images and insert records
 			if (images?.length) {
-				await Promise.all(images.map(async (image: any) => {
+				console.log('[createProduct] Starting image upload for', images.length, 'images');
+				await Promise.all(images.map(async (image: any, index: number) => {
 					if (image.file) {
+						console.log(`[createProduct] Processing image ${index + 1}:`, image.file.name);
 						const fileName = `${Date.now()}-${image.file.name}`;
 						const { error: uploadError } = await supabase.storage
 							.from('product-images')
 							.upload(fileName, image.file);
 
-						if (uploadError) throw uploadError;
+						if (uploadError) {
+							console.error(`[createProduct] Upload error for image ${index + 1}:`, uploadError);
+							throw uploadError;
+						}
 
+						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Type:', typeof newProduct.id);
 						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
@@ -209,9 +300,21 @@ export const useProducts = () => {
 								is_primary: image.is_primary
 							}]);
 
-						if (imageError) throw imageError;
+						if (imageError) {
+							console.error(`[createProduct] Image DB insert error for image ${index + 1}:`, imageError);
+							console.error(`[createProduct] Failed insert data:`, {
+								product_id: newProduct.id,
+								product_id_type: typeof newProduct.id,
+								image_url: fileName,
+								alt_text: image.alt_text,
+								is_primary: image.is_primary
+							});
+							throw imageError;
+						}
+						console.log(`[createProduct] Image ${index + 1} successfully inserted`);
 					}
 				}));
+				console.log('[createProduct] Images uploaded successfully');
 			}
 
 
@@ -223,11 +326,14 @@ export const useProducts = () => {
 					sku: rest.sku === '' ? null : rest.sku,
 					product_id: newProduct.id
 				}));
+				
 				const { data: insertedVariants, error: variantError } = await supabase
 					.from('product_variants')
 					.insert(variantsToInsert)
 					.select();
+				
 				if (variantError) throw variantError;
+				console.log('[createProduct] Created', insertedVariants?.length, 'variants');
 
 				// Insert inventory for each variant
 				if (insertedVariants && insertedVariants.length) {
@@ -237,16 +343,50 @@ export const useProducts = () => {
 						quantity: variants[i].quantity ?? 0,
 						low_stock_threshold: variants[i].low_stock_threshold ?? (inventory?.low_stock_threshold ?? 10)
 					}));
-					const { error: inventoryError } = await supabase
+					
+					console.log('[createProduct] About to insert inventory. Checking auth status...');
+					
+					// Check current session before inventory insertion
+					const sessionCheck = await supabase.auth.getSession();
+					console.log('[createProduct] Session status:', {
+						hasSession: !!sessionCheck.data.session,
+						userId: sessionCheck.data.session?.user?.id,
+						userRole: sessionCheck.data.session?.user?.role,
+						userEmail: sessionCheck.data.session?.user?.email
+					});
+					
+					console.log('[createProduct] Inserting inventory rows:', inventoryRows);
+					
+					const { error: inventoryError, data: inventoryData } = await supabase
 						.from('inventory')
 						.insert(inventoryRows)
 						.select();
-					if (inventoryError) throw inventoryError;
+					
+					if (inventoryError) {
+						console.error('[createProduct] Inventory error details:', inventoryError);
+						console.error('[createProduct] Inventory error code:', inventoryError.code);
+						console.error('[createProduct] Inventory error message:', inventoryError.message);
+						console.error('[createProduct] Inventory error hint:', inventoryError.hint);
+						throw inventoryError;
+					}
+					
+					console.log('[createProduct] Created inventory for', inventoryData?.length, 'variants');
 
 					// inventory_history now handled by DB trigger
 				}
 			} else if (inventory) {
 				// No variants, insert inventory for product only
+				console.log('[createProduct] About to insert default inventory. Checking auth status...');
+				
+				// Check current session before inventory insertion
+				const sessionCheck = await supabase.auth.getSession();
+				console.log('[createProduct] Session status:', {
+					hasSession: !!sessionCheck.data.session,
+					userId: sessionCheck.data.session?.user?.id,
+					userRole: sessionCheck.data.session?.user?.role,
+					userEmail: sessionCheck.data.session?.user?.email
+				});
+				
 				const { error: inventoryError } = await supabase
 					.from('inventory')
 					.insert([{
@@ -255,7 +395,15 @@ export const useProducts = () => {
 						...inventory
 					}])
 					.select();
-				if (inventoryError) throw inventoryError;
+				
+				if (inventoryError) {
+					console.error('[createProduct] Default inventory error details:', inventoryError);
+					console.error('[createProduct] Default inventory error code:', inventoryError.code);
+					console.error('[createProduct] Default inventory error message:', inventoryError.message);
+					console.error('[createProduct] Default inventory error hint:', inventoryError.hint);
+					throw inventoryError;
+				}
+				console.log('[createProduct] Created default inventory');
 
 				// inventory_history now handled by DB trigger
 			}
@@ -278,7 +426,7 @@ export const useProducts = () => {
 
 	// (Removed unused uploadAndSaveProductImages helper)
 
-	const updateProduct = async (id: number, data: Partial<ProductFormDataWithDelete> & { imagesToDelete?: any[] }) => {
+	const updateProduct = async (id: string, data: Partial<ProductFormDataWithDelete> & { imagesToDelete?: any[] }) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 				const { images, imagesToDelete = [], variants, inventory, variantsToDelete, ...updateData } = data;
 				// Ensure sku is null if empty or whitespace
@@ -382,7 +530,7 @@ export const useProducts = () => {
 								// Update or insert each variant
 								for (let i = 0; i < variants.length; i++) {
 									const v = variants[i];
-									let variantId: number | undefined = undefined;
+									let variantId: string | undefined = undefined;
 									if (v.id) {
 										variantId = v.id;
 										// Update existing variant
@@ -499,7 +647,7 @@ export const useProducts = () => {
 	};
 
 	// Delete product function
-	const deleteProduct = async (id: number) => {
+	const deleteProduct = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
 			const { error } = await supabase
