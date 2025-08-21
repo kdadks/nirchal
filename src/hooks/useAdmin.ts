@@ -646,19 +646,145 @@ export const useProducts = () => {
 		}
 	};
 
-	// Delete product function
+	// Delete product function with cascade deletion of associated items
 	const deleteProduct = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { error } = await supabase
+			console.log('[deleteProduct] Starting deletion for product:', id);
+			
+			// 1. Get product images for storage cleanup
+			const { data: productImages, error: imagesFetchError } = await supabase
+				.from('product_images')
+				.select('image_url')
+				.eq('product_id', id);
+			
+			if (imagesFetchError) throw imagesFetchError;
+			
+			// 2. Get product variants for inventory cleanup
+			const { data: productVariants, error: variantsFetchError } = await supabase
+				.from('product_variants')
+				.select('id')
+				.eq('product_id', id);
+			
+			if (variantsFetchError) throw variantsFetchError;
+			
+			// 3. Get inventory records for history cleanup
+			const variantIds = productVariants?.map(v => v.id) || [];
+			let inventoryIds: any[] = [];
+			
+			if (variantIds.length > 0) {
+				const { data: variantInventory, error: variantInvError } = await supabase
+					.from('inventory')
+					.select('id')
+					.in('variant_id', variantIds);
+				if (variantInvError) throw variantInvError;
+				inventoryIds = [...inventoryIds, ...(variantInventory?.map(inv => inv.id) || [])];
+			}
+			
+			// Also get main product inventory (without variant)
+			const { data: productInventory, error: productInvError } = await supabase
+				.from('inventory')
+				.select('id')
+				.eq('product_id', id)
+				.is('variant_id', null);
+			if (productInvError) throw productInvError;
+			inventoryIds = [...inventoryIds, ...(productInventory?.map(inv => inv.id) || [])];
+			
+			// 4. Delete inventory history records
+			if (inventoryIds.length > 0) {
+				const { error: historyDeleteError } = await supabase
+					.from('inventory_history')
+					.delete()
+					.in('inventory_id', inventoryIds);
+				if (historyDeleteError) throw historyDeleteError;
+				console.log('[deleteProduct] Deleted inventory history records:', inventoryIds.length);
+			}
+			
+			// 5. Delete inventory records (both variant and product inventory)
+			const { error: inventoryDeleteError } = await supabase
+				.from('inventory')
+				.delete()
+				.eq('product_id', id);
+			if (inventoryDeleteError) throw inventoryDeleteError;
+			console.log('[deleteProduct] Deleted inventory records for product:', id);
+			
+			// 6. Delete product audit log records
+			const { error: auditDeleteError } = await supabase
+				.from('product_audit_log')
+				.delete()
+				.eq('product_id', id);
+			if (auditDeleteError) throw auditDeleteError;
+			console.log('[deleteProduct] Deleted audit log records for product:', id);
+			
+			// 7. Delete product images from storage
+			if (productImages && productImages.length > 0) {
+				const imageUrls = productImages
+					.map(img => img.image_url)
+					.filter(url => url && !url.startsWith('http')); // Only delete files we uploaded
+				
+				if (imageUrls.length > 0) {
+					const { error: storageDeleteError } = await supabase.storage
+						.from('product-images')
+						.remove(imageUrls);
+					if (storageDeleteError) {
+						console.warn('[deleteProduct] Storage deletion error (non-critical):', storageDeleteError);
+					} else {
+						console.log('[deleteProduct] Deleted images from storage:', imageUrls.length);
+					}
+				}
+			}
+			
+			// 8. Delete the product (this will cascade to product_images and product_variants)
+			const { error: productDeleteError } = await supabase
 				.from('products')
 				.delete()
 				.eq('id', id);
-
-			if (error) throw error;
+			
+			if (productDeleteError) throw productDeleteError;
+			console.log('[deleteProduct] Deleted product:', id);
+			
 			await fetchProducts();
 		} catch (e) {
+			console.error('[deleteProduct] Error:', e);
 			throw e instanceof Error ? e : new Error('Error deleting product');
+		}
+	};
+
+	// Bulk delete products function
+	const deleteProducts = async (ids: string[]) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		if (!ids || ids.length === 0) throw new Error('No product IDs provided');
+		
+		try {
+			console.log('[deleteProducts] Starting bulk deletion for products:', ids);
+			
+			// Delete products one by one to ensure proper cleanup
+			// We could optimize this with bulk operations, but for safety we'll do individual deletes
+			const results = [];
+			for (const id of ids) {
+				try {
+					await deleteProduct(id);
+					results.push({ id, success: true });
+				} catch (error) {
+					console.error(`[deleteProducts] Failed to delete product ${id}:`, error);
+					results.push({ id, success: false, error });
+				}
+			}
+			
+			const successCount = results.filter(r => r.success).length;
+			const failureCount = results.filter(r => !r.success).length;
+			
+			console.log(`[deleteProducts] Bulk deletion completed: ${successCount} success, ${failureCount} failed`);
+			
+			if (failureCount > 0) {
+				const failedIds = results.filter(r => !r.success).map(r => r.id);
+				throw new Error(`Failed to delete ${failureCount} products: ${failedIds.join(', ')}`);
+			}
+			
+			return results;
+		} catch (e) {
+			console.error('[deleteProducts] Bulk deletion error:', e);
+			throw e instanceof Error ? e : new Error('Error in bulk product deletion');
 		}
 	};
 
@@ -669,6 +795,7 @@ export const useProducts = () => {
 		createProduct,
 		updateProduct,
 		deleteProduct,
+		deleteProducts,
 		refresh: fetchProducts
 	};
 };
