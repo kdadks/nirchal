@@ -66,7 +66,7 @@ const ProductsPage: React.FC = () => {
         const img = row.images?.find(img => img.is_primary) || row.images?.[0];
         if (!img) {
           return (
-            <div className="admin-image-placeholder" style={{ width: '40px', height: '40px' }}>
+            <div className="admin-product-thumbnail admin-image-placeholder">
               <Package className="h-4 w-4" />
             </div>
           );
@@ -80,13 +80,7 @@ const ProductsPage: React.FC = () => {
           <img 
             src={publicUrl} 
             alt={img.alt_text || ''} 
-            style={{ 
-              width: '40px', 
-              height: '40px', 
-              objectFit: 'cover', 
-              borderRadius: '4px',
-              border: '1px solid var(--admin-border)'
-            }} 
+            className="admin-product-thumbnail"
           />
         );
       },

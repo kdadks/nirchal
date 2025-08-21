@@ -225,15 +225,19 @@
 /* Products table specific column widths */
 .admin-products-table .admin-table-col-0 { /* Checkbox */
   width: 40px;
+  text-align: center;
 }
 
 .admin-products-table .admin-table-col-1 { /* Thumbnail */
-  width: 60px;
+  width: 50px;
+  text-align: center;
+  padding-right: 4px !important;
 }
 
 .admin-products-table .admin-table-col-2 { /* Product title */
   width: 35%;
   min-width: 200px;
+  padding-left: 4px !important;
 }
 
 .admin-products-table .admin-table-col-3 { /* Status */
@@ -265,7 +269,55 @@
   padding: 12px 8px; /* Reduced horizontal padding */
   border-bottom: 1px solid var(--admin-border);
   color: var(--admin-text-primary);
-  vertical-align: top;
+  vertical-align: middle; /* Changed from top to middle for better alignment */
+}
+
+/* Checkbox column specific styling */
+.admin-products-table .admin-table-col-0 th,
+.admin-products-table .admin-table-col-0 td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Thumbnail column specific styling */
+.admin-products-table .admin-table-col-1 th,
+.admin-products-table .admin-table-col-1 td {
+  text-align: center;
+  vertical-align: middle;
+  padding-right: 4px !important;
+}
+
+/* Product title column specific styling */
+.admin-products-table .admin-table-col-2 td {
+  padding-left: 4px !important;
+  vertical-align: middle;
+}
+
+/* Checkbox styling */
+.admin-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Product thumbnail styling */
+.admin-product-thumbnail {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--admin-border);
+  display: block;
+  margin: 0 auto; /* Center the image in its cell */
+}
+
+/* Product thumbnail placeholder */
+.admin-product-thumbnail.admin-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--admin-bg-secondary);
+  color: var(--admin-text-secondary);
 }
 
 /* Product title styling */
