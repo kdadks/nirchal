@@ -5,359 +5,384 @@ import {
   ShoppingCart, 
   Users, 
   DollarSign,
-  Crown,
   ArrowUpRight,
-  Calendar,
   BarChart3,
   TrendingUp,
   Activity,
-  Eye,
-  Plus,
-  RefreshCw,
-  Download
+  Plus
 } from 'lucide-react';
-import { useDashboardAnalytics } from '../../hooks/useAdmin';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { analytics, recentOrders, topProducts, loading, error, refresh } = useDashboardAnalytics();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const stats = [
     {
       title: 'Total Products',
-      value: analytics.totalProducts.toString(),
+      value: '124',
       change: '+12%',
       changeType: 'increase',
-      icon: <Package className="h-6 w-6" />,
+      icon: <Package className="h-5 w-5" />,
       onClick: () => navigate('/admin/products'),
-      gradient: 'from-emerald-500 to-teal-600',
-      description: 'Active listings'
     },
     {
       title: 'Orders Today',
-      value: analytics.totalOrders.toString(),
+      value: '12',
       change: '+8%',
       changeType: 'increase',
-      icon: <ShoppingCart className="h-6 w-6" />,
+      icon: <ShoppingCart className="h-5 w-5" />,
       onClick: () => navigate('/admin/orders'),
-      gradient: 'from-blue-500 to-cyan-600',
-      description: 'New orders received'
     },
     {
       title: 'Active Users',
-      value: analytics.totalCustomers.toLocaleString(),
+      value: '1,234',
       change: '+23%',
       changeType: 'increase',
-      icon: <Users className="h-6 w-6" />,
+      icon: <Users className="h-5 w-5" />,
       onClick: () => navigate('/admin/users'),
-      gradient: 'from-violet-500 to-purple-600',
-      description: 'Total customers'
     },
     {
       title: 'Revenue',
-      value: formatCurrency(analytics.totalRevenue),
+      value: '₹1,24,500',
       change: '+15%',
       changeType: 'increase',
-      icon: <DollarSign className="h-6 w-6" />,
+      icon: <DollarSign className="h-5 w-5" />,
       onClick: () => navigate('/admin/analytics'),
-      gradient: 'from-amber-500 to-orange-600',
-      description: 'Today'
+    }
+  ];
+
+  const recentOrders = [
+    { 
+      id: '#ORD-001', 
+      customer: 'Priya Sharma', 
+      status: 'Processing',
+      amount: '₹2,450',
+      time: '2 mins ago',
+      avatar: 'PS'
+    },
+    { 
+      id: '#ORD-002', 
+      customer: 'Rahul Verma', 
+      status: 'Shipped',
+      amount: '₹3,200',
+      time: '15 mins ago',
+      avatar: 'RV'
+    },
+    { 
+      id: '#ORD-003', 
+      customer: 'Anita Singh', 
+      status: 'Delivered',
+      amount: '₹1,800',
+      time: '1 hour ago',
+      avatar: 'AS'
+    },
+    { 
+      id: '#ORD-004', 
+      customer: 'Vikram Gupta', 
+      status: 'Processing',
+      amount: '₹4,100',
+      time: '2 hours ago',
+      avatar: 'VG'
+    }
+  ];
+
+  const topProducts = [
+    { 
+      name: 'Silk Saree - Royal Blue', 
+      sales: 45, 
+      revenue: '₹89,000', 
+      trend: 'up' 
+    },
+    { 
+      name: 'Embroidered Kurta Set', 
+      sales: 38, 
+      revenue: '₹76,000', 
+      trend: 'up' 
+    },
+    { 
+      name: 'Designer Lehenga', 
+      sales: 22, 
+      revenue: '₹1,10,000', 
+      trend: 'down' 
+    },
+    { 
+      name: 'Cotton Palazzo Set', 
+      sales: 35, 
+      revenue: '₹42,000', 
+      trend: 'up' 
     }
   ];
 
   const quickActions = [
     {
       title: 'Add Product',
-      description: 'Create new product listing',
-      icon: <Plus className="h-6 w-6" />,
+      description: 'Add a new product to catalog',
+      icon: <Plus className="h-5 w-5" />,
       onClick: () => navigate('/admin/products/create'),
-      gradient: 'from-primary-500 to-primary-600',
-      color: 'primary'
     },
     {
-      title: 'View Analytics',
-      description: 'Check detailed reports',
-      icon: <BarChart3 className="h-6 w-6" />,
+      title: 'View Orders',
+      description: 'Manage customer orders',
+      icon: <ShoppingCart className="h-5 w-5" />,
+      onClick: () => navigate('/admin/orders'),
+    },
+    {
+      title: 'Analytics',
+      description: 'View sales analytics',
+      icon: <BarChart3 className="h-5 w-5" />,
       onClick: () => navigate('/admin/analytics'),
-      gradient: 'from-blue-500 to-blue-600',
-      color: 'blue'
     },
     {
-      title: 'Export Data',
-      description: 'Download reports',
-      icon: <Download className="h-6 w-6" />,
-      onClick: () => console.log('Export data'),
-      gradient: 'from-green-500 to-green-600',
-      color: 'green'
-    },
-    {
-      title: 'Manage Settings',
-      description: 'Store configuration',
-      icon: <Calendar className="h-6 w-6" />,
-      onClick: () => navigate('/admin/settings'),
-      gradient: 'from-purple-500 to-purple-600',
-      color: 'purple'
+      title: 'Manage Users',
+      description: 'View and manage users',
+      icon: <Users className="h-5 w-5" />,
+      onClick: () => navigate('/admin/users'),
     }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Processing':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'Shipped':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Delivered':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+  const getStatusBadgeClass = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'processing':
+        return 'admin-badge admin-badge-warning';
+      case 'shipped':
+        return 'admin-badge admin-badge-neutral';
+      case 'delivered':
+        return 'admin-badge admin-badge-success';
       default:
-        return 'bg-neutral-100 text-neutral-800 border-neutral-200';
+        return 'admin-badge admin-badge-neutral';
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-4" />
-            <p className="text-neutral-600">Loading dashboard data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-4">
-              <p className="font-medium">Error loading dashboard data</p>
-              <p className="text-sm mt-1">{error}</p>
-            </div>
-            <button 
-              onClick={refresh}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      {/* Modern Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-        <div className="mb-6 lg:mb-0">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-gradient-to-r from-primary-500 to-accent-500 p-3 rounded-2xl">
-                <Crown className="h-8 w-8 text-white" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-4xl font-display font-bold bg-gradient-to-r from-primary-800 to-accent-600 bg-clip-text text-transparent">
-                Dashboard
-              </h1>
-              <p className="text-neutral-600 font-accent text-lg">
-                Welcome back! Here's what's happening with your store today.
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={refresh}
-            className="flex items-center space-x-2 px-4 py-2 bg-white rounded-xl border border-neutral-200 hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 group"
-          >
-            <RefreshCw className="h-4 w-4 text-neutral-600 group-hover:text-primary-600 group-hover:rotate-180 transition-all duration-300" />
-            <span className="text-sm font-medium text-neutral-700 group-hover:text-primary-700">Refresh</span>
-          </button>
-          
-          <button className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-primary-500 to-accent-500 text-white rounded-xl hover:shadow-lg transition-all duration-200 group">
-            <Eye className="h-4 w-4 group-hover:scale-110 transition-transform" />
-            <span className="text-sm font-medium">View Store</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Modern Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div>
+      {/* Stats Cards */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+        gap: '16px', 
+        marginBottom: '24px' 
+      }}>
         {stats.map((stat, index) => (
-          <button
-            key={index}
+          <div 
+            key={index} 
+            className="admin-card"
+            style={{ cursor: 'pointer' }}
             onClick={stat.onClick}
-            className="group relative bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-lg border border-neutral-200/50 hover:shadow-2xl hover:border-primary-200 transition-all duration-300 hover:-translate-y-2"
           >
-            {/* Background Pattern */}
-            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-neutral-50/50 to-primary-50/30 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            
-            <div className="relative">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-2xl bg-gradient-to-br ${stat.gradient} text-white group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+            <div className="admin-card-content">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p className="admin-text-secondary admin-text-sm" style={{ margin: '0 0 4px 0' }}>
+                    {stat.title}
+                  </p>
+                  <p className="admin-font-mono" style={{ 
+                    fontSize: '24px', 
+                    fontWeight: '600', 
+                    margin: '0 0 4px 0',
+                    color: 'var(--admin-text-primary)'
+                  }}>
+                    {stat.value}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <TrendingUp className="h-4 w-4" style={{ color: 'var(--admin-success)' }} />
+                    <span className="admin-text-xs" style={{ color: 'var(--admin-success)' }}>
+                      {stat.change}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ 
+                  padding: '12px', 
+                  backgroundColor: 'var(--admin-bg)', 
+                  borderRadius: '8px',
+                  color: 'var(--admin-primary)'
+                }}>
                   {stat.icon}
                 </div>
-                <div className="flex items-center space-x-1">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm font-bold text-emerald-600">{stat.change}</span>
-                </div>
               </div>
-              
-              <div className="text-left">
-                <p className="text-3xl font-display font-bold text-primary-800 mb-1 group-hover:text-primary-600 transition-colors">
-                  {stat.value}
-                </p>
-                <p className="text-sm font-accent font-medium text-neutral-600 mb-1">{stat.title}</p>
-                <p className="text-xs text-neutral-500">{stat.description}</p>
-              </div>
-              
-              <ArrowUpRight className="absolute top-4 right-4 h-5 w-5 text-neutral-400 group-hover:text-accent-500 group-hover:scale-110 transition-all duration-300" />
             </div>
-          </button>
+          </div>
         ))}
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Recent Orders - Large Card */}
-        <div className="lg:col-span-8 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-neutral-200/50 overflow-hidden">
-          <div className="p-6 border-b border-neutral-200/50 bg-gradient-to-r from-neutral-50/50 to-transparent">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl">
-                  <Activity className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-display font-bold text-primary-800">Recent Orders</h2>
-                  <p className="text-sm text-neutral-600">Latest customer orders</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => navigate('/admin/orders')}
-                className="text-accent-600 hover:text-accent-700 font-accent font-medium text-sm transition-colors flex items-center space-x-1"
-              >
-                <span>View all</span>
-                <ArrowUpRight className="h-4 w-4" />
-              </button>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 400px', 
+        gap: '24px',
+        marginBottom: '24px'
+      }}>
+        {/* Recent Orders */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Activity className="h-5 w-5" style={{ color: 'var(--admin-primary)' }} />
+              <h2 className="admin-card-title">Recent Orders</h2>
             </div>
+            <button 
+              onClick={() => navigate('/admin/orders')}
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+            >
+              View all
+              <ArrowUpRight className="h-4 w-4 ml-1" />
+            </button>
           </div>
           
-          <div className="divide-y divide-neutral-100">
-            {recentOrders.map((order, index) => (
-              <div key={order.id || index} className="p-6 hover:bg-neutral-50/50 transition-colors group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-12 w-12 bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl flex items-center justify-center text-white font-bold text-sm">
-                      {order.avatar_initials}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-3 mb-1">
-                        <span className="font-accent font-bold text-primary-800">{order.order_number}</span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
+          <div className="admin-card-content" style={{ padding: 0 }}>
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentOrders.map((order, index) => (
+                    <tr key={index}>
+                      <td>
+                        <span className="admin-font-mono admin-text-sm">{order.id}</span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--admin-primary)',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px',
+                            fontWeight: '600'
+                          }}>
+                            {order.avatar}
+                          </div>
+                          <span>{order.customer}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={getStatusBadgeClass(order.status)}>
                           {order.status}
                         </span>
-                      </div>
-                      <p className="text-neutral-700 font-medium">{order.customer_name}</p>
-                      <p className="text-neutral-500 text-sm">{order.time_ago}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-display font-bold text-xl text-primary-800">{formatCurrency(order.total_amount)}</p>
-                    <button className="text-accent-600 hover:text-accent-700 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                      View details
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                      </td>
+                      <td>
+                        <span className="admin-font-mono admin-text-sm">{order.amount}</span>
+                      </td>
+                      <td>
+                        <span className="admin-text-muted admin-text-sm">{order.time}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        {/* Top Products - Sidebar */}
-        <div className="lg:col-span-4 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-neutral-200/50">
-          <div className="p-6 border-b border-neutral-200/50 bg-gradient-to-r from-neutral-50/50 to-transparent">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl">
-                <Package className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-display font-bold text-primary-800">Top Products</h2>
-                <p className="text-sm text-neutral-600">Best performing items</p>
-              </div>
+        {/* Top Products Sidebar */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Package className="h-5 w-5" style={{ color: 'var(--admin-success)' }} />
+              <h2 className="admin-card-title">Top Products</h2>
             </div>
           </div>
           
-          <div className="p-6 space-y-4">
-            {topProducts.map((product, index) => (
-              <div key={product.id || index} className="group p-4 rounded-2xl bg-gradient-to-r from-neutral-50/50 to-transparent hover:from-primary-50/50 hover:to-accent-50/30 transition-all duration-200 border border-transparent hover:border-primary-200">
-                <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 bg-gradient-to-r from-neutral-200 to-neutral-300 rounded-xl flex items-center justify-center overflow-hidden">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <Package className="h-6 w-6 text-neutral-600" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-accent font-bold text-primary-800 text-sm mb-1 group-hover:text-primary-600 transition-colors">
+          <div className="admin-card-content">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {topProducts.map((product, index) => (
+                <div key={index} style={{ 
+                  padding: '12px', 
+                  border: '1px solid var(--admin-border)', 
+                  borderRadius: '6px' 
+                }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <p style={{ 
+                      fontWeight: '500', 
+                      margin: '0 0 4px 0',
+                      fontSize: '14px'
+                    }}>
                       {product.name}
                     </p>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-neutral-600">{product.total_sales} sales</span>
-                      <span className="text-emerald-600 font-bold flex items-center">
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                        {product.trend}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span className="admin-text-muted admin-text-sm">
+                        {product.sales} sales
                       </span>
+                      <span className="admin-font-mono admin-text-sm" style={{ fontWeight: '600' }}>
+                        {product.revenue}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <TrendingUp 
+                          className="h-4 w-4" 
+                          style={{ 
+                            color: product.trend === 'up' ? 'var(--admin-success)' : 'var(--admin-danger)',
+                            transform: product.trend === 'down' ? 'rotate(180deg)' : 'none'
+                          }} 
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-neutral-200">
-                  <p className="font-display font-bold text-primary-800">{formatCurrency(product.total_revenue)}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {quickActions.map((action, index) => (
-          <button 
-            key={index}
-            onClick={action.onClick}
-            className="group relative bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-neutral-200/50 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 overflow-hidden"
-          >
-            {/* Background Gradient */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-            
-            <div className="relative">
-              <div className={`inline-flex p-3 rounded-2xl bg-gradient-to-br ${action.gradient} text-white mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                {action.icon}
-              </div>
-              <div className="text-left">
-                <p className="font-display font-bold text-lg text-primary-800 mb-1 group-hover:text-primary-600 transition-colors">
-                  {action.title}
-                </p>
-                <p className="text-sm text-neutral-600">{action.description}</p>
-              </div>
-              <ArrowUpRight className="absolute top-4 right-4 h-5 w-5 text-neutral-400 group-hover:text-accent-500 group-hover:scale-110 transition-all duration-300" />
-            </div>
-          </button>
-        ))}
+      {/* Quick Actions */}
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <h2 className="admin-card-title">Quick Actions</h2>
+        </div>
+        
+        <div className="admin-card-content">
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '16px' 
+          }}>
+            {quickActions.map((action, index) => (
+              <button
+                key={index}
+                onClick={action.onClick}
+                className="admin-btn admin-btn-secondary"
+                style={{ 
+                  height: 'auto',
+                  padding: '16px',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start'
+                }}
+              >
+                <div style={{ 
+                  padding: '8px', 
+                  backgroundColor: 'var(--admin-bg)', 
+                  borderRadius: '6px',
+                  marginBottom: '8px',
+                  color: 'var(--admin-primary)'
+                }}>
+                  {action.icon}
+                </div>
+                <div>
+                  <p style={{ 
+                    fontWeight: '500', 
+                    margin: '0 0 4px 0',
+                    color: 'var(--admin-text-primary)'
+                  }}>
+                    {action.title}
+                  </p>
+                  <p className="admin-text-muted admin-text-sm" style={{ margin: 0 }}>
+                    {action.description}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

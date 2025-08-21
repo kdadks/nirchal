@@ -23,3 +23,31 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Debug, check, fix, and temporary files
+check-*.js
+debug*.sql
+debug*.js
+diagnose-*.js
+inspect-*.js
+test-*.js
+apply-*.js
+fix*.sql
+*_fix.sql
+complete_uuid_fix.sql
+final_uuid_fix.sql
+emergency_cleanup.sql
+test_minimal.sql
+temp_*.sql
+temp_*.js
+
+# Temporary component and page variants
+*Professional.tsx
+*Old.tsx
+*Clean.tsx
+*Fixed.tsx
+*Simple.tsx
+*Test*.tsx
+*New.tsx
+*Temp*.tsx
+*Backup*.tsx

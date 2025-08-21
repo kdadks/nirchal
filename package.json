@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "diagnose": "node diagnose-db.js",
+    "init-settings": "node scripts/init-settings.js",
+    "migrate-settings": "node scripts/migrate-settings.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

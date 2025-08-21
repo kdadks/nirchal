@@ -13,7 +13,7 @@ const EditProductPage: React.FC = () => {
 
   useEffect(() => {
     if (products.length > 0) {
-      const foundProduct = products.find(p => p.id === Number(id));
+      const foundProduct = products.find(p => p.id === id);
       if (foundProduct) {
         setProduct(foundProduct);
       } else {
@@ -28,7 +28,7 @@ const EditProductPage: React.FC = () => {
     try {
       // Collect images to delete
       const imagesToDelete = data.images?.filter(img => img.toDelete && img.id);
-  await updateProduct(Number(id), { ...data, imagesToDelete, variantsToDelete: data.variantsToDelete });
+      await updateProduct(id, { ...data, imagesToDelete, variantsToDelete: data.variantsToDelete });
     } finally {
       setIsSubmitting(false);
     }
