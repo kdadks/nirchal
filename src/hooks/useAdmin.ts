@@ -759,39 +759,35 @@ export const useProducts = () => {
 				}
 			}
 			
+			// 8.5. Delete audit log records BEFORE product deletion to avoid trigger conflicts
+			console.log('[deleteProduct] Cleaning up audit log records before product deletion');
+			try {
+				const { error: auditDeleteError } = await supabase
+					.from('product_audit_log')
+					.delete()
+					.eq('product_id', id);
+				if (auditDeleteError && auditDeleteError.code !== 'PGRST116') { // PGRST116 = no rows found
+					console.warn('[deleteProduct] Audit log cleanup warning:', auditDeleteError.message);
+				} else {
+					console.log('[deleteProduct] Cleaned up audit log records');
+				}
+			} catch (auditError) {
+				console.warn('[deleteProduct] Audit log cleanup failed (continuing anyway):', auditError);
+			}
+			
 			// 9. Delete the product (this will cascade to product_images and product_variants)
 			console.log('[deleteProduct] About to delete product:', id);
 			
-			try {
-				const { error: productDeleteError } = await supabase
-					.from('products')
-					.delete()
-					.eq('id', id);
-				
-				if (productDeleteError) {
-					// Check if this is a trigger-related foreign key constraint error
-					if (productDeleteError.code === '23503' && 
-						productDeleteError.message?.includes('product_audit_log')) {
-						console.warn('[deleteProduct] Product deletion trigger conflict handled:', productDeleteError.message);
-						// Product was likely deleted but trigger failed - this is okay
-					} else {
-						console.error('[deleteProduct] Product deletion error:', productDeleteError);
-						throw productDeleteError;
-					}
-				} else {
-					console.log('[deleteProduct] Deleted product:', id);
-				}
-			} catch (productError: any) {
-				// Handle trigger conflicts specifically
-				if (productError.code === '23503' && 
-					productError.message?.includes('product_audit_log')) {
-					console.warn('[deleteProduct] Product deletion completed despite trigger conflict:', productError.message);
-					// Continue - the product deletion likely succeeded
-				} else {
-					console.error('[deleteProduct] Unexpected product deletion error:', productError);
-					throw productError;
-				}
+			const { error: productDeleteError } = await supabase
+				.from('products')
+				.delete()
+				.eq('id', id);
+			
+			if (productDeleteError) {
+				console.error('[deleteProduct] Product deletion error:', productDeleteError);
+				throw productDeleteError;
 			}
+			console.log('[deleteProduct] Deleted product:', id);
 			
 			await fetchProducts();
 		} catch (e) {
