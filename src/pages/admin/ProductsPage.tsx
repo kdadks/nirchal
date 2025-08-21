@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../hooks/useAdmin';
 import DataTable from '../../components/admin/DataTable';
 import type { ProductWithDetails } from '../../types/admin';
-import { Package, Filter } from 'lucide-react';
+import { Package, Filter, Trash2, AlertTriangle } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, loading } = useProducts();
+  const { products, loading, deleteProduct, deleteProducts } = useProducts();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: string; ids?: string[] }>({ type: 'single' });
+  const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
     category: '',
@@ -37,6 +40,40 @@ const ProductsPage: React.FC = () => {
     } else {
       setSelectedProducts(prev => prev.filter(id => id !== productId));
     }
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    setDeleteTarget({ type: 'single', id: productId });
+    setShowDeleteConfirm(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedProducts.length === 0) return;
+    setDeleteTarget({ type: 'bulk', ids: selectedProducts });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (deleteTarget.type === 'single' && deleteTarget.id) {
+        await deleteProduct(deleteTarget.id);
+      } else if (deleteTarget.type === 'bulk' && deleteTarget.ids) {
+        await deleteProducts(deleteTarget.ids);
+        setSelectedProducts([]); // Clear selection after bulk delete
+      }
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      console.error('Delete error:', error);
+      // You could add a toast notification here
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setDeleteTarget({ type: 'single' });
   };
 
   const columns = [
@@ -145,6 +182,28 @@ const ProductsPage: React.FC = () => {
         return row.category.name || <span className="admin-text-muted">-</span>;
       },
     },
+    {
+      key: 'actions',
+      title: 'Actions',
+      render: (row: ProductWithDetails) => (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={() => navigate(`/admin/products/edit/${row.id}`)}
+            className="admin-btn admin-btn-sm admin-btn-secondary"
+            title="Edit Product"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleDeleteProduct(row.id.toString())}
+            className="admin-btn admin-btn-sm admin-btn-danger"
+            title="Delete Product"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -207,9 +266,19 @@ const ProductsPage: React.FC = () => {
         headerActions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {selectedProducts.length > 0 && (
-              <div className="admin-text-sm admin-text-muted" style={{ marginRight: '8px' }}>
-                {selectedProducts.length} selected
-              </div>
+              <>
+                <div className="admin-text-sm admin-text-muted" style={{ marginRight: '8px' }}>
+                  {selectedProducts.length} selected
+                </div>
+                <button
+                  onClick={handleBulkDelete}
+                  className="admin-btn admin-btn-danger admin-btn-sm"
+                  title={`Delete ${selectedProducts.length} selected products`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Selected
+                </button>
+              </>
             )}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -221,6 +290,53 @@ const ProductsPage: React.FC = () => {
           </div>
         }
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Confirm Deletion
+              </h3>
+            </div>
+            <div className="admin-modal-content">
+              <p className="admin-text-secondary">
+                {deleteTarget.type === 'single' 
+                  ? 'Are you sure you want to delete this product? This action cannot be undone.'
+                  : `Are you sure you want to delete ${deleteTarget.ids?.length} selected products? This action cannot be undone.`
+                }
+              </p>
+              <p className="admin-text-sm admin-text-muted" style={{ marginTop: '8px' }}>
+                This will permanently delete:
+              </p>
+              <ul className="admin-text-sm admin-text-muted" style={{ marginTop: '4px', paddingLeft: '16px' }}>
+                <li>Product information and description</li>
+                <li>All product images</li>
+                <li>Product variants and inventory</li>
+                <li>Product history and analytics</li>
+              </ul>
+            </div>
+            <div className="admin-modal-actions">
+              <button
+                onClick={cancelDelete}
+                className="admin-btn admin-btn-secondary"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="admin-btn admin-btn-danger"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
