@@ -716,7 +716,29 @@ export const useProducts = () => {
 			if (auditDeleteError) throw auditDeleteError;
 			console.log('[deleteProduct] Deleted audit log records for product:', id);
 			
-			// 7. Delete product images from storage
+			// 7. Handle order items that reference this product (set product_id to NULL)
+			const { error: orderItemsUpdateError } = await supabase
+				.from('order_items')
+				.update({ product_id: null })
+				.eq('product_id', id);
+			if (orderItemsUpdateError) {
+				console.warn('[deleteProduct] Order items update error (non-critical):', orderItemsUpdateError);
+			} else {
+				console.log('[deleteProduct] Updated order items to remove product reference');
+			}
+			
+			// 8. Delete product analytics records
+			const { error: analyticsDeleteError } = await supabase
+				.from('product_analytics')
+				.delete()
+				.eq('product_id', id);
+			if (analyticsDeleteError) {
+				console.warn('[deleteProduct] Analytics deletion error (non-critical):', analyticsDeleteError);
+			} else {
+				console.log('[deleteProduct] Deleted product analytics records');
+			}
+			
+			// 9. Delete product images from storage
 			if (productImages && productImages.length > 0) {
 				const imageUrls = productImages
 					.map(img => img.image_url)
@@ -734,18 +756,23 @@ export const useProducts = () => {
 				}
 			}
 			
-			// 8. Delete the product (this will cascade to product_images and product_variants)
+			// 10. Delete the product (this will cascade to product_images and product_variants)
+			console.log('[deleteProduct] About to delete product:', id);
 			const { error: productDeleteError } = await supabase
 				.from('products')
 				.delete()
 				.eq('id', id);
 			
-			if (productDeleteError) throw productDeleteError;
+			if (productDeleteError) {
+				console.error('[deleteProduct] Product deletion error:', productDeleteError);
+				throw productDeleteError;
+			}
 			console.log('[deleteProduct] Deleted product:', id);
 			
 			await fetchProducts();
 		} catch (e) {
 			console.error('[deleteProduct] Error:', e);
+			console.error('[deleteProduct] Error details:', JSON.stringify(e, null, 2));
 			throw e instanceof Error ? e : new Error('Error deleting product');
 		}
 	};
