@@ -840,6 +840,21 @@ export const useProducts = () => {
 										if (!finalInventoryError) {
 											console.log('[deleteProduct] Inventory deletion succeeded after RPC cleanup!');
 											// Continue with the rest of the deletion process - don't try full RPC
+											
+											// Clean up audit logs now that inventory is handled
+											try {
+												const { error: auditCleanupError } = await supabase
+													.from('product_audit_log')
+													.delete()
+													.eq('product_id', id);
+												if (auditCleanupError) {
+													console.warn('[deleteProduct] Audit log cleanup warning (continuing anyway):', auditCleanupError.message);
+												} else {
+													console.log('[deleteProduct] Cleaned up audit logs');
+												}
+											} catch (auditError) {
+												console.warn('[deleteProduct] Audit log cleanup failed (continuing anyway)');
+											}
 										} else {
 											console.log('[deleteProduct] Inventory deletion still failed, trying full RPC function...');
 											
