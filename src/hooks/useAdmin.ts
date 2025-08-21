@@ -735,7 +735,7 @@ export const useProducts = () => {
 						inventoryDeleteError.message?.includes('inventory_history')) {
 						console.warn('[deleteProduct] Inventory deletion conflict, cleaning remaining history...');
 						
-						// Get current inventory IDs and clean up any remaining history
+						// Get current inventory IDs and clean up any remaining history AGGRESSIVELY
 						const { data: currentInventory } = await supabase
 							.from('inventory')
 							.select('id')
@@ -743,17 +743,48 @@ export const useProducts = () => {
 						
 						if (currentInventory && currentInventory.length > 0) {
 							const currentIds = currentInventory.map(inv => inv.id);
-							await supabase
-								.from('inventory_history')
-								.delete()
-								.in('inventory_id', currentIds);
+							console.log('[deleteProduct] Found remaining inventory IDs:', currentIds);
+							
+							// Try multiple cleanup attempts
+							for (let attempt = 0; attempt < 3; attempt++) {
+								console.log(`[deleteProduct] History cleanup attempt ${attempt + 1}/3`);
+								
+								const { data: remainingHistory, error: historyQueryError } = await supabase
+									.from('inventory_history')
+									.select('id, inventory_id')
+									.in('inventory_id', currentIds);
+								
+								if (!historyQueryError && remainingHistory && remainingHistory.length > 0) {
+									console.log(`[deleteProduct] Found ${remainingHistory.length} remaining history records`);
+									
+									const { error: cleanupError } = await supabase
+										.from('inventory_history')
+										.delete()
+										.in('inventory_id', currentIds);
+									
+									if (cleanupError) {
+										console.warn(`[deleteProduct] Cleanup attempt ${attempt + 1} failed:`, cleanupError.message);
+									} else {
+										console.log(`[deleteProduct] Cleanup attempt ${attempt + 1} succeeded`);
+										break;
+									}
+								} else {
+									console.log(`[deleteProduct] No more history records found on attempt ${attempt + 1}`);
+									break;
+								}
+							}
 							
 							// Try inventory deletion again
 							const { error: retryInventoryError } = await supabase
 								.from('inventory')
 								.delete()
 								.eq('product_id', id);
-							if (retryInventoryError) throw retryInventoryError;
+							if (retryInventoryError) {
+								console.error('[deleteProduct] Inventory deletion still failed after cleanup:', retryInventoryError);
+								throw retryInventoryError;
+							} else {
+								console.log('[deleteProduct] Inventory deletion succeeded after cleanup');
+							}
 						}
 					} else {
 						throw inventoryDeleteError;
