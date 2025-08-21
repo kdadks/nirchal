@@ -690,23 +690,80 @@ export const useProducts = () => {
 			if (productInvError) throw productInvError;
 			inventoryIds = [...inventoryIds, ...(productInventory?.map(inv => inv.id) || [])];
 			
-			// 4. Delete inventory history records
-			if (inventoryIds.length > 0) {
+			// 4. Delete inventory history records (get fresh list to ensure we catch all)
+			const { data: allInventoryForProduct, error: allInvError } = await supabase
+				.from('inventory')
+				.select('id')
+				.eq('product_id', id);
+			if (allInvError) throw allInvError;
+			
+			const allInventoryIds = allInventoryForProduct?.map(inv => inv.id) || [];
+			if (allInventoryIds.length > 0) {
+				// Delete all inventory history for these inventory records
 				const { error: historyDeleteError } = await supabase
 					.from('inventory_history')
 					.delete()
-					.in('inventory_id', inventoryIds);
-				if (historyDeleteError) throw historyDeleteError;
-				console.log('[deleteProduct] Deleted inventory history records:', inventoryIds.length);
+					.in('inventory_id', allInventoryIds);
+				if (historyDeleteError) {
+					console.warn('[deleteProduct] Inventory history deletion error:', historyDeleteError.message);
+					// Try alternative approach - delete any remaining history records
+					try {
+						const { error: remainingHistoryError } = await supabase
+							.from('inventory_history')
+							.delete()
+							.in('inventory_id', allInventoryIds);
+						if (remainingHistoryError) {
+							console.warn('[deleteProduct] Still some inventory history remaining, will proceed anyway');
+						}
+					} catch (e) {
+						console.warn('[deleteProduct] Could not clean all inventory history, continuing...');
+					}
+				} else {
+					console.log('[deleteProduct] Deleted inventory history records:', allInventoryIds.length);
+				}
 			}
 			
 			// 5. Delete inventory records (both variant and product inventory)
-			const { error: inventoryDeleteError } = await supabase
-				.from('inventory')
-				.delete()
-				.eq('product_id', id);
-			if (inventoryDeleteError) throw inventoryDeleteError;
-			console.log('[deleteProduct] Deleted inventory records for product:', id);
+			try {
+				const { error: inventoryDeleteError } = await supabase
+					.from('inventory')
+					.delete()
+					.eq('product_id', id);
+				if (inventoryDeleteError) {
+					// If there are still foreign key issues, try to clean up remaining history
+					if (inventoryDeleteError.code === '23503' && 
+						inventoryDeleteError.message?.includes('inventory_history')) {
+						console.warn('[deleteProduct] Inventory deletion conflict, cleaning remaining history...');
+						
+						// Get current inventory IDs and clean up any remaining history
+						const { data: currentInventory } = await supabase
+							.from('inventory')
+							.select('id')
+							.eq('product_id', id);
+						
+						if (currentInventory && currentInventory.length > 0) {
+							const currentIds = currentInventory.map(inv => inv.id);
+							await supabase
+								.from('inventory_history')
+								.delete()
+								.in('inventory_id', currentIds);
+							
+							// Try inventory deletion again
+							const { error: retryInventoryError } = await supabase
+								.from('inventory')
+								.delete()
+								.eq('product_id', id);
+							if (retryInventoryError) throw retryInventoryError;
+						}
+					} else {
+						throw inventoryDeleteError;
+					}
+				}
+				console.log('[deleteProduct] Deleted inventory records for product:', id);
+			} catch (invError) {
+				console.error('[deleteProduct] Inventory deletion failed:', invError);
+				throw invError;
+			}
 			
 			// 6. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
 			try {
