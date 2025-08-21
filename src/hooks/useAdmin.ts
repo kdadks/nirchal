@@ -749,13 +749,28 @@ export const useProducts = () => {
 							for (let attempt = 0; attempt < 3; attempt++) {
 								console.log(`[deleteProduct] History cleanup attempt ${attempt + 1}/3`);
 								
+								// First, let's try to see ALL inventory_history without any filters
+								const { data: allHistory, error: allHistoryError } = await supabase
+									.from('inventory_history')
+									.select('id, inventory_id')
+									.limit(100);
+								
+								if (!allHistoryError && allHistory) {
+									console.log(`[deleteProduct] Total inventory_history records in database: ${allHistory.length}`);
+									
+									// Check if any of these match our inventory IDs
+									const matchingHistory = allHistory.filter(h => currentIds.includes(h.inventory_id));
+									console.log(`[deleteProduct] Records matching our inventory IDs: ${matchingHistory.length}`, matchingHistory);
+								}
+								
+								// Now check for our specific inventory IDs
 								const { data: remainingHistory, error: historyQueryError } = await supabase
 									.from('inventory_history')
 									.select('id, inventory_id')
 									.in('inventory_id', currentIds);
 								
 								if (!historyQueryError && remainingHistory && remainingHistory.length > 0) {
-									console.log(`[deleteProduct] Found ${remainingHistory.length} remaining history records`);
+									console.log(`[deleteProduct] Found ${remainingHistory.length} remaining history records`, remainingHistory);
 									
 									const { error: cleanupError } = await supabase
 										.from('inventory_history')
@@ -770,6 +785,29 @@ export const useProducts = () => {
 									}
 								} else {
 									console.log(`[deleteProduct] No more history records found on attempt ${attempt + 1}`);
+									
+									// Let's try a different approach - delete by product_id if possible
+									const { data: historyByProduct, error: productHistoryError } = await supabase
+										.from('inventory_history')
+										.select('id, inventory_id')
+										.eq('product_id', id);  // This might not exist, but let's try
+									
+									if (!productHistoryError && historyByProduct && historyByProduct.length > 0) {
+										console.log(`[deleteProduct] Found history records by product_id: ${historyByProduct.length}`);
+										
+										const { error: productCleanupError } = await supabase
+											.from('inventory_history')
+											.delete()
+											.eq('product_id', id);
+										
+										if (!productCleanupError) {
+											console.log(`[deleteProduct] Successfully cleaned history by product_id`);
+											break;
+										}
+									}
+									
+									// If we still can't find history records but get FK error, try raw SQL cleanup
+									console.log(`[deleteProduct] Attempting raw cleanup with SQL function...`);
 									break;
 								}
 							}
@@ -781,7 +819,25 @@ export const useProducts = () => {
 								.eq('product_id', id);
 							if (retryInventoryError) {
 								console.error('[deleteProduct] Inventory deletion still failed after cleanup:', retryInventoryError);
-								throw retryInventoryError;
+								
+								// Last resort: try the RPC function for this specific product
+								console.log('[deleteProduct] Attempting last resort: RPC function for remaining cleanup...');
+								try {
+									const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
+										product_id: id
+									});
+									
+									if (rpcError) {
+										console.error('[deleteProduct] RPC function also failed:', rpcError.message);
+										throw retryInventoryError;
+									} else {
+										console.log('[deleteProduct] RPC function succeeded! Product deletion completed.');
+										return; // Skip the rest of the deletion process
+									}
+								} catch (rpcFallbackError) {
+									console.error('[deleteProduct] RPC fallback failed:', rpcFallbackError);
+									throw retryInventoryError;
+								}
 							} else {
 								console.log('[deleteProduct] Inventory deletion succeeded after cleanup');
 							}
