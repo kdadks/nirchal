@@ -823,6 +823,29 @@ export const useProducts = () => {
 								// Last resort: try the RPC function for this specific product
 								console.log('[deleteProduct] Attempting last resort: RPC function for remaining cleanup...');
 								try {
+									// First try the helper function to clean inventory history
+									const { data: cleanupResult, error: cleanupRpcError } = await supabase.rpc('clean_inventory_history_for_product', {
+										product_id: id
+									});
+									
+									if (!cleanupRpcError) {
+										console.log(`[deleteProduct] Helper function cleaned ${cleanupResult} inventory history records`);
+										
+										// Now try inventory deletion again
+										const { error: finalInventoryError } = await supabase
+											.from('inventory')
+											.delete()
+											.eq('product_id', id);
+										
+										if (!finalInventoryError) {
+											console.log('[deleteProduct] Inventory deletion succeeded after RPC cleanup!');
+											return; // Continue with rest of deletion process
+										} else {
+											console.log('[deleteProduct] Inventory deletion still failed, trying full RPC function...');
+										}
+									}
+									
+									// If helper didn't work, try the full RPC function
 									const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
 										product_id: id
 									});
