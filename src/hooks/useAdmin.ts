@@ -839,23 +839,38 @@ export const useProducts = () => {
 										
 										if (!finalInventoryError) {
 											console.log('[deleteProduct] Inventory deletion succeeded after RPC cleanup!');
-											return; // Continue with rest of deletion process
+											// Continue with the rest of the deletion process - don't try full RPC
 										} else {
 											console.log('[deleteProduct] Inventory deletion still failed, trying full RPC function...');
+											
+											// If helper didn't work, try the full RPC function
+											const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
+												product_id: id
+											});
+											
+											if (rpcError) {
+												console.error('[deleteProduct] RPC function also failed:', rpcError.message);
+												throw retryInventoryError;
+											} else {
+												console.log('[deleteProduct] RPC function succeeded! Product deletion completed.');
+												return; // Skip the rest of the deletion process since RPC handled everything
+											}
 										}
-									}
-									
-									// If helper didn't work, try the full RPC function
-									const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
-										product_id: id
-									});
-									
-									if (rpcError) {
-										console.error('[deleteProduct] RPC function also failed:', rpcError.message);
-										throw retryInventoryError;
 									} else {
-										console.log('[deleteProduct] RPC function succeeded! Product deletion completed.');
-										return; // Skip the rest of the deletion process
+										// Helper function failed, try the full RPC function
+										console.log('[deleteProduct] Helper function failed, trying full RPC function...');
+										
+										const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
+											product_id: id
+										});
+										
+										if (rpcError) {
+											console.error('[deleteProduct] RPC function also failed:', rpcError.message);
+											throw retryInventoryError;
+										} else {
+											console.log('[deleteProduct] RPC function succeeded! Product deletion completed.');
+											return; // Skip the rest of the deletion process since RPC handled everything
+										}
 									}
 								} catch (rpcFallbackError) {
 									console.error('[deleteProduct] RPC fallback failed:', rpcFallbackError);
