@@ -4,7 +4,7 @@ RETURNS void AS $$
 DECLARE
     audit_trigger_exists boolean;
     inventory_trigger_exists boolean;
-    inventory_ids UUID[];
+    inventory_ids integer[];
 BEGIN
     -- Check if triggers exist
     SELECT EXISTS (
@@ -26,14 +26,14 @@ BEGIN
         ALTER TABLE inventory DISABLE TRIGGER trg_log_inventory_history;
     END IF;
     
-    -- Get all inventory IDs for this product (including variants)
+    -- Get all inventory IDs for this product (including variants) - NOTE: inventory.id is integer, not UUID
     SELECT ARRAY(
         SELECT id FROM inventory WHERE inventory.product_id = delete_product_with_audit_cleanup.product_id
     ) INTO inventory_ids;
     
     -- Delete in the correct order to avoid foreign key conflicts
     
-    -- 1. Delete inventory history for all inventory records
+    -- 1. Delete inventory history for all inventory records (bypass RLS with SECURITY DEFINER)
     IF array_length(inventory_ids, 1) > 0 THEN
         DELETE FROM inventory_history WHERE inventory_id = ANY(inventory_ids);
     END IF;
@@ -78,3 +78,23 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION delete_product_with_audit_cleanup(UUID) TO authenticated;
+
+-- Helper function to clean inventory history for a specific product
+CREATE OR REPLACE FUNCTION clean_inventory_history_for_product(product_id UUID)
+RETURNS integer AS $$
+DECLARE
+    deleted_count integer;
+BEGIN
+    -- Delete all inventory history records for inventory that belongs to this product
+    DELETE FROM inventory_history 
+    WHERE inventory_id IN (
+        SELECT id FROM inventory WHERE inventory.product_id = clean_inventory_history_for_product.product_id
+    );
+    
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RETURN deleted_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION clean_inventory_history_for_product(UUID) TO authenticated;
