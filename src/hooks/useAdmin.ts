@@ -708,35 +708,38 @@ export const useProducts = () => {
 			if (inventoryDeleteError) throw inventoryDeleteError;
 			console.log('[deleteProduct] Deleted inventory records for product:', id);
 			
-			// 6. Delete product audit log records
-			const { error: auditDeleteError } = await supabase
-				.from('product_audit_log')
-				.delete()
-				.eq('product_id', id);
-			if (auditDeleteError) throw auditDeleteError;
-			console.log('[deleteProduct] Deleted audit log records for product:', id);
-			
-			// 7. Handle order items that reference this product (set product_id to NULL)
-			const { error: orderItemsUpdateError } = await supabase
-				.from('order_items')
-				.update({ product_id: null })
-				.eq('product_id', id);
-			if (orderItemsUpdateError) {
-				console.warn('[deleteProduct] Order items update error (non-critical):', orderItemsUpdateError);
-			} else {
-				console.log('[deleteProduct] Updated order items to remove product reference');
+			// 6. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
+			try {
+				const { error: orderItemsUpdateError } = await supabase
+					.from('order_items')
+					.update({ product_id: null })
+					.eq('product_id', id);
+				if (orderItemsUpdateError) {
+					console.warn('[deleteProduct] Order items update skipped (table not accessible):', orderItemsUpdateError.message);
+				} else {
+					console.log('[deleteProduct] Updated order items to remove product reference');
+				}
+			} catch (orderError) {
+				console.warn('[deleteProduct] Order items update skipped (table not accessible)');
 			}
 			
-			// 8. Delete product analytics records
-			const { error: analyticsDeleteError } = await supabase
-				.from('product_analytics')
-				.delete()
-				.eq('product_id', id);
-			if (analyticsDeleteError) {
-				console.warn('[deleteProduct] Analytics deletion error (non-critical):', analyticsDeleteError);
-			} else {
-				console.log('[deleteProduct] Deleted product analytics records');
+			// 7. Delete product analytics records - OPTIONAL  
+			try {
+				const { error: analyticsDeleteError } = await supabase
+					.from('product_analytics')
+					.delete()
+					.eq('product_id', id);
+				if (analyticsDeleteError) {
+					console.warn('[deleteProduct] Analytics deletion skipped (table not accessible):', analyticsDeleteError.message);
+				} else {
+					console.log('[deleteProduct] Deleted product analytics records');
+				}
+			} catch (analyticsError) {
+				console.warn('[deleteProduct] Analytics deletion skipped (table not accessible)');
 			}
+			
+			// 8. Delete product audit log records - MOVED TO AFTER PRODUCT DELETION
+			// We'll let the cascade handle this or delete it after the product
 			
 			// 9. Delete product images from storage
 			if (productImages && productImages.length > 0) {
@@ -756,8 +759,9 @@ export const useProducts = () => {
 				}
 			}
 			
-			// 10. Delete the product (this will cascade to product_images and product_variants)
+			// 9. Delete the product (this will cascade to product_images and product_variants)
 			console.log('[deleteProduct] About to delete product:', id);
+			
 			const { error: productDeleteError } = await supabase
 				.from('products')
 				.delete()
@@ -768,6 +772,21 @@ export const useProducts = () => {
 				throw productDeleteError;
 			}
 			console.log('[deleteProduct] Deleted product:', id);
+			
+			// 10. Clean up audit log records AFTER product deletion (if the constraint allows it)
+			try {
+				const { error: auditDeleteError } = await supabase
+					.from('product_audit_log')
+					.delete()
+					.eq('product_id', id);
+				if (auditDeleteError) {
+					console.warn('[deleteProduct] Audit log cleanup skipped (likely already handled by cascade):', auditDeleteError.message);
+				} else {
+					console.log('[deleteProduct] Cleaned up audit log records');
+				}
+			} catch (auditError) {
+				console.warn('[deleteProduct] Audit log cleanup skipped (likely already handled by cascade)');
+			}
 			
 			await fetchProducts();
 		} catch (e) {
