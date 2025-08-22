@@ -52,7 +52,7 @@ const ProductListingPage: React.FC = () => {
     // Handle empty string values properly
     const cleanValue = value === '' ? undefined : value;
     
-    console.log(`[ProductListingPage] Filter change: ${key} = ${cleanValue}`);
+  if (import.meta.env.DEV) console.debug(`[ProductListingPage] filter change: ${key} = ${cleanValue}`);
     
     setFilters(prev => ({
       ...prev,

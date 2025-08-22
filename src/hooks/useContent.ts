@@ -103,23 +103,27 @@ export function useContent<T extends ContentType>(type: T): {
     setLoading(true);
     setError(null);
     try {
-      console.log(`[useContent] Fetching ${type} data...`);
+  if (import.meta.env.DEV) console.debug(`[useContent] fetching ${type} data...`);
       if (!supabase) {
         setError('Supabase client not initialized');
         setLoading(false);
         setData([]);
         return;
       }
-      console.log('[useContent] Supabase client:', !!supabase);
-      console.log('[useContent] Table name:', tableMap[type]);
+      if (import.meta.env.DEV) {
+        console.debug('[useContent] supabase client:', !!supabase);
+        console.debug('[useContent] table name:', tableMap[type]);
+      }
 
       const { data: result, error: err } = await supabase
         .from(tableMap[type])
         .select('*')
         .order('order_num');
 
-      console.log(`[useContent] ${type} Query result:`, result);
-      console.log(`[useContent] ${type} Query error:`, err);
+      if (import.meta.env.DEV) {
+        console.debug(`[useContent] ${type} result:`, result);
+        console.debug(`[useContent] ${type} error:`, err);
+      }
 
       if (err) {
         console.error(`[useContent] Error fetching ${type}:`, err);

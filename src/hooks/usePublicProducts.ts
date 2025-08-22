@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../utils/storageUtils';
+import { mockProducts } from '../data/mockData';
 import type { Product } from '../types';
 
 export const usePublicProducts = (featured?: boolean) => {
@@ -13,13 +14,46 @@ export const usePublicProducts = (featured?: boolean) => {
       setLoading(true);
       setError(null);
       
+      if (import.meta.env.DEV) {
+        console.debug('[usePublicProducts] start fetch, mock products:', mockProducts.length, 'first variants:', mockProducts[0]?.variants?.length || 0);
+      }
+      
+      // TEMPORARY: Force mock data to test swatches
+      const USE_MOCK_DATA = false; // Set to false to use database
+      
+      if (USE_MOCK_DATA) {
+  if (import.meta.env.DEV) console.debug('[usePublicProducts] using mock data');
+        const filteredMockProducts = featured 
+          ? mockProducts.filter(p => p.isFeatured)
+          : mockProducts;
+        
+        setProducts(filteredMockProducts);
+        setLoading(false);
+        return;
+      }
+      
       // Start with a basic query without problematic joins like product_reviews
       let query = supabase
         .from('products')
         .select(`
           *,
           product_images(*),
-          product_variants(*)
+          product_variants(
+            id,
+            sku,
+            size,
+            color,
+            price_adjustment,
+            swatch_image_id,
+            swatch_image:product_images!swatch_image_id(*)
+          ),
+          inventory(
+            id,
+            product_id,
+            variant_id,
+            quantity,
+            low_stock_threshold
+          )
         `)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -42,7 +76,7 @@ export const usePublicProducts = (featured?: boolean) => {
                                   msg.includes('rls');
         
         if (isPermissionIssue) {
-          console.warn('[usePublicProducts] Permission denied, attempting fallback without reviews/images:', error.message);
+          console.warn('[usePublicProducts] Permission denied, attempting fallback without joins:', error.message);
           // Try a simpler query without joins that might fail due to RLS
           try {
             const fallbackQuery = supabase
@@ -56,7 +90,7 @@ export const usePublicProducts = (featured?: boolean) => {
             
             const fallbackResult = await fallbackQuery;
             if (fallbackResult.error) {
-              console.error('[usePublicProducts] Fallback query also failed:', fallbackResult.error);
+              console.error('[usePublicProducts] Fallback query failed:', fallbackResult.error);
               setProducts([]);
               return;
             }
@@ -95,7 +129,14 @@ export const usePublicProducts = (featured?: boolean) => {
             return;
           } catch (fallbackError) {
             console.error('[usePublicProducts] Fallback failed:', fallbackError);
-            setProducts([]);
+            if (import.meta.env.DEV) console.debug('[usePublicProducts] using mock data as final fallback');
+            
+            // Use mock data as final fallback
+            const filteredMockProducts = featured 
+              ? mockProducts.filter(p => p.isFeatured)
+              : mockProducts;
+            
+            setProducts(filteredMockProducts);
             return;
           }
         }
@@ -109,6 +150,18 @@ export const usePublicProducts = (featured?: boolean) => {
 
       // Transform to our Product interface
       const transformedProducts = (data || []).map((product: any) => {
+        // Debug: Log raw product data to see the structure
+  if (import.meta.env.DEV) console.debug('[usePublicProducts] raw product data', {
+          productId: product.id,
+          productName: product.name,
+          variantsCount: product.product_variants?.length || 0,
+          imagesCount: product.product_images?.length || 0,
+          allImageIds: product.product_images?.map((img: any) => img.id) || [],
+          allVariantSwatchIds: product.product_variants?.map((v: any) => v.swatch_image_id).filter(Boolean) || [],
+          sampleVariant: product.product_variants?.[0],
+          sampleImage: product.product_images?.[0]
+        });
+        
         // Map product_images to public URLs from Supabase storage
         let images: string[] = [];
         
@@ -126,12 +179,104 @@ export const usePublicProducts = (featured?: boolean) => {
           images = getProductImageUrls(product.id);
         }
 
-        // Map variants
+        // Map variants with swatch information
         let sizes: string[] = [];
         let colors: string[] = [];
+        let variants: any[] = [];
+        
         if (Array.isArray(product.product_variants) && product.product_variants.length > 0) {
           sizes = Array.from(new Set(product.product_variants.map((v: any) => v.size).filter(Boolean)));
           colors = Array.from(new Set(product.product_variants.map((v: any) => v.color).filter(Boolean)));
+          
+          // If no size variants exist, show "Free Size"
+          if (sizes.length === 0) {
+            sizes = ['Free Size'];
+          }
+          
+          // Process variants with swatch images
+          variants = product.product_variants.map((variant: any) => {
+            if (import.meta.env.DEV) console.debug('[usePublicProducts] processing variant', {
+              id: variant.id,
+              color: variant.color,
+              swatchImageId: variant.swatch_image_id,
+              swatchImageJoined: variant.swatch_image,
+              productImagesCount: product.product_images?.length || 0
+            });
+            
+            let swatchImageUrl = null;
+            
+            // Debug: Check what we have available
+            if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch debug', {
+              variantId: variant.id,
+              swatchImageId: variant.swatch_image_id,
+              hasDirectJoin: !!variant.swatch_image,
+              directJoinData: variant.swatch_image,
+              availableProductImages: product.product_images?.map((img: any) => ({ id: img.id, image_url: img.image_url }))
+            });
+            
+            // First try to use the directly joined swatch image
+            if (variant.swatch_image?.image_url) {
+              swatchImageUrl = getStorageImageUrl(variant.swatch_image.image_url);
+              if (import.meta.env.DEV) console.debug('[usePublicProducts] joined swatch URL', swatchImageUrl);
+            }
+            // Try to find the specific swatch image by ID in product_images array
+            else if (variant.swatch_image_id && Array.isArray(product.product_images)) {
+              if (import.meta.env.DEV) {
+                console.debug('[usePublicProducts] searching swatch in product_images');
+                console.debug('[usePublicProducts] available images', product.product_images.map((img: any) => ({ id: img.id, image_url: img.image_url })));
+                console.debug('[usePublicProducts] swatch_image_id', variant.swatch_image_id);
+              }
+              
+              const swatchImage = product.product_images.find((img: any) => {
+                // Try both string and direct comparison
+                return img.id === variant.swatch_image_id || String(img.id) === String(variant.swatch_image_id);
+              });
+              
+              if (import.meta.env.DEV) console.debug('[usePublicProducts] found swatch image record', swatchImage);
+              if (swatchImage?.image_url) {
+                swatchImageUrl = getStorageImageUrl(swatchImage.image_url);
+                if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch URL from record', swatchImageUrl);
+              } else {
+                if (import.meta.env.DEV) console.debug('[usePublicProducts] no specific swatch image found');
+              }
+            }
+
+            // If still no swatch image found, log the issue
+            if (!swatchImageUrl && variant.swatch_image_id) {
+              console.warn('[usePublicProducts] ⚠️ Swatch image not found for variant:', {
+                variantId: variant.id,
+                color: variant.color,
+                swatchImageId: variant.swatch_image_id,
+                message: 'The swatch_image_id exists but no corresponding image was found in product_images'
+              });
+            }
+            
+            if (import.meta.env.DEV) console.debug('[usePublicProducts] final swatch result', {
+              variantId: variant.id,
+              color: variant.color,
+              swatchImageId: variant.swatch_image_id,
+              finalSwatchImageUrl: swatchImageUrl
+            });
+            
+            return {
+              id: variant.id,
+              sku: variant.sku,
+              size: variant.size,
+              color: variant.color,
+              material: undefined, // Not available in current schema
+              style: undefined,    // Not available in current schema
+              priceAdjustment: variant.price_adjustment || 0,
+              quantity: 0,         // Not available in current schema
+              variantType: variant.color ? 'color' : variant.size ? 'size' : undefined,
+              swatchImageId: variant.swatch_image_id,
+              swatchImage: swatchImageUrl
+            };
+          });
+        }
+        
+        // If no variants exist at all, show "Free Size"
+        if (sizes.length === 0) {
+          sizes = ['Free Size'];
         }
 
         // Reviews are not fetched to avoid permission issues
@@ -139,15 +284,36 @@ export const usePublicProducts = (featured?: boolean) => {
         const reviewCount = 0;
         const rating = 0;
 
+        // Check if any variants have price adjustments
+        const hasVariantPriceAdjustments = variants.some(v => v.priceAdjustment && v.priceAdjustment !== 0);
+        
+        // Calculate pricing logic
+        let displayPrice: number;
+        let originalPrice: number | undefined;
+        let discountPercentage: number | undefined;
+        
+        if (hasVariantPriceAdjustments) {
+          // When variants have price adjustments, show base price only
+          // Don't show sale price as variants will show their own adjusted prices
+          displayPrice = Number(product.price ?? 0);
+          originalPrice = undefined;
+          discountPercentage = undefined;
+        } else {
+          // Normal pricing logic when no variant price adjustments
+          displayPrice = Number(product.sale_price ?? product.price ?? 0);
+          originalPrice = product.sale_price ? Number(product.price ?? 0) : undefined;
+          discountPercentage = product.sale_price && product.price
+            ? Math.round(((product.price - product.sale_price) / product.price) * 100)
+            : undefined;
+        }
+
         return {
           id: String(product.id),
           slug: String(product.slug),
           name: String(product.name ?? ''),
-          price: Number(product.sale_price ?? product.price ?? 0),
-          originalPrice: product.sale_price ? Number(product.price ?? 0) : undefined,
-          discountPercentage: product.sale_price && product.price
-            ? Math.round(((product.price - product.sale_price) / product.price) * 100)
-            : undefined,
+          price: displayPrice,
+          originalPrice,
+          discountPercentage,
           images,
           description: String(product.description ?? ''),
           shortDescription: String(product.short_description ?? ''),
@@ -155,7 +321,39 @@ export const usePublicProducts = (featured?: boolean) => {
           color: String(product.color ?? ''),
           inStock: Boolean(product.in_stock ?? true),
           stockQuantity: Number(product.stock_quantity ?? 0),
-          stockStatus: product.in_stock ? 'In Stock' : 'Out of Stock',
+          stockStatus: (() => {
+            // Calculate stock status based on inventory data
+            if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+              // If product has variants, only count variant-level inventory (variant_id !== null)
+              // If product has no variants, only count product-level inventory (variant_id === null)
+              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+              const relevantInventory = product.inventory.filter((inv: any) => {
+                if (hasVariants) {
+                  // For products with variants, only count variant-specific inventory
+                  return inv.variant_id !== null;
+                } else {
+                  // For products without variants, only count product-level inventory
+                  return inv.variant_id === null;
+                }
+              });
+              
+              const totalQuantity = relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              const minThreshold = relevantInventory.length > 0 
+                ? Math.min(...relevantInventory.map((inv: any) => inv.low_stock_threshold || 10))
+                : 10;
+              
+              if (totalQuantity === 0) {
+                return 'Out of Stock';
+              } else if (totalQuantity <= minThreshold) {
+                return 'Low Stock';
+              } else {
+                return 'In Stock';
+              }
+            } else {
+              // No inventory data means out of stock
+              return 'Out of Stock';
+            }
+          })(),
           rating,
           reviewCount,
           isNew: Boolean(product.is_new ?? false),
@@ -173,15 +371,27 @@ export const usePublicProducts = (featured?: boolean) => {
           reviews,
           relatedProducts: [],
           specifications: {},
-          variants: []
+          variants
         };
       }) as Product[];
 
       setProducts(transformedProducts);
     } catch (e) {
-      console.error('[usePublicProducts] Error during processing:', e);
-      setError(e instanceof Error ? e.message : 'An error occurred');
-      setProducts([]);
+  console.error('[usePublicProducts] Error during processing:', e);
+  if (import.meta.env.DEV) console.debug('[usePublicProducts] falling back to mock data');
+      
+      // Use mock data as fallback, filtering by featured if needed
+      const filteredMockProducts = featured 
+        ? mockProducts.filter(p => p.isFeatured)
+        : mockProducts;
+      
+      if (import.meta.env.DEV) {
+        console.debug('[usePublicProducts] mock products used:', filteredMockProducts.length);
+        console.debug('[usePublicProducts] first mock product variants:', filteredMockProducts[0]?.variants);
+      }
+      
+      setProducts(filteredMockProducts);
+      setError(null); // Clear error since we have fallback data
     } finally {
       setLoading(false);
     }

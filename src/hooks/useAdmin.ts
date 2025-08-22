@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type {
 	Product,
 	Category,
+	Vendor,
 	ProductWithDetails,
 	ProductFormData,
 	CategoryFormData,
@@ -24,7 +25,7 @@ export const useCategories = () => {
 
 	React.useEffect(() => {
 		if (error) console.error('[Categories] Error:', error);
-		if (categories) console.log('[Categories] Data:', categories);
+		if (import.meta.env.DEV && categories) console.debug('[Categories] data:', categories);
 	}, [categories, error]);
 
 	const fetchCategories = async () => {
@@ -114,6 +115,100 @@ export const useCategories = () => {
 	};
 };
 
+// Vendors
+export const useVendors = () => {
+	const { supabase } = useAuth();
+	const [vendors, setVendors] = useState<Vendor[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (!supabase) return;
+		fetchVendors();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [supabase]);
+
+	React.useEffect(() => {
+		if (error) console.error('[Vendors] Error:', error);
+		if (import.meta.env.DEV && vendors) console.debug('[Vendors] data:', vendors);
+	}, [vendors, error]);
+
+	const fetchVendors = async () => {
+		if (!supabase) return;
+		setLoading(true);
+		try {
+			const { data, error } = await supabase
+				.from('vendors')
+				.select('*')
+				.order('name');
+
+			if (error) throw error;
+			setVendors(data || []);
+		} catch (e) {
+			setError(e instanceof Error ? e.message : 'Error fetching vendors');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const createVendor = async (data: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { data: vendor, error } = await supabase
+				.from('vendors')
+				.insert([data])
+				.select()
+				.single();
+
+			if (error) throw error;
+			await fetchVendors();
+			return vendor;
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error creating vendor');
+		}
+	};
+
+	const updateVendor = async (id: string, data: Partial<Omit<Vendor, 'id' | 'created_at' | 'updated_at'>>) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { error } = await supabase
+				.from('vendors')
+				.update(data)
+				.eq('id', id);
+
+			if (error) throw error;
+			await fetchVendors();
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error updating vendor');
+		}
+	};
+
+	const deleteVendor = async (id: string) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { error } = await supabase
+				.from('vendors')
+				.delete()
+				.eq('id', id);
+
+			if (error) throw error;
+			await fetchVendors();
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error deleting vendor');
+		}
+	};
+
+	return {
+		vendors,
+		loading,
+		error,
+		createVendor,
+		updateVendor,
+		deleteVendor,
+		refresh: fetchVendors
+	};
+};
+
 // Products
 export const useProducts = () => {
 	const { supabase } = useAuth();
@@ -129,21 +224,21 @@ export const useProducts = () => {
 
 	React.useEffect(() => {
 		if (error) console.error('[Products] Error:', error);
-		if (products) console.log('[Products] Data:', products);
+		if (import.meta.env.DEV && products) console.debug('[Products] data:', products);
 	}, [products, error]);
 
 	const fetchProducts = async () => {
 		if (!supabase) return;
 		setLoading(true);
 		try {
-			// First fetch products with basic joins
+			// First fetch products with basic joins including swatch images
 			const { data: productsData, error: productsError } = await supabase
 				.from('products')
 				.select(`
 					*,
 					category:categories(*),
 					images:product_images(*),
-					variants:product_variants(*)
+					variants:product_variants(*, swatch_image:product_images!swatch_image_id(*))
 				`)
 				.order('created_at', { ascending: false });
 
@@ -219,6 +314,36 @@ export const useProducts = () => {
 			const productsWithInventory = (productsData || []).map(product => {
 				const productInventory = (inventoryData || []).filter(inv => inv.product_id === product.id);
 				console.log(`[Manual Join] Product ${product.name} (${product.id}) matched inventory:`, productInventory);
+				
+				// Debug: Check for orphaned inventory records (inventory without corresponding variants)
+				if (productInventory.length > 0) {
+					const variantIds = (product.variants || []).map((v: any) => v.id);
+					console.log(`[Debug] Product ${product.name} variant IDs:`, variantIds);
+					console.log(`[Debug] Product ${product.name} inventory details:`, productInventory.map(inv => ({
+						id: inv.id,
+						variant_id: inv.variant_id,
+						quantity: inv.quantity,
+						hasVariantId: !!inv.variant_id
+					})));
+					
+					const orphanedInventory = productInventory.filter(inv => 
+						inv.variant_id && !variantIds.includes(inv.variant_id)
+					);
+					
+					const inventoryWithoutVariant = productInventory.filter(inv => !inv.variant_id);
+					
+					if (orphanedInventory.length > 0) {
+						console.warn(`[Debug] ⚠️ Found ${orphanedInventory.length} orphaned inventory records for product ${product.name}:`, orphanedInventory);
+					}
+					
+					if (inventoryWithoutVariant.length > 0) {
+						console.log(`[Debug] Found ${inventoryWithoutVariant.length} inventory records without variant_id for product ${product.name}:`, inventoryWithoutVariant);
+					}
+					
+					const totalInventoryQuantity = productInventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
+					console.log(`[Debug] Product ${product.name} total inventory: ${totalInventoryQuantity} from ${productInventory.length} records`);
+				}
+				
 				return {
 					...product,
 					inventory: productInventory
@@ -324,6 +449,7 @@ export const useProducts = () => {
 				const variantsToInsert = variants.map(({ quantity, low_stock_threshold, ...rest }: { quantity: number; low_stock_threshold: number; [key: string]: any }) => ({
 					...rest,
 					sku: rest.sku === '' ? null : rest.sku,
+					swatch_image_id: rest.swatch_image_id || null,
 					product_id: newProduct.id
 				}));
 				
@@ -374,7 +500,7 @@ export const useProducts = () => {
 
 					// inventory_history now handled by DB trigger
 				}
-			} else if (inventory) {
+			} else if (inventory !== undefined && inventory !== null) {
 				// No variants, insert inventory for product only
 				console.log('[createProduct] About to insert default inventory. Checking auth status...');
 				
@@ -429,6 +555,11 @@ export const useProducts = () => {
 	const updateProduct = async (id: string, data: Partial<ProductFormDataWithDelete> & { imagesToDelete?: any[] }) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 				const { images, imagesToDelete = [], variants, inventory, variantsToDelete, ...updateData } = data;
+				
+				// Debug logging
+				console.log('[updateProduct] Received variants:', variants);
+				console.log('[updateProduct] Received variantsToDelete:', variantsToDelete);
+				
 				// Ensure sku is null if empty or whitespace
 				if ('sku' in updateData && (!updateData.sku || String(updateData.sku).trim() === '')) {
 					updateData.sku = null;
@@ -490,61 +621,117 @@ export const useProducts = () => {
 				}
 			}
 
-			// 5. Update variants and inventory
-								if (variants && variants.length > 0) {
-									// Delete variants explicitly marked for deletion
-									const variantsToDelete = (data as ProductFormDataWithDelete).variantsToDelete;
-													if (variantsToDelete && variantsToDelete.length > 0) {
-														console.log('[updateProduct] Deleting variants:', variantsToDelete);
-														// 1. Find inventory ids for these variants
-														const { data: invRows, error: invFetchError } = await supabase
-															.from('inventory')
-															.select('id')
-															.in('variant_id', variantsToDelete);
-														if (invFetchError) throw invFetchError;
-														const inventoryIds = (invRows || []).map((row: any) => row.id);
-														// 2. Delete inventory_history
-														if (inventoryIds.length > 0) {
-															const { error: histDelError, data: histDelData } = await supabase
-																.from('inventory_history')
-																.delete()
-																.in('inventory_id', inventoryIds);
-															console.log('[updateProduct] Inventory history delete result:', histDelError, histDelData);
-														}
-														// 3. Delete inventory
-														if (inventoryIds.length > 0) {
-															const { error: invDelError, data: invDelData } = await supabase
-																.from('inventory')
-																.delete()
-																.in('id', inventoryIds);
-															console.log('[updateProduct] Inventory delete result:', invDelError, invDelData);
-														}
-														// 4. Delete variants
-														const { error: varDelError, data: varDelData } = await supabase
-															.from('product_variants')
-															.delete()
-															.in('id', variantsToDelete);
-														console.log('[updateProduct] Variant delete result:', varDelError, varDelData);
-													}
+			// 5. Handle variant deletion first (regardless of whether there are new/updated variants)
+			const variantsToDelete = (data as ProductFormDataWithDelete).variantsToDelete;
+			if (variantsToDelete && variantsToDelete.length > 0) {
+				console.log('[updateProduct] 🗑️ Starting variant deletion process');
+				console.log('[updateProduct] Variants to delete:', variantsToDelete);
+				
+				// 1. Find inventory ids for these variants
+				console.log('[updateProduct] Step 1: Finding inventory records for variants...');
+				const { data: invRows, error: invFetchError } = await supabase
+					.from('inventory')
+					.select('id, variant_id')
+					.in('variant_id', variantsToDelete);
+				
+				if (invFetchError) {
+					console.error('[updateProduct] Error fetching inventory:', invFetchError);
+					throw invFetchError;
+				}
+				
+				const inventoryIds = (invRows || []).map((row: any) => row.id);
+				console.log('[updateProduct] Found inventory records:', invRows);
+				console.log('[updateProduct] Inventory IDs to delete:', inventoryIds);
+				
+				// 2. Delete inventory_history
+				if (inventoryIds.length > 0) {
+					console.log('[updateProduct] Step 2: Deleting inventory history...');
+					const { error: histDelError, data: histDelData } = await supabase
+						.from('inventory_history')
+						.delete()
+						.in('inventory_id', inventoryIds);
+					console.log('[updateProduct] Inventory history delete result:', { error: histDelError, data: histDelData });
+					if (histDelError) {
+						console.error('[updateProduct] Failed to delete inventory history:', histDelError);
+						throw histDelError;
+					}
+				}
+				
+				// 3. Delete inventory
+				if (inventoryIds.length > 0) {
+					console.log('[updateProduct] Step 3: Deleting inventory records...');
+					const { error: invDelError, data: invDelData } = await supabase
+						.from('inventory')
+						.delete()
+						.in('id', inventoryIds);
+					console.log('[updateProduct] Inventory delete result:', { error: invDelError, data: invDelData });
+					if (invDelError) {
+						console.error('[updateProduct] Failed to delete inventory:', invDelError);
+						throw invDelError;
+					}
+				}
+				
+				// 4. Delete variants
+				console.log('[updateProduct] Step 4: Deleting product variants...');
+				const { error: varDelError, data: varDelData } = await supabase
+					.from('product_variants')
+					.delete()
+					.in('id', variantsToDelete);
+				console.log('[updateProduct] Variant delete result:', { error: varDelError, data: varDelData });
+				
+				if (varDelError) {
+					console.error('[updateProduct] Failed to delete variants:', varDelError);
+					throw varDelError;
+				}
+				
+				console.log('[updateProduct] ✅ Variant deletion completed successfully');
+			}
+
+			// 6. Update/insert variants and inventory
+			if (variants && variants.length > 0) {
 
 								// Update or insert each variant
 								for (let i = 0; i < variants.length; i++) {
 									const v = variants[i];
 									let variantId: string | undefined = undefined;
 									if (v.id) {
-										variantId = v.id;
-										// Update existing variant
-										// quantity and low_stock_threshold are unused
-										const { error: updateVarError } = await supabase
+										// Try to update existing variant
+										const { data: updateResult, error: updateVarError } = await supabase
 											.from('product_variants')
 											.update({
 												sku: v.sku === '' ? null : v.sku,
 												size: v.size,
 												color: v.color,
-												price_adjustment: v.price_adjustment
+												price_adjustment: v.price_adjustment,
+												swatch_image_id: v.swatch_image_id || null
 											})
-											.eq('id', variantId);
+											.eq('id', v.id)
+											.select();
+										
 										if (updateVarError) throw updateVarError;
+										
+										// Check if the update actually found and updated a row
+										if (updateResult && updateResult.length > 0) {
+											// Successfully updated existing variant
+											variantId = v.id;
+										} else {
+											// Variant with this ID doesn't exist, treat as new variant
+											console.log('[updateProduct] Variant ID not found, creating new variant:', v.id);
+											const { data: newVar, error: insertVarError } = await supabase
+												.from('product_variants')
+												.insert({
+													product_id: id,
+													sku: v.sku === '' ? null : v.sku,
+													size: v.size,
+													color: v.color,
+													price_adjustment: v.price_adjustment,
+													swatch_image_id: v.swatch_image_id || null
+												})
+												.select()
+												.single();
+											if (insertVarError) throw insertVarError;
+											variantId = newVar.id;
+										}
 									} else {
 										// Insert new variant
 										// quantity and low_stock_threshold are unused
@@ -555,7 +742,8 @@ export const useProducts = () => {
 												sku: v.sku === '' ? null : v.sku,
 												size: v.size,
 												color: v.color,
-												price_adjustment: v.price_adjustment
+												price_adjustment: v.price_adjustment,
+												swatch_image_id: v.swatch_image_id || null
 											})
 											.select()
 											.single();
@@ -603,8 +791,11 @@ export const useProducts = () => {
 										}
 									}
 								}
-							} else if (inventory) {
-				// No variants, update or insert inventory for product only
+							}
+
+			// Always update product-level inventory if provided (regardless of variants)
+			if (inventory !== undefined && inventory !== null) {
+				// Update or insert inventory for product level (variant_id = null)
 				const { data: inv, error: fetchInvError } = await supabase
 					.from('inventory')
 					.select('*')
@@ -650,17 +841,34 @@ export const useProducts = () => {
 	const deleteProduct = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			console.log('[deleteProduct] Starting deletion for product:', id);
-			
 			// 1. Get product images for storage cleanup
 			const { data: productImages, error: imagesFetchError } = await supabase
 				.from('product_images')
 				.select('image_url')
 				.eq('product_id', id);
 			
-			if (imagesFetchError) throw imagesFetchError;
+			if (imagesFetchError) {
+				throw imagesFetchError;
+			}
 			
-			// 2. Get product variants for inventory cleanup
+			// 2. Delete product images from storage IMMEDIATELY (before any database deletions)
+			if (productImages && productImages.length > 0) {
+				const imageUrls = productImages
+					.map(img => img.image_url)
+					.filter(url => url && !url.startsWith('http')); // Only delete files we uploaded
+				
+				if (imageUrls.length > 0) {
+					const { error: storageDeleteError } = await supabase.storage
+						.from('product-images')
+						.remove(imageUrls);
+					
+					if (storageDeleteError) {
+						console.warn('Storage deletion error (non-critical):', storageDeleteError);
+					}
+				}
+			}
+			
+			// 3. Get product variants for inventory cleanup
 			const { data: productVariants, error: variantsFetchError } = await supabase
 				.from('product_variants')
 				.select('id')
@@ -668,7 +876,7 @@ export const useProducts = () => {
 			
 			if (variantsFetchError) throw variantsFetchError;
 			
-			// 3. Get inventory records for history cleanup
+			// 4. Get inventory records for history cleanup
 			const variantIds = productVariants?.map(v => v.id) || [];
 			let inventoryIds: any[] = [];
 			
@@ -690,7 +898,7 @@ export const useProducts = () => {
 			if (productInvError) throw productInvError;
 			inventoryIds = [...inventoryIds, ...(productInventory?.map(inv => inv.id) || [])];
 			
-			// 4. Delete inventory history records (get fresh list to ensure we catch all)
+			// 5. Delete inventory history records (get fresh list to ensure we catch all)
 			const { data: allInventoryForProduct, error: allInvError } = await supabase
 				.from('inventory')
 				.select('id')
@@ -705,7 +913,7 @@ export const useProducts = () => {
 					.delete()
 					.in('inventory_id', allInventoryIds);
 				if (historyDeleteError) {
-					console.warn('[deleteProduct] Inventory history deletion error:', historyDeleteError.message);
+					console.warn('Inventory history deletion error:', historyDeleteError.message);
 					// Try alternative approach - delete any remaining history records
 					try {
 						const { error: remainingHistoryError } = await supabase
@@ -723,7 +931,7 @@ export const useProducts = () => {
 				}
 			}
 			
-			// 5. Delete inventory records (both variant and product inventory)
+			// 6. Delete inventory records (both variant and product inventory)
 			try {
 				const { error: inventoryDeleteError } = await supabase
 					.from('inventory')
@@ -905,7 +1113,7 @@ export const useProducts = () => {
 				throw invError;
 			}
 			
-			// 6. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
+			// 7. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
 			try {
 				const { error: orderItemsUpdateError } = await supabase
 					.from('order_items')
@@ -920,7 +1128,7 @@ export const useProducts = () => {
 				console.warn('[deleteProduct] Order items update skipped (table not accessible)');
 			}
 			
-			// 7. Delete product analytics records - OPTIONAL  
+			// 8. Delete product analytics records - OPTIONAL  
 			try {
 				const { error: analyticsDeleteError } = await supabase
 					.from('product_analytics')
@@ -933,27 +1141,6 @@ export const useProducts = () => {
 				}
 			} catch (analyticsError) {
 				console.warn('[deleteProduct] Analytics deletion skipped (table not accessible)');
-			}
-			
-			// 8. Delete product audit log records - MOVED TO AFTER PRODUCT DELETION
-			// We'll let the cascade handle this or delete it after the product
-			
-			// 9. Delete product images from storage
-			if (productImages && productImages.length > 0) {
-				const imageUrls = productImages
-					.map(img => img.image_url)
-					.filter(url => url && !url.startsWith('http')); // Only delete files we uploaded
-				
-				if (imageUrls.length > 0) {
-					const { error: storageDeleteError } = await supabase.storage
-						.from('product-images')
-						.remove(imageUrls);
-					if (storageDeleteError) {
-						console.warn('[deleteProduct] Storage deletion error (non-critical):', storageDeleteError);
-					} else {
-						console.log('[deleteProduct] Deleted images from storage:', imageUrls.length);
-					}
-				}
 			}
 			
 			// 9. Delete the product using a stored procedure to handle audit log conflicts
@@ -1007,8 +1194,7 @@ export const useProducts = () => {
 			
 			await fetchProducts();
 		} catch (e) {
-			console.error('[deleteProduct] Error:', e);
-			console.error('[deleteProduct] Error details:', JSON.stringify(e, null, 2));
+			console.error('Error deleting product:', e);
 			throw e instanceof Error ? e : new Error('Error deleting product');
 		}
 	};
@@ -1019,25 +1205,19 @@ export const useProducts = () => {
 		if (!ids || ids.length === 0) throw new Error('No product IDs provided');
 		
 		try {
-			console.log('[deleteProducts] Starting bulk deletion for products:', ids);
-			
 			// Delete products one by one to ensure proper cleanup
-			// We could optimize this with bulk operations, but for safety we'll do individual deletes
 			const results = [];
 			for (const id of ids) {
 				try {
 					await deleteProduct(id);
 					results.push({ id, success: true });
 				} catch (error) {
-					console.error(`[deleteProducts] Failed to delete product ${id}:`, error);
+					console.error(`Failed to delete product ${id}:`, error);
 					results.push({ id, success: false, error });
 				}
 			}
 			
-			const successCount = results.filter(r => r.success).length;
 			const failureCount = results.filter(r => !r.success).length;
-			
-			console.log(`[deleteProducts] Bulk deletion completed: ${successCount} success, ${failureCount} failed`);
 			
 			if (failureCount > 0) {
 				const failedIds = results.filter(r => !r.success).map(r => r.id);
@@ -1046,7 +1226,7 @@ export const useProducts = () => {
 			
 			return results;
 		} catch (e) {
-			console.error('[deleteProducts] Bulk deletion error:', e);
+			console.error('Bulk deletion error:', e);
 			throw e instanceof Error ? e : new Error('Error in bulk product deletion');
 		}
 	};

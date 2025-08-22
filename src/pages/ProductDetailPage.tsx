@@ -333,17 +333,6 @@ const ProductDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Description with Rich Text Support */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
-                <div 
-                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{
-                    __html: product.description || "Experience the perfect blend of traditional craftsmanship and contemporary design with this exquisite piece. Made from premium quality fabrics with intricate detailing that showcases the rich heritage of Indian ethnic wear."
-                  }}
-                />
-              </div>
-
               {/* Size Selection */}
               {sizes.length > 0 && (
                 <div>
@@ -366,24 +355,83 @@ const ProductDetailPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Color Selection */}
+              {/* Color Selection with Swatches */}
               {colors.length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Color</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {colors.map(color => (
-                      <button
-                        key={color}
-                        onClick={() => setSelectedColor(color!)}
-                        className={`px-3 py-1 text-sm border rounded transition-colors ${
-                          selectedColor === color
-                            ? 'border-amber-500 bg-amber-50 text-amber-700'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                      >
-                        {color}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-5 gap-3 max-w-md">
+                    {colors.map(color => {
+                      // Find the variant for this color to check for swatch image
+                      const colorVariant = product.variants?.find(v => v.color === color);
+                      // Only show swatch image if variant has actual swatch_image_id in database
+                      const hasSwatchImage = !!(colorVariant?.swatchImageId && colorVariant?.swatchImage);
+                      
+                      const handleSwatchClick = () => {
+                        setSelectedColor(color!);
+                        // If swatch has an image, try to find it in main product images
+                        if (hasSwatchImage && colorVariant.swatchImage) {
+                          // First try to find exact URL match
+                          let swatchImageIndex = product.images.findIndex(img => img === colorVariant.swatchImage);
+                          
+                          // If not found, try to find by checking if the image URL contains the swatch image ID
+                          if (swatchImageIndex === -1 && colorVariant.swatchImageId) {
+                            swatchImageIndex = product.images.findIndex(img => 
+                              img.includes(colorVariant.swatchImageId!) || 
+                              img.includes(colorVariant.swatchImageId!.replace(/-/g, ''))
+                            );
+                          }
+                          
+                          // If we found the image in main gallery, switch to it
+                          if (swatchImageIndex !== -1) {
+                            setSelectedImage(swatchImageIndex);
+                          }
+                          // Note: If swatch image is not in main gallery, main image stays the same
+                        }
+                      };
+                      
+                      if (hasSwatchImage) {
+                        // Show only swatch image without text for variants with swatch (80x80 for product detail)
+                        return (
+                          <button
+                            key={color}
+                            onClick={handleSwatchClick}
+                            className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                              selectedColor === color
+                                ? 'border-amber-500 ring-2 ring-amber-200'
+                                : 'border-gray-300 hover:border-amber-300'
+                            }`}
+                            title={color}
+                          >
+                            <img
+                              src={colorVariant.swatchImage}
+                              alt={`${color} swatch`}
+                              className="w-full h-full object-cover"
+                            />
+                            {selectedColor === color && (
+                              <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
+                                <div className="w-3 h-3 bg-white rounded-full shadow-md"></div>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      } else {
+                        // Show text button for variants without swatch
+                        return (
+                          <button
+                            key={color}
+                            onClick={handleSwatchClick}
+                            className={`px-4 py-2 text-sm border rounded-lg transition-colors ${
+                              selectedColor === color
+                                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                            title={color}
+                          >
+                            {color}
+                          </button>
+                        );
+                      }
+                    })}
                   </div>
                 </div>
               )}
@@ -406,6 +454,17 @@ const ProductDetailPage: React.FC = () => {
                     +
                   </button>
                 </div>
+              </div>
+
+              {/* Description with Rich Text Support */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-100">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+                <div 
+                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{
+                    __html: product.description || "Experience the perfect blend of traditional craftsmanship and contemporary design with this exquisite piece. Made from premium quality fabrics with intricate detailing that showcases the rich heritage of Indian ethnic wear."
+                  }}
+                />
               </div>
 
               {/* Action Buttons */}

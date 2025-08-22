@@ -1,0 +1,40 @@
+/* Quill Editor Styles */
+.quill-wrapper .ql-container {
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.quill-wrapper .ql-editor {
+  min-height: 200px;
+  line-height: 1.6;
+}
+
+.quill-wrapper .ql-toolbar {
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+  border-color: #d1d5db;
+}
+
+.quill-wrapper .ql-container {
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  border-color: #d1d5db;
+}
+
+.quill-wrapper .ql-editor:focus {
+  outline: none;
+}
+
+.quill-wrapper .ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+/* Override Quill's snow theme to match our design */
+.quill-wrapper .ql-snow .ql-tooltip {
+  z-index: 1000;
+}
+
+.quill-wrapper .ql-snow .ql-picker-options {
+  z-index: 1001;
+}

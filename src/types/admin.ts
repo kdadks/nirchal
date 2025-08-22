@@ -11,12 +11,26 @@ export interface Category {
   updated_at: string;
 }
 
+export interface Vendor {
+  id: string; // UUID
+  name: string;
+  description: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  address: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Product {
   id: string; // UUID
   name: string;
   slug: string;
   description: string | null;
   category_id: string; // UUID
+  vendor_id: string | null; // UUID
   price: number;
   sale_price: number | null;
   sku: string | null;
@@ -47,6 +61,7 @@ export interface ProductVariant {
   size: string | null;
   color: string | null;
   price_adjustment: number;
+  swatch_image_id: string | null; // UUID - References product_images.id
   created_at: string;
   updated_at: string;
 }
@@ -110,6 +125,8 @@ export interface ProductFormImage {
   image_url?: string; // present for existing images
   url?: string; // for previewing new uploads
   alt_text?: string | null;
+  title?: string | null;
+  seo_description?: string | null;
   is_primary?: boolean;
   file?: File; // for new uploads
   existing?: boolean; // true if from DB
@@ -121,9 +138,15 @@ export interface ProductFormVariant {
   sku: string | null;
   size: string | null;
   color: string | null;
+  material?: string | null;
+  style?: string | null;
   price_adjustment: number;
   quantity?: number;
   low_stock_threshold?: number;
+  variant_type?: 'size' | 'color';
+  swatch_image?: string | null;
+  swatch_image_id?: string | null; // Reference to product_images.id
+  swatch_file?: File;
 }
 
 export interface ProductFormInventory {

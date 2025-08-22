@@ -1,10 +1,10 @@
 /* global HTMLTextAreaElement */
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useCategories } from '../../hooks/useAdmin';
+import { useCategories, useProducts } from '../../hooks/useAdmin';
 import DataTable from '../../components/admin/DataTable';
 import type { Category, CategoryFormData } from '../../types/admin';
-import { Plus, Edit, Trash2, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, AlertTriangle } from 'lucide-react';
 
 const initialForm: CategoryFormData = {
   name: '',
@@ -18,31 +18,128 @@ const initialForm: CategoryFormData = {
 const CategoriesPage: React.FC = () => {
   const { supabase } = useAuth();
   const { categories, loading, error, createCategory, updateCategory, deleteCategory, refresh } = useCategories();
+  const { products } = useProducts();
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: string; ids?: string[] }>({ type: 'single' });
+  const [isDeleting, setIsDeleting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<CategoryFormData>(initialForm);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
 
+  // Helper function to check if category has associated products
+  const hasAssociatedProducts = (categoryId: string): boolean => {
+    return products?.some(product => product.category_id === categoryId) || false;
+  };
+
+  // Helper function to get count of associated products
+  const getAssociatedProductsCount = (categoryId: string): number => {
+    return products?.filter(product => product.category_id === categoryId).length || 0;
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      // Only select categories that don't have associated products
+      const selectableCategories = categories?.filter(c => !hasAssociatedProducts(c.id)).map(c => c.id) || [];
+      setSelectedCategories(selectableCategories);
+    } else {
+      setSelectedCategories([]);
+    }
+  };
+
+  const handleSelectCategory = (categoryId: string, checked: boolean) => {
+    // Don't allow selection of categories with associated products
+    if (checked && hasAssociatedProducts(categoryId)) {
+      return;
+    }
+    
+    if (checked) {
+      setSelectedCategories(prev => [...prev, categoryId]);
+    } else {
+      setSelectedCategories(prev => prev.filter(id => id !== categoryId));
+    }
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    setDeleteTarget({ type: 'single', id: categoryId });
+    setShowDeleteConfirm(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCategories.length === 0) return;
+    setDeleteTarget({ type: 'bulk', ids: selectedCategories });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (deleteTarget.type === 'single' && deleteTarget.id) {
+        await deleteCategory(deleteTarget.id);
+      } else if (deleteTarget.type === 'bulk' && deleteTarget.ids) {
+        // Delete categories one by one since there's no bulk delete in the hook
+        for (const id of deleteTarget.ids) {
+          await deleteCategory(id);
+        }
+        setSelectedCategories([]); // Clear selection after bulk delete
+      }
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      console.error('Delete error:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const columns = [
     {
+      key: 'select',
+      title: (
+        <input
+          type="checkbox"
+          checked={
+            categories?.length > 0 && 
+            selectedCategories.length === categories?.filter(c => !hasAssociatedProducts(c.id)).length
+          }
+          onChange={(e) => handleSelectAll(e.target.checked)}
+          className="admin-checkbox"
+        />
+      ),
+      render: (row: Category) => {
+        const hasProducts = hasAssociatedProducts(row.id);
+        return (
+          <input
+            type="checkbox"
+            checked={selectedCategories.includes(row.id)}
+            onChange={(e) => handleSelectCategory(row.id, e.target.checked)}
+            disabled={hasProducts}
+            className="admin-checkbox"
+            title={hasProducts ? `Cannot select - ${getAssociatedProductsCount(row.id)} products associated` : ''}
+          />
+        );
+      },
+    },
+    {
       key: 'image_url',
-      title: 'Image',
+      title: '',
       render: (row: Category) =>
         row.image_url ? (
           <img 
             src={row.image_url} 
             alt={row.name} 
             style={{ 
-              width: '48px', 
-              height: '48px', 
+              width: '40px', 
+              height: '40px', 
               objectFit: 'cover', 
               borderRadius: '6px',
               border: '1px solid var(--admin-border)'
             }} 
           />
         ) : (
-          <div className="admin-image-placeholder" style={{ width: '48px', height: '48px' }}>
+          <div className="admin-image-placeholder" style={{ width: '40px', height: '40px' }}>
             <ImageIcon className="h-5 w-5" />
           </div>
         ),
@@ -52,25 +149,19 @@ const CategoriesPage: React.FC = () => {
       title: 'Category Name', 
       sortable: true,
       render: (row: Category) => (
-        <div>
-          <div style={{ fontWeight: '500', marginBottom: '2px' }}>{row.name}</div>
-          <div className="admin-text-muted admin-text-xs admin-font-mono">{row.slug}</div>
+        <div className="admin-product-title-wrapper">
+          <button
+            onClick={() => {
+              setForm(row);
+              setIsEditing(true);
+              setEditingId(row.id);
+              setModalOpen(true);
+            }}
+            className="admin-product-title-link"
+          >
+            {row.name}
+          </button>
         </div>
-      )
-    },
-    { 
-      key: 'description', 
-      title: 'Description',
-      render: (row: Category) => (
-        <p className="admin-text-secondary admin-text-sm" style={{ 
-          maxWidth: '200px', 
-          overflow: 'hidden', 
-          textOverflow: 'ellipsis', 
-          whiteSpace: 'nowrap',
-          margin: 0
-        }}>
-          {row.description || 'No description'}
-        </p>
       )
     },
     { 
@@ -82,34 +173,23 @@ const CategoriesPage: React.FC = () => {
         </span>
       )
     },
-  ];
-
-  const actions = [
     {
-      label: 'Edit',
-      color: 'primary' as const,
-      icon: <Edit className="h-4 w-4" />,
-      onClick: (row: Category) => {
-        setForm(row);
-        setIsEditing(true);
-        setEditingId(row.id);
-        setModalOpen(true);
-      },
-    },
-    {
-      label: 'Delete',
-      color: 'danger' as const,
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: async (row: Category) => {
-        if (window.confirm(`Are you sure you want to delete "${row.name}"?`)) {
-          try {
-            await deleteCategory(row.id);
-            refresh();
-          } catch (error) {
-            console.error('Error deleting category:', error);
-            alert('Failed to delete category');
-          }
-        }
+      key: 'actions',
+      title: 'Actions',
+      render: (row: Category) => {
+        const hasProducts = hasAssociatedProducts(row.id);
+        const productsCount = getAssociatedProductsCount(row.id);
+        
+        return (
+          <button
+            onClick={() => hasProducts ? null : handleDeleteCategory(row.id)}
+            disabled={hasProducts}
+            className={`admin-btn admin-btn-sm ${hasProducts ? 'admin-btn-secondary' : 'admin-btn-danger'}`}
+            title={hasProducts ? `Cannot delete as ${productsCount} product${productsCount === 1 ? ' is' : 's are'} associated with this category` : 'Delete Category'}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        );
       },
     },
   ];
@@ -217,27 +297,63 @@ const CategoriesPage: React.FC = () => {
 
   return (
     <div>
-      {/* Add Category Button */}
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
-        <button 
-          onClick={() => setModalOpen(true)}
-          className="admin-btn admin-btn-primary"
-        >
-          <Plus className="admin-btn-icon" />
-          Add Category
-        </button>
-      </div>
-
       {/* Categories Table */}
       <DataTable
         columns={columns}
         data={categories || []}
-        actions={actions}
         isLoading={loading}
         searchable={true}
         filterable={true}
         title={`Categories (${categories?.length || 0})`}
         subtitle="Product categories and organization"
+        headerActions={
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {selectedCategories.length > 0 && (
+              <>
+                <span className="admin-text-secondary admin-text-sm">
+                  {selectedCategories.length} selected
+                </span>
+                <button
+                  onClick={handleBulkDelete}
+                  className="admin-btn admin-btn-danger admin-btn-sm"
+                  title={`Delete ${selectedCategories.length} selected categories`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Selected
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+            >
+              <Filter className="h-4 w-4" />
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
+            <button
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+              title="Import Categories"
+            >
+              <Upload className="h-4 w-4" />
+              Import
+            </button>
+            <button
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+              title="Export Categories"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="admin-btn admin-btn-primary admin-btn-sm"
+              title="Add Category"
+            >
+              <Plus className="h-4 w-4" />
+              Add Category
+            </button>
+          </div>
+        }
       />
 
       {/* Modal */}
@@ -367,6 +483,44 @@ const CategoriesPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal">
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Confirm Deletion
+              </h3>
+            </div>
+            <div className="admin-modal-content">
+              <p className="admin-text-secondary">
+                {deleteTarget.type === 'single' 
+                  ? 'Are you sure you want to delete this category? This action cannot be undone.'
+                  : `Are you sure you want to delete ${deleteTarget.ids?.length} categories? This action cannot be undone.`
+                }
+              </p>
+            </div>
+            <div className="admin-modal-actions">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="admin-btn admin-btn-secondary"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="admin-btn admin-btn-danger"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -60,11 +60,8 @@ export const getStorageImageUrl = (imagePath: string): string => {
     return imagePath;
   }
   
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) {
-    console.error('[Storage Utils] VITE_SUPABASE_URL not found in environment');
-    return '';
-  }
+  // Use the actual Supabase URL that's working for existing images
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tazrvokohjfzicdzzxia.supabase.co';
   
   // Construct the full storage URL
   return `${supabaseUrl}/storage/v1/object/public/product-images/${imagePath}`;

@@ -91,7 +91,39 @@ export const mockProducts: Product[] = [
     stockStatus: "In Stock" as const,
     isFeatured: true,
     occasion: ["wedding", "festival"],
-    reviews: []
+    reviews: [],
+    variants: [
+      {
+        id: "1-red",
+        color: "Red",
+        size: "Free Size",
+        priceAdjustment: 0,
+        quantity: 10,
+        variantType: "color" as const,
+        swatchImageId: "red-swatch",
+        swatchImage: "https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
+      },
+      {
+        id: "1-gold",
+        color: "Gold",
+        size: "Free Size",
+        priceAdjustment: 5000,
+        quantity: 8,
+        variantType: "color" as const,
+        swatchImageId: "gold-swatch",
+        swatchImage: "https://images.pexels.com/photos/5308068/pexels-photo-5308068.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
+      },
+      {
+        id: "1-maroon",
+        color: "Maroon",
+        size: "Free Size",
+        priceAdjustment: 2000,
+        quantity: 5,
+        variantType: "color" as const,
+        swatchImageId: "maroon-swatch",
+        swatchImage: "https://images.pexels.com/photos/8369086/pexels-photo-8369086.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
+      }
+    ]
   },
   {
     id: "2",
@@ -111,7 +143,39 @@ export const mockProducts: Product[] = [
     stockStatus: "In Stock" as const,
     isFeatured: true,
     occasion: ["wedding", "party"],
-    reviews: []
+    reviews: [],
+    variants: [
+      {
+        id: "2-pink",
+        color: "Pink",
+        size: "M",
+        priceAdjustment: 0,
+        quantity: 6,
+        variantType: "color" as const,
+        swatchImageId: "pink-swatch",
+        swatchImage: "https://images.pexels.com/photos/2836486/pexels-photo-2836486.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
+      },
+      {
+        id: "2-red",
+        color: "Red",
+        size: "M",
+        priceAdjustment: 3000,
+        quantity: 4,
+        variantType: "color" as const,
+        swatchImageId: "red-lehenga-swatch",
+        swatchImage: "https://images.pexels.com/photos/8108016/pexels-photo-8108016.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
+      },
+      {
+        id: "2-maroon",
+        color: "Maroon",
+        size: "M",
+        priceAdjustment: 5000,
+        quantity: 3,
+        variantType: "color" as const,
+        swatchImageId: "maroon-lehenga-swatch",
+        swatchImage: "https://images.pexels.com/photos/9430748/pexels-photo-9430748.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=1"
+      }
+    ]
   },
   {
     id: "3",

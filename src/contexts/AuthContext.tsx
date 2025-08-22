@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       setError(null);
-      console.log('AuthContext: Attempting sign in with email:', email);
+  if (import.meta.env.DEV) console.debug('AuthContext: sign in attempt:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data.user) {
-        console.log('AuthContext: Login successful, user:', data.user);
+  if (import.meta.env.DEV) console.debug('AuthContext: login successful, user:', data.user);
         setUser({ ...data.user, name: data.user.email?.split('@')[0] });
         setIsAdmin(true);
       } else {
