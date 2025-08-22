@@ -27,6 +27,18 @@ const ProductDetailPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
+  // Default selections when product is loaded
+  useEffect(() => {
+    if (!product) return;
+    // Preselect first available size (including 'Free Size') and color if available
+    if (!selectedSize && product.sizes && product.sizes.length > 0) {
+      setSelectedSize(product.sizes[0]!);
+    }
+    if (!selectedColor && product.colors && product.colors.length > 0) {
+      setSelectedColor(product.colors[0]!);
+    }
+  }, [product, selectedSize, selectedColor]);
+
   // Handle keyboard events for image modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -95,7 +107,8 @@ const ProductDetailPage: React.FC = () => {
           price: adjustedPrice,
           image: product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize,
-          color: selectedColor || product.color
+          color: selectedColor || product.color,
+          variantId: selectedVariant?.id
         });
       }
 
@@ -119,7 +132,8 @@ const ProductDetailPage: React.FC = () => {
           price: adjustedPrice,
           image: product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize,
-          color: selectedColor || product.color
+          color: selectedColor || product.color,
+          variantId: selectedVariant?.id
         });
       }
 
@@ -176,7 +190,23 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const selectedVariant = getSelectedVariant();
-  const adjustedPrice = product.price + (selectedVariant?.priceAdjustment || 0);
+  // New pricing rule:
+  // - If variants exist and have priceAdj, show variant's priceAdj (ignore product sale/cost)
+  // - If no variant selected/match, fall back to the minimum variant priceAdj if available
+  // - If no variants at all, show product.price (which represents Sale Price from loader)
+  const variantPrices = Array.isArray(product.variants) && product.variants.length > 0
+    ? product.variants.map(v => v.priceAdjustment || 0)
+    : [];
+  const positiveVariantPrices = variantPrices.filter(p => p > 0);
+  const minPositiveVariantPrice = positiveVariantPrices.length > 0 ? Math.min(...positiveVariantPrices) : undefined;
+  const adjustedPriceRaw = (() => {
+    if (selectedVariant) {
+      const pv = selectedVariant.priceAdjustment || 0;
+      return pv > 0 ? pv : (minPositiveVariantPrice ?? product.price);
+    }
+    return minPositiveVariantPrice ?? product.price;
+  })();
+  const adjustedPrice = adjustedPriceRaw > 0 ? adjustedPriceRaw : product.price;
 
   const discountPercentage = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
