@@ -43,6 +43,7 @@ export const usePublicProducts = (featured?: boolean) => {
             sku,
             size,
             color,
+            color_hex,
             price_adjustment,
             swatch_image_id,
             swatch_image:product_images!swatch_image_id(*)
@@ -258,11 +259,22 @@ export const usePublicProducts = (featured?: boolean) => {
               finalSwatchImageUrl: swatchImageUrl
             });
             
+            // Normalize hex value to #RRGGBB if possible
+            let normalizedHex: string | undefined;
+            if (typeof variant.color_hex === 'string') {
+              const raw = variant.color_hex.trim();
+              const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+              if (/^#([0-9A-Fa-f]{6})$/.test(withHash)) {
+                normalizedHex = withHash;
+              }
+            }
+
             return {
               id: variant.id,
               sku: variant.sku,
               size: variant.size,
               color: variant.color,
+              colorHex: normalizedHex,
               material: undefined, // Not available in current schema
               style: undefined,    // Not available in current schema
               priceAdjustment: variant.price_adjustment || 0,

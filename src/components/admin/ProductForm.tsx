@@ -873,7 +873,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                             {index + 1}
                           </div>
 
-                          {/* Swatch */}
+                          {/* Swatch (Image or Color Hex) */}
                           <button
                             type="button"
                             onClick={() => { 
@@ -881,11 +881,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                               setSelectedColorForSwatch(variant.color); 
                               setShowSwatchModal(true); 
                             }}
-                            className={`w-10 h-10 rounded-md border ${variant.swatch_image ? 'border-gray-300' : 'border-dashed border-gray-400'} overflow-hidden flex items-center justify-center bg-white flex-shrink-0`}
+                            className={`w-10 h-10 rounded-md border ${variant.swatch_image || variant.color_hex ? 'border-gray-300' : 'border-dashed border-gray-400'} overflow-hidden flex items-center justify-center bg-white flex-shrink-0`}
                             title={variant.swatch_image ? 'Change swatch' : 'Add swatch'}
                           >
                             {variant.swatch_image ? (
                               <img src={variant.swatch_image} alt={`${variant.color} swatch`} className="w-full h-full object-cover" />
+                            ) : variant.color_hex ? (
+                              <div className="w-full h-full" style={{ backgroundColor: variant.color_hex }} />
                             ) : (
                               <span className="text-gray-400 text-xs">40x40</span>
                             )}
@@ -893,7 +895,37 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
 
                           {/* Color name */}
                           <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-gray-900">{variant.color || 'No Color'}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">{variant.color || 'No Color'}</span>
+                              {/* Inline color hex input */}
+                              <input
+                                type="color"
+                                value={(variant.color_hex && /^#([0-9A-Fa-f]{6})$/.test(variant.color_hex)) ? variant.color_hex : '#000000'}
+                                onChange={(e) => {
+                                  const hex = e.target.value;
+                                  const newVariants = [...formData.variants];
+                                  newVariants[index] = { ...variant, color_hex: hex } as any;
+                                  setFormData(prev => ({ ...prev, variants: newVariants }));
+                                }}
+                                className="w-[25px] h-[25px] p-0 border border-gray-300 rounded cursor-pointer"
+                                title="Pick color"
+                              />
+                              <input
+                                type="text"
+                                placeholder="#RRGGBB"
+                                value={variant.color_hex || ''}
+                                onChange={(e) => {
+                                  const hex = e.target.value;
+                                  const newVariants = [...formData.variants];
+                                  newVariants[index] = { ...variant, color_hex: hex } as any;
+                                  setFormData(prev => ({ ...prev, variants: newVariants }));
+                                }}
+                                className="w-24 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500 text-xs py-1 px-2"
+                                title="Hex color code"
+                              />
+                              {/* Color square preview 25x25 */}
+                              <div className="w-[25px] h-[25px] rounded border border-gray-300" style={{ backgroundColor: variant.color_hex || 'transparent' }} title={variant.color_hex || ''} />
+                            </div>
                           </div>
 
                           {/* Price adjustment */}
@@ -967,6 +999,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                     {colorNames.map((color, colorIdx) => {
                       const group = groups[color];
                       const swatchUrl = group.find(g => g.swatch_image)?.swatch_image || null;
+                      const groupHex = group.find(g => g.color_hex)?.color_hex || '';
                       return (
                         <div key={`group-${color}`} className="border border-gray-200 rounded-lg p-3">
                           <div className="flex items-center gap-3 py-2">
@@ -977,18 +1010,51 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                             <button
                               type="button"
                               onClick={() => { setSelectedColorForSwatch(color); setShowSwatchModal(true); }}
-                              className={`w-10 h-10 rounded-md border ${swatchUrl ? 'border-gray-300' : 'border-dashed border-gray-400'} overflow-hidden flex items-center justify-center bg-white flex-shrink-0`}
+                              className={`w-10 h-10 rounded-md border ${(swatchUrl || groupHex) ? 'border-gray-300' : 'border-dashed border-gray-400'} overflow-hidden flex items-center justify-center bg-white flex-shrink-0`}
                               title={swatchUrl ? 'Change swatch' : 'Add swatch'}
                             >
                               {swatchUrl ? (
                                 <img src={swatchUrl} alt={`${color} swatch`} className="w-full h-full object-cover" />
+                              ) : groupHex ? (
+                                <div className="w-full h-full" style={{ backgroundColor: groupHex }} />
                               ) : (
                                 <span className="text-gray-400 text-xs">40x40</span>
                               )}
                             </button>
 
                             <div className="flex-1 min-w-0">
-                              <span className="text-sm font-medium text-gray-900 truncate block">{color === 'No Color' ? 'No Color' : color}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-900 truncate block">{color === 'No Color' ? 'No Color' : color}</span>
+                                {/* Group-level hex input applies to all variants in this color */}
+                                <input
+                                  type="color"
+                                  value={(groupHex && /^#([0-9A-Fa-f]{6})$/.test(groupHex)) ? groupHex : '#000000'}
+                                  onChange={(e) => {
+                                    const hex = e.target.value;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      variants: prev.variants.map(v => ((v.color || 'No Color') === color ? { ...v, color_hex: hex } : v))
+                                    }));
+                                  }}
+                                  className="w-[25px] h-[25px] p-0 border border-gray-300 rounded cursor-pointer"
+                                  title="Pick color for this group"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="#RRGGBB"
+                                  value={groupHex}
+                                  onChange={(e) => {
+                                    const hex = e.target.value;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      variants: prev.variants.map(v => ((v.color || 'No Color') === color ? { ...v, color_hex: hex } : v))
+                                    }));
+                                  }}
+                                  className="w-24 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500 text-xs py-1 px-2"
+                                  title="Hex color code for this color group"
+                                />
+                                <div className="w-[25px] h-[25px] rounded border border-gray-300" style={{ backgroundColor: groupHex || 'transparent' }} title={groupHex || ''} />
+                              </div>
                               <span className="text-xs text-gray-500">{group.length} size{group.length !== 1 ? 's' : ''}</span>
                             </div>
 

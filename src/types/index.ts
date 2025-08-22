@@ -5,6 +5,8 @@ export interface ProductVariant {
   sku?: string;
   size?: string;
   color?: string;
+  // Optional hex color value (e.g., #RRGGBB) for swatch fallback when no image
+  colorHex?: string;
   material?: string;
   style?: string;
   priceAdjustment: number;
