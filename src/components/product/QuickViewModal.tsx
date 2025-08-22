@@ -49,11 +49,24 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
 
   if (!isOpen) return null;
 
+  const getSelectedVariant = () => {
+    if (!product.variants || product.variants.length === 0) return undefined;
+    const normalizedSize = selectedSize && selectedSize.toLowerCase() === 'free size' ? undefined : selectedSize;
+    return product.variants.find(v => {
+      const colorMatch = selectedColor ? v.color === selectedColor : true;
+      const sizeMatch = normalizedSize ? v.size === normalizedSize : true;
+      return colorMatch && sizeMatch;
+    });
+  };
+
+  const selectedVariant = getSelectedVariant();
+  const adjustedPrice = product.price + (selectedVariant?.priceAdjustment || 0);
+
   const handleAddToCart = () => {
     addToCart({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: adjustedPrice,
       image: product.images[0],
       size: selectedSize
     });
@@ -180,7 +193,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               {/* Price */}
               <div className="flex items-center gap-3">
                 <span className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(product.price)}
+                  {formatCurrency(adjustedPrice)}
                 </span>
               </div>
 

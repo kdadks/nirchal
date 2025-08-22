@@ -21,12 +21,25 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [imageError, setImageError] = React.useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
 
+  const getDefaultAdjustedPrice = () => {
+    if (!product.variants || product.variants.length === 0) return product.price;
+    // Try to find variant for first color/size combo
+    const defaultSize = product.sizes[0] || undefined;
+    const defaultColor = product.colors[0] || undefined;
+    const match = product.variants.find(v => {
+      const colorMatch = defaultColor ? v.color === defaultColor : true;
+      const sizeMatch = defaultSize && defaultSize !== 'Free Size' ? v.size === defaultSize : true;
+      return colorMatch && sizeMatch;
+    });
+    return product.price + (match?.priceAdjustment || 0);
+  };
+
   const handleAddToCart = () => {
     const defaultSize = product.sizes[0] || 'Free Size';
     addToCart({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: getDefaultAdjustedPrice(),
       image: product.images[0],
       size: defaultSize
     });
@@ -141,7 +154,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {/* Price - Only show sale price */}
             <div className="flex-shrink-0">
               <span className="text-base font-bold text-gray-900">
-                {formatCurrency(product.price)}
+                {formatCurrency(getDefaultAdjustedPrice())}
               </span>
             </div>
 
