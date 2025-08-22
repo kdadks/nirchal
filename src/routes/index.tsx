@@ -10,6 +10,7 @@ import CategoryPage from '../pages/CategoryPage';
 import CartPage from '../pages/CartPage';
 import CheckoutPage from '../pages/CheckoutPage';
 import OrderConfirmationPage from '../pages/OrderConfirmationPage';
+import AccountPage from '../pages/AccountPage';
 
 // Footer Pages
 // Update the path below to match the actual location and name of AboutPage
@@ -40,6 +41,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+  <Route path="/account" element={<AccountPage />} />
 
       {/* Footer Pages */}
       <Route path="/about" element={<AboutPage />} />
