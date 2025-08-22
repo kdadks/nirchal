@@ -335,24 +335,15 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                         );
                       } else {
                         // If no swatch image, use hex color if available
-                        if (hex) {
+        if (hex) {
                           return (
                             <button
                               key={color}
                               onClick={handleSwatchClick}
-                              className={`relative w-10 h-10 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                                selectedColor === color
-                                  ? 'border-amber-500 ring-2 ring-amber-200'
-                                  : 'border-gray-300 hover:border-amber-300'
-                              }`}
+          className={`relative w-10 h-10 overflow-hidden border border-black`}
                               title={color}
                             >
                               <div className="w-full h-full" style={{ backgroundColor: hex }} />
-                              {selectedColor === color && (
-                                <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
-                                  <div className="w-2 h-2 bg-white rounded-full shadow-md"></div>
-                                </div>
-                              )}
                             </button>
                           );
                         }

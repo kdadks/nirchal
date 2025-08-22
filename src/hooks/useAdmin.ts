@@ -450,6 +450,7 @@ export const useProducts = () => {
 					...rest,
 					sku: rest.sku === '' ? null : rest.sku,
 					swatch_image_id: rest.swatch_image_id || null,
+					color_hex: rest.color_hex || null,
 					product_id: newProduct.id
 				}));
 				
@@ -703,7 +704,8 @@ export const useProducts = () => {
 												size: v.size,
 												color: v.color,
 												price_adjustment: v.price_adjustment,
-												swatch_image_id: v.swatch_image_id || null
+												swatch_image_id: v.swatch_image_id || null,
+												color_hex: (v as any).color_hex || null
 											})
 											.eq('id', v.id)
 											.select();
@@ -725,7 +727,8 @@ export const useProducts = () => {
 													size: v.size,
 													color: v.color,
 													price_adjustment: v.price_adjustment,
-													swatch_image_id: v.swatch_image_id || null
+													swatch_image_id: v.swatch_image_id || null,
+													color_hex: (v as any).color_hex || null
 												})
 												.select()
 												.single();
