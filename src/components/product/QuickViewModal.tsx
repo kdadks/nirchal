@@ -60,7 +60,19 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   };
 
   const selectedVariant = getSelectedVariant();
-  const adjustedPrice = product.price + (selectedVariant?.priceAdjustment || 0);
+  const variantPrices = Array.isArray(product.variants) && product.variants.length > 0
+    ? product.variants.map(v => v.priceAdjustment || 0)
+    : [];
+  const positiveVariantPrices = variantPrices.filter(p => p > 0);
+  const minPositiveVariantPrice = positiveVariantPrices.length > 0 ? Math.min(...positiveVariantPrices) : undefined;
+  const adjustedPriceRaw = (() => {
+    if (selectedVariant) {
+      const pv = selectedVariant.priceAdjustment || 0;
+      return pv > 0 ? pv : (minPositiveVariantPrice ?? product.price);
+    }
+    return minPositiveVariantPrice ?? product.price;
+  })();
+  const adjustedPrice = adjustedPriceRaw > 0 ? adjustedPriceRaw : product.price;
 
   const handleAddToCart = () => {
     addToCart({
@@ -68,7 +80,9 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       name: product.name,
       price: adjustedPrice,
       image: product.images[0],
-      size: selectedSize
+  size: selectedSize,
+  color: selectedColor,
+  variantId: selectedVariant?.id
     });
     onClose();
   };

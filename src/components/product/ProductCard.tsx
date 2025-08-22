@@ -31,7 +31,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
       const sizeMatch = defaultSize && defaultSize !== 'Free Size' ? v.size === defaultSize : true;
       return colorMatch && sizeMatch;
     });
-    return product.price + (match?.priceAdjustment || 0);
+    if (match && (match.priceAdjustment || 0) > 0) return match.priceAdjustment!;
+    const positiveVariantPrices = product.variants.map(v => v.priceAdjustment || 0).filter(p => p > 0);
+    if (positiveVariantPrices.length > 0) return Math.min(...positiveVariantPrices);
+    return product.price; // fallback to sale price
+  };
+
+  const getDefaultVariantId = () => {
+    if (!product.variants || product.variants.length === 0) return undefined;
+    const defaultSize = product.sizes[0] || undefined;
+    const defaultColor = product.colors[0] || undefined;
+    const match = product.variants.find(v => {
+      const colorMatch = defaultColor ? v.color === defaultColor : true;
+      const sizeMatch = defaultSize && defaultSize !== 'Free Size' ? v.size === defaultSize : true;
+      return colorMatch && sizeMatch;
+    });
+    return match?.id;
   };
 
   const handleAddToCart = () => {
@@ -41,7 +56,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       name: product.name,
       price: getDefaultAdjustedPrice(),
       image: product.images[0],
-      size: defaultSize
+  size: defaultSize,
+  color: product.colors[0],
+  variantId: getDefaultVariantId()
     });
     // Navigate to cart page after adding item
     navigate('/cart');
