@@ -231,7 +231,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
             price_adjustment: 0,
             quantity: 0,
             variant_type: selectedVariantType,
-            swatch_image: null
+            swatch_image: null,
+            low_stock_threshold: formData.inventory.low_stock_threshold
           };
         } else {
           const existingColors = Array.from(new Set(
@@ -252,7 +253,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
               price_adjustment: 0,
               quantity: 0,
               variant_type: selectedVariantType,
-              swatch_image: null
+              swatch_image: null,
+              low_stock_threshold: formData.inventory.low_stock_threshold
             }));
           }
         }
@@ -266,7 +268,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
     if (pendingVariants.length > 0) {
       setFormData(prev => ({
         ...prev,
-        variants: [...prev.variants, ...pendingVariants]
+        variants: [
+          ...prev.variants, 
+          ...pendingVariants.map(v => ({ 
+            ...v, 
+            low_stock_threshold: prev.inventory.low_stock_threshold 
+          }))
+        ]
       }));
     }
     setShowBulkVariantForm(false);
@@ -674,10 +682,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                 <input
                   type="number"
                   value={formData.inventory.low_stock_threshold}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    inventory: { ...prev.inventory, low_stock_threshold: Number(e.target.value) }
-                  }))}
+                  onChange={(e) => {
+                    const newThreshold = Number(e.target.value);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      inventory: { ...prev.inventory, low_stock_threshold: newThreshold },
+                      variants: prev.variants.map(v => ({ ...v, low_stock_threshold: newThreshold }))
+                    }));
+                  }}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   min="0"
                 />
