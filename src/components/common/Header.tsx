@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCategories } from '../../hooks/useCategories';
+import AuthModal from '../auth/AuthModal';
 
 const Header: React.FC = () => {
   const { totalItems } = useCart();
@@ -14,6 +15,7 @@ const Header: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,7 +28,7 @@ const Header: React.FC = () => {
 
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-[1000] pointer-events-auto transition-all duration-300 ${
         isScrolled 
           ? 'bg-white shadow-md py-2' 
           : 'bg-transparent py-4'
@@ -65,47 +67,33 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             <button 
               onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 text-gray-700 hover:text-primary-600 transition-colors"
+              className="p-2 text-gray-700 hover:text-primary-600 transition-colors cursor-pointer"
               aria-label="Search"
             >
               <Search size={20} />
             </button>
+
+            {/* Account Icon (opens modal when logged out; navigates when logged in) */}
+            <button
+              title="Account"
+              className={`${isAuthenticated ? 'md:hidden' : ''} p-2 text-gray-700 rounded-full hover:bg-gray-100 hover:text-primary-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer`}
+              aria-label="Account"
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setAuthOpen(true);
+                } else {
+                  navigate('/account');
+                }
+              }}
+            >
+              <User size={20} />
+            </button>
             
-            {/* Account Menu */}
-            <div className="relative hidden md:block">
-              {isAuthenticated ? (
-                <div className="group relative">
-                  <button 
-                    className="flex items-center space-x-1 p-2 text-gray-700 hover:text-primary-600 transition-colors"
-                    aria-label="Account"
-                  >
-                    <User size={20} />
-                    <span className="text-sm font-medium">{user?.name}</span>
-                  </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                    <Link to="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Account</Link>
-                    <button
-                      onClick={async () => {
-                        await signOut();
-                        navigate('/');
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <Link to="/account" className="flex items-center space-x-1 p-2 text-gray-700 hover:text-primary-600 transition-colors">
-                  <User size={20} />
-                  <span className="text-sm font-medium">Account</span>
-                </Link>
-              )}
-            </div>
+            {/* Removed separate desktop Account menu to avoid duplicate/overlapping targets */}
             
             <Link 
               to="/wishlist" 
-              className="p-2 text-gray-700 hover:text-primary-600 transition-colors"
+              className="p-2 text-gray-700 hover:text-primary-600 transition-colors cursor-pointer"
               aria-label="Wishlist"
             >
               <Heart size={20} />
@@ -113,7 +101,7 @@ const Header: React.FC = () => {
             
             <Link 
               to="/cart" 
-              className="p-2 text-gray-700 hover:text-primary-600 transition-colors relative"
+              className="p-2 text-gray-700 hover:text-primary-600 transition-colors relative cursor-pointer"
               aria-label="Cart"
             >
               <ShoppingBag size={20} />
@@ -125,7 +113,7 @@ const Header: React.FC = () => {
             </Link>
             
             <button 
-              className="md:hidden p-2 text-gray-700"
+              className="md:hidden p-2 text-gray-700 cursor-pointer"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Menu"
             >
@@ -207,9 +195,19 @@ const Header: React.FC = () => {
                   <div className="py-3 border-b border-gray-100 text-gray-500 px-3">
                     Signed in as {user?.name}
                   </div>
-                  <Link to="/account" className="py-3 border-b border-gray-100 text-gray-700" onClick={() => setMobileMenuOpen(false)}>
+                  <button
+                    className="py-3 border-b border-gray-100 text-gray-700 text-left"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        setAuthOpen(true);
+                      } else {
+                        navigate('/account');
+                      }
+                      setMobileMenuOpen(false);
+                    }}
+                  >
                     Account
-                  </Link>
+                  </button>
                   <button
                     onClick={async () => {
                       await signOut();
@@ -222,14 +220,25 @@ const Header: React.FC = () => {
                   </button>
                 </>
               ) : (
-                <Link to="/account" className="py-3 border-b border-gray-100 text-gray-700" onClick={() => setMobileMenuOpen(false)}>
+                <button
+                  className="py-3 border-b border-gray-100 text-gray-700 text-left"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setAuthOpen(true);
+                    } else {
+                      navigate('/account');
+                    }
+                    setMobileMenuOpen(false);
+                  }}
+                >
                   Account
-                </Link>
+                </button>
               )}
             </nav>
           </div>
         )}
       </div>
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </header>
   );
 };
