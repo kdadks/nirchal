@@ -18,6 +18,17 @@ DROP POLICY IF EXISTS "product_images_public_read" ON product_images;
 CREATE POLICY "product_images_public_read" ON product_images FOR SELECT TO PUBLIC USING (true);
 ALTER TABLE product_images ENABLE ROW LEVEL SECURITY;
 
+-- Inventory table policies (needed for stock status on product pages)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory') THEN
+        ALTER TABLE inventory DISABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "inventory_public_read" ON inventory;
+        CREATE POLICY "inventory_public_read" ON inventory FOR SELECT TO PUBLIC USING (true);
+        ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
+    END IF;
+END $$;
+
 -- Product variants table policies (if it exists)
 DO $$ 
 BEGIN
@@ -44,6 +55,12 @@ END $$;
 GRANT SELECT ON products TO anon, authenticated;
 GRANT SELECT ON categories TO anon, authenticated;
 GRANT SELECT ON product_images TO anon, authenticated;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inventory') THEN
+        GRANT SELECT ON inventory TO anon, authenticated;
+    END IF;
+END $$;
 
 -- Grant permissions for variants and reviews if they exist
 DO $$ 
