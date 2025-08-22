@@ -39,6 +39,26 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [product, selectedSize, selectedColor]);
 
+  // When color changes (including default), switch main image to that color's swatch if present
+  useEffect(() => {
+    if (!product || !selectedColor) return;
+    const colorVariant = product.variants?.find(v => v.color === selectedColor);
+    if (!colorVariant) return;
+    const swatchUrl = colorVariant.swatchImage;
+    const swatchId = colorVariant.swatchImageId;
+    if (!swatchUrl && !swatchId) return;
+
+    // Try exact URL match first
+    let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
+    if (idx === -1 && swatchId) {
+      const idNoDash = swatchId.replace(/-/g, '');
+      idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
+    }
+    if (idx >= 0 && idx !== selectedImage) {
+      setSelectedImage(idx);
+    }
+  }, [product, selectedColor, selectedImage]);
+
   // Handle keyboard events for image modal
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

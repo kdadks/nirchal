@@ -44,8 +44,39 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     if (isOpen) {
       setSelectedSize(product.sizes[0] || 'Free Size');
       setSelectedColor(product.colors[0] || 'Default');
+      // Also try to switch image to the swatch for the default color
+      const defaultColor = (product.colors && product.colors[0]) || undefined;
+      if (defaultColor) {
+        const colorVariant = product.variants?.find(v => v.color === defaultColor);
+        const swatchUrl = colorVariant?.swatchImage;
+        const swatchId = colorVariant?.swatchImageId;
+        if (swatchUrl || swatchId) {
+          let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
+          if (idx === -1 && swatchId) {
+            const idNoDash = swatchId.replace(/-/g, '');
+            idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
+          }
+          if (idx >= 0) setCurrentImageIndex(idx);
+        }
+      }
     }
   }, [isOpen, product.sizes, product.colors]);
+
+  // When color changes, switch image to swatch if available
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (!selectedColor) return;
+    const colorVariant = product.variants?.find(v => v.color === selectedColor);
+    const swatchUrl = colorVariant?.swatchImage;
+    const swatchId = colorVariant?.swatchImageId;
+    if (!swatchUrl && !swatchId) return;
+    let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
+    if (idx === -1 && swatchId) {
+      const idNoDash = swatchId.replace(/-/g, '');
+      idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
+    }
+    if (idx >= 0) setCurrentImageIndex(idx);
+  }, [isOpen, selectedColor, product.variants, product.images]);
 
   if (!isOpen) return null;
 
