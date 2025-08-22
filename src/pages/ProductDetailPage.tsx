@@ -481,24 +481,15 @@ const ProductDetailPage: React.FC = () => {
                       } else {
                         // If no swatch image, try to use hex color if available for this color's variant
                         const hex = colorVariant?.colorHex;
-                        if (hex) {
+        if (hex) {
                           return (
                             <button
                               key={color}
                               onClick={handleSwatchClick}
-                              className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                                selectedColor === color
-                                  ? 'border-amber-500 ring-2 ring-amber-200'
-                                  : 'border-gray-300 hover:border-amber-300'
-                              }`}
+          className={`relative w-20 h-20 overflow-hidden border border-black`}
                               title={color}
                             >
                               <div className="w-full h-full" style={{ backgroundColor: hex }} />
-                              {selectedColor === color && (
-                                <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
-                                  <div className="w-3 h-3 bg-white rounded-full shadow-md"></div>
-                                </div>
-                              )}
                             </button>
                           );
                         }

@@ -122,6 +122,7 @@ const EditProductPage: React.FC = () => {
         sku: variant.sku,
         size: variant.size,
         color: variant.color,
+  color_hex: (variant as any).color_hex || null,
         material: null, // Not yet supported in database
         style: null,    // Not yet supported in database
         variant_type: variant.size ? 'size' : variant.color ? 'color' : undefined,

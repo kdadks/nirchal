@@ -1642,6 +1642,31 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
           }}
           productImages={formData.images}
           onSelectSwatch={(imageId: string) => {
+            // If empty imageId, clear swatch selection
+            if (!imageId) {
+              if (selectedVariantForSwatch !== null) {
+                setFormData(prev => {
+                  const newVariants = [...prev.variants];
+                  const v = newVariants[selectedVariantForSwatch!];
+                  if (v) {
+                    newVariants[selectedVariantForSwatch!] = { ...v, swatch_image_id: null, swatch_image: null } as any;
+                  }
+                  return { ...prev, variants: newVariants };
+                });
+              } else if (selectedColorForSwatch) {
+                const color = selectedColorForSwatch;
+                setFormData(prev => ({
+                  ...prev,
+                  variants: prev.variants.map(v => ((v.color || 'No Color') === color)
+                    ? ({ ...v, swatch_image_id: null, swatch_image: null } as any)
+                    : v)
+                }));
+              }
+              setShowSwatchModal(false);
+              setSelectedVariantForSwatch(null);
+              setSelectedColorForSwatch(null);
+              return;
+            }
             if (selectedVariantForSwatch !== null) {
               const selectedImage = formData.images.find(img => img.id === imageId);
               if (selectedImage) {
