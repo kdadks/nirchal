@@ -284,27 +284,30 @@ export const usePublicProducts = (featured?: boolean) => {
         const reviewCount = 0;
         const rating = 0;
 
-        // Check if any variants have price adjustments
-        const hasVariantPriceAdjustments = variants.some(v => v.priceAdjustment && v.priceAdjustment !== 0);
+        // New pricing rule:
+        // - If variants exist, show the minimum variant price (priceAdjustment) and ignore sale/cost
+        // - If no variants, show Sale Price (product.sale_price) falling back to product.price
+        const variantPrices = Array.isArray(variants) && variants.length > 0
+          ? variants.map(v => v.priceAdjustment || 0)
+          : [];
+        const hasVariants = variantPrices.length > 0;
+        const positiveVariantPrices = variantPrices.filter(p => p > 0);
+        const minPositiveVariantPrice = positiveVariantPrices.length > 0 ? Math.min(...positiveVariantPrices) : undefined;
         
-        // Calculate pricing logic
         let displayPrice: number;
         let originalPrice: number | undefined;
         let discountPercentage: number | undefined;
         
-        if (hasVariantPriceAdjustments) {
-          // When variants have price adjustments, show base price only
-          // Don't show sale price as variants will show their own adjusted prices
-          displayPrice = Number(product.price ?? 0);
+        if (hasVariants && Number.isFinite(minPositiveVariantPrice as number)) {
+          displayPrice = minPositiveVariantPrice as number;
           originalPrice = undefined;
           discountPercentage = undefined;
         } else {
-          // Normal pricing logic when no variant price adjustments
-          displayPrice = Number(product.sale_price ?? product.price ?? 0);
-          originalPrice = product.sale_price ? Number(product.price ?? 0) : undefined;
-          discountPercentage = product.sale_price && product.price
-            ? Math.round(((product.price - product.sale_price) / product.price) * 100)
-            : undefined;
+          // If variants exist but all are zero, or no variants, show sale price (never zero)
+          const saleOrBase = Number(product.sale_price ?? product.price ?? 0);
+          displayPrice = saleOrBase > 0 ? saleOrBase : 0;
+          originalPrice = undefined;
+          discountPercentage = undefined;
         }
 
         return {

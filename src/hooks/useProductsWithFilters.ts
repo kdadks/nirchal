@@ -464,29 +464,29 @@ export const useProductsWithFilters = (
           return [];
         })();
 
-        // Check if any variants have price adjustments
-        const hasVariantPriceAdjustments = variants.some((v: any) => v.priceAdjustment && v.priceAdjustment !== 0);
-        
-        // Calculate pricing logic
+        // New pricing rule:
+        // - If variants exist, set display price to min variant priceAdjustment; ignore sale/cost
+        // - If no variants, use Sale Price (sale_price) falling back to base price
+        const variantPrices = Array.isArray(variants) && variants.length > 0
+          ? variants.map((v: any) => v.priceAdjustment || 0)
+          : [];
+        const hasVariants = variantPrices.length > 0;
+        const positiveVariantPrices = variantPrices.filter((p: number) => p > 0);
+        const minPositiveVariantPrice = positiveVariantPrices.length > 0 ? Math.min(...positiveVariantPrices) : undefined;
+
         let displayPrice: number;
         let originalPrice: number | undefined;
         let discountPercentage: number | undefined;
-        
-        if (hasVariantPriceAdjustments) {
-          // When variants have price adjustments, show base price only
-          // Don't show sale price as variants will show their own adjusted prices
-          displayPrice = Number(product.price || 0);
+
+        if (hasVariants && Number.isFinite(minPositiveVariantPrice as number)) {
+          displayPrice = minPositiveVariantPrice as number;
           originalPrice = undefined;
           discountPercentage = undefined;
         } else {
-          // Normal pricing logic when no variant price adjustments
-          displayPrice = Number(product.sale_price || product.price || 0);
-          originalPrice = product.sale_price && product.price && product.sale_price !== product.price 
-            ? Number(product.price || 0) 
-            : undefined;
-          discountPercentage = product.sale_price && product.price && product.sale_price !== product.price
-            ? Math.round(((product.price - product.sale_price) / product.price) * 100)
-            : undefined;
+          const saleOrBase = Number(product.sale_price || product.price || 0);
+          displayPrice = saleOrBase > 0 ? saleOrBase : 0;
+          originalPrice = undefined;
+          discountPercentage = undefined;
         }
 
         return {
