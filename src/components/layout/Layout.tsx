@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Menu, X, Search, Heart, User, Crown } from 'lucide-react';
 import Footer from '../common/Footer_new';
 import AIChatbot from '../common/AIChatbot';
+import AuthModal from '../auth/AuthModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,8 +12,11 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   // Handle scroll effect for navbar
@@ -38,6 +43,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const handleAccountClick = () => {
+    if (user) {
+      navigate('/account');
+    } else {
+      setShowAuthModal(true);
+    }
+  };
 
   const navigationLinks = [
     { to: '/products', label: 'Collections' },
@@ -106,10 +119,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
               
               {/* User Account */}
-              <button className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+              <button 
+                onClick={handleAccountClick}
+                className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+              >
                 <User size={20} />
                 <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100 to-accent-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
               </button>
+              
+              {/* Temporary Logout Button for Testing */}
+              {user && (
+                <button 
+                  onClick={() => signOut()}
+                  className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                  title="Logout (Test)"
+                >
+                  Logout
+                </button>
+              )}
               
               {/* Cart */}
               <Link 
@@ -169,7 +196,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       <Heart size={20} />
                       <span className="text-xs font-medium">Wishlist</span>
                     </button>
-                    <button className="flex flex-col items-center space-y-2 p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+                    <button 
+                      onClick={handleAccountClick}
+                      className="flex flex-col items-center space-y-2 p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+                    >
                       <User size={20} />
                       <span className="text-xs font-medium">Account</span>
                     </button>
@@ -204,6 +234,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* AI Chatbot */}
       <AIChatbot />
+
+      {/* Auth Modal */}
+      <AuthModal 
+        open={showAuthModal} 
+        onClose={() => setShowAuthModal(false)} 
+      />
     </div>
   );
 };
