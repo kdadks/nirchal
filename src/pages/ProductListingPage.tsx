@@ -16,7 +16,7 @@ interface ProductFilters {
 }
 
 const ProductListingPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -24,13 +24,14 @@ const ProductListingPage: React.FC = () => {
     sortBy: 'newest'
   });
 
-  // Read category from URL parameters and set it as filter
+  // Sync category from URL (?category=slug) to filters; clear when param missing
   useEffect(() => {
     const categoryFromUrl = searchParams.get('category');
-    if (categoryFromUrl && categoryFromUrl !== filters.category) {
+    const current = filters.category ?? undefined;
+    if (categoryFromUrl !== current) {
       setFilters(prev => ({
         ...prev,
-        category: categoryFromUrl
+        category: categoryFromUrl || undefined
       }));
     }
   }, [searchParams, filters.category]);
@@ -58,6 +59,14 @@ const ProductListingPage: React.FC = () => {
       ...prev,
       [key]: cleanValue
     }));
+    // Keep URL in sync for category filter
+    if (key === 'category') {
+      if (cleanValue) {
+        setSearchParams({ category: String(cleanValue) });
+      } else {
+        setSearchParams({});
+      }
+    }
     setCurrentPage(1);
   };
 
@@ -74,6 +83,8 @@ const ProductListingPage: React.FC = () => {
   const clearFilters = () => {
     setFilters({ sortBy: 'newest' });
     setCurrentPage(1);
+    // Clear all query params so URL-driven filters don't re-apply
+    setSearchParams({});
   };
 
   // Show error state if there's a database connection issue
@@ -212,8 +223,8 @@ const ProductListingPage: React.FC = () => {
                         <input
                           type="radio"
                           name="category"
-                          value={category.name}
-                          checked={filters.category === category.name}
+                          value={(category as any).slug || category.name}
+                          checked={filters.category === ((category as any).slug || category.name)}
                           onChange={(e) => handleFilterChange('category', e.target.value)}
                           className="w-4 h-4 text-amber-600 border-gray-300 focus:ring-amber-500"
                         />
@@ -414,8 +425,8 @@ const ProductListingPage: React.FC = () => {
                         <input
                           type="radio"
                           name="category"
-                          value={category.name}
-                          checked={filters.category === category.name}
+                          value={(category as any).slug || category.name}
+                          checked={filters.category === ((category as any).slug || category.name)}
                           onChange={(e) => handleFilterChange('category', e.target.value)}
                           className="w-4 h-4 text-amber-600 border-gray-300 focus:ring-amber-500"
                         />
