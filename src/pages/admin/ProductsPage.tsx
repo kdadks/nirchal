@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProducts } from '../../hooks/useAdmin';
+import { useProducts, useCategories, useVendors } from '../../hooks/useAdmin';
 import DataTable from '../../components/admin/DataTable';
 import type { ProductWithDetails } from '../../types/admin';
-import { Package, Filter, Trash2, AlertTriangle } from 'lucide-react';
+import { Package, Filter, Trash2, AlertTriangle, Upload, Download } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const { products, loading, deleteProduct, deleteProducts } = useProducts();
+  const { categories } = useCategories();
+  const { vendors } = useVendors();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -22,13 +24,39 @@ const ProductsPage: React.FC = () => {
   // Debug: log products data
   React.useEffect(() => {
     if (products && products.length > 0) {
-      console.log(`[ProductsPage] Loaded ${products.length} products with inventory`);
+  if (import.meta.env.DEV) console.debug(`[ProductsPage] loaded ${products.length} products with inventory`);
     }
   }, [products]);
 
+  // Filter products based on current filters
+  const filteredProducts = React.useMemo(() => {
+    if (!products) return [];
+    
+    return products.filter(product => {
+      // Status filter
+      if (filters.status) {
+        const isActive = product.is_active;
+        if (filters.status === 'active' && !isActive) return false;
+        if (filters.status === 'inactive' && isActive) return false;
+      }
+      
+      // Category filter
+      if (filters.category && product.category_id !== filters.category) {
+        return false;
+      }
+      
+      // Vendor filter
+      if (filters.vendor && product.vendor_id !== filters.vendor) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [products, filters]);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedProducts(products?.map(p => p.id.toString()) || []);
+      setSelectedProducts(filteredProducts?.map(p => p.id.toString()) || []);
     } else {
       setSelectedProducts([]);
     }
@@ -186,14 +214,7 @@ const ProductsPage: React.FC = () => {
       key: 'actions',
       title: 'Actions',
       render: (row: ProductWithDetails) => (
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button
-            onClick={() => navigate(`/admin/products/edit/${row.id}`)}
-            className="admin-btn admin-btn-sm admin-btn-secondary"
-            title="Edit Product"
-          >
-            Edit
-          </button>
+        <div className="admin-table-actions">
           <button
             onClick={() => handleDeleteProduct(row.id.toString())}
             className="admin-btn admin-btn-sm admin-btn-danger"
@@ -234,7 +255,9 @@ const ProductsPage: React.FC = () => {
                   className="admin-input"
                 >
                   <option value="">All Categories</option>
-                  {/* Add dynamic categories here */}
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
                 </select>
               </div>
               
@@ -246,7 +269,9 @@ const ProductsPage: React.FC = () => {
                   className="admin-input"
                 >
                   <option value="">All Vendors</option>
-                  {/* Add dynamic vendors here */}
+                  {vendors.filter(vendor => vendor.is_active).map((vendor) => (
+                    <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -257,11 +282,11 @@ const ProductsPage: React.FC = () => {
       {/* Products Table */}
       <DataTable
         columns={columns}
-        data={products || []}
+        data={filteredProducts || []}
         isLoading={loading}
         searchable={true}
         filterable={false}
-        title={`Products (${products?.length || 0})`}
+        title={`Products (${filteredProducts?.length || 0}${filters.status || filters.category || filters.vendor ? ` of ${products?.length || 0}` : ''})`}
         subtitle="All products in your catalog"
         headerActions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -286,6 +311,28 @@ const ProductsPage: React.FC = () => {
             >
               <Filter className="h-4 w-4" />
               {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </button>
+            <button
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+              title="Import Products"
+            >
+              <Upload className="h-4 w-4" />
+              Import
+            </button>
+            <button
+              className="admin-btn admin-btn-secondary admin-btn-sm"
+              title="Export Products"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+            <button
+              onClick={() => navigate('/admin/products/create')}
+              className="admin-btn admin-btn-primary admin-btn-sm"
+              title="Add Product"
+            >
+              <Package className="h-4 w-4" />
+              Add Product
             </button>
           </div>
         }

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useProducts, useCategories } from '../../hooks/useAdmin';
+import { useProducts, useCategories, useVendors } from '../../hooks/useAdmin';
 import {
   LayoutDashboard,
   Package,
@@ -17,8 +17,7 @@ import {
   Search,
   User,
   RefreshCw,
-  Download,
-  Upload
+  Truck
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -30,12 +29,14 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Get real data for counts
-  const { products } = useProducts();
-  const { categories } = useCategories();
+  // Get real data for counts - force re-render when data changes
+  const { products, refresh: refreshProducts } = useProducts();
+  const { categories, refresh: refreshCategories } = useCategories();
+  const { vendors, refresh: refreshVendors } = useVendors();
 
-  const navigationItems = [
+  const navigationItems = useMemo(() => [
     {
       name: 'Dashboard',
       path: '/admin',
@@ -53,6 +54,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       path: '/admin/categories',
       icon: <ShoppingBag className="admin-nav-icon" />,
       badge: categories?.length?.toString() || '0'
+    },
+    {
+      name: 'Vendors',
+      path: '/admin/vendors',
+      icon: <Truck className="admin-nav-icon" />,
+      badge: vendors?.length?.toString() || '0'
     },
     {
       name: 'Orders',
@@ -78,13 +85,14 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: <Settings className="admin-nav-icon" />,
       badge: null
     }
-  ];
+  ], [products?.length, categories?.length, vendors?.length]);
 
   // Get current page context for dynamic top navigation
   const getCurrentPageContext = () => {
     const path = location.pathname;
     if (path.includes('/products')) return 'products';
     if (path.includes('/categories')) return 'categories';
+    if (path.includes('/vendors')) return 'vendors';
     if (path.includes('/orders')) return 'orders';
     if (path.includes('/users')) return 'users';
     if (path.includes('/analytics')) return 'analytics';
@@ -93,6 +101,36 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   const currentPage = getCurrentPageContext();
+
+  // Smart refresh function that refreshes data based on current page
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      switch (currentPage) {
+        case 'products':
+          await refreshProducts();
+          break;
+        case 'categories':
+          await refreshCategories();
+          break;
+        case 'vendors':
+          await refreshVendors();
+          break;
+        case 'dashboard':
+          // Refresh all data for dashboard
+          await Promise.all([refreshProducts(), refreshCategories(), refreshVendors()]);
+          break;
+        default:
+          // For other pages, just refresh all data
+          await Promise.all([refreshProducts(), refreshCategories(), refreshVendors()]);
+          break;
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -211,49 +249,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="admin-header-right">
             {/* Dynamic Action Buttons */}
             <div style={{ display: 'flex', gap: '8px', marginRight: '16px' }}>
-              {currentPage === 'products' && (
-                <>
-                  <button 
-                    onClick={() => navigate('/admin/products/create')}
-                    className="admin-btn admin-btn-primary admin-btn-sm"
-                    title="Add Product"
-                  >
-                    <Package className="h-4 w-4" />
-                    Add Product
-                  </button>
-                  <button 
-                    className="admin-btn admin-btn-secondary admin-btn-sm"
-                    title="Import Products"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Import
-                  </button>
-                </>
-              )}
-              
-              {currentPage === 'categories' && (
-                <button 
-                  className="admin-btn admin-btn-primary admin-btn-sm"
-                  title="Add Category"
-                >
-                  <ShoppingBag className="h-4 w-4" />
-                  Add Category
-                </button>
-              )}
-              
               <button 
-                onClick={() => window.location.reload()}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
                 className="admin-btn admin-btn-secondary admin-btn-sm"
-                title="Refresh"
+                title="Refresh Data"
               >
-                <RefreshCw className="h-4 w-4" />
-              </button>
-              
-              <button 
-                className="admin-btn admin-btn-secondary admin-btn-sm"
-                title="Export"
-              >
-                <Download className="h-4 w-4" />
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
 

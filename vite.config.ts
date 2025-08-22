@@ -25,9 +25,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5176,
-    strictPort: true,
+    port: 5173,
+    strictPort: false,
     open: true,
+    host: true,
   },
   build: {
     outDir: 'dist',
@@ -42,9 +43,10 @@ export default defineConfig({
     }
   },
   preview: {
-    port: 5176,
-    strictPort: true,
+    port: 5173,
+    strictPort: false,
     open: true,
+    host: true,
   },
   // Environment variables
   envPrefix: 'VITE_',

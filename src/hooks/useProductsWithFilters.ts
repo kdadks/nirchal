@@ -31,19 +31,34 @@ export const useProductsWithFilters = (
       setLoading(true);
       setError(null);
       
-      // Build the query - try to fetch images and variants but handle permission errors gracefully
+      // First get the products with variants to extract swatch image IDs
       let query = supabase
         .from('products')
         .select(`
           *,
-          product_images(image_url, is_primary),
-          product_variants(*)
+          product_images(*),
+          product_variants(
+            id,
+            sku,
+            size,
+            color,
+            price_adjustment,
+            swatch_image_id,
+            swatch_image:product_images!swatch_image_id(*)
+          ),
+          inventory(
+            id,
+            product_id,
+            variant_id,
+            quantity,
+            low_stock_threshold
+          )
         `, { count: 'exact' })
         .eq('is_active', true);
 
       // Apply category filter using category_id
       if (filters.category) {
-        console.log('[useProductsWithFilters] Applying category filter:', filters.category);
+  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Applying category filter:', filters.category);
         try {
           // Get category ID from category slug (URL parameter uses slug)
           const { data: categoryData } = await supabase
@@ -52,27 +67,27 @@ export const useProductsWithFilters = (
             .eq('slug', filters.category)
             .single();
           
-          console.log('[useProductsWithFilters] Category data by slug:', categoryData);
+          if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by slug:', categoryData);
           
           if (categoryData) {
-            console.log('[useProductsWithFilters] Found category by slug, applying filter with ID:', categoryData.id);
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by slug:', categoryData.id);
             query = query.eq('category_id', categoryData.id);
           } else {
             // Fallback: try matching by name if slug doesn't work
-            console.log('[useProductsWithFilters] Category not found by slug, trying by name');
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found by slug, try name');
             const { data: categoryByName } = await supabase
               .from('categories')
               .select('id, name, slug')
               .eq('name', filters.category)
               .single();
             
-            console.log('[useProductsWithFilters] Category data by name:', categoryByName);
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by name:', categoryByName);
             
             if (categoryByName) {
-              console.log('[useProductsWithFilters] Found category by name, applying filter with ID:', categoryByName.id);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by name:', categoryByName.id);
               query = query.eq('category_id', categoryByName.id);
             } else {
-              console.log('[useProductsWithFilters] No category found for:', filters.category);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] No category for:', filters.category);
             }
           }
         } catch (err) {
@@ -141,7 +156,7 @@ export const useProductsWithFilters = (
       const to = from + pagination.limit - 1;
       query = query.range(from, to);
 
-      console.log('[useProductsWithFilters] Executing query with filters:', filters);
+  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Executing query', filters);
       
       let data, error, count;
       
@@ -185,7 +200,7 @@ export const useProductsWithFilters = (
           
         // Apply category filter in fallback too
         if (filters.category) {
-          console.log('[useProductsWithFilters] Applying category filter in fallback:', filters.category);
+          if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category filter:', filters.category);
           try {
             // Get category ID from category slug (URL parameter uses slug)
             const { data: categoryData } = await supabase
@@ -194,27 +209,27 @@ export const useProductsWithFilters = (
               .eq('slug', filters.category)
               .single();
             
-            console.log('[useProductsWithFilters] Fallback - Category data by slug:', categoryData);
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by slug:', categoryData);
             
             if (categoryData) {
-              console.log('[useProductsWithFilters] Fallback - Found category by slug, applying filter with ID:', categoryData.id);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by slug:', categoryData.id);
               fallbackQuery = fallbackQuery.eq('category_id', categoryData.id);
             } else {
               // Fallback: try matching by name if slug doesn't work
-              console.log('[useProductsWithFilters] Fallback - Category not found by slug, trying by name');
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: category not by slug, try name');
               const { data: categoryByName } = await supabase
                 .from('categories')
                 .select('id, name, slug')
                 .eq('name', filters.category)
                 .single();
               
-              console.log('[useProductsWithFilters] Fallback - Category data by name:', categoryByName);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by name:', categoryByName);
               
               if (categoryByName) {
-                console.log('[useProductsWithFilters] Fallback - Found category by name, applying filter with ID:', categoryByName.id);
+                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by name:', categoryByName.id);
                 fallbackQuery = fallbackQuery.eq('category_id', categoryByName.id);
               } else {
-                console.log('[useProductsWithFilters] Fallback - No category found for:', filters.category);
+                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: no category for', filters.category);
               }
             }
           } catch (err) {
@@ -293,11 +308,13 @@ export const useProductsWithFilters = (
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / pagination.limit));
 
-      console.log('[useProductsWithFilters] Query completed - Total count:', count, 'Data length:', data?.length);
-      console.log('[useProductsWithFilters] Applied filters:', filters);
+      if (import.meta.env.DEV) {
+        console.debug('[useProductsWithFilters] Query done count:', count, 'len:', data?.length);
+        console.debug('[useProductsWithFilters] Filters:', filters);
+      }
 
       if (!data || data.length === 0) {
-        console.log('[useProductsWithFilters] No products found with current filters');
+  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] No products for filters');
         setProducts([]);
         return;
       }
@@ -345,20 +362,140 @@ export const useProductsWithFilters = (
         const reviews: any[] = [];
         const rating = 0;
 
-        // Determine stock status - assume all products are in stock for now
-        const stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' = 'In Stock';
+        // Determine stock status based on inventory
+        let stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' = 'In Stock';
+        
+        if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+          // If product has variants, only count variant-level inventory (variant_id !== null)
+          // If product has no variants, only count product-level inventory (variant_id === null)
+          const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+          const relevantInventory = product.inventory.filter((inv: any) => {
+            if (hasVariants) {
+              // For products with variants, only count variant-specific inventory
+              return inv.variant_id !== null;
+            } else {
+              // For products without variants, only count product-level inventory
+              return inv.variant_id === null;
+            }
+          });
+          
+          const totalQuantity = relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+          const minThreshold = relevantInventory.length > 0 
+            ? Math.min(...relevantInventory.map((inv: any) => inv.low_stock_threshold || 10))
+            : 10;
+          
+          if (totalQuantity === 0) {
+            stockStatus = 'Out of Stock';
+          } else if (totalQuantity <= minThreshold) {
+            stockStatus = 'Low Stock';
+          }
+        } else {
+          // No inventory data means out of stock
+          stockStatus = 'Out of Stock';
+        }
+
+        // Process variants to check for price adjustments
+        const variants = (() => {
+          if (Array.isArray(product.product_variants) && product.product_variants.length > 0) {
+            return product.product_variants.map((variant: any) => {
+              // Handle swatch image processing...
+              let swatchImageUrl = null;
+              
+              // First priority: Check if the swatch image was joined directly
+              if (variant.swatch_image?.image_url) {
+                swatchImageUrl = getStorageImageUrl(variant.swatch_image.image_url);
+                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] joined swatch URL:', swatchImageUrl);
+              }
+              // Second priority: Look in the main product images array
+              else if (variant.swatch_image_id && Array.isArray(product.product_images)) {
+                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] search swatch in product_images:', {
+                  searchingFor: variant.swatch_image_id,
+                  searchingForType: typeof variant.swatch_image_id,
+                  availableImageIds: product.product_images.map((img: any) => ({
+                    id: img.id,
+                    type: typeof img.id,
+                    image_url: img.image_url
+                  })),
+                  // Show first few actual IDs for comparison
+                  actualIds: product.product_images.slice(0, 3).map((img: any) => img.id)
+                });
+                
+                const swatchImage = product.product_images.find((img: any) => 
+                  img.id === variant.swatch_image_id || String(img.id) === String(variant.swatch_image_id)
+                );
+                
+                if (swatchImage?.image_url) {
+                  swatchImageUrl = getStorageImageUrl(swatchImage.image_url);
+                  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] found swatch URL in product_images:', swatchImageUrl);
+                } else {
+                  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] no swatch in product_images for ID:', variant.swatch_image_id);
+                }
+              }
+              
+              if (import.meta.env.DEV && variant.swatch_image_id && !swatchImageUrl) {
+                console.warn('[useProductsWithFilters] Missing swatch image:', {
+                  variantId: variant.id,
+                  color: variant.color,
+                  swatchImageId: variant.swatch_image_id
+                });
+              }
+              
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Final swatch result:', {
+                variantId: variant.id,
+                color: variant.color,
+                finalSwatchImageUrl: swatchImageUrl
+              });
+              
+              return {
+                id: variant.id,
+                sku: variant.sku,
+                size: variant.size,
+                color: variant.color,
+                material: undefined, // Not available in current schema
+                style: undefined,    // Not available in current schema
+                priceAdjustment: variant.price_adjustment || 0,
+                quantity: 0,         // Not available in current schema
+                variantType: variant.color ? 'color' : variant.size ? 'size' : undefined,
+                swatchImageId: variant.swatch_image_id,
+                swatchImage: swatchImageUrl
+              };
+            });
+          }
+          return [];
+        })();
+
+        // Check if any variants have price adjustments
+        const hasVariantPriceAdjustments = variants.some((v: any) => v.priceAdjustment && v.priceAdjustment !== 0);
+        
+        // Calculate pricing logic
+        let displayPrice: number;
+        let originalPrice: number | undefined;
+        let discountPercentage: number | undefined;
+        
+        if (hasVariantPriceAdjustments) {
+          // When variants have price adjustments, show base price only
+          // Don't show sale price as variants will show their own adjusted prices
+          displayPrice = Number(product.price || 0);
+          originalPrice = undefined;
+          discountPercentage = undefined;
+        } else {
+          // Normal pricing logic when no variant price adjustments
+          displayPrice = Number(product.sale_price || product.price || 0);
+          originalPrice = product.sale_price && product.price && product.sale_price !== product.price 
+            ? Number(product.price || 0) 
+            : undefined;
+          discountPercentage = product.sale_price && product.price && product.sale_price !== product.price
+            ? Math.round(((product.price - product.sale_price) / product.price) * 100)
+            : undefined;
+        }
 
         return {
           id: String(product.id),
           slug: String(product.slug),
           name: String(product.name || ''),
-          price: Number(product.sale_price || product.price || 0),
-          originalPrice: product.sale_price && product.price && product.sale_price !== product.price 
-            ? Number(product.price || 0) 
-            : undefined,
-          discountPercentage: product.sale_price && product.price && product.sale_price !== product.price
-            ? Math.round(((product.price - product.sale_price) / product.price) * 100)
-            : undefined,
+          price: displayPrice,
+          originalPrice,
+          discountPercentage,
           images,
           category: 'Category ' + (product.category_id || '1'), // Temporary category mapping
           subcategory: product.subcategory,
@@ -400,8 +537,10 @@ export const useProductsWithFilters = (
                   .map((v: any) => v.size ? String(v.size) : '')
                   .filter((size: string) => size.trim() !== '')
               ));
+              // If no size variants exist, show "Free Size"
               return variantSizes.length > 0 ? variantSizes : ['Free Size'];
             }
+            // No variants at all, show "Free Size"
             return ['Free Size'];
           })(),
           description: String(product.description || ''),
@@ -412,7 +551,7 @@ export const useProductsWithFilters = (
           stockStatus,
           specifications: {},
           reviews: [],
-          variants: []
+          variants
         };
       }));
 

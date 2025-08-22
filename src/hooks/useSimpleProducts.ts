@@ -12,7 +12,7 @@ export const useSimpleProducts = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('[useSimpleProducts] Starting basic product fetch...');
+  if (import.meta.env.DEV) console.debug('[useSimpleProducts] start fetch');
       
       // Simple query without joins first
       const { data, error } = await supabase
@@ -20,7 +20,7 @@ export const useSimpleProducts = () => {
         .select('*')
         .order('created_at', { ascending: false });
       
-      console.log('[useSimpleProducts] Simple query result:', { data, error });
+  if (import.meta.env.DEV) console.debug('[useSimpleProducts] result:', { data, error });
       
       if (error) {
         console.error('[useSimpleProducts] Database error:', error);

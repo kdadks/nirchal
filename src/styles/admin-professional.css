@@ -252,9 +252,123 @@
   width: 120px;
 }
 
+.admin-products-table .admin-table-col-6 { /* Actions */
+  width: 140px;
+  text-align: center;
+}
+
+/* Vendor table styling - when we have exactly 4 columns (0,1,2,3) without col-4+ */
+/* This will apply to tables with 4 columns like vendors table */
+.admin-table .admin-table-col-0:nth-last-child(4) { /* Vendor name - first of 4 columns */
+  width: 35% !important;
+  min-width: 200px !important;
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) { /* Contact info - second of 4 columns */
+  width: 30% !important;
+  min-width: 180px !important;
+}
+
+.admin-table .admin-table-col-2:nth-last-child(2) { /* Status - third of 4 columns */
+  width: 15% !important;
+  min-width: 100px !important;
+}
+
+.admin-table .admin-table-col-3:nth-last-child(1) { /* Actions - last of 4 columns */
+  width: 20% !important;
+  min-width: 140px !important;
+  text-align: center !important;
+}
+
+/* Apply padding and alignment for 4-column tables */
+.admin-table .admin-table-col-0:nth-last-child(4) th,
+.admin-table .admin-table-col-0:nth-last-child(4) td {
+  padding-left: 20px !important; /* Match card header padding for title alignment */
+  vertical-align: middle;
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) th,
+.admin-table .admin-table-col-1:nth-last-child(3) td {
+  text-align: left !important;
+  vertical-align: middle;
+  font-family: 'Roboto', sans-serif !important;
+  padding-left: 16px !important; /* Ensure both header and content have same padding */
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) td {
+  padding-left: 16px !important; /* Match header padding exactly */
+}
+
+.admin-table .admin-table-col-2:nth-last-child(2) th,
+.admin-table .admin-table-col-2:nth-last-child(2) td {
+  text-align: left !important;
+  vertical-align: middle;
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.admin-table .admin-table-col-3:nth-last-child(1) th,
+.admin-table .admin-table-col-3:nth-last-child(1) td {
+  text-align: center !important;
+  vertical-align: middle;
+  font-family: 'Roboto', sans-serif !important;
+}
+
+/* Vendor-specific content styling */
+.admin-table .admin-table-col-0:nth-last-child(4) .admin-product-title-wrapper {
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.admin-table .admin-table-col-0:nth-last-child(4) .admin-product-title-link {
+  font-family: 'Roboto', sans-serif !important;
+  font-weight: 500;
+  color: var(--admin-text-primary);
+  font-size: 14px;
+}
+
+/* Contact info styling for vendor tables */
+.admin-table .admin-table-col-1:nth-last-child(3) .admin-text-sm {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) .admin-text-muted {
+  color: var(--admin-text-secondary);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) .admin-text-muted:last-child {
+  margin-bottom: 0;
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) a {
+  color: var(--admin-primary) !important;
+  text-decoration: none !important;
+  transition: color 0.2s ease;
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) a:hover {
+  color: var(--admin-primary-hover) !important;
+  text-decoration: underline !important;
+}
+
+.admin-table .admin-table-col-0:nth-last-child(4) .admin-text-muted {
+  font-family: 'Roboto', sans-serif !important;
+  text-align: left !important;
+}
+
+.admin-table .admin-table-col-1:nth-last-child(3) .admin-text-sm,
+.admin-table .admin-table-col-1:nth-last-child(3) .admin-text-muted {
+  font-family: 'Roboto', sans-serif !important;
+  text-align: left !important;
+}
+
 .admin-table th {
   background-color: #f8f9fa;
-  padding: 12px 8px; /* Reduced horizontal padding */
+  padding: 12px 8px; /* Default padding for all headers */
   text-align: left;
   font-weight: 600;
   color: var(--admin-text-primary);
@@ -265,11 +379,23 @@
   font-family: 'Roboto Mono', monospace;
 }
 
+/* Specific alignment fix for vendor table Contact Info column (non-sortable) */
+.admin-table .admin-table-col-1:nth-last-child(3) th {
+  padding-left: 16px !important; /* Match the content padding exactly */
+}
+
+/* Override for sortable headers to ensure button aligns with non-sortable headers */
+.admin-table .admin-table-col-1:nth-last-child(3) th button {
+  padding: 0 !important;
+  text-align: left !important;
+}
+
 .admin-table td {
   padding: 12px 8px; /* Reduced horizontal padding */
   border-bottom: 1px solid var(--admin-border);
   color: var(--admin-text-primary);
   vertical-align: middle; /* Changed from top to middle for better alignment */
+  font-family: 'Roboto', sans-serif; /* Use Roboto for table content */
 }
 
 /* Checkbox column specific styling */
@@ -358,15 +484,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
-  transition: none;
+  transition: all 0.2s ease;
   font-family: 'Roboto', sans-serif;
+  min-height: 44px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 .admin-btn-primary {
@@ -375,9 +509,11 @@
   border-color: var(--admin-primary);
 }
 
-.admin-btn-primary:hover {
+.admin-btn-primary:hover:not(:disabled) {
   background-color: var(--admin-primary-hover);
   border-color: var(--admin-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .admin-btn-secondary {
@@ -386,9 +522,11 @@
   border-color: var(--admin-border);
 }
 
-.admin-btn-secondary:hover {
+.admin-btn-secondary:hover:not(:disabled) {
   background-color: #f8f9fa;
   color: var(--admin-text-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .admin-btn-danger {
@@ -397,21 +535,36 @@
   border-color: var(--admin-danger);
 }
 
+.admin-btn-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
 .admin-btn-success {
   background-color: var(--admin-success);
   color: white;
   border-color: var(--admin-success);
 }
 
+.admin-btn-success:hover:not(:disabled) {
+  background-color: #047857;
+  border-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+}
+
 .admin-btn-icon {
   width: 16px;
   height: 16px;
-  margin-right: 6px;
+  margin-right: 8px;
 }
 
 .admin-btn-sm {
-  padding: 6px 12px;
+  padding: 8px 16px;
   font-size: 13px;
+  min-height: 36px;
 }
 
 /* Status badges */
@@ -445,37 +598,43 @@
   color: #374151;
 }
 
-/* Professional forms */
+/* Compact Professional forms */
 .admin-form-group {
-  margin-bottom: 16px;
+  margin-bottom: 14px; /* Tighter spacing */
 }
 
 .admin-label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 14px;
+  margin-bottom: 4px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--admin-text-primary);
+  font-family: 'Roboto', sans-serif;
 }
 
-.admin-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--admin-border);
-  border-radius: 6px;
-  font-size: 14px;
-  color: var(--admin-text-primary);
+.admin-input, .admin-textarea, .admin-select {
+  width: 100% !important;
+  padding: 8px 12px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  color: var(--admin-text-primary) !important;
+  font-family: 'Roboto', sans-serif !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+  background-color: white !important;
+  box-sizing: border-box !important;
 }
 
-.admin-input:focus {
-  outline: none;
-  border-color: var(--admin-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+.admin-input:focus, .admin-textarea:focus, .admin-select:focus {
+  outline: none !important;
+  border-color: var(--admin-primary) !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
 }
 
 .admin-textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 60px; /* Much smaller for simple forms */
+  line-height: 1.4;
 }
 
 .admin-select {
@@ -484,6 +643,63 @@
   background-repeat: no-repeat;
   background-size: 16px;
   padding-right: 32px;
+}
+
+/* Compact checkbox styling */
+.admin-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.admin-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 3px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-checkbox:checked {
+  background-color: var(--admin-primary);
+  border-color: var(--admin-primary);
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6 10.293l7.146-7.147a.5.5 0 0 1 .708.708z'/%3e%3c/svg%3e");
+}
+
+.admin-checkbox-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--admin-text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Specific overrides for modal forms to ensure proper styling */
+.admin-modal .admin-form .admin-input,
+.admin-modal .admin-form .admin-textarea,
+.admin-modal .admin-form .admin-select {
+  width: 100% !important;
+  padding: 8px 12px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  color: var(--admin-text-primary) !important;
+  font-family: 'Roboto', sans-serif !important;
+  background-color: white !important;
+  box-sizing: border-box !important;
+  line-height: 1.4 !important;
+}
+
+.admin-modal .admin-form .admin-label {
+  display: block !important;
+  margin-bottom: 4px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--admin-text-primary) !important;
+  font-family: 'Roboto', sans-serif !important;
 }
 
 /* Action icons */
@@ -608,9 +824,9 @@
 }
 
 .admin-table-actions {
-  margin-left: auto;
   display: flex;
   gap: 8px;
+  justify-content: center;
 }
 
 /* Settings page specific styles */
@@ -873,60 +1089,136 @@
   border-radius: 6px;
 }
 
-/* Modal styles */
+/* Compact, Professional Modal styles */
 .admin-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .admin-modal {
   background-color: white;
   border-radius: 8px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  max-width: 480px; /* Much smaller for simple forms */
   width: 90%;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow: hidden;
+  animation: slideUp 0.2s ease-out;
+  border: 1px solid #e5e8eb;
 }
 
 .admin-modal-header {
-  padding: 24px 24px 16px 24px;
-  border-bottom: 1px solid var(--admin-border);
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid #e5e8eb;
+  background-color: #fafbfc;
+  position: relative;
 }
 
 .admin-modal-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--admin-text-primary);
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-family: 'Roboto', sans-serif;
 }
 
 .admin-modal-content {
-  padding: 24px;
-  color: var(--admin-text-secondary);
-  line-height: 1.6;
+  padding: 20px 24px;
+  background-color: white;
 }
 
 .admin-modal-actions {
-  padding: 16px 24px 24px 24px;
+  padding: 16px 24px 20px 24px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  border-top: 1px solid #e5e8eb;
+  background-color: #fafbfc;
 }
 
 .admin-modal-actions .admin-btn {
   min-width: 80px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.admin-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--admin-text-secondary);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.admin-modal-close:hover {
+  background-color: #f1f3f4;
+  color: var(--admin-text-primary);
+}
+
+.admin-modal-footer {
+  padding: 16px 24px 20px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #e5e8eb;
+  background-color: #fafbfc;
+}
+
+.admin-modal-footer .admin-btn {
+  min-width: 80px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.admin-modal-icon-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-modal-icon-wrapper .admin-icon {
+  width: 24px;
+  height: 24px;
 }
 
 /* Danger button for destructive actions */
