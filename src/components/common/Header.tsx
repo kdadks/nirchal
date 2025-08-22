@@ -73,20 +73,15 @@ const Header: React.FC = () => {
               <Search size={20} />
             </button>
 
-            {/* Account Icon (opens modal when logged out; navigates when logged in) */}
+            {/* DEBUG: Simple test button */}
             <button
-              title="Account"
-              className={`${isAuthenticated ? 'md:hidden' : ''} p-2 text-gray-700 rounded-full hover:bg-gray-100 hover:text-primary-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer`}
-              aria-label="Account"
               onClick={() => {
-                if (!isAuthenticated) {
-                  setAuthOpen(true);
-                } else {
-                  navigate('/account');
-                }
+                alert('BUTTON WORKS!');
+                console.log('Button clicked');
               }}
+              className="bg-red-500 text-white px-4 py-2 border-2 border-black"
             >
-              <User size={20} />
+              TEST
             </button>
             
             {/* Removed separate desktop Account menu to avoid duplicate/overlapping targets */}
