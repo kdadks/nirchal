@@ -83,18 +83,7 @@ const Header: React.FC = () => {
                     <span className="text-sm font-medium">{user?.name}</span>
                   </button>
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                    <Link 
-                      to="/profile" 
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Profile
-                    </Link>
-                    <Link 
-                      to="/orders" 
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Orders
-                    </Link>
+                    <Link to="/account" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Account</Link>
                     <button
                       onClick={async () => {
                         await signOut();
@@ -107,12 +96,9 @@ const Header: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <Link 
-                  to="/login" 
-                  className="flex items-center space-x-1 p-2 text-gray-700 hover:text-primary-600 transition-colors"
-                >
+                <Link to="/account" className="flex items-center space-x-1 p-2 text-gray-700 hover:text-primary-600 transition-colors">
                   <User size={20} />
-                  <span className="text-sm font-medium">Sign in</span>
+                  <span className="text-sm font-medium">Account</span>
                 </Link>
               )}
             </div>
@@ -221,19 +207,8 @@ const Header: React.FC = () => {
                   <div className="py-3 border-b border-gray-100 text-gray-500 px-3">
                     Signed in as {user?.name}
                   </div>
-                  <Link 
-                    to="/profile"
-                    className="py-3 border-b border-gray-100 text-gray-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Profile
-                  </Link>
-                  <Link 
-                    to="/orders"
-                    className="py-3 border-b border-gray-100 text-gray-700"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Orders
+                  <Link to="/account" className="py-3 border-b border-gray-100 text-gray-700" onClick={() => setMobileMenuOpen(false)}>
+                    Account
                   </Link>
                   <button
                     onClick={async () => {
@@ -247,12 +222,8 @@ const Header: React.FC = () => {
                   </button>
                 </>
               ) : (
-                <Link 
-                  to="/login"
-                  className="py-3 border-b border-gray-100 text-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign in
+                <Link to="/account" className="py-3 border-b border-gray-100 text-gray-700" onClick={() => setMobileMenuOpen(false)}>
+                  Account
                 </Link>
               )}
             </nav>
