@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import { upsertCustomerByEmail, upsertCustomerAddress, createOrderWithItems } from '@utils/orders';
 
 interface CheckoutForm {
   firstName: string;
@@ -19,6 +21,7 @@ interface CheckoutForm {
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { state: { items, total }, clearCart } = useCart();
+  const { supabase } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep] = useState(1);
   const [form, setForm] = useState<CheckoutForm>({
@@ -43,14 +46,76 @@ const CheckoutPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Here you would typically:
-      // 1. Validate the form
-      // 2. Create an order in your database
-      // 3. Process payment if online payment
-      // 4. Send confirmation email
-      
-      // For now, we'll just simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 1) Create/Upsert customer by email (unique)
+      const customerRes = await upsertCustomerByEmail(supabase, {
+        email: form.email.trim(),
+        first_name: form.firstName.trim(),
+        last_name: form.lastName.trim(),
+        phone: form.phone.trim(),
+      });
+      const customerId = customerRes?.id || null;
+
+      // 2) Create/Upsert address (best-effort)
+      if (customerId) {
+        await upsertCustomerAddress(supabase, {
+          customer_id: customerId,
+          type: 'shipping',
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          address_line_1: form.address.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          postal_code: form.pincode.trim(),
+          country: 'India',
+          is_default: true,
+        });
+      }
+
+      // 3) Create order with items
+      const shippingCost = total >= 2999 ? 0 : 99;
+      const finalTotal = total + shippingCost;
+      const order = await createOrderWithItems(supabase, {
+        customer_id: customerId,
+        payment_method: form.paymentMethod,
+        subtotal: total,
+        shipping_amount: shippingCost,
+        total_amount: finalTotal,
+        billing: {
+          first_name: form.firstName,
+          last_name: form.lastName,
+          address_line_1: form.address,
+          city: form.city,
+          state: form.state,
+          postal_code: form.pincode,
+          country: 'India',
+          phone: form.phone,
+          email: form.email,
+        },
+        shipping: {
+          first_name: form.firstName,
+          last_name: form.lastName,
+          address_line_1: form.address,
+          city: form.city,
+          state: form.state,
+          postal_code: form.pincode,
+          country: 'India',
+          phone: form.phone,
+        },
+        items: items.map(it => ({
+          product_id: Number(it.id) || null,
+          product_variant_id: it.variantId ? Number(it.variantId) : null,
+          product_name: it.name,
+          product_sku: undefined,
+          unit_price: it.price,
+          quantity: it.quantity,
+          total_price: it.price * it.quantity,
+          variant_size: it.size,
+          variant_color: it.color,
+        })),
+      });
+      // Save basics for confirmation screen
+      if (order?.order_number) sessionStorage.setItem('last_order_number', order.order_number);
+      if (form?.email) sessionStorage.setItem('last_order_email', form.email.trim());
       
       clearCart();
       navigate('/order-confirmation');
