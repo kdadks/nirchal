@@ -138,6 +138,7 @@ export interface ProductFormVariant {
   sku: string | null;
   size: string | null;
   color: string | null;
+  color_hex?: string | null;
   material?: string | null;
   style?: string | null;
   price_adjustment: number;

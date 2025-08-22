@@ -256,6 +256,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                       // Only show swatch image if variant has actual swatch_image_id in database
                       let hasSwatchImage = !!(colorVariant?.swatchImageId && colorVariant?.swatchImage);
                       let swatchImageUrl = colorVariant?.swatchImage;
+                      const hex = colorVariant?.colorHex;
                       
                       // Debug only during development
                       if (import.meta.env.DEV) {
@@ -319,7 +320,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                             <div 
                               className="w-full h-full rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-inner"
                               style={{ 
-                                backgroundColor: getColorValue(color),
+                                backgroundColor: hex || getColorValue(color),
                                 display: 'none' // Initially hidden, shown when image fails
                               }}
                             >
@@ -333,7 +334,29 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                           </button>
                         );
                       } else {
-                        // Show text button for variants without swatch
+                        // If no swatch image, use hex color if available
+                        if (hex) {
+                          return (
+                            <button
+                              key={color}
+                              onClick={handleSwatchClick}
+                              className={`relative w-10 h-10 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                                selectedColor === color
+                                  ? 'border-amber-500 ring-2 ring-amber-200'
+                                  : 'border-gray-300 hover:border-amber-300'
+                              }`}
+                              title={color}
+                            >
+                              <div className="w-full h-full" style={{ backgroundColor: hex }} />
+                              {selectedColor === color && (
+                                <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
+                                  <div className="w-2 h-2 bg-white rounded-full shadow-md"></div>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        }
+                        // Fallback to text button
                         return (
                           <button
                             key={color}
