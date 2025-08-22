@@ -33,9 +33,9 @@ export const useCategories = () => {
         // Use the image_url field from database (same as products)
         if (cat.image_url) {
           imageUrl = getCategoryImageUrl(cat.image_url);
-          console.log(`[useCategories] Category ${cat.name} has image_url: ${cat.image_url}, full URL: ${imageUrl}`);
+          if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
         } else {
-          console.log(`[useCategories] Category ${cat.name} (${cat.slug}) has no image_url in database`);
+          if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url`);
         }
 
         return {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProducts } from '../../hooks/useAdmin';
 import ProductForm from '../../components/admin/ProductForm';
+import { getStorageImageUrl } from '../../utils/storageUtils';
 import type { ProductFormDataWithDelete, ProductWithDetails } from '../../types/admin';
 
 const EditProductPage: React.FC = () => {
@@ -14,11 +15,23 @@ const EditProductPage: React.FC = () => {
   useEffect(() => {
     if (products.length > 0) {
       const foundProduct = products.find(p => p.id === id);
+      if (import.meta.env.DEV) {
+        console.debug('[EditProductPage] looking for product ID:', id);
+        console.debug('[EditProductPage] available products:', products.map(p => ({ id: p.id, name: p.name, variants: p.variants?.length || 0 })));
+      }
       if (foundProduct) {
+        if (import.meta.env.DEV) {
+          console.debug('[EditProductPage] found product:', foundProduct.name);
+          console.debug('[EditProductPage] product variants:', foundProduct.variants);
+          console.debug('[EditProductPage] product inventory:', foundProduct.inventory);
+        }
         setProduct(foundProduct);
       } else {
+  if (import.meta.env.DEV) console.debug('[EditProductPage] product not found, redirecting');
         navigate('/admin/products', { replace: true });
       }
+    } else {
+  if (import.meta.env.DEV) console.debug('[EditProductPage] no products yet, len:', products.length);
     }
   }, [products, id, navigate]);
 
@@ -61,6 +74,7 @@ const EditProductPage: React.FC = () => {
     slug: product.slug,
     description: product.description || '',
     category_id: product.category_id,
+    vendor_id: product.vendor_id || null,
     price: product.price,
     sale_price: product.sale_price,
     sku: product.sku || '',
@@ -81,25 +95,57 @@ const EditProductPage: React.FC = () => {
       const inv = Array.isArray(product.inventory)
         ? product.inventory.find((i: any) => i.variant_id === variant.id)
         : null;
+  if (import.meta.env.DEV) console.debug(`[EditProductPage] mapping variant ${variant.id}:`, {
+        variant,
+        variantKeys: Object.keys(variant),
+        foundInventory: inv,
+        totalInventoryRecords: Array.isArray(product.inventory) ? product.inventory.length : 'not array',
+        hasSwatchImageId: !!variant.swatch_image_id,
+        hasSwatchImage: !!(variant as any).swatch_image,
+        swatchImageId: variant.swatch_image_id,
+        swatchImageData: (variant as any).swatch_image
+      });
+      
+      // Process swatch image URL
+      let swatchImageUrl = null;
+      if (variant.swatch_image_id && (variant as any).swatch_image) {
+        const swatchImg = (variant as any).swatch_image;
+        swatchImageUrl = swatchImg.image_url ? getStorageImageUrl(swatchImg.image_url) : null;
+  if (import.meta.env.DEV) console.debug(`[EditProductPage] processed swatch URL for variant ${variant.id}:`, {
+          originalUrl: swatchImg.image_url,
+          processedUrl: swatchImageUrl
+        });
+      }
+      
       return {
         id: variant.id,
         sku: variant.sku,
         size: variant.size,
         color: variant.color,
+        material: null, // Not yet supported in database
+        style: null,    // Not yet supported in database
+        variant_type: variant.size ? 'size' : variant.color ? 'color' : undefined,
         price_adjustment: variant.price_adjustment,
         quantity: inv ? inv.quantity : 0,
-        low_stock_threshold: inv ? inv.low_stock_threshold : 10
+        low_stock_threshold: inv ? inv.low_stock_threshold : 10,
+        swatch_image_id: variant.swatch_image_id,
+        swatch_image: swatchImageUrl
       };
     }),
     inventory: (() => {
-      // If no variants, get product-level inventory
-      if (Array.isArray(product.inventory) && product.variants.length === 0) {
-        const inv = product.inventory.find((i: any) => i.variant_id === null);
-        return inv
-          ? { quantity: inv.quantity, low_stock_threshold: inv.low_stock_threshold }
-          : { quantity: 0, low_stock_threshold: 10 };
+      // Find product-level inventory (variant_id === null)
+      const productInventory = Array.isArray(product.inventory) 
+        ? product.inventory.find((i: any) => i.variant_id === null)
+        : null;
+      
+      if (productInventory) {
+        return { 
+          quantity: productInventory.quantity, 
+          low_stock_threshold: productInventory.low_stock_threshold 
+        };
       }
-      // If variants, just use default for product-level
+      
+      // Default when no product-level inventory found
       return { quantity: 0, low_stock_threshold: 10 };
     })()
   };

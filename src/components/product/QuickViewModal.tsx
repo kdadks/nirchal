@@ -10,11 +10,42 @@ interface QuickViewModalProps {
   onClose: () => void;
 }
 
+// Helper function to get color value for fallback swatches
+const getColorValue = (colorName: string): string => {
+  const colorMap: { [key: string]: string } = {
+    'Red': '#DC2626',
+    'Green': '#16A34A', 
+    'Blue': '#2563EB',
+    'Yellow': '#FACC15',
+    'Orange': '#EA580C',
+    'Purple': '#9333EA',
+    'Pink': '#EC4899',
+    'Black': '#1F2937',
+    'White': '#F9FAFB',
+    'Gray': '#6B7280',
+    'Brown': '#92400E',
+    'Navy': '#1E3A8A',
+    'Maroon': '#7F1D1D',
+    'Teal': '#0F766E',
+    'Indigo': '#4338CA'
+  };
+  
+  return colorMap[colorName] || '#6B7280'; // Default to gray if color not found
+};
+
 const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClose }) => {
   const { addToCart } = useCart();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'Free Size');
-  const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Default');
+  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState('');
+
+  // Initialize selections when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedSize(product.sizes[0] || 'Free Size');
+      setSelectedColor(product.colors[0] || 'Default');
+    }
+  }, [isOpen, product.sizes, product.colors]);
 
   if (!isOpen) return null;
 
@@ -156,23 +187,111 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               {/* Options Section - Always Show */}
               <div className="space-y-4">
                 
-                {/* Color Selection */}
+                {/* Color Selection with Swatches */}
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Color</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(product.colors && product.colors.length > 0 ? product.colors : ['Default']).map((color) => (
-                      <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`px-3 py-1 text-sm border rounded transition-colors ${
-                          selectedColor === color
-                            ? 'border-amber-500 bg-amber-50 text-amber-700'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                      >
-                        {color}
-                      </button>
-                    ))}
+                  <div className="grid grid-cols-5 gap-2 max-w-xs">
+                    {(product.colors && product.colors.length > 0 ? product.colors : ['Default']).map((color) => {
+                      // Find the variant for this color to check for swatch image
+                      const colorVariant = product.variants?.find(v => v.color === color);
+                      
+                      // Only show swatch image if variant has actual swatch_image_id in database
+                      let hasSwatchImage = !!(colorVariant?.swatchImageId && colorVariant?.swatchImage);
+                      let swatchImageUrl = colorVariant?.swatchImage;
+                      
+                      // Debug only during development
+                      if (import.meta.env.DEV) {
+                        // console.debug('QuickViewModal color variant', color, { colorVariant, hasSwatchImage });
+                      }
+                      
+                      const handleSwatchClick = () => {
+                        setSelectedColor(color);
+                        // If swatch has an image, try to find it in main product images
+                        if (hasSwatchImage && swatchImageUrl) {
+                          // First try to find exact URL match
+                          let swatchImageIndex = product.images.findIndex(img => img === swatchImageUrl);
+                          
+                          // If not found, try to find by checking if the image URL contains the swatch image ID
+                          if (swatchImageIndex === -1 && colorVariant?.swatchImageId) {
+                            swatchImageIndex = product.images.findIndex(img => 
+                              img.includes(colorVariant.swatchImageId!) || 
+                              img.includes(colorVariant.swatchImageId!.replace(/-/g, ''))
+                            );
+                          }
+                          
+                          // If we found the image in main gallery, switch to it
+                          if (swatchImageIndex !== -1) {
+                            setCurrentImageIndex(swatchImageIndex);
+                          }
+                          // Note: If swatch image is not in main gallery, main image stays the same
+                        }
+                      };
+                      
+                      if (hasSwatchImage) {
+                        // Show only swatch image without text for variants with swatch (40x40 for quick view)
+                        return (
+                          <button
+                            key={color}
+                            onClick={handleSwatchClick}
+                            className={`relative w-10 h-10 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                              selectedColor === color
+                                ? 'border-amber-500 ring-2 ring-amber-200'
+                                : 'border-gray-300 hover:border-amber-300'
+                            }`}
+                            title={color}
+                          >
+                            <img
+                              src={swatchImageUrl}
+                              alt={`${color} swatch`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                if (import.meta.env.DEV) {
+                                  console.warn(`[QuickViewModal] Swatch image failed to load for ${color}:`, swatchImageUrl);
+                                }
+                                // Show colored fallback
+                                const imgElement = e.target as HTMLImageElement;
+                                const fallbackElement = imgElement.nextElementSibling as HTMLElement;
+                                imgElement.style.display = 'none';
+                                if (fallbackElement) {
+                                  fallbackElement.style.display = 'flex';
+                                }
+                              }}
+                            />
+                            {/* Fallback colored swatch when image fails to load */}
+                            <div 
+                              className="w-full h-full rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-inner"
+                              style={{ 
+                                backgroundColor: getColorValue(color),
+                                display: 'none' // Initially hidden, shown when image fails
+                              }}
+                            >
+                              {color.charAt(0)}
+                            </div>
+                            {selectedColor === color && (
+                              <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
+                                <div className="w-2 h-2 bg-white rounded-full shadow-md"></div>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      } else {
+                        // Show text button for variants without swatch
+                        return (
+                          <button
+                            key={color}
+                            onClick={handleSwatchClick}
+                            className={`px-3 py-1 text-sm border rounded-lg transition-colors ${
+                              selectedColor === color
+                                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                            title={color}
+                          >
+                            {color}
+                          </button>
+                        );
+                      }
+                    })}
                   </div>
                 </div>
 

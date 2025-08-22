@@ -4,6 +4,7 @@ import AdminLayout from '../components/admin/AdminLayout';
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import ProductsPage from '../pages/admin/ProductsPage';
 import CategoriesPage from '../pages/admin/CategoriesPage';
+import VendorsPage from '../pages/admin/VendorsPage';
 import CreateProductPage from '../pages/admin/CreateProductPage';
 import EditProductPage from '../pages/admin/EditProductPage';
 import SettingsPage from '../pages/admin/SettingsPage';
@@ -25,6 +26,7 @@ const AdminRoutes: React.FC<AdminRoutesProps> = ({ isAuthenticated }) => {
       <Routes>
         <Route path="/" element={<AdminDashboard />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/vendors" element={<VendorsPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/create" element={<CreateProductPage />} />
         <Route path="/products/edit/:id" element={<EditProductPage />} />

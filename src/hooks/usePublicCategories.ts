@@ -20,15 +20,17 @@ export const usePublicCategories = () => {
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[usePublicCategories] Fetching categories...');
+  if (import.meta.env.DEV) console.debug('[usePublicCategories] fetching categories...');
       
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name');
       
-      console.log('[usePublicCategories] Query result:', data);
-      console.log('[usePublicCategories] Query error:', error);
+      if (import.meta.env.DEV) {
+        console.debug('[usePublicCategories] result:', data);
+        console.debug('[usePublicCategories] error:', error);
+      }
 
       if (error) {
         console.error('[usePublicCategories] Supabase error:', error);

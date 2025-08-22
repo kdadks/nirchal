@@ -1,5 +1,19 @@
 /* global File */
 // Product Types
+export interface ProductVariant {
+  id: string;
+  sku?: string;
+  size?: string;
+  color?: string;
+  material?: string;
+  style?: string;
+  priceAdjustment: number;
+  quantity: number;
+  variantType?: 'size' | 'color';
+  swatchImageId?: string;
+  swatchImage?: string;
+}
+
 export interface Product {
   id: string;
   slug: string;
@@ -25,7 +39,7 @@ export interface Product {
     [key: string]: string;
   };
   reviews: Review[];
-  variants?: any[];
+  variants?: ProductVariant[];
 }
 
 export interface Category {

@@ -23,9 +23,9 @@ const LoginPage: React.FC = () => {
     setLoginError(null);
     
     try {
-      console.log('Attempting login with:', { email, password: '***' });
+  if (import.meta.env.DEV) console.debug('Attempting login with:', { email, password: '***' });
       await signIn(email, password);
-      console.log('Login successful, navigating to:', from);
+  if (import.meta.env.DEV) console.debug('Login successful, navigating to:', from);
       navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
