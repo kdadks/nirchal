@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ProductReviews from '../components/product/ProductReviews';
 import { useProductReviews } from '../hooks/useProductReviews';
+import { useAuth } from '../contexts/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Heart, Share2, Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
@@ -11,6 +12,7 @@ const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { products, loading } = usePublicProducts();
   const { addItem } = useCart();
+  const { user } = useAuth();
   
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -20,7 +22,7 @@ const ProductDetailPage: React.FC = () => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const product = products.find(p => p.slug === slug);
-  const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
+  const { reviews, loading: reviewsLoading, error: reviewsError, fetchReviews, addReview } = useProductReviews(product?.id || '');
 
   useEffect(() => {
     if (product?.id) fetchReviews();
@@ -372,11 +374,17 @@ const ProductDetailPage: React.FC = () => {
                       <Star
                         key={star}
                         size={16}
-                        className={star <= Math.round(product.rating) ? 'text-amber-400 fill-current' : 'text-gray-300'}
+                        className={star <= Math.round((reviews.length > 0 ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length) : product.rating) || 0)
+                          ? 'text-amber-400 fill-current' : 'text-gray-300'}
                       />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-600">({product.rating.toFixed(1)}) • {product.reviewCount} reviews</span>
+                  <span className="text-sm text-gray-600">(
+                    {(reviews.length > 0
+                      ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length)
+                      : product.rating
+                    ).toFixed(1)}
+                    ) • {reviews.length > 0 ? reviews.length : product.reviewCount} reviews</span>
                 </div>
 
                 {/* Price */}
@@ -597,7 +605,14 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Product Reviews Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mt-8 p-8">
-            <ProductReviews reviews={reviews} onAddReview={(form) => addReview(form, { id: 'anonymous', name: 'Anonymous' })} />
+            <ProductReviews
+              reviews={reviews}
+              onAddReview={(form) => addReview(form)}
+              disabled={import.meta.env.PROD && !user}
+              disabledMessage={import.meta.env.PROD && !user ? 'Please sign in to write a review.' : undefined}
+              error={reviewsError}
+              loading={reviewsLoading}
+            />
           </div>
         </div>
       </div>

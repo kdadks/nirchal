@@ -149,6 +149,36 @@ export const usePublicProducts = (featured?: boolean) => {
         return;
       }
 
+      // Fetch review aggregates (count and average rating) for these products
+      let ratingMap: Record<string, { count: number; avg: number }> = {};
+      try {
+        const productIds = (data || []).map((p: any) => p.id).filter(Boolean);
+        if (productIds.length > 0) {
+          const { data: reviewRows, error: reviewErr } = await supabase
+            .from('product_reviews')
+            .select('product_id, rating')
+            .in('product_id', productIds);
+          if (!reviewErr && Array.isArray(reviewRows)) {
+            const temp: Record<string, number[]> = {};
+            for (const row of reviewRows) {
+              const pid = String(row.product_id);
+              const r = Number(row.rating) || 0;
+              if (!temp[pid]) temp[pid] = [];
+              temp[pid].push(r);
+            }
+            ratingMap = Object.fromEntries(
+              Object.entries(temp).map(([pid, arr]) => {
+                const count = arr.length;
+                const avg = count > 0 ? arr.reduce((a, b) => a + b, 0) / count : 0;
+                return [pid, { count, avg }];
+              })
+            );
+          }
+        }
+      } catch (aggErr) {
+        console.warn('[usePublicProducts] Could not fetch ratings:', aggErr);
+      }
+
       // Transform to our Product interface
       const transformedProducts = (data || []).map((product: any) => {
         // Debug: Log raw product data to see the structure
@@ -291,10 +321,11 @@ export const usePublicProducts = (featured?: boolean) => {
           sizes = ['Free Size'];
         }
 
-        // Reviews are not fetched to avoid permission issues
-        const reviews: any[] = [];
-        const reviewCount = 0;
-        const rating = 0;
+  // Use aggregated ratings from product_reviews
+  const agg = ratingMap[String(product.id)] || { count: 0, avg: 0 };
+  const reviews: any[] = [];
+  const reviewCount = agg.count;
+  const rating = agg.avg;
 
         // New pricing rule:
         // - If variants exist, show the minimum variant price (priceAdjustment) and ignore sale/cost

@@ -6,9 +6,13 @@ import { format } from 'date-fns';
 interface ProductReviewsProps {
   reviews: Review[];
   onAddReview: (review: ReviewFormData) => void;
+  disabled?: boolean;
+  disabledMessage?: string;
+  error?: string | null;
+  loading?: boolean;
 }
 
-const ReviewForm: React.FC<{ onSubmit: (review: ReviewFormData) => void }> = ({ onSubmit }) => {
+const ReviewForm: React.FC<{ onSubmit: (review: ReviewFormData) => void; disabled?: boolean; loading?: boolean; }> = ({ onSubmit, disabled, loading }) => {
   const [formData, setFormData] = useState<ReviewFormData>({
     rating: 5,
     comment: '',
@@ -28,6 +32,7 @@ const ReviewForm: React.FC<{ onSubmit: (review: ReviewFormData) => void }> = ({ 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 border rounded-lg p-4 bg-gray-50">
       <h4 className="text-lg font-semibold">Write a Review</h4>
+  {/* Disabled notice handled by parent when needed */}
       
       <div>
         <label className="block text-sm font-medium mb-1">Rating</label>
@@ -36,10 +41,11 @@ const ReviewForm: React.FC<{ onSubmit: (review: ReviewFormData) => void }> = ({ 
             <button
               key={star}
               type="button"
-              onClick={() => setFormData({ ...formData, rating: star })}
+              onClick={() => !disabled && setFormData({ ...formData, rating: star })}
               className={`text-2xl ${
                 star <= formData.rating ? 'text-yellow-400' : 'text-gray-300'
               }`}
+              disabled={disabled}
             >
               ★
             </button>
@@ -56,6 +62,7 @@ const ReviewForm: React.FC<{ onSubmit: (review: ReviewFormData) => void }> = ({ 
           className="w-full border rounded p-2"
           placeholder="Share your experience with this product..."
           required
+          disabled={disabled}
         />
       </div>
 
@@ -66,16 +73,20 @@ const ReviewForm: React.FC<{ onSubmit: (review: ReviewFormData) => void }> = ({ 
           accept="image/*"
           multiple
           onChange={(e) => setImages(e.target.files)}
-          className="w-full"
+          className="max-w-xs text-sm"
+          disabled={disabled}
         />
       </div>
 
-      <button
-        type="submit"
-        className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
-      >
-        Submit Review
-      </button>
+      <div className="flex justify-center">
+        <button
+          type="submit"
+          className={`px-3 py-1.5 text-sm bg-primary-600 text-white rounded ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary-700'}`}
+          disabled={disabled || loading}
+        >
+          {loading ? 'Submitting…' : 'Submit Review'}
+        </button>
+      </div>
     </form>
   );
 };
@@ -121,11 +132,14 @@ const ReviewCard: React.FC<{ review: Review }> = ({ review }) => {
   );
 };
 
-const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews, onAddReview }) => {
-  const averageRating = reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length;
+const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews, onAddReview, disabled, disabledMessage, error, loading }) => {
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length
+    : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Header with average rating */}
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold">Customer Reviews</h3>
         <div className="text-lg">
@@ -135,12 +149,33 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ reviews, onAddReview })
         </div>
       </div>
 
-      <ReviewForm onSubmit={onAddReview} />
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left: Reviews list */}
+        <div className="lg:col-span-3 space-y-4">
+          {reviews.length === 0 ? (
+            <div className="text-gray-500">No reviews yet. Be the first to write one.</div>
+          ) : (
+            reviews.map((review) => (
+              <ReviewCard key={review.id} review={review} />
+            ))
+          )}
+        </div>
 
-      <div className="space-y-4">
-        {reviews.map((review) => (
-          <ReviewCard key={review.id} review={review} />
-        ))}
+        {/* Right: Review form */}
+  <div className="lg:col-span-2 space-y-4">
+          {disabled && disabledMessage && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded">
+              {disabledMessage}
+            </div>
+          )}
+          <ReviewForm onSubmit={onAddReview} disabled={disabled} loading={loading} />
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
