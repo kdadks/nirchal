@@ -92,7 +92,7 @@ const ProductDetailPage: React.FC = () => {
         addItem({
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: adjustedPrice,
           image: product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize,
           color: selectedColor || product.color
@@ -116,7 +116,7 @@ const ProductDetailPage: React.FC = () => {
         addItem({
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: adjustedPrice,
           image: product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize,
           color: selectedColor || product.color
@@ -163,6 +163,20 @@ const ProductDetailPage: React.FC = () => {
   const prevImage = () => {
     setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
   };
+
+  // Helper: find selected variant and compute adjusted price
+  const getSelectedVariant = () => {
+    if (!product.variants || product.variants.length === 0) return undefined;
+    const normalizedSize = selectedSize && selectedSize.toLowerCase() === 'free size' ? undefined : selectedSize;
+    return product.variants.find(v => {
+      const colorMatch = selectedColor ? v.color === selectedColor : true;
+      const sizeMatch = normalizedSize ? v.size === normalizedSize : true;
+      return colorMatch && sizeMatch;
+    });
+  };
+
+  const selectedVariant = getSelectedVariant();
+  const adjustedPrice = product.price + (selectedVariant?.priceAdjustment || 0);
 
   const discountPercentage = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -318,7 +332,7 @@ const ProductDetailPage: React.FC = () => {
                 {/* Price */}
                 <div className="flex items-baseline gap-3 mb-6">
                   <span className="text-3xl font-bold text-gray-900">
-                    ₹{product.price.toLocaleString()}
+                    ₹{adjustedPrice.toLocaleString()}
                   </span>
                   {product.originalPrice && product.originalPrice > product.price && (
                     <>
