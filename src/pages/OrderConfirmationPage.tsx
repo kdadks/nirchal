@@ -1,20 +1,17 @@
 import React, { useMemo } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
-import { useCart } from '../contexts/CartContext';
 const OrderConfirmationPage: React.FC = () => {
-  const { state: { items } } = useCart();
-
-  // Redirect if there are no items (meaning no order was just placed)
-  if (items.length > 0) {
-    return <Navigate to="/cart" replace />;
-  }
-
   const { orderNumber, email } = useMemo(() => {
     const on = sessionStorage.getItem('last_order_number') || '#ORD123456';
     const em = sessionStorage.getItem('last_order_email') || '';
     return { orderNumber: on, email: em };
   }, []);
+
+  // Only redirect if we don't have order details (meaning user didn't come from checkout)
+  if (!sessionStorage.getItem('last_order_number')) {
+    return <Navigate to="/cart" replace />;
+  }
 
   return (
     <div className="container mx-auto px-4 py-16">
