@@ -8,7 +8,7 @@ export type CustomerUpsert = {
 };
 
 export type AddressUpsert = {
-  customer_id: number;
+  customer_id: string;
   type?: 'billing' | 'shipping';
   first_name: string;
   last_name: string;
@@ -34,7 +34,7 @@ export type OrderItemInput = {
 };
 
 export type CreateOrderInput = {
-  customer_id: number | null;
+  customer_id: string | number | null;
   payment_method: string;
   subtotal: number;
   shipping_amount: number;
@@ -63,7 +63,7 @@ export type CreateOrderInput = {
   items: OrderItemInput[];
 };
 
-export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: number } | null> {
+export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string } | null> {
   const { data, error } = await supabase
     .from('customers')
     .upsert({
@@ -85,7 +85,39 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
 }
 
 export async function upsertCustomerAddress(supabase: SupabaseClient, payload: AddressUpsert): Promise<{ id: number } | null> {
-  // naive upsert: insert new default shipping for this customer; in real app, you'd check duplicates
+  // Try to find an existing default address of the given type for this customer
+  const { data: existing } = await supabase
+    .from('customer_addresses')
+    .select('id')
+    .eq('customer_id', payload.customer_id)
+    .eq('type', payload.type || 'shipping')
+    .order('is_default', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from('customer_addresses')
+      .update({
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        address_line_1: payload.address_line_1,
+        city: payload.city,
+        state: payload.state,
+        postal_code: payload.postal_code,
+        country: payload.country || 'India',
+        is_default: payload.is_default ?? true,
+      })
+      .eq('id', existing.id)
+      .select('id')
+      .single();
+    if (error) {
+      console.warn('upsertCustomerAddress(update) error (non-fatal):', error.message);
+      return null;
+    }
+    return data as any;
+  }
+
   const { data, error } = await supabase
     .from('customer_addresses')
     .insert({
@@ -103,10 +135,30 @@ export async function upsertCustomerAddress(supabase: SupabaseClient, payload: A
     .select('id')
     .single();
   if (error) {
-    console.warn('upsertCustomerAddress error (non-fatal):', error.message);
+    console.warn('upsertCustomerAddress(insert) error (non-fatal):', error.message);
     return null;
   }
   return data as any;
+}
+
+export async function updateCustomerProfile(
+  supabase: SupabaseClient,
+  payload: { id: string; first_name: string; last_name: string; phone?: string }
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('customers')
+    .update({
+      first_name: payload.first_name,
+      last_name: payload.last_name,
+      phone: payload.phone || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', payload.id);
+  if (error) {
+    console.warn('updateCustomerProfile error (non-fatal):', error.message);
+    return false;
+  }
+  return true;
 }
 
 function generateOrderNumber(): string {
@@ -118,14 +170,17 @@ function generateOrderNumber(): string {
   return `ORD-${y}${m}${d}-${t}`;
 }
 
-export async function createOrderWithItems(supabase: SupabaseClient, input: CreateOrderInput): Promise<{ id: number; order_number: string } | null> {
+export async function createOrderWithItems(supabase: SupabaseClient, input: CreateOrderInput): Promise<{ id: number | string; order_number: string } | null> {
   const order_number = generateOrderNumber();
+
+  // Pass customer_id directly as UUID (nullable)
+  const customerIdForInsert: string | null = input.customer_id as string | null;
 
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .insert({
       order_number,
-      customer_id: input.customer_id,
+      customer_id: customerIdForInsert,
       status: 'pending',
       payment_status: 'pending',
       payment_method: input.payment_method,

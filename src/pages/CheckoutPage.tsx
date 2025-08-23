@@ -1,10 +1,11 @@
 /* global setTimeout, HTMLSelectElement */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { upsertCustomerByEmail, upsertCustomerAddress, createOrderWithItems } from '@utils/orders';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { upsertCustomerByEmail, upsertCustomerAddress, createOrderWithItems, updateCustomerProfile } from '@utils/orders';
 
 interface CheckoutForm {
   firstName: string;
@@ -22,6 +23,7 @@ const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { state: { items, total }, clearCart } = useCart();
   const { supabase } = useAuth();
+  const { customer } = useCustomerAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep] = useState(1);
   const [form, setForm] = useState<CheckoutForm>({
@@ -36,27 +38,86 @@ const CheckoutPage: React.FC = () => {
     paymentMethod: 'cod'
   });
 
-  if (items.length === 0) {
-    navigate('/cart');
-    return null;
-  }
+  // Prefill from logged-in customer
+  useEffect(() => {
+    if (customer) {
+      setForm(prev => ({
+        ...prev,
+        firstName: customer.first_name || prev.firstName,
+        lastName: customer.last_name || prev.lastName,
+        email: customer.email || prev.email,
+        phone: customer.phone || prev.phone,
+      }));
+    }
+  }, [customer]);
+
+  // Load default shipping address for logged-in customer
+  useEffect(() => {
+    const loadDefaultAddress = async () => {
+      if (!customer) return;
+      try {
+        const { data } = await supabase
+          .from('customer_addresses')
+          .select('first_name, last_name, address_line_1, city, state, postal_code, type, is_default')
+          .eq('customer_id', customer.id)
+          .eq('type', 'shipping')
+          .order('is_default', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setForm(prev => ({
+            ...prev,
+            firstName: prev.firstName || data.first_name || '',
+            lastName: prev.lastName || data.last_name || '',
+            address: data.address_line_1 || prev.address,
+            city: data.city || prev.city,
+            state: data.state || prev.state,
+            pincode: data.postal_code || prev.pincode,
+          }));
+        }
+      } catch (err) {
+        console.warn('Failed to prefill default address:', err);
+      }
+    };
+    loadDefaultAddress();
+  }, [customer, supabase]);
+
+  // Redirect to cart if empty (avoid navigating during render)
+  useEffect(() => {
+    if (items.length === 0) {
+      navigate('/cart', { replace: true });
+    }
+  }, [items.length, navigate]);
+  if (items.length === 0) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // 1) Create/Upsert customer by email (unique)
-      const customerRes = await upsertCustomerByEmail(supabase, {
-        email: form.email.trim(),
-        first_name: form.firstName.trim(),
-        last_name: form.lastName.trim(),
-        phone: form.phone.trim(),
-      });
-      const customerId = customerRes?.id || null;
+      // 1) If logged in, update their profile (email is read-only)
+      let customerId: string | null = customer?.id || null;
+      if (customer) {
+        await updateCustomerProfile(supabase, {
+          id: customer.id,
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          phone: form.phone.trim(),
+        });
+      } else {
+        // Not logged in: upsert by email to create a customer record
+        const customerRes = await upsertCustomerByEmail(supabase, {
+          email: form.email.trim(),
+          first_name: form.firstName.trim(),
+          last_name: form.lastName.trim(),
+          phone: form.phone.trim(),
+        });
+        customerId = customerRes?.id || null;
+      }
 
       // 2) Create/Upsert address (best-effort)
-      if (customerId) {
+  if (customerId) {
         await upsertCustomerAddress(supabase, {
           customer_id: customerId,
           type: 'shipping',
@@ -113,6 +174,11 @@ const CheckoutPage: React.FC = () => {
           variant_color: it.color,
         })),
       });
+      
+      if (!order) {
+        throw new Error('Order creation failed - no order returned');
+      }
+      
       // Save basics for confirmation screen
       if (order?.order_number) sessionStorage.setItem('last_order_number', order.order_number);
       if (form?.email) sessionStorage.setItem('last_order_email', form.email.trim());
@@ -256,6 +322,7 @@ const CheckoutPage: React.FC = () => {
                           value={form.email}
                           onChange={handleInputChange}
                           required
+                          readOnly={!!customer}
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
                           placeholder="your@email.com"
                         />

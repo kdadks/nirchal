@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Search, Heart, User, Crown } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, Heart, User, Crown, LogOut } from 'lucide-react';
 import Footer from '../common/Footer_new';
 import AIChatbot from '../common/AIChatbot';
-import AuthModal from '../auth/AuthModal';
-import { useAuth } from '../../contexts/AuthContext';
+import CustomerAuthModal from '../auth/CustomerAuthModal';
+import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,7 +13,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { customer, signOut } = useCustomerAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -45,7 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   const handleAccountClick = () => {
-    if (user) {
+    if (customer) {
       navigate('/account');
     } else {
       setShowAuthModal(true);
@@ -123,18 +123,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 onClick={handleAccountClick}
                 className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
               >
-                <User size={20} />
+                {customer ? (
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold">
+                    {customer.first_name?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                ) : (
+                  <User size={20} />
+                )}
                 <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100 to-accent-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
               </button>
               
-              {/* Temporary Logout Button for Testing */}
-              {user && (
-                <button 
-                  onClick={() => signOut()}
-                  className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  title="Logout (Test)"
+              {/* Logout Icon */}
+              {customer && (
+                <button
+                  onClick={() => {
+                    signOut();
+                    navigate('/');
+                  }}
+                  className="group relative p-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300"
+                  title="Logout"
+                  aria-label="Logout"
                 >
-                  Logout
+                  <LogOut size={20} />
+                  <span className="absolute inset-0 rounded-xl bg-red-100/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
                 </button>
               )}
               
@@ -236,7 +247,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <AIChatbot />
 
       {/* Auth Modal */}
-      <AuthModal 
+      <CustomerAuthModal 
         open={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
       />
