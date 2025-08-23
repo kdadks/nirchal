@@ -64,6 +64,8 @@ export type CreateOrderInput = {
 };
 
 export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string } | null> {
+  console.log('Attempting to upsert customer:', payload.email);
+  
   const { data, error } = await supabase
     .from('customers')
     .upsert({
@@ -77,10 +79,14 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
     })
     .select('id')
     .single();
+    
   if (error) {
-    console.warn('upsertCustomerByEmail error (non-fatal):', error.message);
+    console.error('upsertCustomerByEmail error:', error);
+    console.error('Error details:', { code: error.code, message: error.message, details: error.details });
     return null;
   }
+  
+  console.log('Customer upsert successful:', data);
   return data as any;
 }
 
