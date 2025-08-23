@@ -63,27 +63,60 @@ export type CreateOrderInput = {
   items: OrderItemInput[];
 };
 
-export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string } | null> {
-  const { data, error } = await supabase
-    .from('customers')
-    .upsert({
-      email: payload.email,
-      first_name: payload.first_name,
-      last_name: payload.last_name,
-      phone: payload.phone || null,
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'email'
-    })
-    .select('id')
-    .single();
-    
-  if (error) {
-    console.error('upsertCustomerByEmail error:', error);
-    return null;
-  }
+export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string; tempPassword?: string; existingCustomer?: boolean } | null> {
+  console.log('Attempting customer upsert for:', payload.email);
   
-  return data as any;
+  // Try the new temp password function first, fallback to direct insert if it fails
+  try {
+    const { data, error } = await supabase
+      .rpc('create_checkout_customer', {
+        p_email: payload.email,
+        p_first_name: payload.first_name,
+        p_last_name: payload.last_name,
+        p_phone: payload.phone || null
+      });
+      
+    if (error) {
+      console.warn('RPC create_checkout_customer failed, falling back to direct insert:', error);
+      throw error; // Will trigger fallback
+    }
+    
+    console.log('RPC customer creation successful:', data);
+    return {
+      id: data.id,
+      tempPassword: data.temp_password,
+      existingCustomer: data.existing_customer
+    };
+  } catch (rpcError) {
+    console.log('Falling back to direct customer insert...');
+    
+    // Fallback to original direct insert method
+    const { data, error } = await supabase
+      .from('customers')
+      .upsert({
+        email: payload.email,
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        phone: payload.phone || null,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'email'
+      })
+      .select('id')
+      .single();
+      
+    if (error) {
+      console.error('Fallback customer creation also failed:', error);
+      return null;
+    }
+    
+    console.log('Fallback customer creation successful:', data);
+    return {
+      id: data.id,
+      tempPassword: undefined, // No temp password in fallback mode
+      existingCustomer: false
+    };
+  }
 }
 
 export async function upsertCustomerAddress(supabase: SupabaseClient, payload: AddressUpsert): Promise<{ id: number } | null> {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { Link, Navigate } from 'react-router-dom';
 import { supabase } from '../config/supabase';
+import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 
 type OrderRow = {
   id: number;
@@ -28,6 +29,7 @@ const AccountPage: React.FC = () => {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -37,16 +39,18 @@ const AccountPage: React.FC = () => {
       }
 
       try {
-        // For now, get all orders and addresses since RLS isn't implemented yet
-        // In production, this would be filtered by customer_id via RLS
+        // Filter orders and addresses by current customer ID
         const [{ data: ords }, { data: addrs }] = await Promise.all([
           supabase.from('orders')
             .select('id, order_number, status, total_amount, created_at')
+            .eq('customer_id', customer.id)
             .order('created_at', { ascending: false }),
           supabase.from('customer_addresses')
             .select('id, type, first_name, last_name, address_line_1, city, state, postal_code, is_default')
+            .eq('customer_id', customer.id)
             .order('is_default', { ascending: false })
         ]);
+        
         setOrders(ords || []);
         setAddresses(addrs || []);
       } catch (error) {
@@ -55,7 +59,7 @@ const AccountPage: React.FC = () => {
       setLoading(false);
     };
     load();
-  }, [customer?.email]);
+  }, [customer?.email, customer?.id]);
 
   if (!customer && import.meta.env.PROD) {
     return <Navigate to="/" replace />;
@@ -64,16 +68,69 @@ const AccountPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-10">
       <h1 className="text-3xl font-serif font-bold mb-6">My Account</h1>
+      
       {!customer && (
         <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded">
           You're not signed in. In development you can still view demo data if available.
         </div>
       )}
+      
       {customer && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded">
           Welcome back, {customer.first_name} {customer.last_name}! ({customer.email})
         </div>
       )}
+
+      {/* Temporary Password Security Warning */}
+      {customer && sessionStorage.getItem('new_customer_temp_password') && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                🔒 Action Required: Change Your Temporary Password
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>
+                  You're currently using a temporary password created during checkout. 
+                  <strong className="font-medium"> For your account security, please change it immediately.</strong>
+                </p>
+                <ul className="mt-2 list-disc list-inside space-y-1">
+                  <li>Temporary passwords are less secure than your chosen password</li>
+                  <li>Anyone with access to your email could potentially access your account</li>
+                  <li>Your order history and personal information need better protection</li>
+                </ul>
+              </div>
+              <div className="mt-4">
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowPasswordModal(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors"
+                  >
+                    Change Password Now
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure? We strongly recommend changing your password for security.')) {
+                        sessionStorage.removeItem('new_customer_temp_password');
+                        window.location.reload();
+                      }
+                    }}
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-700 text-sm font-medium px-4 py-2 rounded-md transition-colors"
+                  >
+                    Dismiss (Not Recommended)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {loading ? (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -139,8 +196,38 @@ const AccountPage: React.FC = () => {
                 ))}
               </div>
             )}
+            
+            {/* Account Actions */}
+            {customer && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-medium mb-3">Account Settings</h3>
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className="w-full bg-amber-600 text-white py-2 px-4 rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                >
+                  Change Password
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      )}
+      
+      {/* Change Password Modal */}
+      {customer && (
+        <ChangePasswordModal
+          isOpen={showPasswordModal}
+          onClose={() => setShowPasswordModal(false)}
+          email={customer.email}
+          onPasswordChanged={() => {
+            setShowPasswordModal(false);
+            // Clear temp password notification
+            sessionStorage.removeItem('new_customer_temp_password');
+            alert('Password updated successfully! Your account is now secure.');
+            // Refresh page to hide notification
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );
