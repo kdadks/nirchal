@@ -107,7 +107,6 @@ const CheckoutPage: React.FC = () => {
         });
       } else {
         // Not logged in: upsert by email to create a customer record
-        console.log('Creating new customer for email:', form.email.trim());
         const customerRes = await upsertCustomerByEmail(supabase, {
           email: form.email.trim(),
           first_name: form.firstName.trim(),
@@ -115,7 +114,6 @@ const CheckoutPage: React.FC = () => {
           phone: form.phone.trim(),
         });
         customerId = customerRes?.id || null;
-        console.log('New customer created with ID:', customerId);
       }
 
       // 2) Create/Upsert address (best-effort)
@@ -177,34 +175,22 @@ const CheckoutPage: React.FC = () => {
         })),
       });
       
-      console.log('Order creation completed:', order);
-      
       if (!order) {
-        console.error('Order creation failed - no order returned');
         throw new Error('Order creation failed - no order returned');
       }
       
       // Save basics for confirmation screen
-      console.log('Saving order details to sessionStorage:', order.order_number);
       if (order?.order_number) sessionStorage.setItem('last_order_number', order.order_number);
       if (form?.email) sessionStorage.setItem('last_order_email', form.email.trim());
       
-      console.log('Clearing cart and navigating...');
       clearCart();
-      
-      // Add a small delay to ensure all operations complete
-      setTimeout(() => {
-        console.log('Navigating to confirmation page...');
-        navigate('/order-confirmation');
-      }, 100);
+      navigate('/order-confirmation');
     } catch (error) {
-      console.error('Checkout error details:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
+      console.error('Checkout error:', error);
       
       // Check if order was actually created despite the error
       const orderNumber = sessionStorage.getItem('last_order_number');
       if (orderNumber) {
-        console.log('Order was created successfully, navigating to confirmation...');
         navigate('/order-confirmation');
         return;
       }
