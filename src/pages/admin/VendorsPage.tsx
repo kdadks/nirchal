@@ -342,16 +342,16 @@ const VendorsPage: React.FC = () => {
             Add Vendor
           </button>
         }
-      />
-
-      {/* Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        itemsPerPage={itemsPerPage}
-        totalItems={totalItems}
-        onPageChange={setCurrentPage}
-        onItemsPerPageChange={setItemsPerPage}
+        footerContent={
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            itemsPerPage={itemsPerPage}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        }
       />
     </div>
   );
