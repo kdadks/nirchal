@@ -372,7 +372,11 @@ const ProductListingPage: React.FC = () => {
                     <Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}
+                      itemsPerPage={20}
+                      totalItems={totalCount}
                       onPageChange={setCurrentPage}
+                      onItemsPerPageChange={() => {}} // No-op since server controls page size
+                      showItemsPerPage={false} // Hide items per page selector for server-side pagination
                     />
                   </div>
                 )}

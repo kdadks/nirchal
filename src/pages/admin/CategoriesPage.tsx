@@ -386,7 +386,6 @@ const CategoriesPage: React.FC = () => {
         totalItems={totalItems}
         onPageChange={setCurrentPage}
         onItemsPerPageChange={setItemsPerPage}
-        className="border-t border-gray-200"
       />
 
       {/* Modal */}
