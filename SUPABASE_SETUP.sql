@@ -1,16 +1,17 @@
--- Settings System Database Schema and Initial Data
--- Execute this directly in Supabase SQL Editor
+-- Complete Database Setup for Nirchal E-commerce
+-- Execute this script directly in Supabase SQL Editor
 
--- Settings System Database Schema
--- This will store all application settings in a flexible key-value structure
+-- First, let's check if tables exist and drop them for a clean setup
+DROP TABLE IF EXISTS settings CASCADE;
+DROP TABLE IF EXISTS settings_categories CASCADE;
 
--- Create settings table
-CREATE TABLE IF NOT EXISTS settings (
+-- 1. Create settings table
+CREATE TABLE settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    category VARCHAR(50) NOT NULL, -- 'shop', 'payment', 'billing', 'seo', etc.
+    category VARCHAR(50) NOT NULL,
     key VARCHAR(100) NOT NULL,
     value TEXT,
-    data_type VARCHAR(20) DEFAULT 'string', -- 'string', 'number', 'boolean', 'json'
+    data_type VARCHAR(20) DEFAULT 'string',
     description TEXT,
     is_encrypted BOOLEAN DEFAULT false,
     is_required BOOLEAN DEFAULT false,
@@ -23,8 +24,8 @@ CREATE TABLE IF NOT EXISTS settings (
     UNIQUE(category, key)
 );
 
--- Create settings categories table
-CREATE TABLE IF NOT EXISTS settings_categories (
+-- 2. Create settings categories table
+CREATE TABLE settings_categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(50) UNIQUE NOT NULL,
     label VARCHAR(100) NOT NULL,
@@ -36,25 +37,17 @@ CREATE TABLE IF NOT EXISTS settings_categories (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Ensure unique constraint exists on settings table
-ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_category_key_key;
-ALTER TABLE settings ADD CONSTRAINT settings_category_key_key UNIQUE (category, key);
-
--- Insert initial settings categories
+-- 3. Insert settings categories
 INSERT INTO settings_categories (name, label, description, icon, display_order) VALUES
 ('shop', 'Shop Settings', 'Basic store information and business settings', 'Store', 1),
 ('payment', 'Payment Gateway', 'Payment gateway configuration and settings', 'CreditCard', 2),
 ('email', 'Email Settings', 'Email configuration and SMTP settings', 'Mail', 3),
 ('billing', 'Billing', 'Tax and billing configuration', 'Receipt', 4),
-('seo', 'SEO Settings', 'Search engine optimization settings', 'Search', 5)
-ON CONFLICT (name) DO UPDATE SET
-  label = EXCLUDED.label,
-  description = EXCLUDED.description,
-  icon = EXCLUDED.icon,
-  display_order = EXCLUDED.display_order;
+('seo', 'SEO Settings', 'Search engine optimization settings', 'Search', 5);
 
--- Insert initial shop settings
+-- 4. Insert all initial settings
 INSERT INTO settings (category, key, value, data_type, description, is_required, default_value) VALUES
+
 -- Shop Settings
 ('shop', 'store_name', 'Nirchal', 'string', 'Name of your store', true, 'Nirchal'),
 ('shop', 'store_email', 'contact@nirchal.com', 'string', 'Store contact email address', true, 'contact@nirchal.com'),
@@ -125,17 +118,91 @@ INSERT INTO settings (category, key, value, data_type, description, is_required,
 ('seo', 'robots_follow', 'true', 'boolean', 'Allow search engines to follow links', false, 'true'),
 ('seo', 'enable_sitemap', 'true', 'boolean', 'Automatically generate XML sitemap', false, 'true'),
 ('seo', 'google_analytics_id', '', 'string', 'Google Analytics tracking ID', false, ''),
-('seo', 'facebook_pixel_id', '', 'string', 'Facebook Pixel tracking ID', false, '')
-ON CONFLICT (category, key) DO UPDATE SET
-  value = CASE 
-    WHEN settings.value = settings.default_value OR settings.value = '' THEN EXCLUDED.value
-    ELSE settings.value
-  END,
-  description = EXCLUDED.description,
-  is_required = EXCLUDED.is_required,
-  default_value = EXCLUDED.default_value;
+('seo', 'facebook_pixel_id', '', 'string', 'Facebook Pixel tracking ID', false, '');
 
--- Verify the setup
+-- 5. Enable Row Level Security (RLS) on tables
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE settings_categories ENABLE ROW LEVEL SECURITY;
+
+-- 6. Create RLS policies for settings table
+-- Allow all authenticated users to read all settings
+CREATE POLICY "Allow read access to all settings" 
+ON settings FOR SELECT 
+TO authenticated 
+USING (true);
+
+-- Allow authenticated users to insert settings
+CREATE POLICY "Allow insert access to settings" 
+ON settings FOR INSERT 
+TO authenticated 
+WITH CHECK (true);
+
+-- Allow authenticated users to update settings
+CREATE POLICY "Allow update access to settings" 
+ON settings FOR UPDATE 
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
+
+-- Allow authenticated users to delete settings
+CREATE POLICY "Allow delete access to settings" 
+ON settings FOR DELETE 
+TO authenticated 
+USING (true);
+
+-- 7. Create RLS policies for settings_categories table
+-- Allow all authenticated users to read all settings categories
+CREATE POLICY "Allow read access to all settings categories" 
+ON settings_categories FOR SELECT 
+TO authenticated 
+USING (true);
+
+-- Allow authenticated users to insert settings categories
+CREATE POLICY "Allow insert access to settings categories" 
+ON settings_categories FOR INSERT 
+TO authenticated 
+WITH CHECK (true);
+
+-- Allow authenticated users to update settings categories
+CREATE POLICY "Allow update access to settings categories" 
+ON settings_categories FOR UPDATE 
+TO authenticated 
+USING (true) 
+WITH CHECK (true);
+
+-- Allow authenticated users to delete settings categories
+CREATE POLICY "Allow delete access to settings categories" 
+ON settings_categories FOR DELETE 
+TO authenticated 
+USING (true);
+
+-- 8. Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_settings_category ON settings(category);
+CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
+CREATE INDEX IF NOT EXISTS idx_settings_category_key ON settings(category, key);
+CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);
+
+-- 9. Create a function to update the updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- 10. Create triggers to automatically update the updated_at column
+CREATE TRIGGER update_settings_updated_at 
+    BEFORE UPDATE ON settings 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_settings_categories_updated_at 
+    BEFORE UPDATE ON settings_categories 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- 11. Verify the setup
 SELECT 
   sc.name as category,
   sc.label as category_label,

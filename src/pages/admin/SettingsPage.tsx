@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Settings, 
   Store, 
   CreditCard, 
   Receipt, 
@@ -15,92 +14,108 @@ import {
   Youtube,
   Linkedin,
   MessageCircle,
-  Send
+  Mail,
+  CheckCircle
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 
+interface TabState {
+  [key: string]: Record<string, any>;
+}
+
+interface TabChanges {
+  [key: string]: boolean;
+}
+
 const SettingsPage: React.FC = React.memo(() => {
   const { 
-    categories, 
     settings, 
     loading, 
     error, 
-    updateMultipleSettings,
-    getSetting
+    updateMultipleSettings
   } = useSettings();
   
   const [activeTab, setActiveTab] = useState('shop');
-  const [localSettings, setLocalSettings] = useState<Record<string, any>>({});
-  const [hasChanges, setHasChanges] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [tabSettings, setTabSettings] = useState<TabState>({});
+  const [tabChanges, setTabChanges] = useState<TabChanges>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [showSecrets, setShowSecrets] = useState({
-    razorpaySecret: false,
-    stripeSecret: false,
-    paypalSecret: false,
+    razorpay_key_secret: false,
+    stripe_secret_key: false,
+    paypal_client_secret: false,
+    smtp_password: false,
   });
 
-  // Sync database settings with local state
+  const tabs = [
+    { id: 'shop', label: 'Shop Settings', icon: <Store className="w-4 h-4" /> },
+    { id: 'payment', label: 'Payment Gateway', icon: <CreditCard className="w-4 h-4" /> },
+    { id: 'email', label: 'Email Settings', icon: <Mail className="w-4 h-4" /> },
+    { id: 'billing', label: 'Billing', icon: <Receipt className="w-4 h-4" /> },
+    { id: 'seo', label: 'SEO Settings', icon: <Search className="w-4 h-4" /> },
+  ];
+
+  // Initialize tab settings from database
   useEffect(() => {
     if (!loading && settings) {
-      const allSettings: Record<string, any> = {};
-      Object.keys(settings).forEach(category => {
-        Object.keys(settings[category]).forEach(key => {
-          const cleanKey = key.startsWith(`${category}_`) ? key.substring(category.length + 1) : key;
-          allSettings[`${category}_${cleanKey}`] = getSetting(category, key);
-        });
+      const newTabSettings: TabState = {};
+      
+      tabs.forEach(tab => {
+        newTabSettings[tab.id] = {};
+        if (settings[tab.id]) {
+          Object.keys(settings[tab.id]).forEach(key => {
+            newTabSettings[tab.id][key] = settings[tab.id][key]?.value || '';
+          });
+        }
       });
-      setLocalSettings(allSettings);
-      setHasChanges(false);
+      
+      setTabSettings(newTabSettings);
+      setTabChanges({});
     }
-  }, [settings, loading]);
+  }, [loading, settings]);
 
-  // Create tabs from database categories
-  const tabs = categories.map(category => ({
-    id: category.name,
-    label: category.label,
-    icon: getIconComponent(category.icon)
-  }));
+  // Handle setting change for specific tab
+  const handleTabSettingChange = (tabId: string, key: string, value: any) => {
+    setTabSettings(prev => ({
+      ...prev,
+      [tabId]: {
+        ...prev[tabId],
+        [key]: value
+      }
+    }));
 
-  function getIconComponent(iconName: string) {
-    const icons: Record<string, React.ReactNode> = {
-      'Store': <Store className="admin-icon" />,
-      'CreditCard': <CreditCard className="admin-icon" />,
-      'Receipt': <Receipt className="admin-icon" />,
-      'Search': <Search className="admin-icon" />
-    };
-    return icons[iconName] || <Settings className="admin-icon" />;
-  }
+    setTabChanges(prev => ({
+      ...prev,
+      [tabId]: true
+    }));
 
-  const handleSettingChange = (key: string, value: any) => {
-    setLocalSettings(prev => ({ ...prev, [key]: value }));
-    setHasChanges(true);
+    // Clear saved state when changes are made
+    if (saved[tabId]) {
+      setSaved(prev => ({
+        ...prev,
+        [tabId]: false
+      }));
+    }
   };
 
-  const toggleSecret = (key: string) => {
-    setShowSecrets(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
-  };
+  // Save settings for specific tab
+  const handleTabSave = async (tabId: string) => {
+    if (!tabChanges[tabId] || saving[tabId]) return;
 
-  const handleSave = async () => {
-    setSaving(true);
+    setSaving(prev => ({ ...prev, [tabId]: true }));
+    
     try {
       const updates: Array<{ category: string; key: string; value: string }> = [];
+      const currentTabSettings = tabSettings[tabId] || {};
       
-      Object.keys(localSettings).forEach(settingKey => {
-        const [category, ...keyParts] = settingKey.split('_');
-        const cleanKey = keyParts.join('_');
-        const dbKey = `${category}_${cleanKey}`;
-        
-        let originalValue = null;
-        if (settings[category] && settings[category][dbKey]) {
-          originalValue = getSetting(category, dbKey);
-        }
-        
-        const newValue = localSettings[settingKey];
+      Object.keys(currentTabSettings).forEach(key => {
+        const originalValue = settings[tabId]?.[key]?.value || '';
+        const newValue = currentTabSettings[key];
         
         if (originalValue !== newValue) {
           updates.push({
-            category,
-            key: dbKey,
+            category: tabId,
+            key: key,
             value: String(newValue)
           });
         }
@@ -108,22 +123,34 @@ const SettingsPage: React.FC = React.memo(() => {
 
       if (updates.length > 0) {
         await updateMultipleSettings(updates);
-        setHasChanges(false);
+        setTabChanges(prev => ({ ...prev, [tabId]: false }));
+        setSaved(prev => ({ ...prev, [tabId]: true }));
+        
+        // Clear saved indicator after 3 seconds
+        setTimeout(() => {
+          setSaved(prev => ({ ...prev, [tabId]: false }));
+        }, 3000);
       }
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      console.error(`Failed to save ${tabId} settings:`, error);
     } finally {
-      setSaving(false);
+      setSaving(prev => ({ ...prev, [tabId]: false }));
     }
+  };
+
+  const toggleSecretVisibility = (field: string) => {
+    setShowSecrets(prev => ({
+      ...prev,
+      [field]: !prev[field as keyof typeof prev]
+    }));
   };
 
   if (loading) {
     return (
-      <div>
-        <div className="admin-card">
-          <div className="admin-card-content">
-            <div className="admin-loading">Loading settings...</div>
-          </div>
+      <div className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading settings...</p>
         </div>
       </div>
     );
@@ -131,423 +158,712 @@ const SettingsPage: React.FC = React.memo(() => {
 
   if (error) {
     return (
-      <div>
-        <div className="admin-card">
-          <div className="admin-card-content">
-            <div className="admin-error">
-              <AlertCircle className="admin-icon" />
-              <span>Error loading settings: {error}</span>
-            </div>
+      <div className="p-6">
+        <div className="bg-white rounded-lg shadow-sm border p-8">
+          <div className="flex items-center justify-center text-red-600 mb-4">
+            <AlertCircle className="w-8 h-8 mr-3" />
+            <span className="text-lg font-medium">Error loading settings</span>
           </div>
+          <p className="text-gray-600 text-center">{error}</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div>
-      {/* Settings Content */}
-      <div className="admin-card">
-        {/* Tab Navigation */}
-        <div className="admin-card-header">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="admin-tabs">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-            
-            {hasChanges && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="admin-btn admin-btn-primary admin-btn-sm"
-              >
-                <Save className="admin-icon" />
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            )}
+  const renderShopSettings = () => (
+    <div className="space-y-8">
+      {/* Store Information */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Store Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Store Name *</label>
+            <input
+              type="text"
+              value={tabSettings.shop?.store_name || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'store_name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Enter store name"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Store Email *</label>
+            <input
+              type="email"
+              value={tabSettings.shop?.store_email || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'store_email', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="contact@yourstore.com"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Store Phone</label>
+            <input
+              type="tel"
+              value={tabSettings.shop?.store_phone || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'store_phone', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="+91 98765 43210"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+            <select
+              value={tabSettings.shop?.currency || 'INR'}
+              onChange={(e) => handleTabSettingChange('shop', 'currency', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="INR">Indian Rupee (₹)</option>
+              <option value="USD">US Dollar ($)</option>
+              <option value="EUR">Euro (€)</option>
+            </select>
           </div>
         </div>
+        
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Store Address</label>
+          <textarea
+            value={tabSettings.shop?.store_address || ''}
+            onChange={(e) => handleTabSettingChange('shop', 'store_address', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            rows={3}
+            placeholder="Enter your store address"
+          />
+        </div>
+        
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Store Description</label>
+          <textarea
+            value={tabSettings.shop?.store_description || ''}
+            onChange={(e) => handleTabSettingChange('shop', 'store_description', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            rows={4}
+            placeholder="Brief description of your store"
+          />
+        </div>
+      </div>
 
-        {/* Settings Content */}
-        <div className="admin-card-content">
-          {activeTab === 'shop' && (
-            <div className="admin-settings-section">
-              {/* Store Information */}
-              <div className="admin-settings-group">
-                <h3 className="admin-settings-title">Store Information</h3>
-                <div className="admin-form-grid">
-                  <div className="admin-form-group">
-                    <label className="admin-label">Store Name</label>
-                    <input
-                      type="text"
-                      value={localSettings.shop_name || ''}
-                      onChange={(e) => handleSettingChange('shop_name', e.target.value)}
-                      className="admin-input"
-                      placeholder="Enter store name"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">Store Email</label>
-                    <input
-                      type="email"
-                      value={localSettings.shop_email || ''}
-                      onChange={(e) => handleSettingChange('shop_email', e.target.value)}
-                      className="admin-input"
-                      placeholder="contact@yourstore.com"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">Store Phone</label>
-                    <input
-                      type="tel"
-                      value={localSettings.shop_phone || ''}
-                      onChange={(e) => handleSettingChange('shop_phone', e.target.value)}
-                      className="admin-input"
-                      placeholder="+91 98765 43210"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">Currency</label>
-                    <select
-                      value={localSettings.shop_currency || 'INR'}
-                      onChange={(e) => handleSettingChange('shop_currency', e.target.value)}
-                      className="admin-input"
-                    >
-                      <option value="INR">Indian Rupee (₹)</option>
-                      <option value="USD">US Dollar ($)</option>
-                      <option value="EUR">Euro (€)</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="admin-form-group">
-                  <label className="admin-label">Store Address</label>
-                  <textarea
-                    value={localSettings.shop_address || ''}
-                    onChange={(e) => handleSettingChange('shop_address', e.target.value)}
-                    className="admin-textarea"
-                    rows={3}
-                    placeholder="Enter your store address"
-                  />
-                </div>
-                
-                <div className="admin-form-group">
-                  <label className="admin-label">Store Description</label>
-                  <textarea
-                    value={localSettings.shop_description || ''}
-                    onChange={(e) => handleSettingChange('shop_description', e.target.value)}
-                    className="admin-textarea"
-                    rows={4}
-                    placeholder="Brief description of your store"
-                  />
-                </div>
-              </div>
+      {/* Social Media Links */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Social Media Links</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Facebook className="w-4 h-4 mr-2 text-blue-600" />
+              Facebook URL
+            </label>
+            <input
+              type="url"
+              value={tabSettings.shop?.social_facebook_url || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'social_facebook_url', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://facebook.com/yourpage"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Instagram className="w-4 h-4 mr-2 text-pink-600" />
+              Instagram URL
+            </label>
+            <input
+              type="url"
+              value={tabSettings.shop?.social_instagram_url || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'social_instagram_url', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://instagram.com/yourprofile"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Twitter className="w-4 h-4 mr-2 text-blue-400" />
+              Twitter URL
+            </label>
+            <input
+              type="url"
+              value={tabSettings.shop?.social_twitter_url || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'social_twitter_url', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://twitter.com/yourprofile"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Youtube className="w-4 h-4 mr-2 text-red-600" />
+              YouTube URL
+            </label>
+            <input
+              type="url"
+              value={tabSettings.shop?.social_youtube_url || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'social_youtube_url', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://youtube.com/yourchannel"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Linkedin className="w-4 h-4 mr-2 text-blue-700" />
+              LinkedIn URL
+            </label>
+            <input
+              type="url"
+              value={tabSettings.shop?.social_linkedin_url || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'social_linkedin_url', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://linkedin.com/company/yourcompany"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <MessageCircle className="w-4 h-4 mr-2 text-green-600" />
+              WhatsApp Number
+            </label>
+            <input
+              type="tel"
+              value={tabSettings.shop?.social_whatsapp_number || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'social_whatsapp_number', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="+919876543210"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
-              {/* Social Media Links */}
-              <div className="admin-settings-group">
-                <h3 className="admin-settings-title">Social Media Links</h3>
-                <div className="admin-form-grid">
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <Facebook className="h-4 w-4 inline mr-2" />
-                      Facebook Page URL
-                    </label>
-                    <input
-                      type="url"
-                      value={localSettings.shop_social_facebook_url || ''}
-                      onChange={(e) => handleSettingChange('shop_social_facebook_url', e.target.value)}
-                      className="admin-input"
-                      placeholder="https://facebook.com/yourpage"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <Instagram className="h-4 w-4 inline mr-2" />
-                      Instagram Profile URL
-                    </label>
-                    <input
-                      type="url"
-                      value={localSettings.shop_social_instagram_url || ''}
-                      onChange={(e) => handleSettingChange('shop_social_instagram_url', e.target.value)}
-                      className="admin-input"
-                      placeholder="https://instagram.com/yourprofile"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <Twitter className="h-4 w-4 inline mr-2" />
-                      Twitter Profile URL
-                    </label>
-                    <input
-                      type="url"
-                      value={localSettings.shop_social_twitter_url || ''}
-                      onChange={(e) => handleSettingChange('shop_social_twitter_url', e.target.value)}
-                      className="admin-input"
-                      placeholder="https://twitter.com/yourprofile"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <Youtube className="h-4 w-4 inline mr-2" />
-                      YouTube Channel URL
-                    </label>
-                    <input
-                      type="url"
-                      value={localSettings.shop_social_youtube_url || ''}
-                      onChange={(e) => handleSettingChange('shop_social_youtube_url', e.target.value)}
-                      className="admin-input"
-                      placeholder="https://youtube.com/channel/yourchannel"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <Linkedin className="h-4 w-4 inline mr-2" />
-                      LinkedIn Profile URL
-                    </label>
-                    <input
-                      type="url"
-                      value={localSettings.shop_social_linkedin_url || ''}
-                      onChange={(e) => handleSettingChange('shop_social_linkedin_url', e.target.value)}
-                      className="admin-input"
-                      placeholder="https://linkedin.com/company/yourcompany"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <div className="h-4 w-4 inline mr-2 bg-pink-500 rounded"></div>
-                      Pinterest Profile URL
-                    </label>
-                    <input
-                      type="url"
-                      value={localSettings.shop_social_pinterest_url || ''}
-                      onChange={(e) => handleSettingChange('shop_social_pinterest_url', e.target.value)}
-                      className="admin-input"
-                      placeholder="https://pinterest.com/yourprofile"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <MessageCircle className="h-4 w-4 inline mr-2" />
-                      WhatsApp Business Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={localSettings.shop_social_whatsapp_number || ''}
-                      onChange={(e) => handleSettingChange('shop_social_whatsapp_number', e.target.value)}
-                      className="admin-input"
-                      placeholder="+919876543210"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">Include country code (e.g., +91 for India)</p>
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">
-                      <Send className="h-4 w-4 inline mr-2" />
-                      Telegram Channel URL
-                    </label>
-                    <input
-                      type="url"
-                      value={localSettings.shop_social_telegram_url || ''}
-                      onChange={(e) => handleSettingChange('shop_social_telegram_url', e.target.value)}
-                      className="admin-input"
-                      placeholder="https://t.me/yourchannel"
-                    />
-                  </div>
-                </div>
-              </div>
+  const renderPaymentSettings = () => (
+    <div className="space-y-8">
+      {/* Razorpay Settings */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Razorpay Configuration</h3>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tabSettings.payment?.razorpay_enabled === 'true'}
+              onChange={(e) => handleTabSettingChange('payment', 'razorpay_enabled', e.target.checked ? 'true' : 'false')}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <span className="ml-3 text-sm font-medium text-gray-700">Enable Razorpay</span>
+          </label>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Key ID</label>
+            <input
+              type="text"
+              value={tabSettings.payment?.razorpay_key_id || ''}
+              onChange={(e) => handleTabSettingChange('payment', 'razorpay_key_id', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="rzp_test_..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Key Secret</label>
+            <div className="relative">
+              <input
+                type={showSecrets.razorpay_key_secret ? "text" : "password"}
+                value={tabSettings.payment?.razorpay_key_secret || ''}
+                onChange={(e) => handleTabSettingChange('payment', 'razorpay_key_secret', e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Enter secret key"
+              />
+              <button
+                type="button"
+                onClick={() => toggleSecretVisibility('razorpay_key_secret')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showSecrets.razorpay_key_secret ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
 
-          {activeTab === 'payment' && (
-            <div className="admin-settings-section">
-              {/* Payment Gateways */}
-              <div className="admin-settings-group">
-                <h3 className="admin-settings-title">Payment Gateways</h3>
-                
-                {/* Razorpay */}
-                <div className="admin-gateway-card">
-                  <div className="admin-gateway-header">
-                    <div className="admin-gateway-info">
-                      <h4 className="admin-gateway-name">Razorpay</h4>
-                      <p className="admin-gateway-desc">Accept payments via UPI, cards, netbanking & more</p>
-                    </div>
-                    <label className="admin-toggle">
-                      <input
-                        type="checkbox"
-                        checked={localSettings.payment_razorpay_enabled || false}
-                        onChange={(e) => handleSettingChange('payment_razorpay_enabled', e.target.checked)}
-                      />
-                      <span className="admin-toggle-slider"></span>
-                    </label>
-                  </div>
-                  
-                  {localSettings.payment_razorpay_enabled && (
-                    <div className="admin-gateway-settings">
-                      <div className="admin-form-grid">
-                        <div className="admin-form-group">
-                          <label className="admin-label">Key ID</label>
-                          <input
-                            type="text"
-                            value={localSettings.payment_razorpay_key_id || ''}
-                            onChange={(e) => handleSettingChange('payment_razorpay_key_id', e.target.value)}
-                            className="admin-input"
-                            placeholder="rzp_test_..."
-                          />
-                        </div>
-                        
-                        <div className="admin-form-group">
-                          <label className="admin-label">Key Secret</label>
-                          <div className="admin-input-group">
-                            <input
-                              type={showSecrets.razorpaySecret ? 'text' : 'password'}
-                              value={localSettings.payment_razorpay_key_secret || ''}
-                              onChange={(e) => handleSettingChange('payment_razorpay_key_secret', e.target.value)}
-                              className="admin-input"
-                              placeholder="Enter key secret"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => toggleSecret('razorpaySecret')}
-                              className="admin-input-action"
-                            >
-                              {showSecrets.razorpaySecret ? <EyeOff className="admin-icon" /> : <Eye className="admin-icon" />}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+      {/* Cash on Delivery */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Cash on Delivery</h3>
+            <p className="text-sm text-gray-600 mt-1">Allow customers to pay upon delivery</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tabSettings.payment?.cod_enabled === 'true'}
+              onChange={(e) => handleTabSettingChange('payment', 'cod_enabled', e.target.checked ? 'true' : 'false')}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <span className="ml-3 text-sm font-medium text-gray-700">Enable COD</span>
+          </label>
+        </div>
+      </div>
 
-                {/* Cash on Delivery */}
-                <div className="admin-gateway-card">
-                  <div className="admin-gateway-header">
-                    <div className="admin-gateway-info">
-                      <h4 className="admin-gateway-name">Cash on Delivery</h4>
-                      <p className="admin-gateway-desc">Allow customers to pay upon delivery</p>
-                    </div>
-                    <label className="admin-toggle">
-                      <input
-                        type="checkbox"
-                        checked={localSettings.payment_cod_enabled || false}
-                        onChange={(e) => handleSettingChange('payment_cod_enabled', e.target.checked)}
-                      />
-                      <span className="admin-toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-              </div>
+      {/* Stripe Settings */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Stripe Configuration</h3>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tabSettings.payment?.stripe_enabled === 'true'}
+              onChange={(e) => handleTabSettingChange('payment', 'stripe_enabled', e.target.checked ? 'true' : 'false')}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <span className="ml-3 text-sm font-medium text-gray-700">Enable Stripe</span>
+          </label>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Publishable Key</label>
+            <input
+              type="text"
+              value={tabSettings.payment?.stripe_publishable_key || ''}
+              onChange={(e) => handleTabSettingChange('payment', 'stripe_publishable_key', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="pk_test_..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Secret Key</label>
+            <div className="relative">
+              <input
+                type={showSecrets.stripe_secret_key ? "text" : "password"}
+                value={tabSettings.payment?.stripe_secret_key || ''}
+                onChange={(e) => handleTabSettingChange('payment', 'stripe_secret_key', e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="sk_test_..."
+              />
+              <button
+                type="button"
+                onClick={() => toggleSecretVisibility('stripe_secret_key')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showSecrets.stripe_secret_key ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
 
-          {activeTab === 'billing' && (
-            <div className="admin-settings-section">
-              {/* Tax & Billing */}
-              <div className="admin-settings-group">
-                <h3 className="admin-settings-title">Tax & Billing Information</h3>
-                <div className="admin-form-grid">
-                  <div className="admin-form-group">
-                    <label className="admin-label">GST Number</label>
-                    <input
-                      type="text"
-                      value={localSettings.billing_gst_number || ''}
-                      onChange={(e) => handleSettingChange('billing_gst_number', e.target.value)}
-                      className="admin-input"
-                      placeholder="Enter GST number"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">PAN Number</label>
-                    <input
-                      type="text"
-                      value={localSettings.billing_pan_number || ''}
-                      onChange={(e) => handleSettingChange('billing_pan_number', e.target.value)}
-                      className="admin-input"
-                      placeholder="Enter PAN number"
-                    />
-                  </div>
-                  
-                  <div className="admin-form-group">
-                    <label className="admin-label">Tax Rate (%)</label>
-                    <input
-                      type="number"
-                      value={localSettings.billing_tax_rate || ''}
-                      onChange={(e) => handleSettingChange('billing_tax_rate', parseFloat(e.target.value) || 0)}
-                      className="admin-input"
-                      placeholder="18"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-              </div>
+      {/* PayPal Settings */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">PayPal Configuration</h3>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={tabSettings.payment?.paypal_enabled === 'true'}
+              onChange={(e) => handleTabSettingChange('payment', 'paypal_enabled', e.target.checked ? 'true' : 'false')}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            <span className="ml-3 text-sm font-medium text-gray-700">Enable PayPal</span>
+          </label>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Client ID</label>
+            <input
+              type="text"
+              value={tabSettings.payment?.paypal_client_id || ''}
+              onChange={(e) => handleTabSettingChange('payment', 'paypal_client_id', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="AXxxx..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Client Secret</label>
+            <div className="relative">
+              <input
+                type={showSecrets.paypal_client_secret ? "text" : "password"}
+                value={tabSettings.payment?.paypal_client_secret || ''}
+                onChange={(e) => handleTabSettingChange('payment', 'paypal_client_secret', e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="EXxxx..."
+              />
+              <button
+                type="button"
+                onClick={() => toggleSecretVisibility('paypal_client_secret')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showSecrets.paypal_client_secret ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
-          {activeTab === 'seo' && (
-            <div className="admin-settings-section">
-              {/* SEO Settings */}
-              <div className="admin-settings-group">
-                <h3 className="admin-settings-title">SEO & Meta Information</h3>
-                <div className="admin-form-group">
-                  <label className="admin-label">Site Title</label>
-                  <input
-                    type="text"
-                    value={localSettings.seo_site_title || ''}
-                    onChange={(e) => handleSettingChange('seo_site_title', e.target.value)}
-                    className="admin-input"
-                    placeholder="Your Store Name - Tagline"
-                  />
-                </div>
-                
-                <div className="admin-form-group">
-                  <label className="admin-label">Meta Description</label>
-                  <textarea
-                    value={localSettings.seo_meta_description || ''}
-                    onChange={(e) => handleSettingChange('seo_meta_description', e.target.value)}
-                    className="admin-textarea"
-                    rows={3}
-                    placeholder="Brief description of your store for search engines"
-                  />
-                </div>
-                
-                <div className="admin-form-group">
-                  <label className="admin-label">Meta Keywords</label>
-                  <input
-                    type="text"
-                    value={localSettings.seo_meta_keywords || ''}
-                    onChange={(e) => handleSettingChange('seo_meta_keywords', e.target.value)}
-                    className="admin-input"
-                    placeholder="keyword1, keyword2, keyword3"
-                  />
-                </div>
-              </div>
+  const renderEmailSettings = () => (
+    <div className="space-y-8">
+      {/* SMTP Configuration */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">SMTP Configuration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Host *</label>
+            <input
+              type="text"
+              value={tabSettings.email?.smtp_host || ''}
+              onChange={(e) => handleTabSettingChange('email', 'smtp_host', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="smtppro.zoho.in"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Port *</label>
+            <input
+              type="number"
+              value={tabSettings.email?.smtp_port || ''}
+              onChange={(e) => handleTabSettingChange('email', 'smtp_port', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="465"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Username *</label>
+            <input
+              type="email"
+              value={tabSettings.email?.smtp_user || ''}
+              onChange={(e) => handleTabSettingChange('email', 'smtp_user', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="your-email@domain.com"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Password *</label>
+            <div className="relative">
+              <input
+                type={showSecrets.smtp_password ? "text" : "password"}
+                value={tabSettings.email?.smtp_password || ''}
+                onChange={(e) => handleTabSettingChange('email', 'smtp_password', e.target.value)}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Enter SMTP password"
+              />
+              <button
+                type="button"
+                onClick={() => toggleSecretVisibility('smtp_password')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                {showSecrets.smtp_password ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
             </div>
-          )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">From Email *</label>
+            <input
+              type="email"
+              value={tabSettings.email?.smtp_from || ''}
+              onChange={(e) => handleTabSettingChange('email', 'smtp_from', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="noreply@yourdomain.com"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Reply To Email</label>
+            <input
+              type="email"
+              value={tabSettings.email?.smtp_reply_to || ''}
+              onChange={(e) => handleTabSettingChange('email', 'smtp_reply_to', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="support@yourdomain.com"
+            />
+          </div>
+        </div>
+        
+        <div className="mt-6">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={tabSettings.email?.smtp_secure === 'true'}
+              onChange={(e) => handleTabSettingChange('email', 'smtp_secure', e.target.checked ? 'true' : 'false')}
+              className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2"
+            />
+            <span className="ml-2 text-sm font-medium text-gray-700">Use SSL/TLS encryption</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBillingSettings = () => (
+    <div className="space-y-8">
+      {/* Company Information */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Company Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+            <input
+              type="text"
+              value={tabSettings.billing?.company_name || ''}
+              onChange={(e) => handleTabSettingChange('billing', 'company_name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Your Company Name"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
+            <input
+              type="text"
+              value={tabSettings.billing?.gst_number || ''}
+              onChange={(e) => handleTabSettingChange('billing', 'gst_number', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="22AAAAA0000A1Z5"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number</label>
+            <input
+              type="text"
+              value={tabSettings.billing?.pan_number || ''}
+              onChange={(e) => handleTabSettingChange('billing', 'pan_number', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="ABCDE1234F"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
+            <input
+              type="number"
+              value={tabSettings.billing?.tax_rate || ''}
+              onChange={(e) => handleTabSettingChange('billing', 'tax_rate', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="18"
+              min="0"
+              max="100"
+              step="0.01"
+            />
+          </div>
+        </div>
+        
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Billing Address *</label>
+          <textarea
+            value={tabSettings.billing?.billing_address || ''}
+            onChange={(e) => handleTabSettingChange('billing', 'billing_address', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            rows={3}
+            placeholder="Enter company billing address"
+          />
+        </div>
+        
+        <div className="mt-6">
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              checked={tabSettings.billing?.enable_gst === 'true'}
+              onChange={(e) => handleTabSettingChange('billing', 'enable_gst', e.target.checked ? 'true' : 'false')}
+              className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2"
+            />
+            <span className="ml-2 text-sm font-medium text-gray-700">Enable GST on invoices</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderSEOSettings = () => (
+    <div className="space-y-8">
+      {/* Basic SEO */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Basic SEO Settings</h3>
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Site Title *</label>
+            <input
+              type="text"
+              value={tabSettings.seo?.site_title || ''}
+              onChange={(e) => handleTabSettingChange('seo', 'site_title', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Your Store - Premium Products Online"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Meta Description</label>
+            <textarea
+              value={tabSettings.seo?.meta_description || ''}
+              onChange={(e) => handleTabSettingChange('seo', 'meta_description', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              rows={3}
+              placeholder="Brief description of your store for search engines"
+              maxLength={160}
+            />
+            <p className="text-xs text-gray-500 mt-1">Recommended: 150-160 characters</p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Meta Keywords</label>
+            <input
+              type="text"
+              value={tabSettings.seo?.meta_keywords || ''}
+              onChange={(e) => handleTabSettingChange('seo', 'meta_keywords', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="keyword1, keyword2, keyword3"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Analytics & Tracking</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Google Analytics ID</label>
+            <input
+              type="text"
+              value={tabSettings.seo?.google_analytics_id || ''}
+              onChange={(e) => handleTabSettingChange('seo', 'google_analytics_id', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="G-XXXXXXXXXX"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Facebook Pixel ID</label>
+            <input
+              type="text"
+              value={tabSettings.seo?.facebook_pixel_id || ''}
+              onChange={(e) => handleTabSettingChange('seo', 'facebook_pixel_id', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="123456789012345"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'shop':
+        return renderShopSettings();
+      case 'payment':
+        return renderPaymentSettings();
+      case 'email':
+        return renderEmailSettings();
+      case 'billing':
+        return renderBillingSettings();
+      case 'seo':
+        return renderSEOSettings();
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow-sm border mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-4 px-1 inline-flex items-center border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  activeTab === tab.id
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.icon}
+                <span className="ml-2">{tab.label}</span>
+                {tabChanges[tab.id] && (
+                  <div className="ml-2 w-2 h-2 bg-orange-400 rounded-full"></div>
+                )}
+                {saved[tab.id] && (
+                  <CheckCircle className="ml-2 w-4 h-4 text-green-500" />
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-6">
+          {renderTabContent()}
+          
+          {/* Save Button */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {tabChanges[activeTab] ? (
+                  <span className="text-orange-600">You have unsaved changes</span>
+                ) : saved[activeTab] ? (
+                  <span className="text-green-600 flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Settings saved successfully
+                  </span>
+                ) : (
+                  <span>No changes</span>
+                )}
+              </div>
+              
+              <button
+                onClick={() => handleTabSave(activeTab)}
+                disabled={!tabChanges[activeTab] || saving[activeTab]}
+                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md transition-colors duration-200 ${
+                  tabChanges[activeTab] && !saving[activeTab]
+                    ? 'text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                    : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                }`}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving[activeTab] ? 'Saving...' : 'Save Settings'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 });
+
+SettingsPage.displayName = 'SettingsPage';
 
 export default SettingsPage;

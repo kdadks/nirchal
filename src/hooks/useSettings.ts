@@ -115,13 +115,16 @@ export const useSettings = () => {
   // Update a specific setting using the unique key
   const updateSetting = async (category: string, key: string, value: string) => {
     try {
-      // Use the prefixed key format: category_key
-      const fullKey = key.startsWith(`${category}_`) ? key : `${category}_${key}`;
-      
-      const { error } = await supabase.rpc('update_setting_by_key', {
-        setting_key: fullKey,
-        setting_value: value
-      });
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ 
+          category,
+          key,
+          value: value,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'category,key'
+        });
 
       if (error) throw error;
 
@@ -148,19 +151,25 @@ export const useSettings = () => {
   // Batch update multiple settings
   const updateMultipleSettings = async (updates: Array<{ category: string; key: string; value: string }>) => {
     try {
-      const promises = updates.map(update => {
-        const fullKey = update.key.startsWith(`${update.category}_`) ? update.key : `${update.category}_${update.key}`;
-        return supabase.rpc('update_setting_by_key', {
-          setting_key: fullKey,
-          setting_value: update.value
-        });
-      });
+      const promises = updates.map(update => 
+        supabase
+          .from('settings')
+          .upsert({ 
+            category: update.category,
+            key: update.key,
+            value: update.value,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'category,key'
+          })
+      );
 
       const results = await Promise.all(promises);
       const hasError = results.some(result => result.error);
 
       if (hasError) {
-        throw new Error('Some settings failed to update');
+        const errors = results.filter(r => r.error).map(r => r.error?.message).join(', ');
+        throw new Error(`Some settings failed to update: ${errors}`);
       }
 
       // Update local state
