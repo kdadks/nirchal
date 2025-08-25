@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
+import toast from 'react-hot-toast';
 const OrderConfirmationPage: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
@@ -63,7 +64,7 @@ const OrderConfirmationPage: React.FC = () => {
     setShowPasswordModal(false);
     // Clear temp password notification
     sessionStorage.removeItem('new_customer_temp_password');
-    alert('Password updated successfully! Your account is now secure.');
+    toast.success('Password updated successfully! Your account is now secure.');
     // Navigate to account after password change
     setTimeout(() => {
       window.location.href = '/account';

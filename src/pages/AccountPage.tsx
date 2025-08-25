@@ -3,6 +3,7 @@ import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { Link, Navigate } from 'react-router-dom';
 import { supabase } from '../config/supabase';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
+import toast from 'react-hot-toast';
 
 type OrderRow = {
   id: number;
@@ -30,6 +31,7 @@ const AccountPage: React.FC = () => {
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDismissConfirm, setShowDismissConfirm] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -114,12 +116,7 @@ const AccountPage: React.FC = () => {
                     Change Password Now
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm('Are you sure? We strongly recommend changing your password for security.')) {
-                        sessionStorage.removeItem('new_customer_temp_password');
-                        window.location.reload();
-                      }
-                    }}
+                    onClick={() => setShowDismissConfirm(true)}
                     className="bg-gray-300 hover:bg-gray-400 text-gray-700 text-sm font-medium px-4 py-2 rounded-md transition-colors"
                   >
                     Dismiss (Not Recommended)
@@ -223,11 +220,47 @@ const AccountPage: React.FC = () => {
             setShowPasswordModal(false);
             // Clear temp password notification
             sessionStorage.removeItem('new_customer_temp_password');
-            alert('Password updated successfully! Your account is now secure.');
+            toast.success('Password updated successfully! Your account is now secure.');
             // Refresh page to hide notification
             window.location.reload();
           }}
         />
+      )}
+
+      {/* Dismiss Confirmation Dialog */}
+      {showDismissConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Are you sure?
+            </h3>
+            <p className="text-gray-600 mb-6">
+              We strongly recommend changing your password for security. Your account may be at risk with the temporary password.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDismissConfirm(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem('new_customer_temp_password');
+                  setShowDismissConfirm(false);
+                  toast('Password notification dismissed. Please change your password soon for security.', {
+                    icon: '⚠️',
+                    style: { background: '#FEF3C7', color: '#92400E' }
+                  });
+                  window.location.reload();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Dismiss Anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

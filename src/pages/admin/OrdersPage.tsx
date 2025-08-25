@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Clock, IndianRupee, CheckCircle, Truck, XCircle, PlayCircle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import toast from 'react-hot-toast';
 
 interface Order {
   id: string;
@@ -73,7 +74,7 @@ const OrdersPage: React.FC = () => {
       ));
     } catch (err) {
       console.error('Error updating order status:', err);
-      alert('Failed to update order status');
+      toast.error('Failed to update order status');
     } finally {
       setUpdating(null);
     }

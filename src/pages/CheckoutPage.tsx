@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
@@ -205,7 +206,7 @@ const CheckoutPage: React.FC = () => {
         return;
       }
       
-      alert('There was an error processing your order. Please try again.');
+      toast.error('There was an error processing your order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
