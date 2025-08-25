@@ -8,7 +8,14 @@ import {
   Save,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  Facebook,
+  Instagram,
+  Twitter,
+  Youtube,
+  Linkedin,
+  MessageCircle,
+  Send
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 
@@ -245,6 +252,125 @@ const SettingsPage: React.FC = React.memo(() => {
                     rows={4}
                     placeholder="Brief description of your store"
                   />
+                </div>
+              </div>
+
+              {/* Social Media Links */}
+              <div className="admin-settings-group">
+                <h3 className="admin-settings-title">Social Media Links</h3>
+                <div className="admin-form-grid">
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <Facebook className="h-4 w-4 inline mr-2" />
+                      Facebook Page URL
+                    </label>
+                    <input
+                      type="url"
+                      value={localSettings.shop_social_facebook_url || ''}
+                      onChange={(e) => handleSettingChange('shop_social_facebook_url', e.target.value)}
+                      className="admin-input"
+                      placeholder="https://facebook.com/yourpage"
+                    />
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <Instagram className="h-4 w-4 inline mr-2" />
+                      Instagram Profile URL
+                    </label>
+                    <input
+                      type="url"
+                      value={localSettings.shop_social_instagram_url || ''}
+                      onChange={(e) => handleSettingChange('shop_social_instagram_url', e.target.value)}
+                      className="admin-input"
+                      placeholder="https://instagram.com/yourprofile"
+                    />
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <Twitter className="h-4 w-4 inline mr-2" />
+                      Twitter Profile URL
+                    </label>
+                    <input
+                      type="url"
+                      value={localSettings.shop_social_twitter_url || ''}
+                      onChange={(e) => handleSettingChange('shop_social_twitter_url', e.target.value)}
+                      className="admin-input"
+                      placeholder="https://twitter.com/yourprofile"
+                    />
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <Youtube className="h-4 w-4 inline mr-2" />
+                      YouTube Channel URL
+                    </label>
+                    <input
+                      type="url"
+                      value={localSettings.shop_social_youtube_url || ''}
+                      onChange={(e) => handleSettingChange('shop_social_youtube_url', e.target.value)}
+                      className="admin-input"
+                      placeholder="https://youtube.com/channel/yourchannel"
+                    />
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <Linkedin className="h-4 w-4 inline mr-2" />
+                      LinkedIn Profile URL
+                    </label>
+                    <input
+                      type="url"
+                      value={localSettings.shop_social_linkedin_url || ''}
+                      onChange={(e) => handleSettingChange('shop_social_linkedin_url', e.target.value)}
+                      className="admin-input"
+                      placeholder="https://linkedin.com/company/yourcompany"
+                    />
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <div className="h-4 w-4 inline mr-2 bg-pink-500 rounded"></div>
+                      Pinterest Profile URL
+                    </label>
+                    <input
+                      type="url"
+                      value={localSettings.shop_social_pinterest_url || ''}
+                      onChange={(e) => handleSettingChange('shop_social_pinterest_url', e.target.value)}
+                      className="admin-input"
+                      placeholder="https://pinterest.com/yourprofile"
+                    />
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <MessageCircle className="h-4 w-4 inline mr-2" />
+                      WhatsApp Business Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={localSettings.shop_social_whatsapp_number || ''}
+                      onChange={(e) => handleSettingChange('shop_social_whatsapp_number', e.target.value)}
+                      className="admin-input"
+                      placeholder="+919876543210"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">Include country code (e.g., +91 for India)</p>
+                  </div>
+                  
+                  <div className="admin-form-group">
+                    <label className="admin-label">
+                      <Send className="h-4 w-4 inline mr-2" />
+                      Telegram Channel URL
+                    </label>
+                    <input
+                      type="url"
+                      value={localSettings.shop_social_telegram_url || ''}
+                      onChange={(e) => handleSettingChange('shop_social_telegram_url', e.target.value)}
+                      className="admin-input"
+                      placeholder="https://t.me/yourchannel"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
