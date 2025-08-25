@@ -2,7 +2,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCategories, useProducts } from '../../hooks/useAdmin';
+import { usePagination } from '../../hooks/usePagination';
 import DataTable from '../../components/admin/DataTable';
+import Pagination from '../../components/common/Pagination';
 import type { Category, CategoryFormData } from '../../types/admin';
 import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -41,13 +43,32 @@ const CategoriesPage: React.FC = () => {
     return products?.filter(product => product.category_id === categoryId).length || 0;
   };
 
+  // Pagination
+  const {
+    currentPage,
+    itemsPerPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedCategories,
+    setCurrentPage,
+    setItemsPerPage,
+  } = usePagination({
+    data: categories || [],
+    defaultItemsPerPage: 25,
+  });
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      // Only select categories that don't have associated products
-      const selectableCategories = categories?.filter(c => !hasAssociatedProducts(c.id)).map(c => c.id) || [];
-      setSelectedCategories(selectableCategories);
+      // Only select categories from current page that don't have associated products
+      const selectableCategories = paginatedCategories?.filter(c => !hasAssociatedProducts(c.id)).map(c => c.id) || [];
+      setSelectedCategories(prev => {
+        const newSelected = [...new Set([...prev, ...selectableCategories])];
+        return newSelected;
+      });
     } else {
-      setSelectedCategories([]);
+      // Deselect all categories from current page
+      const currentPageIds = paginatedCategories?.map(c => c.id) || [];
+      setSelectedCategories(prev => prev.filter(id => !currentPageIds.includes(id)));
     }
   };
 
@@ -301,11 +322,11 @@ const CategoriesPage: React.FC = () => {
       {/* Categories Table */}
       <DataTable
         columns={columns}
-        data={categories || []}
+        data={paginatedCategories || []}
         isLoading={loading}
         searchable={true}
         filterable={true}
-        title={`Categories (${categories?.length || 0})`}
+        title={`Categories (${totalItems})`}
         subtitle="Product categories and organization"
         headerActions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -355,6 +376,17 @@ const CategoriesPage: React.FC = () => {
             </button>
           </div>
         }
+      />
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={totalItems}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        className="border-t border-gray-200"
       />
 
       {/* Modal */}

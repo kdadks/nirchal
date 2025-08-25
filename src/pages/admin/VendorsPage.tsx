@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useVendors } from '../../hooks/useAdmin';
 import { useAdminContext } from '../../contexts/AdminContext';
+import { usePagination } from '../../hooks/usePagination';
 import DataTable from '../../components/admin/DataTable';
+import Pagination from '../../components/common/Pagination';
 import type { Vendor } from '../../types/admin';
 import { Plus, Trash2, AlertTriangle, Edit } from 'lucide-react';
 
@@ -50,6 +52,20 @@ const VendorsPage: React.FC = () => {
     setEditingVendor(vendor);
     setShowForm(true);
   };
+
+  // Pagination
+  const {
+    currentPage,
+    itemsPerPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedVendors,
+    setCurrentPage,
+    setItemsPerPage,
+  } = usePagination({
+    data: vendors || [],
+    defaultItemsPerPage: 25,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,11 +327,11 @@ const VendorsPage: React.FC = () => {
       {/* Vendors Table */}
       <DataTable
         columns={columns}
-        data={vendors || []}
+        data={paginatedVendors || []}
         isLoading={loading}
         searchable={true}
         filterable={false}
-        title={`Vendors (${vendors?.length || 0})`}
+        title={`Vendors (${totalItems})`}
         subtitle="Manage your vendor relationships"
         headerActions={
           <button
@@ -326,6 +342,17 @@ const VendorsPage: React.FC = () => {
             Add Vendor
           </button>
         }
+      />
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={totalItems}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        className="border-t border-gray-200"
       />
     </div>
   );

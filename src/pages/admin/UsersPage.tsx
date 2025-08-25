@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserCheck, UserX, Mail, Phone, Calendar, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/common/Pagination';
 import toast from 'react-hot-toast';
 
 interface Customer {
@@ -53,6 +55,20 @@ const UsersPage: React.FC = () => {
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  // Pagination
+  const {
+    currentPage,
+    itemsPerPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedCustomers,
+    setCurrentPage,
+    setItemsPerPage,
+  } = usePagination({
+    data: customers,
+    defaultItemsPerPage: 25,
+  });
 
   const toggleCustomerStatus = async (customerId: string, currentStatus: boolean) => {
     try {
@@ -136,7 +152,7 @@ const UsersPage: React.FC = () => {
             <Users className="h-8 w-8 text-blue-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Customers</p>
-              <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
             </div>
           </div>
         </div>
@@ -204,7 +220,7 @@ const UsersPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {customers.map((customer) => (
+                {paginatedCustomers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -281,6 +297,17 @@ const UsersPage: React.FC = () => {
             </table>
           )}
         </div>
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+          className="border-t border-gray-200"
+        />
       </div>
     </div>
   );

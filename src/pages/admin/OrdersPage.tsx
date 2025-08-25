@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Clock, IndianRupee, CheckCircle, Truck, XCircle, PlayCircle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import { usePagination } from '../../hooks/usePagination';
+import Pagination from '../../components/common/Pagination';
 import toast from 'react-hot-toast';
 
 interface Order {
@@ -55,6 +57,20 @@ const OrdersPage: React.FC = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Pagination
+  const {
+    currentPage,
+    itemsPerPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedOrders,
+    setCurrentPage,
+    setItemsPerPage,
+  } = usePagination({
+    data: orders,
+    defaultItemsPerPage: 25,
+  });
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -157,7 +173,7 @@ const OrdersPage: React.FC = () => {
             <Package className="h-8 w-8 text-blue-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
             </div>
           </div>
         </div>
@@ -297,7 +313,7 @@ const OrdersPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
+                {paginatedOrders.map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-blue-600">
@@ -368,6 +384,17 @@ const OrdersPage: React.FC = () => {
             </table>
           )}
         </div>
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
+          className="border-t border-gray-200"
+        />
       </div>
     </div>
   );
