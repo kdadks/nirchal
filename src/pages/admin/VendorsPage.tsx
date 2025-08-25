@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useVendors } from '../../hooks/useAdmin';
+import { useAdminContext } from '../../contexts/AdminContext';
 import DataTable from '../../components/admin/DataTable';
 import type { Vendor } from '../../types/admin';
 import { Plus, Trash2, AlertTriangle, Edit } from 'lucide-react';
 
 const VendorsPage: React.FC = () => {
   const { vendors, loading, createVendor, updateVendor, deleteVendor } = useVendors();
+  const { refreshSpecificCount } = useAdminContext();
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -56,6 +58,8 @@ const VendorsPage: React.FC = () => {
         await updateVendor(editingVendor.id, formData);
       } else {
         await createVendor(formData);
+        // Refresh vendor count after creating new vendor
+        await refreshSpecificCount('vendors');
       }
       resetForm();
     } catch (error) {
@@ -69,6 +73,8 @@ const VendorsPage: React.FC = () => {
     setIsDeleting(true);
     try {
       await deleteVendor(deleteTarget);
+      // Refresh vendor count after deleting vendor
+      await refreshSpecificCount('vendors');
       setShowDeleteConfirm(false);
       setDeleteTarget(null);
     } catch (error) {

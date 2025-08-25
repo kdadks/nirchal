@@ -107,19 +107,16 @@ const CheckoutPage: React.FC = () => {
         });
       } else {
         // Not logged in: upsert by email to create a customer record
-        console.log('Creating customer for checkout...');
         const customerRes = await upsertCustomerByEmail(supabase, {
           email: form.email.trim(),
           first_name: form.firstName.trim(),
           last_name: form.lastName.trim(),
           phone: form.phone.trim(),
         });
-        console.log('Customer creation result:', customerRes);
         customerId = customerRes?.id || null;
         
         // Store temp password info if this is a new customer
         if (customerRes?.tempPassword && !customerRes?.existingCustomer) {
-          console.log('Storing temp password for new customer');
           sessionStorage.setItem('new_customer_temp_password', customerRes.tempPassword);
           sessionStorage.setItem('new_customer_email', form.email.trim());
         }
@@ -184,10 +181,7 @@ const CheckoutPage: React.FC = () => {
         })),
       });
       
-      console.log('Order creation result:', order);
-      
       if (!order) {
-        console.error('Order creation failed - no order returned');
         throw new Error('Order creation failed - no order returned');
       }
       
@@ -203,14 +197,10 @@ const CheckoutPage: React.FC = () => {
       }, 100);
     } catch (error) {
       console.error('Checkout error details:', error);
-      console.error('Error type:', typeof error);
-      console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
       
       // Check if order was actually created despite the error
       const orderNumber = sessionStorage.getItem('last_order_number');
-      console.log('Checking for existing order number:', orderNumber);
       if (orderNumber) {
-        console.log('Order exists, navigating to confirmation anyway...');
         navigate('/order-confirmation');
         return;
       }
