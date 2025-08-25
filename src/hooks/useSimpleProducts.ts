@@ -12,7 +12,6 @@ export const useSimpleProducts = () => {
     try {
       setLoading(true);
       setError(null);
-  if (import.meta.env.DEV) console.debug('[useSimpleProducts] start fetch');
       
       // Simple query without joins first
       const { data, error } = await supabase
@@ -20,15 +19,11 @@ export const useSimpleProducts = () => {
         .select('*')
         .order('created_at', { ascending: false });
       
-  if (import.meta.env.DEV) console.debug('[useSimpleProducts] result:', { data, error });
-      
       if (error) {
-        console.error('[useSimpleProducts] Database error:', error);
         throw error;
       }
       
       if (!data || data.length === 0) {
-        console.warn('[useSimpleProducts] No products found');
         setProducts([]);
         return;
       }
@@ -66,11 +61,9 @@ export const useSimpleProducts = () => {
         variants: []
       }));
       
-      console.log('[useSimpleProducts] Transformed', transformedProducts.length, 'products');
       setProducts(transformedProducts);
       
     } catch (e) {
-      console.error('[useSimpleProducts] Error:', e);
       setError(e instanceof Error ? e.message : 'Error fetching products');
       setProducts([]);
     } finally {

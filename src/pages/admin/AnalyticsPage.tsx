@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, TrendingUp, DollarSign, Package, Users, BarChart3, Eye, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, TrendingUp, IndianRupee, Package, Users, BarChart3, Eye, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const AnalyticsPage: React.FC = () => {
@@ -68,7 +68,7 @@ const AnalyticsPage: React.FC = () => {
                 +{analyticsData.overview.revenueGrowth}% from last month
               </p>
             </div>
-            <DollarSign className="h-8 w-8 text-green-500" />
+            <IndianRupee className="h-8 w-8 text-green-500" />
           </div>
         </div>
         
@@ -201,7 +201,7 @@ const AnalyticsPage: React.FC = () => {
         
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center">
-            <DollarSign className="h-8 w-8 text-yellow-500" />
+            <IndianRupee className="h-8 w-8 text-yellow-500" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Avg. Order Value</p>
               <p className="text-2xl font-bold text-gray-900">{formatCurrency(2340)}</p>
