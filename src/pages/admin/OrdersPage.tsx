@@ -123,7 +123,7 @@ const OrdersPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
@@ -133,7 +133,7 @@ const OrdersPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div>
         <div className="text-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
           <button
@@ -148,7 +148,7 @@ const OrdersPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
