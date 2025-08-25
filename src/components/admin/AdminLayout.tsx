@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useProducts, useCategories, useVendors } from '../../hooks/useAdmin';
+import { useAdminContext } from '../../contexts/AdminContext';
 import {
   LayoutDashboard,
   Package,
@@ -31,10 +31,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Get real data for counts - force re-render when data changes
-  const { products, refresh: refreshProducts } = useProducts();
-  const { categories, refresh: refreshCategories } = useCategories();
-  const { vendors, refresh: refreshVendors } = useVendors();
+  // Get counts from AdminContext
+  const { counts, refreshCounts } = useAdminContext();
 
   const navigationItems = useMemo(() => [
     {
@@ -47,25 +45,25 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Products',
       path: '/admin/products',
       icon: <Package className="admin-nav-icon" />,
-      badge: products?.length?.toString() || '0'
+      badge: counts.products?.toString() || '0'
     },
     {
       name: 'Categories',
       path: '/admin/categories',
       icon: <ShoppingBag className="admin-nav-icon" />,
-      badge: categories?.length?.toString() || '0'
+      badge: counts.categories?.toString() || '0'
     },
     {
       name: 'Vendors',
       path: '/admin/vendors',
       icon: <Truck className="admin-nav-icon" />,
-      badge: vendors?.length?.toString() || '0'
+      badge: counts.vendors?.toString() || '0'
     },
     {
       name: 'Orders',
       path: '/admin/orders',
       icon: <FileText className="admin-nav-icon" />,
-      badge: null
+      badge: counts.orders?.toString() || '0'
     },
     {
       name: 'Analytics',
@@ -77,7 +75,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Users',
       path: '/admin/users',
       icon: <Users className="admin-nav-icon" />,
-      badge: null
+      badge: counts.users?.toString() || '0'
     },
     {
       name: 'Settings',
@@ -85,7 +83,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       icon: <Settings className="admin-nav-icon" />,
       badge: null
     }
-  ], [products?.length, categories?.length, vendors?.length]);
+  ], [counts]);
 
   // Get current page context for dynamic top navigation
   const getCurrentPageContext = () => {
@@ -106,25 +104,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      switch (currentPage) {
-        case 'products':
-          await refreshProducts();
-          break;
-        case 'categories':
-          await refreshCategories();
-          break;
-        case 'vendors':
-          await refreshVendors();
-          break;
-        case 'dashboard':
-          // Refresh all data for dashboard
-          await Promise.all([refreshProducts(), refreshCategories(), refreshVendors()]);
-          break;
-        default:
-          // For other pages, just refresh all data
-          await Promise.all([refreshProducts(), refreshCategories(), refreshVendors()]);
-          break;
-      }
+      // Simply refresh all counts since we have the AdminContext
+      await refreshCounts();
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {

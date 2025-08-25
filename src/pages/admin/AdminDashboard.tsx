@@ -1,24 +1,231 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Package, 
   ShoppingCart, 
   Users, 
-  DollarSign,
+  IndianRupee,
   ArrowUpRight,
   BarChart3,
   TrendingUp,
   Activity,
   Plus
 } from 'lucide-react';
+import { supabase } from '../../config/supabase';
+import { useAdminContext } from '../../contexts/AdminContext';
+
+interface Order {
+  id: string;
+  order_number: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  billing_first_name: string;
+  billing_last_name: string;
+  billing_email: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number; // Base price (admin-only)
+  sale_price: number | null;
+  created_at: string;
+  product_variants?: Array<{
+    id: string;
+    price_adjustment: number | null; // Customer-facing variant price (overrides sale price)
+    size?: string;
+    color?: string;
+  }>;
+}
+
+interface DashboardStats {
+  totalRevenue: number;
+  ordersToday: number;
+  revenueGrowth: number;
+  ordersGrowth: number;
+}
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const { counts } = useAdminContext();
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [topProducts, setTopProducts] = useState<Product[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    totalRevenue: 0,
+    ordersToday: 0,
+    revenueGrowth: 0,
+    ordersGrowth: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const getProductDisplayPrice = (product: Product) => {
+    // Priority: 1. Variant price (price_adjustment) 2. Sale price 3. Base price (admin only)
+    // For customers: variant price overrides sale price, base price is admin-only
+    // Never return zero - always fallback to a valid price
+    if (product.product_variants && product.product_variants.length > 0) {
+      const variantPrices = product.product_variants
+        .map(v => v.price_adjustment)
+        .filter((price): price is number => price !== null && price !== undefined && price > 0);
+      
+      if (variantPrices.length > 0) {
+        return Math.min(...variantPrices);
+      }
+    }
+    
+    // Fallback to sale price if no valid variant prices
+    if (product.sale_price && product.sale_price > 0) {
+      return product.sale_price;
+    }
+    
+    // Final fallback to base price (ensure it's never zero)
+    return product.price > 0 ? product.price : 0.01;
+  };
+
+  const getProductPriceLabel = (product: Product) => {
+    // Check if we have valid variant prices
+    if (product.product_variants && product.product_variants.length > 0) {
+      const variantPrices = product.product_variants
+        .map(v => v.price_adjustment)
+        .filter((price): price is number => price !== null && price !== undefined && price > 0);
+      
+      if (variantPrices.length > 0) {
+        return 'Variant Price';
+      }
+    }
+    
+    // Fallback to sale price
+    if (product.sale_price && product.sale_price > 0) {
+      return 'Sale Price';
+    }
+    
+    return 'Base Price (Admin)';
+  };
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch recent orders
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          status,
+          total_amount,
+          created_at,
+          billing_first_name,
+          billing_last_name,
+          billing_email
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (ordersError) {
+        throw ordersError;
+      }
+      setRecentOrders(ordersData || []);
+
+      // Fetch top products with sale_price and variants
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select(`
+          id, 
+          name, 
+          price, 
+          sale_price, 
+          created_at,
+          product_variants(
+            id,
+            price_adjustment,
+            size,
+            color
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(4);
+
+      if (productsError) {
+        throw productsError;
+      }
+      setTopProducts(productsData || []);
+
+      // Calculate dashboard stats
+      const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const yesterday = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+
+      // Orders today
+      const { data: todayOrders, error: todayOrdersError } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .gte('created_at', todayStart.toISOString());
+
+      if (todayOrdersError) throw todayOrdersError;
+
+      // Orders yesterday
+      const { data: yesterdayOrders, error: yesterdayOrdersError } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .gte('created_at', yesterday.toISOString())
+        .lt('created_at', todayStart.toISOString());
+
+      if (yesterdayOrdersError) throw yesterdayOrdersError;
+
+      // Calculate total revenue
+      const { data: allOrders, error: allOrdersError } = await supabase
+        .from('orders')
+        .select('total_amount');
+
+      if (allOrdersError) throw allOrdersError;
+
+      const totalRevenue = (allOrders || []).reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const todayRevenue = (todayOrders || []).reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const yesterdayRevenue = (yesterdayOrders || []).reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+      const ordersToday = (todayOrders || []).length;
+      const ordersYesterday = (yesterdayOrders || []).length;
+
+      const revenueGrowth = yesterdayRevenue > 0 ? 
+        Math.round(((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100) : 0;
+      const ordersGrowth = ordersYesterday > 0 ? 
+        Math.round(((ordersToday - ordersYesterday) / ordersYesterday) * 100) : 0;
+
+      setDashboardStats({
+        totalRevenue,
+        ordersToday,
+        revenueGrowth,
+        ordersGrowth
+      });
+
+    } catch (error) {
+      // Error handling for production
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   const stats = [
     {
       title: 'Total Products',
-      value: '124',
+      value: counts.products.toString(),
       change: '+12%',
       changeType: 'increase',
       icon: <Package className="h-5 w-5" />,
@@ -26,89 +233,27 @@ const AdminDashboard: React.FC = () => {
     },
     {
       title: 'Orders Today',
-      value: '12',
-      change: '+8%',
-      changeType: 'increase',
+      value: dashboardStats.ordersToday.toString(),
+      change: `${dashboardStats.ordersGrowth >= 0 ? '+' : ''}${dashboardStats.ordersGrowth}%`,
+      changeType: dashboardStats.ordersGrowth >= 0 ? 'increase' : 'decrease',
       icon: <ShoppingCart className="h-5 w-5" />,
       onClick: () => navigate('/admin/orders'),
     },
     {
       title: 'Active Users',
-      value: '1,234',
+      value: counts.users.toString(),
       change: '+23%',
       changeType: 'increase',
       icon: <Users className="h-5 w-5" />,
       onClick: () => navigate('/admin/users'),
     },
     {
-      title: 'Revenue',
-      value: '₹1,24,500',
-      change: '+15%',
-      changeType: 'increase',
-      icon: <DollarSign className="h-5 w-5" />,
+      title: 'Total Revenue',
+      value: formatCurrency(dashboardStats.totalRevenue),
+      change: `${dashboardStats.revenueGrowth >= 0 ? '+' : ''}${dashboardStats.revenueGrowth}%`,
+      changeType: dashboardStats.revenueGrowth >= 0 ? 'increase' : 'decrease',
+      icon: <IndianRupee className="h-5 w-5" />,
       onClick: () => navigate('/admin/analytics'),
-    }
-  ];
-
-  const recentOrders = [
-    { 
-      id: '#ORD-001', 
-      customer: 'Priya Sharma', 
-      status: 'Processing',
-      amount: '₹2,450',
-      time: '2 mins ago',
-      avatar: 'PS'
-    },
-    { 
-      id: '#ORD-002', 
-      customer: 'Rahul Verma', 
-      status: 'Shipped',
-      amount: '₹3,200',
-      time: '15 mins ago',
-      avatar: 'RV'
-    },
-    { 
-      id: '#ORD-003', 
-      customer: 'Anita Singh', 
-      status: 'Delivered',
-      amount: '₹1,800',
-      time: '1 hour ago',
-      avatar: 'AS'
-    },
-    { 
-      id: '#ORD-004', 
-      customer: 'Vikram Gupta', 
-      status: 'Processing',
-      amount: '₹4,100',
-      time: '2 hours ago',
-      avatar: 'VG'
-    }
-  ];
-
-  const topProducts = [
-    { 
-      name: 'Silk Saree - Royal Blue', 
-      sales: 45, 
-      revenue: '₹89,000', 
-      trend: 'up' 
-    },
-    { 
-      name: 'Embroidered Kurta Set', 
-      sales: 38, 
-      revenue: '₹76,000', 
-      trend: 'up' 
-    },
-    { 
-      name: 'Designer Lehenga', 
-      sales: 22, 
-      revenue: '₹1,10,000', 
-      trend: 'down' 
-    },
-    { 
-      name: 'Cotton Palazzo Set', 
-      sales: 35, 
-      revenue: '₹42,000', 
-      trend: 'up' 
     }
   ];
 
@@ -151,6 +296,26 @@ const AdminDashboard: React.FC = () => {
         return 'admin-badge admin-badge-neutral';
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '400px' 
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid var(--admin-primary)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -239,43 +404,56 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentOrders.map((order, index) => (
-                    <tr key={index}>
-                      <td>
-                        <span className="admin-font-mono admin-text-sm">{order.id}</span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '50%',
-                            backgroundColor: 'var(--admin-primary)',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '12px',
-                            fontWeight: '600'
-                          }}>
-                            {order.avatar}
+                  {recentOrders.length > 0 ? (
+                    recentOrders.map((order, index) => (
+                      <tr key={index}>
+                        <td>
+                          <span className="admin-font-mono admin-text-sm">{order.order_number}</span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: 'var(--admin-primary)',
+                              color: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              {getInitials(order.billing_first_name, order.billing_last_name)}
+                            </div>
+                            <span>{order.billing_first_name} {order.billing_last_name}</span>
                           </div>
-                          <span>{order.customer}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={getStatusBadgeClass(order.status)}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="admin-font-mono admin-text-sm">{order.amount}</span>
-                      </td>
-                      <td>
-                        <span className="admin-text-muted admin-text-sm">{order.time}</span>
+                        </td>
+                        <td>
+                          <span className={getStatusBadgeClass(order.status)}>
+                            {order.status}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="admin-font-mono admin-text-sm">{formatCurrency(order.total_amount)}</span>
+                        </td>
+                        <td>
+                          <span className="admin-text-muted admin-text-sm">
+                            {new Date(order.created_at).toLocaleDateString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
+                        <span className="admin-text-muted">No recent orders found</span>
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -287,46 +465,83 @@ const AdminDashboard: React.FC = () => {
           <div className="admin-card-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Package className="h-5 w-5" style={{ color: 'var(--admin-success)' }} />
-              <h2 className="admin-card-title">Top Products</h2>
+              <h2 className="admin-card-title">Recent Products</h2>
             </div>
           </div>
           
           <div className="admin-card-content">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {topProducts.map((product, index) => (
-                <div key={index} style={{ 
-                  padding: '12px', 
-                  border: '1px solid var(--admin-border)', 
-                  borderRadius: '6px' 
-                }}>
-                  <div style={{ marginBottom: '8px' }}>
-                    <p style={{ 
-                      fontWeight: '500', 
-                      margin: '0 0 4px 0',
-                      fontSize: '14px'
-                    }}>
-                      {product.name}
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span className="admin-text-muted admin-text-sm">
-                        {product.sales} sales
-                      </span>
-                      <span className="admin-font-mono admin-text-sm" style={{ fontWeight: '600' }}>
-                        {product.revenue}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <TrendingUp 
-                          className="h-4 w-4" 
-                          style={{ 
-                            color: product.trend === 'up' ? 'var(--admin-success)' : 'var(--admin-danger)',
-                            transform: product.trend === 'down' ? 'rotate(180deg)' : 'none'
-                          }} 
-                        />
+              {topProducts.length > 0 ? (
+                topProducts.map((product, index) => (
+                  <div key={index} style={{ 
+                    padding: '12px', 
+                    border: '1px solid var(--admin-border)', 
+                    borderRadius: '6px' 
+                  }}>
+                    <div style={{ marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                        <p style={{ 
+                          fontWeight: '500', 
+                          margin: '0',
+                          fontSize: '14px',
+                          flex: 1
+                        }}>
+                          {product.name}
+                        </p>
+                        {product.product_variants && product.product_variants.length > 0 && (
+                          <span className="admin-text-muted admin-text-xs" style={{ 
+                            backgroundColor: 'var(--admin-bg)', 
+                            padding: '2px 6px', 
+                            borderRadius: '4px',
+                            marginLeft: '8px'
+                          }}>
+                            {product.product_variants.length} variants
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span className="admin-text-muted admin-text-sm">
+                          {getProductPriceLabel(product)}
+                        </span>
+                        <span className="admin-font-mono admin-text-sm" style={{ fontWeight: '600' }}>
+                          {formatCurrency(getProductDisplayPrice(product))}
+                        </span>
+                        {/* Show original price if variant price is different and exists */}
+                        {product.product_variants && product.product_variants.length > 0 && 
+                         product.product_variants.some(v => v.price_adjustment !== null && v.price_adjustment > 0) && (
+                          <span className="admin-text-muted admin-text-xs" style={{ textDecoration: 'line-through' }}>
+                            {formatCurrency(product.sale_price && product.sale_price > 0 ? product.sale_price : product.price)}
+                          </span>
+                        )}
+                        {/* Show base price crossed out if only sale price is active */}
+                        {(!product.product_variants?.some(v => v.price_adjustment !== null && v.price_adjustment > 0)) && 
+                         product.sale_price && product.sale_price > 0 && product.sale_price < product.price && (
+                          <span className="admin-text-muted admin-text-xs" style={{ textDecoration: 'line-through' }}>
+                            {formatCurrency(product.price)}
+                          </span>
+                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <TrendingUp 
+                            className="h-4 w-4" 
+                            style={{ 
+                              color: product.sale_price && product.sale_price < product.price 
+                                ? 'var(--admin-success)' 
+                                : 'var(--admin-primary)'
+                            }} 
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div style={{ 
+                  padding: '20px', 
+                  textAlign: 'center' 
+                }}>
+                  <span className="admin-text-muted">No products found</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

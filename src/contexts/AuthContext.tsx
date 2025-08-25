@@ -26,27 +26,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser({ ...session.user, name: session.user.email?.split('@')[0] });
-        setIsAdmin(true);
-      } else {
-        setUser(null);
-        setIsAdmin(false);
+    let isMounted = true;
+    
+    const initializeAuth = async () => {
+      try {
+        setLoading(true);
+        
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          if (isMounted) {
+            setUser(null);
+            setIsAdmin(false);
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (session?.user && isMounted) {
+          setUser({ ...session.user, name: session.user.email?.split('@')[0] });
+          setIsAdmin(true);
+        } else if (isMounted) {
+          setUser(null);
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        if (isMounted) {
+          setUser(null);
+          setIsAdmin(false);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser({ ...session.user, name: session.user.email?.split('@')[0] });
-        setIsAdmin(true);
-      } else {
-        setUser(null);
-        setIsAdmin(false);
+    };
+
+    initializeAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser({ ...session.user, name: session.user.email?.split('@')[0] });
+          setIsAdmin(true);
+        } else if (event === 'SIGNED_OUT' || !session) {
+          setUser(null);
+          setIsAdmin(false);
+        }
+        
+        setLoading(false);
       }
-    });
+    );
+
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -55,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       setError(null);
-  if (import.meta.env.DEV) console.debug('AuthContext: sign in attempt:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -63,20 +99,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
-        console.error('AuthContext: Supabase auth error:', error);
         throw error;
       }
       
       if (data.user) {
-  if (import.meta.env.DEV) console.debug('AuthContext: login successful, user:', data.user);
         setUser({ ...data.user, name: data.user.email?.split('@')[0] });
         setIsAdmin(true);
       } else {
-        console.warn('AuthContext: No user data returned');
         throw new Error('No user data returned from authentication');
       }
     } catch (err) {
-      console.error('AuthContext: Sign in error:', err);
       if (err instanceof Error) {
         setError(err.message);
       } else {

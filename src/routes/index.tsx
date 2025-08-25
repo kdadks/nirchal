@@ -1,6 +1,5 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 
 // Public Pages
 import HomePage from '../pages/HomePage';
@@ -28,8 +27,6 @@ import LoginPage from '../pages/admin/LoginPage';
 import AdminRoutes from './AdminRoutes';
 
 export const AppRoutes: React.FC = () => {
-  const { user } = useAuth();
-
   return (
     <Routes>
       {/* Public Routes */}
@@ -57,7 +54,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/admin/login" element={<LoginPage />} />
       <Route 
         path="/admin/*" 
-        element={<AdminRoutes isAuthenticated={!!user} />} 
+        element={<AdminRoutes />} 
       />
     </Routes>
   );

@@ -64,8 +64,6 @@ export type CreateOrderInput = {
 };
 
 export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string; tempPassword?: string; existingCustomer?: boolean } | null> {
-  console.log('Attempting customer upsert for:', payload.email);
-  
   // Try the new temp password function first, fallback to direct insert if it fails
   try {
     const { data, error } = await supabase
@@ -77,18 +75,17 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       });
       
     if (error) {
-      console.warn('RPC create_checkout_customer failed, falling back to direct insert:', error);
+      // RPC failed, fallback to direct insert
       throw error; // Will trigger fallback
     }
     
-    console.log('RPC customer creation successful:', data);
     return {
       id: data.id,
       tempPassword: data.temp_password,
       existingCustomer: data.existing_customer
     };
   } catch (rpcError) {
-    console.log('Falling back to direct customer insert...');
+    // Fallback to original direct insert method
     
     // Fallback to original direct insert method
     const { data, error } = await supabase
@@ -106,11 +103,9 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       .single();
       
     if (error) {
-      console.error('Fallback customer creation also failed:', error);
       return null;
     }
     
-    console.log('Fallback customer creation successful:', data);
     return {
       id: data.id,
       tempPassword: undefined, // No temp password in fallback mode
