@@ -29,6 +29,16 @@ INSERT INTO settings (category, key, value, data_type, description, is_required,
 ('shop', 'order_prefix', 'ORD', 'string', 'Prefix for order numbers', false, 'ORD'),
 ('shop', 'enable_inventory_tracking', 'true', 'boolean', 'Track product stock levels automatically', false, 'true'),
 
+-- Social Media Settings
+('shop', 'social_facebook_url', '', 'string', 'Facebook page URL', false, ''),
+('shop', 'social_instagram_url', '', 'string', 'Instagram profile URL', false, ''),
+('shop', 'social_twitter_url', '', 'string', 'Twitter profile URL', false, ''),
+('shop', 'social_youtube_url', '', 'string', 'YouTube channel URL', false, ''),
+('shop', 'social_linkedin_url', '', 'string', 'LinkedIn profile URL', false, ''),
+('shop', 'social_pinterest_url', '', 'string', 'Pinterest profile URL', false, ''),
+('shop', 'social_whatsapp_number', '', 'string', 'WhatsApp business number (with country code)', false, ''),
+('shop', 'social_telegram_url', '', 'string', 'Telegram channel URL', false, ''),
+
 -- Payment Gateway Settings
 ('payment', 'razorpay_enabled', 'true', 'boolean', 'Enable Razorpay payment gateway', false, 'false'),
 ('payment', 'razorpay_key_id', '', 'string', 'Razorpay Key ID for payments', false, ''),
