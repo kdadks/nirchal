@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserCheck, UserX, Mail, Phone, Calendar, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import toast from 'react-hot-toast';
 
 interface Customer {
   id: string;
@@ -71,7 +72,7 @@ const UsersPage: React.FC = () => {
       ));
     } catch (err) {
       console.error('Error updating customer status:', err);
-      alert('Failed to update customer status');
+      toast.error('Failed to update customer status');
     } finally {
       setUpdating(null);
     }

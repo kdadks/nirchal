@@ -72,17 +72,6 @@ const Header: React.FC = () => {
             >
               <Search size={20} />
             </button>
-
-            {/* DEBUG: Simple test button */}
-            <button
-              onClick={() => {
-                alert('BUTTON WORKS!');
-                console.log('Button clicked');
-              }}
-              className="bg-red-500 text-white px-4 py-2 border-2 border-black"
-            >
-              TEST
-            </button>
             
             {/* Removed separate desktop Account menu to avoid duplicate/overlapping targets */}
             

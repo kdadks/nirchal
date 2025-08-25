@@ -5,6 +5,7 @@ import { useCategories, useProducts } from '../../hooks/useAdmin';
 import DataTable from '../../components/admin/DataTable';
 import type { Category, CategoryFormData } from '../../types/admin';
 import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, AlertTriangle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const initialForm: CategoryFormData = {
   name: '',
@@ -198,7 +199,7 @@ const CategoriesPage: React.FC = () => {
     e.preventDefault();
     
     if (!form.name.trim()) {
-      alert('Category name is required');
+      toast.error('Category name is required');
       return;
     }
 
@@ -213,7 +214,7 @@ const CategoriesPage: React.FC = () => {
       refresh();
     } catch (error) {
       console.error('Error saving category:', error);
-      alert('Failed to save category');
+      toast.error('Failed to save category');
     }
   };
 
@@ -240,13 +241,13 @@ const CategoriesPage: React.FC = () => {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      toast.error('Please select an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image size should be less than 5MB');
+      toast.error('Image size should be less than 5MB');
       return;
     }
 
@@ -269,7 +270,7 @@ const CategoriesPage: React.FC = () => {
       setForm(prev => ({ ...prev, image_url: publicUrl }));
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image');
+      toast.error('Failed to upload image');
     } finally {
       setImageUploading(false);
     }
