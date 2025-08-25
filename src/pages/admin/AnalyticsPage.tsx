@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, TrendingUp, IndianRupee, Package, Users, BarChart3, Eye, ShoppingCart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { TrendingUp, IndianRupee, Package, Users, BarChart3, Eye, ShoppingCart } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 
 interface AnalyticsData {
@@ -30,7 +29,6 @@ interface AnalyticsData {
 }
 
 const AnalyticsPage: React.FC = () => {
-  const navigate = useNavigate();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     overview: {
       totalRevenue: 0,
@@ -221,7 +219,7 @@ const AnalyticsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
@@ -231,7 +229,7 @@ const AnalyticsPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="p-6">
+      <div>
         <div className="text-center py-12">
           <p className="text-red-600 mb-4">{error}</p>
           <button
@@ -246,25 +244,7 @@ const AnalyticsPage: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center">
-          <button 
-            onClick={() => navigate('/admin')}
-            className="mr-4 p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-        </div>
-        <button
-          onClick={fetchAnalyticsData}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-        >
-          <BarChart3 className="h-4 w-4 mr-2" />
-          Refresh Data
-        </button>
-      </div>
+    <div>
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
