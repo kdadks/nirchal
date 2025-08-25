@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts, useCategories, useVendors } from '../../hooks/useAdmin';
+import { usePagination } from '../../hooks/usePagination';
 import DataTable from '../../components/admin/DataTable';
+import Pagination from '../../components/common/Pagination';
 import type { ProductWithDetails } from '../../types/admin';
 import { Package, Filter, Trash2, AlertTriangle, Upload, Download } from 'lucide-react';
 
@@ -54,11 +56,32 @@ const ProductsPage: React.FC = () => {
     });
   }, [products, filters]);
 
+  // Pagination
+  const {
+    currentPage,
+    itemsPerPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedProducts,
+    setCurrentPage,
+    setItemsPerPage,
+  } = usePagination({
+    data: filteredProducts,
+    defaultItemsPerPage: 25,
+  });
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedProducts(filteredProducts?.map(p => p.id.toString()) || []);
+      // Select all products from current page only
+      setSelectedProducts(prev => {
+        const currentPageIds = paginatedProducts?.map(p => p.id.toString()) || [];
+        const newSelected = [...new Set([...prev, ...currentPageIds])];
+        return newSelected;
+      });
     } else {
-      setSelectedProducts([]);
+      // Deselect all products from current page
+      const currentPageIds = paginatedProducts?.map(p => p.id.toString()) || [];
+      setSelectedProducts(prev => prev.filter(id => !currentPageIds.includes(id)));
     }
   };
 
@@ -282,11 +305,11 @@ const ProductsPage: React.FC = () => {
       {/* Products Table */}
       <DataTable
         columns={columns}
-        data={filteredProducts || []}
+        data={paginatedProducts || []}
         isLoading={loading}
         searchable={true}
         filterable={false}
-        title={`Products (${filteredProducts?.length || 0}${filters.status || filters.category || filters.vendor ? ` of ${products?.length || 0}` : ''})`}
+        title={`Products (${totalItems}${filters.status || filters.category || filters.vendor ? ` of ${products?.length || 0}` : ''})`}
         subtitle="All products in your catalog"
         headerActions={
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -336,6 +359,17 @@ const ProductsPage: React.FC = () => {
             </button>
           </div>
         }
+      />
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={totalItems}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        className="border-t border-gray-200"
       />
 
       {/* Delete Confirmation Modal */}
