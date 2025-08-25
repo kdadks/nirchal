@@ -27,6 +27,7 @@ interface DataTableProps<T> {
   searchable?: boolean;
   filterable?: boolean;
   headerActions?: React.ReactNode;
+  footerContent?: React.ReactNode;
 }
 
 const DataTable = <T extends Record<string, any>>({
@@ -40,7 +41,8 @@ const DataTable = <T extends Record<string, any>>({
   subtitle,
   searchable = false,
   filterable = false,
-  headerActions
+  headerActions,
+  footerContent
 }: DataTableProps<T>) => {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof T;
@@ -234,6 +236,13 @@ const DataTable = <T extends Record<string, any>>({
             </div>
           )}
         </div>
+        
+        {/* Footer content (like pagination) */}
+        {footerContent && (
+          <div className="border-t border-gray-200">
+            {footerContent}
+          </div>
+        )}
       </div>
     </div>
   );
