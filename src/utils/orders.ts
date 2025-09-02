@@ -65,7 +65,7 @@ export type CreateOrderInput = {
   items: OrderItemInput[];
 };
 
-export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string; tempPassword?: string; existingCustomer?: boolean } | null> {
+export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string; tempPassword?: string; existingCustomer?: boolean; needsWelcomeEmail?: boolean } | null> {
   // Try the new temp password function first, fallback to direct insert if it fails
   try {
     const { data, error } = await supabase
@@ -84,7 +84,8 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
     return {
       id: data.id,
       tempPassword: data.temp_password,
-      existingCustomer: data.existing_customer
+      existingCustomer: data.existing_customer,
+      needsWelcomeEmail: data.needs_welcome_email
     };
   } catch (rpcError) {
     // Fallback to original direct insert method
@@ -101,7 +102,7 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       }, {
         onConflict: 'email'
       })
-      .select('id')
+      .select('id, welcome_email_sent')
       .single();
       
     if (error) {
@@ -111,8 +112,27 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
     return {
       id: data.id,
       tempPassword: undefined, // No temp password in fallback mode
-      existingCustomer: false
+      existingCustomer: false,
+      needsWelcomeEmail: !data.welcome_email_sent // Only send if not already sent
     };
+  }
+}
+
+export async function markWelcomeEmailSent(supabase: SupabaseClient, customerId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('mark_welcome_email_sent', {
+      customer_id: parseInt(customerId)
+    });
+    
+    if (error) {
+      console.error('Failed to mark welcome email as sent:', error);
+      return false;
+    }
+    
+    return data === true;
+  } catch (error) {
+    console.error('Error marking welcome email as sent:', error);
+    return false;
   }
 }
 

@@ -151,19 +151,34 @@ export class OutlookCompatibleEmailTemplate {
 
 // Usage examples:
 
-export const outlookCompatibleWelcomeEmail = (customerName: string, websiteUrl: string) => {
+export const outlookCompatibleWelcomeEmail = (customerName: string, websiteUrl: string, tempPassword?: string) => {
+  const content = [
+    'Welcome to the <strong style="color: #ea580c;">Nirchal</strong> family! We\'re thrilled to have you join our community of fashion enthusiasts who appreciate authentic, high-quality ethnic wear.',
+  ];
+
+  // Add temp password info if provided (for checkout customers)
+  if (tempPassword) {
+    content.push(
+      '<strong>🔐 Your Account Credentials:</strong><br>' +
+      `📧 <strong>Email:</strong> Your email address<br>` +
+      `🔑 <strong>Temporary Password:</strong> <span style="background-color: #f8f9fa; padding: 2px 6px; font-family: monospace; border: 1px solid #dee2e6;">${tempPassword}</span><br><br>` +
+      '⚠️ <strong>Important:</strong> For your security, please change this temporary password after logging in. You can do this from your account settings.'
+    );
+  }
+
+  content.push(
+    '<strong>🛍️ What you can do now:</strong><br>✨ Browse our exclusive collection of sarees, lehengas, and more<br>💝 Save your favorite items to your wishlist<br>🏠 Manage your addresses for quick checkout<br>📦 Track your orders in real-time<br>💬 Get personalized recommendations',
+    'Need help getting started? Our customer support team is here to assist you every step of the way.'
+  );
+
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Welcome to Nirchal',
     headerText: '🎉 Welcome to Nirchal!',
     subHeaderText: 'Your account has been created successfully',
     customerName,
-    content: [
-      'Welcome to the <strong style="color: #ea580c;">Nirchal</strong> family! We\'re thrilled to have you join our community of fashion enthusiasts who appreciate authentic, high-quality ethnic wear.',
-      '<strong>🛍️ What you can do now:</strong><br>✨ Browse our exclusive collection of sarees, lehengas, and more<br>💝 Save your favorite items to your wishlist<br>🏠 Manage your addresses for quick checkout<br>📦 Track your orders in real-time<br>💬 Get personalized recommendations',
-      'Need help getting started? Our customer support team is here to assist you every step of the way.'
-    ],
-    ctaText: '🛍️ Start Shopping Now',
-    ctaUrl: websiteUrl,
+    content,
+    ctaText: tempPassword ? '🔑 Login to Your Account' : '🛍️ Start Shopping Now',
+    ctaUrl: tempPassword ? `${websiteUrl}/myaccount` : websiteUrl,
     footerText: 'Authentic Ethnic Fashion',
     websiteUrl
   });
@@ -173,10 +188,10 @@ export const outlookCompatibleOrderConfirmationEmail = (customerName: string, or
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Order Confirmation',
     headerText: '✅ Order Confirmed!',
-    subHeaderText: `Order #${orderNumber}`,
+    subHeaderText: `Order ${orderNumber}`,
     customerName,
     content: [
-      `Thank you for your order! We're excited to confirm that your order <strong>#${orderNumber}</strong> has been successfully placed.`,
+      `Thank you for your order! We're excited to confirm that your order <strong>${orderNumber}</strong> has been successfully placed.`,
       `<strong>Order Total:</strong> ₹${orderTotal}`,
       '<strong>📦 What happens next?</strong><br>• We\'ll process your order within 24 hours<br>• You\'ll receive tracking information once shipped<br>• Estimated delivery: 3-7 business days',
       'We appreciate your business and look forward to serving you again!'
@@ -217,10 +232,10 @@ export const outlookCompatibleOrderStatusEmail = (customerName: string, orderNum
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Order Status Update',
     headerText: '📦 Order Update',
-    subHeaderText: `Order #${orderNumber}`,
+    subHeaderText: `Order ${orderNumber}`,
     customerName,
     content: [
-      `We wanted to let you know that your order <strong>#${orderNumber}</strong> status has been updated to: <strong style="color: #ea580c;">${status.toUpperCase()}</strong>`,
+      `We wanted to let you know that your order <strong>${orderNumber}</strong> status has been updated to: <strong style="color: #ea580c;">${status.toUpperCase()}</strong>`,
       statusMessages[status as keyof typeof statusMessages] || 'Your order status has been updated.',
       trackingNumber ? `<strong>📍 Tracking Number:</strong> ${trackingNumber}` : '',
       'You can track your order anytime by visiting your account dashboard.'

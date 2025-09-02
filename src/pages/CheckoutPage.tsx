@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
-import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile } from '@utils/orders';
+import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile, markWelcomeEmailSent } from '@utils/orders';
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 import { transactionalEmailService } from '../services/transactionalEmailService';
 
@@ -250,6 +250,9 @@ const CheckoutPage: React.FC = () => {
     try {
       // 1) If logged in, update their profile (email is read-only)
       let customerId: string | null = customer?.id || null;
+      let shouldSendWelcomeEmail = false;
+      let tempPassword: string | null = null;
+      
       if (customer) {
         await updateCustomerProfile(supabase, {
           id: customer.id,
@@ -267,9 +270,13 @@ const CheckoutPage: React.FC = () => {
         });
         customerId = customerRes?.id || null;
         
-        // Store temp password info if this is a new customer
-        if (customerRes?.tempPassword && !customerRes?.existingCustomer) {
-          sessionStorage.setItem('new_customer_temp_password', customerRes.tempPassword);
+        // Determine if we should send welcome email
+        shouldSendWelcomeEmail = customerRes?.needsWelcomeEmail || false;
+        tempPassword = customerRes?.tempPassword || null;
+        
+        // Store temp password info if this is a new customer with temp password
+        if (tempPassword && !customerRes?.existingCustomer) {
+          sessionStorage.setItem('new_customer_temp_password', tempPassword);
           sessionStorage.setItem('new_customer_email', form.email.trim());
         }
       }
@@ -368,24 +375,89 @@ const CheckoutPage: React.FC = () => {
         throw new Error('Order creation failed - no order returned');
       }
       
-      // Send order confirmation email
-      try {
-        await transactionalEmailService.sendOrderConfirmationEmail({
-          id: order.id.toString(),
-          customer_name: `${form.firstName} ${form.lastName}`,
-          customer_email: form.email,
-          total_amount: finalTotal,
-          status: 'confirmed',
-          items: items.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            price: (item.price * item.quantity).toFixed(2)
-          }))
-        });
-        console.log('Order confirmation email sent successfully');
-      } catch (emailError) {
-        console.error('Failed to send order confirmation email:', emailError);
-        // Don't block the checkout process if email fails
+      // Handle welcome email for customers who need it
+      if (shouldSendWelcomeEmail && customerId) {
+        // Send welcome email (with temp password if available)
+        try {
+          await transactionalEmailService.sendWelcomeEmail({
+            first_name: form.firstName,
+            last_name: form.lastName,
+            email: form.email,
+            temp_password: tempPassword || undefined // Pass the temp password if available
+          });
+          console.log('Welcome email sent successfully', tempPassword ? 'with temp password' : 'for existing customer');
+          
+          // Mark welcome email as sent in database
+          await markWelcomeEmailSent(supabase, customerId);
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+          // Don't block the checkout process if email fails
+        }
+        
+        // For customers with temp password: Send order confirmation email after 30 seconds delay
+        if (tempPassword) {
+          setTimeout(async () => {
+            try {
+              await transactionalEmailService.sendOrderConfirmationEmail({
+                id: order.id.toString(),
+                order_number: order.order_number,
+                customer_name: `${form.firstName} ${form.lastName}`,
+                customer_email: form.email,
+                total_amount: finalTotal,
+                status: 'confirmed',
+                items: items.map(item => ({
+                  name: item.name,
+                  quantity: item.quantity,
+                  price: (item.price * item.quantity).toFixed(2)
+                }))
+              });
+              console.log('Order confirmation email sent successfully (after welcome email delay)');
+            } catch (emailError) {
+              console.error('Failed to send order confirmation email:', emailError);
+            }
+          }, 30000); // 30 seconds delay
+        } else {
+          // For existing customers who just needed welcome email: Send order confirmation immediately
+          try {
+            await transactionalEmailService.sendOrderConfirmationEmail({
+              id: order.id.toString(),
+              order_number: order.order_number,
+              customer_name: `${form.firstName} ${form.lastName}`,
+              customer_email: form.email,
+              total_amount: finalTotal,
+              status: 'confirmed',
+              items: items.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: (item.price * item.quantity).toFixed(2)
+              }))
+            });
+            console.log('Order confirmation email sent successfully');
+          } catch (emailError) {
+            console.error('Failed to send order confirmation email:', emailError);
+          }
+        }
+      } else {
+        // For existing customers who don't need welcome email: Send order confirmation immediately
+        try {
+          await transactionalEmailService.sendOrderConfirmationEmail({
+            id: order.id.toString(),
+            order_number: order.order_number,
+            customer_name: `${form.firstName} ${form.lastName}`,
+            customer_email: form.email,
+            total_amount: finalTotal,
+            status: 'confirmed',
+            items: items.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: (item.price * item.quantity).toFixed(2)
+            }))
+          });
+          console.log('Order confirmation email sent successfully');
+        } catch (emailError) {
+          console.error('Failed to send order confirmation email:', emailError);
+          // Don't block the checkout process if email fails
+        }
       }
       
       // Save basics for confirmation screen

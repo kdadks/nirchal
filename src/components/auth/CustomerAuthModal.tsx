@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { transactionalEmailService } from '../../services/transactionalEmailService';
+import { markWelcomeEmailSent } from '../../utils/orders';
 
 interface CustomerAuthModalProps {
   open: boolean;
@@ -10,7 +12,8 @@ interface CustomerAuthModalProps {
 }
 
 const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) => {
-  const { signIn, signUp, resetPassword } = useCustomerAuth();
+  const { signIn, signUp, resetPassword, customer } = useCustomerAuth();
+  const { supabase } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
@@ -79,14 +82,20 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
         if (result.success) {
           setMessage('Account created successfully! Redirecting...');
           
-          // Send welcome email
+          // Send welcome email (without temp password for self-registered users)
           try {
             await transactionalEmailService.sendWelcomeEmail({
               first_name: firstName,
               last_name: lastName,
               email: email
+              // No temp_password for self-registered users
             });
-            console.log('Welcome email sent successfully');
+            console.log('Welcome email sent successfully for self-registered user');
+            
+            // Mark welcome email as sent in database if we have customer ID
+            if (customer?.id) {
+              await markWelcomeEmailSent(supabase, customer.id);
+            }
           } catch (emailError) {
             console.error('Failed to send welcome email:', emailError);
             // Don't block the registration process if email fails
