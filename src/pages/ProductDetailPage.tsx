@@ -3,9 +3,11 @@ import ProductReviews from '../components/product/ProductReviews';
 import { useProductReviews } from '../hooks/useProductReviews';
 import { useAuth } from '../contexts/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Heart, Share2, Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search } from 'lucide-react';
+import { ShoppingBag, Heart, Share2, Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search, Facebook, Twitter, Linkedin, MessageCircle, Link2, Check } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
+import { useWishlist } from '../contexts/WishlistContext';
+import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 
 const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -13,6 +15,7 @@ const ProductDetailPage: React.FC = () => {
   const { products, loading } = usePublicProducts();
   const { addItem } = useCart();
   const { user } = useAuth();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -20,6 +23,9 @@ const ProductDetailPage: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const product = products.find(p => p.slug === slug);
   const { reviews, loading: reviewsLoading, error: reviewsError, fetchReviews, addReview } = useProductReviews(product?.id || '');
@@ -56,10 +62,10 @@ const ProductDetailPage: React.FC = () => {
       const idNoDash = swatchId.replace(/-/g, '');
       idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
     }
-    if (idx >= 0 && idx !== selectedImage) {
+    if (idx >= 0) {
       setSelectedImage(idx);
     }
-  }, [product, selectedColor, selectedImage]);
+  }, [product, selectedColor]);
 
   // Handle keyboard events for image modal
   useEffect(() => {
@@ -127,7 +133,7 @@ const ProductDetailPage: React.FC = () => {
           id: product.id,
           name: product.name,
           price: adjustedPrice,
-          image: product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+          image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize,
           color: selectedColor || product.color,
           variantId: selectedVariant?.id
@@ -152,7 +158,7 @@ const ProductDetailPage: React.FC = () => {
           id: product.id,
           name: product.name,
           price: adjustedPrice,
-          image: product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+          image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize,
           color: selectedColor || product.color,
           variantId: selectedVariant?.id
@@ -177,10 +183,12 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const nextImageInModal = () => {
+    if (!product || !product.images || product.images.length === 0) return;
     setSelectedImage((prev) => (prev + 1) % product.images.length);
   };
 
   const prevImageInModal = () => {
+    if (!product || !product.images || product.images.length === 0) return;
     setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
   };
 
@@ -193,10 +201,12 @@ const ProductDetailPage: React.FC = () => {
   const canAddToCart = !hasVariants || selectedSize;
 
   const nextImage = () => {
+    if (!product || !product.images || product.images.length === 0) return;
     setSelectedImage((prev) => (prev + 1) % product.images.length);
   };
 
   const prevImage = () => {
+    if (!product || !product.images || product.images.length === 0) return;
     setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
   };
 
@@ -209,6 +219,87 @@ const ProductDetailPage: React.FC = () => {
       const sizeMatch = normalizedSize ? v.size === normalizedSize : true;
       return colorMatch && sizeMatch;
     });
+  };
+
+  // Wishlist handlers
+  const handleWishlistToggle = async () => {
+    if (!product) return;
+    
+    if (isInWishlist(product.id)) {
+      const result = await removeFromWishlist(product.id);
+      if (!result.success) {
+        console.error('Failed to remove from wishlist');
+      }
+    } else {
+      const result = await addToWishlist(product.id);
+      if (!result.success && result.requiresAuth) {
+        setShowAuthModal(true);
+      } else if (!result.success) {
+        console.error('Failed to add to wishlist');
+      }
+    }
+  };
+
+  // Share handlers
+  const handleShareClick = () => {
+    setIsShareModalOpen(true);
+  };
+
+  const handleCloseShareModal = () => {
+    setIsShareModalOpen(false);
+    setCopySuccess(false);
+  };
+
+  const getProductUrl = () => {
+    return window.location.href;
+  };
+
+  const getShareData = () => {
+    const url = getProductUrl();
+    const title = product?.name || 'Check out this product';
+    const description = `${title} - Starting from ₹${product?.price}`;
+    
+    return { url, title, description };
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getProductUrl());
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
+
+  const handleSocialShare = (platform: string) => {
+    const { url, description } = getShareData();
+    const encodedUrl = encodeURIComponent(url);
+    const encodedDescription = encodeURIComponent(description);
+    
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedDescription}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedDescription}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodedDescription}%20${encodedUrl}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+        break;
+      case 'telegram':
+        shareUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedDescription}`;
+        break;
+      default:
+        return;
+    }
+    
+    window.open(shareUrl, '_blank', 'width=600,height=400');
   };
 
   const selectedVariant = getSelectedVariant();
@@ -582,11 +673,24 @@ const ProductDetailPage: React.FC = () => {
                 </button>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <button className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-amber-200 rounded-xl font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-amber-700">
-                    <Heart size={18} />
-                    Wishlist
+                  <button 
+                    onClick={handleWishlistToggle}
+                    className={`flex items-center justify-center gap-2 px-6 py-3 border-2 rounded-xl font-medium transition-colors duration-200 ${
+                      isInWishlist(product.id)
+                        ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
+                        : 'border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300'
+                    }`}
+                  >
+                    <Heart 
+                      size={18} 
+                      className={isInWishlist(product.id) ? 'fill-current' : ''} 
+                    />
+                    {isInWishlist(product.id) ? 'In Wishlist' : 'Wishlist'}
                   </button>
-                  <button className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-amber-200 rounded-xl font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-amber-700">
+                  <button 
+                    onClick={handleShareClick}
+                    className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-amber-200 rounded-xl font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-amber-700"
+                  >
                     <Share2 size={18} />
                     Share
                   </button>
@@ -685,6 +789,118 @@ const ProductDetailPage: React.FC = () => {
             {product.name}
           </div>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {isShareModalOpen && product && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={handleCloseShareModal}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Share Product</h3>
+              <button
+                onClick={handleCloseShareModal}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Product Info */}
+            <div className="flex gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+              <img
+                src={product.images[0] || '/placeholder-product.jpg'}
+                alt={product.name}
+                className="w-16 h-16 object-cover rounded-lg"
+              />
+              <div className="flex-1">
+                <h4 className="font-medium text-gray-900 line-clamp-2">{product.name}</h4>
+                <p className="text-amber-600 font-semibold">₹{product.price}</p>
+              </div>
+            </div>
+
+            {/* Social Media Buttons */}
+            <div className="space-y-3 mb-6">
+              <button
+                onClick={() => handleSocialShare('whatsapp')}
+                className="w-full flex items-center gap-3 p-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+              >
+                <MessageCircle size={20} />
+                <span>Share on WhatsApp</span>
+              </button>
+
+              <button
+                onClick={() => handleSocialShare('facebook')}
+                className="w-full flex items-center gap-3 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                <Facebook size={20} />
+                <span>Share on Facebook</span>
+              </button>
+
+              <button
+                onClick={() => handleSocialShare('twitter')}
+                className="w-full flex items-center gap-3 p-3 bg-blue-400 hover:bg-blue-500 text-white rounded-lg transition-colors"
+              >
+                <Twitter size={20} />
+                <span>Share on Twitter</span>
+              </button>
+
+              <button
+                onClick={() => handleSocialShare('linkedin')}
+                className="w-full flex items-center gap-3 p-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors"
+              >
+                <Linkedin size={20} />
+                <span>Share on LinkedIn</span>
+              </button>
+
+              <button
+                onClick={() => handleSocialShare('telegram')}
+                className="w-full flex items-center gap-3 p-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+              >
+                <MessageCircle size={20} />
+                <span>Share on Telegram</span>
+              </button>
+            </div>
+
+            {/* Copy Link */}
+            <div className="border-t pt-4">
+              <button
+                onClick={handleCopyLink}
+                className={`w-full flex items-center justify-center gap-3 p-3 border-2 rounded-lg transition-colors ${
+                  copySuccess
+                    ? 'border-green-300 bg-green-50 text-green-700'
+                    : 'border-gray-300 hover:border-gray-400 text-gray-700'
+                }`}
+              >
+                {copySuccess ? (
+                  <>
+                    <Check size={20} />
+                    <span>Link Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Link2 size={20} />
+                    <span>Copy Link</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Auth Modal */}
+      {showAuthModal && (
+        <CustomerAuthModal
+          open={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+        />
       )}
     </div>
   );

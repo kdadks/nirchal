@@ -9,7 +9,7 @@ export type CustomerUpsert = {
 
 export type AddressUpsert = {
   customer_id: string;
-  type?: 'billing' | 'shipping';
+  type?: 'billing' | 'delivery';
   first_name: string;
   last_name: string;
   address_line_1: string;
@@ -43,6 +43,7 @@ export type CreateOrderInput = {
     first_name: string;
     last_name: string;
     address_line_1: string;
+    address_line_2?: string;
     city: string;
     state: string;
     postal_code: string;
@@ -50,10 +51,11 @@ export type CreateOrderInput = {
     phone?: string;
     email: string;
   };
-  shipping: {
+  delivery: {
     first_name: string;
     last_name: string;
     address_line_1: string;
+    address_line_2?: string;
     city: string;
     state: string;
     postal_code: string;
@@ -120,7 +122,7 @@ export async function upsertCustomerAddress(supabase: SupabaseClient, payload: A
     .from('customer_addresses')
     .select('id')
     .eq('customer_id', payload.customer_id)
-    .eq('type', payload.type || 'shipping')
+    .eq('type', payload.type || 'delivery')
     .order('is_default', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -152,7 +154,7 @@ export async function upsertCustomerAddress(supabase: SupabaseClient, payload: A
     .from('customer_addresses')
     .insert({
       customer_id: payload.customer_id,
-      type: payload.type || 'shipping',
+      type: payload.type || 'delivery',
       first_name: payload.first_name,
       last_name: payload.last_name,
       address_line_1: payload.address_line_1,
@@ -228,14 +230,14 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
       billing_country: input.billing.country || 'India',
       billing_phone: input.billing.phone,
       billing_email: input.billing.email,
-      shipping_first_name: input.shipping.first_name,
-      shipping_last_name: input.shipping.last_name,
-      shipping_address_line_1: input.shipping.address_line_1,
-      shipping_city: input.shipping.city,
-      shipping_state: input.shipping.state,
-      shipping_postal_code: input.shipping.postal_code,
-      shipping_country: input.shipping.country || 'India',
-      shipping_phone: input.shipping.phone,
+      shipping_first_name: input.delivery.first_name,
+      shipping_last_name: input.delivery.last_name,
+      shipping_address_line_1: input.delivery.address_line_1,
+      shipping_city: input.delivery.city,
+      shipping_state: input.delivery.state,
+      shipping_postal_code: input.delivery.postal_code,
+      shipping_country: input.delivery.country || 'India',
+      shipping_phone: input.delivery.phone,
     })
     .select('id, order_number')
     .single();
