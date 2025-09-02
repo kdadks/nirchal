@@ -6,18 +6,53 @@ import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
-import { upsertCustomerByEmail, upsertCustomerAddress, createOrderWithItems, updateCustomerProfile } from '@utils/orders';
+import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile } from '@utils/orders';
 
 interface CheckoutForm {
+  // Contact Information
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  address: string;
+  
+  // Delivery Address
+  deliveryAddress: string;
+  deliveryAddressLine2?: string;
+  deliveryCity: string;
+  deliveryState: string;
+  deliveryPincode: string;
+  selectedDeliveryAddressId?: string;
+  
+  // Billing Address
+  billingFirstName: string;
+  billingLastName: string;
+  billingAddress: string;
+  billingAddressLine2?: string;
+  billingCity: string;
+  billingState: string;
+  billingPincode: string;
+  billingPhone: string;
+  selectedBillingAddressId?: string;
+  billingIsSameAsDelivery: boolean;
+  
+  paymentMethod: 'cod' | 'online' | 'upi';
+}
+
+interface CustomerAddress {
+  id: string;
+  first_name: string;
+  last_name: string;
+  company?: string;
+  address_line_1: string;
+  address_line_2?: string;
   city: string;
   state: string;
-  pincode: string;
-  paymentMethod: 'cod' | 'online' | 'upi';
+  postal_code: string;
+  country?: string;
+  phone?: string;
+  is_default: boolean;
+  is_shipping: boolean;
+  is_billing: boolean;
 }
 
 const CheckoutPage: React.FC = () => {
@@ -28,16 +63,131 @@ const CheckoutPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep] = useState(1);
   const [form, setForm] = useState<CheckoutForm>({
+    // Contact Information
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
+    
+    // Delivery Address
+    deliveryAddress: '',
+    deliveryAddressLine2: '',
+    deliveryCity: '',
+    deliveryState: '',
+    deliveryPincode: '',
+    selectedDeliveryAddressId: '',
+    
+    // Billing Address
+    billingFirstName: '',
+    billingLastName: '',
+    billingAddress: '',
+    billingAddressLine2: '',
+    billingCity: '',
+    billingState: '',
+    billingPincode: '',
+    billingPhone: '',
+    selectedBillingAddressId: '',
+    billingIsSameAsDelivery: true,
+    
     paymentMethod: 'cod'
   });
+
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
+
+  // Load customer addresses if logged in
+  useEffect(() => {
+    const loadCustomerAddresses = async () => {
+      if (!customer?.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('customer_addresses')
+          .select('*')
+          .eq('customer_id', customer.id)
+          .order('is_default', { ascending: false });
+          
+        if (error) throw error;
+        
+        // Deduplicate addresses - merge duplicates with same address details
+        const addressMap = new Map();
+        const processedAddresses: CustomerAddress[] = [];
+        
+        data?.forEach(address => {
+          const key = `${address.address_line_1}-${address.city}-${address.state}-${address.postal_code}`;
+          
+          if (addressMap.has(key)) {
+            // Merge with existing - combine is_shipping and is_billing flags
+            const existing = addressMap.get(key);
+            existing.is_shipping = existing.is_shipping || address.is_shipping;
+            existing.is_billing = existing.is_billing || address.is_billing;
+            existing.is_default = existing.is_default || address.is_default;
+            
+            // Keep the one with more complete information
+            if (address.address_line_2 && !existing.address_line_2) {
+              existing.address_line_2 = address.address_line_2;
+            }
+            if (address.phone && !existing.phone) {
+              existing.phone = address.phone;
+            }
+          } else {
+            addressMap.set(key, { ...address });
+          }
+        });
+        
+        // Convert map back to array
+        addressMap.forEach(address => processedAddresses.push(address));
+        
+        setCustomerAddresses(processedAddresses);
+
+        // Clean up actual duplicate addresses in database
+        if (data && data.length > processedAddresses.length) {
+          await cleanupDuplicateAddresses(data, processedAddresses);
+        }
+        
+        // Auto-select default address if available
+        const defaultAddress = processedAddresses.find(addr => addr.is_default);
+        if (defaultAddress) {
+          setForm(prev => ({
+            ...prev,
+            selectedDeliveryAddressId: defaultAddress.id,
+            deliveryAddress: defaultAddress.address_line_1,
+            deliveryAddressLine2: defaultAddress.address_line_2 || '',
+            deliveryCity: defaultAddress.city,
+            deliveryState: defaultAddress.state,
+            deliveryPincode: defaultAddress.postal_code,
+          }));
+        }
+
+        // Auto-select billing address if available and not same as delivery
+        const billingAddress = processedAddresses.find(addr => addr.is_billing);
+        if (billingAddress && (!defaultAddress || billingAddress.id !== defaultAddress.id)) {
+          setForm(prev => ({
+            ...prev,
+            billingIsSameAsDelivery: false,
+            selectedBillingAddressId: billingAddress.id,
+            billingFirstName: billingAddress.first_name,
+            billingLastName: billingAddress.last_name,
+            billingAddress: billingAddress.address_line_1,
+            billingAddressLine2: billingAddress.address_line_2 || '',
+            billingCity: billingAddress.city,
+            billingState: billingAddress.state,
+            billingPincode: billingAddress.postal_code,
+            billingPhone: billingAddress.phone || '',
+          }));
+        } else if (billingAddress && defaultAddress && billingAddress.id === defaultAddress.id) {
+          // Same address is both default and billing
+          setForm(prev => ({
+            ...prev,
+            billingIsSameAsDelivery: true,
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to load addresses:', err);
+      }
+    };
+
+    loadCustomerAddresses();
+  }, [customer?.id]);
 
   // Prefill from logged-in customer
   useEffect(() => {
@@ -52,7 +202,7 @@ const CheckoutPage: React.FC = () => {
     }
   }, [customer]);
 
-  // Load default shipping address for logged-in customer
+  // Load default delivery address for logged-in customer
   useEffect(() => {
     const loadDefaultAddress = async () => {
       if (!customer) return;
@@ -61,7 +211,7 @@ const CheckoutPage: React.FC = () => {
           .from('customer_addresses')
           .select('first_name, last_name, address_line_1, city, state, postal_code, type, is_default')
           .eq('customer_id', customer.id)
-          .eq('type', 'shipping')
+          .eq('type', 'delivery')
           .order('is_default', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -71,10 +221,10 @@ const CheckoutPage: React.FC = () => {
             ...prev,
             firstName: prev.firstName || data.first_name || '',
             lastName: prev.lastName || data.last_name || '',
-            address: data.address_line_1 || prev.address,
-            city: data.city || prev.city,
-            state: data.state || prev.state,
-            pincode: data.postal_code || prev.pincode,
+            deliveryAddress: data.address_line_1 || prev.deliveryAddress,
+            deliveryCity: data.city || prev.deliveryCity,
+            deliveryState: data.state || prev.deliveryState,
+            deliveryPincode: data.postal_code || prev.deliveryPincode,
           }));
         }
       } catch (err) {
@@ -123,49 +273,75 @@ const CheckoutPage: React.FC = () => {
         }
       }
 
-      // 2) Create/Upsert address (best-effort)
-  if (customerId) {
-        await upsertCustomerAddress(supabase, {
-          customer_id: customerId,
-          type: 'shipping',
+      // 2) Create/Upsert delivery address with proper flags
+      if (customerId) {
+        // Save delivery address
+        const deliveryAddressData = {
           first_name: form.firstName.trim(),
           last_name: form.lastName.trim(),
-          address_line_1: form.address.trim(),
-          city: form.city.trim(),
-          state: form.state.trim(),
-          postal_code: form.pincode.trim(),
+          address_line_1: form.deliveryAddress.trim(),
+          address_line_2: form.deliveryAddressLine2?.trim() || '',
+          city: form.deliveryCity.trim(),
+          state: form.deliveryState.trim(),
+          postal_code: form.deliveryPincode.trim(),
+          phone: form.phone.trim(),
           country: 'India',
           is_default: true,
-        });
+        };
+
+        await upsertAddressWithFlags(deliveryAddressData, true, false);
+
+        // Handle billing address
+        if (form.billingIsSameAsDelivery) {
+          // Mark the same address as billing too
+          await upsertAddressWithFlags(deliveryAddressData, true, true);
+        } else if (form.billingAddress.trim()) {
+          // Save different billing address
+          const billingAddressData = {
+            first_name: form.billingFirstName.trim(),
+            last_name: form.billingLastName.trim(),
+            address_line_1: form.billingAddress.trim(),
+            address_line_2: form.billingAddressLine2?.trim() || '',
+            city: form.billingCity.trim(),
+            state: form.billingState.trim(),
+            postal_code: form.billingPincode.trim(),
+            phone: form.billingPhone.trim(),
+            country: 'India',
+            is_default: false,
+          };
+          await upsertAddressWithFlags(billingAddressData, false, true);
+        }
       }
 
       // 3) Create order with items
-      const shippingCost = total >= 2999 ? 0 : 99;
-      const finalTotal = total + shippingCost;
+      const deliveryCost = total >= 2999 ? 0 : 99;
+      const finalTotal = total + deliveryCost;
       const order = await createOrderWithItems(supabase, {
         customer_id: customerId,
         payment_method: form.paymentMethod,
         subtotal: total,
-        shipping_amount: shippingCost,
+        shipping_amount: deliveryCost,
         total_amount: finalTotal,
         billing: {
-          first_name: form.firstName,
-          last_name: form.lastName,
-          address_line_1: form.address,
-          city: form.city,
-          state: form.state,
-          postal_code: form.pincode,
+          first_name: form.billingIsSameAsDelivery ? form.firstName : form.billingFirstName,
+          last_name: form.billingIsSameAsDelivery ? form.lastName : form.billingLastName,
+          address_line_1: form.billingIsSameAsDelivery ? form.deliveryAddress : form.billingAddress,
+          address_line_2: form.billingIsSameAsDelivery ? form.deliveryAddressLine2 : form.billingAddressLine2,
+          city: form.billingIsSameAsDelivery ? form.deliveryCity : form.billingCity,
+          state: form.billingIsSameAsDelivery ? form.deliveryState : form.billingState,
+          postal_code: form.billingIsSameAsDelivery ? form.deliveryPincode : form.billingPincode,
           country: 'India',
-          phone: form.phone,
+          phone: form.billingIsSameAsDelivery ? form.phone : form.billingPhone,
           email: form.email,
         },
-        shipping: {
+        delivery: {
           first_name: form.firstName,
           last_name: form.lastName,
-          address_line_1: form.address,
-          city: form.city,
-          state: form.state,
-          postal_code: form.pincode,
+          address_line_1: form.deliveryAddress,
+          address_line_2: form.deliveryAddressLine2,
+          city: form.deliveryCity,
+          state: form.deliveryState,
+          postal_code: form.deliveryPincode,
           country: 'India',
           phone: form.phone,
         },
@@ -213,12 +389,199 @@ const CheckoutPage: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      if (name === 'billingIsSameAsDelivery') {
+        handleBillingSameAsDelivery(checked);
+      } else {
+        setForm(prev => ({ ...prev, [name]: checked }));
+      }
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+      
+      // If user changes billing address fields, update the existing billing address flag
+      if (customer && !form.billingIsSameAsDelivery && 
+          ['billingFirstName', 'billingLastName', 'billingAddress', 'billingAddressLine2', 'billingCity', 'billingState', 'billingPincode'].includes(name)) {
+        handleBillingAddressChange();
+      }
+    }
   };
 
-  const shippingCost = total >= 2999 ? 0 : 99;
-  const finalTotal = total + shippingCost;
+  const handleDeliveryAddressSelect = (addressId: string) => {
+    const selectedAddress = customerAddresses.find(addr => addr.id === addressId);
+    if (selectedAddress) {
+      setForm(prev => ({
+        ...prev,
+        selectedDeliveryAddressId: addressId,
+        deliveryAddress: selectedAddress.address_line_1,
+        deliveryAddressLine2: selectedAddress.address_line_2 || '',
+        deliveryCity: selectedAddress.city,
+        deliveryState: selectedAddress.state,
+        deliveryPincode: selectedAddress.postal_code,
+      }));
+    }
+  };
+
+  const handleBillingSameAsDelivery = (checked: boolean) => {
+    setForm(prev => ({
+      ...prev,
+      billingIsSameAsDelivery: checked,
+      ...(checked ? {
+        billingFirstName: prev.firstName,
+        billingLastName: prev.lastName,
+        billingAddress: prev.deliveryAddress,
+        billingAddressLine2: prev.deliveryAddressLine2 || '',
+        billingCity: prev.deliveryCity,
+        billingState: prev.deliveryState,
+        billingPincode: prev.deliveryPincode,
+        billingPhone: prev.phone,
+        selectedBillingAddressId: prev.selectedDeliveryAddressId,
+      } : {})
+    }));
+  };
+
+  const handleBillingAddressChange = async () => {
+    if (!customer?.id) return;
+    
+    try {
+      // Find if there's an existing billing address and remove the billing flag
+      const existingBillingAddress = customerAddresses.find(addr => addr.is_billing && !addr.is_shipping);
+      if (existingBillingAddress) {
+        await supabase
+          .from('customer_addresses')
+          .update({ is_billing: false })
+          .eq('id', existingBillingAddress.id)
+          .eq('customer_id', customer.id);
+      }
+    } catch (error) {
+      console.error('Error updating billing address flag:', error);
+    }
+  };
+
+  const handleDeleteAddress = async (addressId: string) => {
+    if (!customer) return;
+    
+    const confirmDelete = window.confirm('Are you sure you want to delete this address?');
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('customer_addresses')
+        .delete()
+        .eq('id', addressId)
+        .eq('customer_id', customer.id);
+
+      if (error) throw error;
+
+      // Reload addresses
+      setCustomerAddresses(prev => prev.filter(addr => addr.id !== addressId));
+      
+      // Clear selection if deleted address was selected
+      setForm(prev => ({
+        ...prev,
+        ...(prev.selectedDeliveryAddressId === addressId ? { selectedDeliveryAddressId: '' } : {}),
+        ...(prev.selectedBillingAddressId === addressId ? { selectedBillingAddressId: '' } : {})
+      }));
+
+      toast.success('Address deleted successfully');
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      toast.error('Failed to delete address');
+    }
+  };
+
+  // Function to find or create address and mark it with appropriate flags
+  const upsertAddressWithFlags = async (addressData: any, isDelivery: boolean, isBilling: boolean) => {
+    if (!customer?.id) return null;
+
+    try {
+      // Find existing address with same details
+      const { data: existingAddresses } = await supabase
+        .from('customer_addresses')
+        .select('*')
+        .eq('customer_id', customer.id)
+        .eq('address_line_1', addressData.address_line_1)
+        .eq('city', addressData.city)
+        .eq('state', addressData.state)
+        .eq('postal_code', addressData.postal_code);
+
+      if (existingAddresses && existingAddresses.length > 0) {
+        // Update existing address to add new flags
+        const existingAddress = existingAddresses[0];
+        const { error } = await supabase
+          .from('customer_addresses')
+          .update({
+            is_shipping: existingAddress.is_shipping || isDelivery,
+            is_billing: existingAddress.is_billing || isBilling,
+            first_name: addressData.first_name,
+            last_name: addressData.last_name,
+            phone: addressData.phone,
+            is_default: addressData.is_default || existingAddress.is_default,
+          })
+          .eq('id', existingAddress.id);
+
+        if (error) throw error;
+        return { id: existingAddress.id };
+      } else {
+        // Create new address
+        const { data, error } = await supabase
+          .from('customer_addresses')
+          .insert({
+            customer_id: customer.id,
+            type: isDelivery ? 'delivery' : 'billing',
+            first_name: addressData.first_name,
+            last_name: addressData.last_name,
+            address_line_1: addressData.address_line_1,
+            address_line_2: addressData.address_line_2,
+            city: addressData.city,
+            state: addressData.state,
+            postal_code: addressData.postal_code,
+            country: addressData.country || 'India',
+            phone: addressData.phone,
+            is_default: addressData.is_default,
+            is_shipping: isDelivery,
+            is_billing: isBilling,
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+    } catch (error) {
+      console.error('Error upserting address:', error);
+      return null;
+    }
+  };
+
+  // Function to clean up duplicate addresses in database
+  const cleanupDuplicateAddresses = async (originalAddresses: CustomerAddress[], cleanedAddresses: CustomerAddress[]) => {
+    if (!customer?.id) return;
+
+    try {
+      const addressesToKeep = new Set(cleanedAddresses.map(addr => addr.id));
+      const addressesToDelete = originalAddresses.filter(addr => !addressesToKeep.has(addr.id));
+
+      if (addressesToDelete.length > 0) {
+        // Delete duplicate addresses
+        const { error } = await supabase
+          .from('customer_addresses')
+          .delete()
+          .in('id', addressesToDelete.map(addr => addr.id));
+
+        if (error) throw error;
+        
+        console.log(`Cleaned up ${addressesToDelete.length} duplicate addresses`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up duplicate addresses:', error);
+    }
+  };
+
+  const deliveryCost = total >= 2999 ? 0 : 99;
+  const finalTotal = total + deliveryCost;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
@@ -289,16 +652,78 @@ const CheckoutPage: React.FC = () => {
             {/* Form */}
             <div className="lg:col-span-2">
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Shipping Information */}
+                {/* Delivery Information */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-6 border-b border-gray-200">
                     <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
                       <Truck size={20} className="text-amber-600" />
-                      Shipping Information
+                      Delivery Information
                     </h2>
                   </div>
                   
                   <div className="p-6">
+                    {/* Address Cards for Logged-in Users */}
+                    {customer && customerAddresses.length > 0 && (
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Select Delivery Address
+                        </label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                          {customerAddresses.map((address) => (
+                            <div
+                              key={address.id}
+                              onClick={() => handleDeliveryAddressSelect(address.id)}
+                              className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                form.selectedDeliveryAddressId === address.id
+                                  ? 'border-amber-500 bg-amber-50'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-900 mb-1">
+                                  {address.address_line_1}
+                                  {address.address_line_2 && (
+                                    <div className="font-normal text-gray-700">
+                                      {address.address_line_2}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-gray-600 mb-1">
+                                  {address.city}, {address.state} {address.postal_code}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex gap-1">
+                                    {/* Tags removed for logged-in users */}
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteAddress(address.id);
+                                    }}
+                                    className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-center">
+                          <button
+                            type="button"
+                            onClick={() => setForm(prev => ({ ...prev, selectedDeliveryAddressId: '' }))}
+                            className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                          >
+                            + Enter new address
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Address Form Fields - Show when no address selected or entering manually */}
+                    {(!customer || customerAddresses.length === 0 || !form.selectedDeliveryAddressId) && (
+                    <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -364,16 +789,30 @@ const CheckoutPage: React.FC = () => {
 
                     <div className="mt-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Address *
+                        Address Line 1 *
                       </label>
                       <input
                         type="text"
-                        name="address"
-                        value={form.address}
+                        name="deliveryAddress"
+                        value={form.deliveryAddress}
                         onChange={handleInputChange}
                         required
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                        placeholder="Street address, apartment, suite, etc."
+                        placeholder="Street address, building number"
+                      />
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Address Line 2
+                      </label>
+                      <input
+                        type="text"
+                        name="deliveryAddressLine2"
+                        value={form.deliveryAddressLine2 || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                        placeholder="Apartment, suite, unit, etc. (optional)"
                       />
                     </div>
 
@@ -384,8 +823,8 @@ const CheckoutPage: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          name="city"
-                          value={form.city}
+                          name="deliveryCity"
+                          value={form.deliveryCity}
                           onChange={handleInputChange}
                           required
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
@@ -398,8 +837,8 @@ const CheckoutPage: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          name="state"
-                        value={form.state}
+                          name="deliveryState"
+                        value={form.deliveryState}
                         onChange={handleInputChange}
                         required
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
@@ -412,8 +851,8 @@ const CheckoutPage: React.FC = () => {
                       </label>
                       <input
                         type="text"
-                        name="pincode"
-                        value={form.pincode}
+                        name="deliveryPincode"
+                        value={form.deliveryPincode}
                         onChange={handleInputChange}
                         required
                         pattern="[0-9]{6}"
@@ -422,6 +861,163 @@ const CheckoutPage: React.FC = () => {
                       />
                     </div>
                     </div>
+                    </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Billing Information */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-6 border-b border-gray-200">
+                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                      <CreditCard size={20} className="text-amber-600" />
+                      Billing Information
+                    </h2>
+                  </div>
+                  
+                  <div className="p-6">
+                    {/* Billing Same as Delivery Checkbox */}
+                    <div className="mb-6">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="billingIsSameAsDelivery"
+                          checked={form.billingIsSameAsDelivery}
+                          onChange={handleInputChange}
+                          className="w-5 h-5 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">
+                          Billing address is the same as delivery address
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Billing Address Selection (if not same as delivery) */}
+                    {!form.billingIsSameAsDelivery && (
+                      <>
+                        {/* Billing Address Form */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              First Name *
+                            </label>
+                            <input
+                              type="text"
+                              name="billingFirstName"
+                              value={form.billingFirstName}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                              placeholder="Enter first name"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Last Name *
+                            </label>
+                            <input
+                              type="text"
+                              name="billingLastName"
+                              value={form.billingLastName}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                              placeholder="Enter last name"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number *
+                          </label>
+                          <input
+                            type="tel"
+                            name="billingPhone"
+                            value={form.billingPhone}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Enter phone number"
+                          />
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Address Line 1 *
+                          </label>
+                          <input
+                            type="text"
+                            name="billingAddress"
+                            value={form.billingAddress}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Street address, building number"
+                          />
+                        </div>
+
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Address Line 2
+                          </label>
+                          <input
+                            type="text"
+                            name="billingAddressLine2"
+                            value={form.billingAddressLine2 || ''}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Apartment, suite, unit, etc. (optional)"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              City *
+                            </label>
+                            <input
+                              type="text"
+                              name="billingCity"
+                              value={form.billingCity}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                              placeholder="City"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              State *
+                            </label>
+                            <input
+                              type="text"
+                              name="billingState"
+                              value={form.billingState}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                              placeholder="State"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              PIN Code *
+                            </label>
+                            <input
+                              type="text"
+                              name="billingPincode"
+                              value={form.billingPincode}
+                              onChange={handleInputChange}
+                              required
+                              pattern="[0-9]{6}"
+                              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                              placeholder="123456"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -533,9 +1129,9 @@ const CheckoutPage: React.FC = () => {
                     <span>₹{total.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Shipping</span>
-                    <span className={shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
-                      {shippingCost === 0 ? 'Free' : `₹${shippingCost}`}
+                    <span>Delivery</span>
+                    <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
+                      {deliveryCost === 0 ? 'Free' : `₹${deliveryCost}`}
                     </span>
                   </div>
                   <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t border-gray-200">
