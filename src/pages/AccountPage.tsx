@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
+import { useUserReviews } from '../hooks/useUserReviews';
 import { Link, Navigate } from 'react-router-dom';
 import { supabase } from '../config/supabase';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 import AddressModal from '../components/account/AddressModal';
+import EditProfileModal from '../components/account/EditProfileModal';
+import OrderDetailsModal from '../components/account/OrderDetailsModal';
 import { 
   Heart, 
   ShoppingBag, 
@@ -17,9 +20,12 @@ import {
   Plus, 
   Edit2, 
   Trash2,
-  AlertTriangle 
+  AlertTriangle,
+  ChevronRight,
+  Star 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDisplayDate } from '../utils/formatDate';
 
 type OrderRow = {
   id: number;
@@ -31,7 +37,6 @@ type OrderRow = {
 
 type AddressRow = {
   id: number;
-  type: string;
   first_name: string;
   last_name: string;
   company?: string;
@@ -51,6 +56,7 @@ const AccountPage: React.FC = () => {
   const { customer } = useCustomerAuth();
   const { wishlist, removeFromWishlist } = useWishlist();
   const { products } = usePublicProducts();
+  const { reviews: userReviews, loading: reviewsLoading, totalReviews } = useUserReviews();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +65,10 @@ const AccountPage: React.FC = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressRow | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'addresses' | 'settings'>('profile');
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings'>('profile');
 
   useEffect(() => {
     const load = async () => {
@@ -70,21 +79,33 @@ const AccountPage: React.FC = () => {
 
       try {
         // Filter orders and addresses by current customer ID
-        const [{ data: ords }, { data: addrs }] = await Promise.all([
+        const [ordersResult, addressesResult] = await Promise.all([
           supabase.from('orders')
             .select('id, order_number, status, total_amount, created_at')
             .eq('customer_id', customer.id)
             .order('created_at', { ascending: false }),
           supabase.from('customer_addresses')
-            .select('id, type, first_name, last_name, company, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, is_shipping, is_billing')
+            .select('id, first_name, last_name, company, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, is_shipping, is_billing')
             .eq('customer_id', customer.id)
             .order('is_default', { ascending: false })
         ]);
         
-        setOrders(ords || []);
-        setAddresses(addrs || []);
+        if (ordersResult.error) {
+          console.error('Error loading orders:', ordersResult.error);
+          toast.error('Failed to load orders');
+        } else {
+          setOrders(ordersResult.data || []);
+        }
+        
+        if (addressesResult.error) {
+          console.error('Error loading addresses:', addressesResult.error);
+          toast.error('Failed to load addresses');
+        } else {
+          setAddresses(addressesResult.data || []);
+        }
       } catch (error) {
         console.error('Error loading account data:', error);
+        toast.error('Failed to load account data');
       }
       setLoading(false);
     };
@@ -100,19 +121,76 @@ const AccountPage: React.FC = () => {
     if (!customer) return;
 
     try {
-      // Check if address is used in any orders
-      const { data: orderCheck } = await supabase
-        .from('orders')
-        .select('id')
+      // Get the address details to check if it's the default address
+      const { data: addressToDelete } = await supabase
+        .from('customer_addresses')
+        .select('*')
+        .eq('id', addressId)
         .eq('customer_id', customer.id)
-        .or(`billing_address_line_1.eq.${addresses.find(a => a.id === addressId)?.address_line_1},shipping_address_line_1.eq.${addresses.find(a => a.id === addressId)?.address_line_1}`)
-        .limit(1);
+        .single();
 
-      if (orderCheck && orderCheck.length > 0) {
-        toast.error('Cannot delete address as it is associated with existing orders.');
+      if (!addressToDelete) {
+        toast.error('Address not found');
         return;
       }
 
+      // Check if this is the default address and if it's the only address
+      if (addressToDelete.is_default) {
+        // Count total addresses for this customer
+        const { count: totalAddresses } = await supabase
+          .from('customer_addresses')
+          .select('*', { count: 'exact', head: true })
+          .eq('customer_id', customer.id);
+
+        if (totalAddresses === 1) {
+          toast.error('Cannot delete the only address. Please add another address first and make it default before deleting this one.');
+          return;
+        }
+
+        // Check if there's another default address (should not happen due to constraint, but safety check)
+        const { count: defaultCount } = await supabase
+          .from('customer_addresses')
+          .select('*', { count: 'exact', head: true })
+          .eq('customer_id', customer.id)
+          .eq('is_default', true)
+          .neq('id', addressId);
+
+        if (defaultCount === 0) {
+          toast.error('Cannot delete the default address. Please make another address default first.');
+          return;
+        }
+      }
+
+      // Check if this address is associated with any orders
+      const { data: orders, error: orderError } = await supabase
+        .from('orders')
+        .select('id, billing_address_line_1, billing_city, billing_postal_code, shipping_address_line_1, shipping_city, shipping_postal_code')
+        .eq('customer_id', customer.id);
+
+      if (orderError) throw orderError;
+
+      // Check if this address is used in any orders
+      const isUsedInOrders = orders?.some(order => {
+        const billingMatch = order.billing_address_line_1 === addressToDelete.address_line_1 &&
+          order.billing_city === addressToDelete.city &&
+          order.billing_postal_code === addressToDelete.postal_code;
+        
+        const shippingMatch = order.shipping_address_line_1 === addressToDelete.address_line_1 &&
+          order.shipping_city === addressToDelete.city &&
+          order.shipping_postal_code === addressToDelete.postal_code;
+
+        return billingMatch || shippingMatch;
+      });
+
+      let confirmMessage = 'Are you sure you want to delete this address?';
+      if (isUsedInOrders) {
+        confirmMessage = 'This address is associated with your past orders but the order information is safely stored. Are you sure you want to delete this address from your saved addresses?';
+      }
+
+      const confirmDelete = window.confirm(confirmMessage);
+      if (!confirmDelete) return;
+
+      // Delete the address
       const { error } = await supabase
         .from('customer_addresses')
         .delete()
@@ -140,13 +218,32 @@ const AccountPage: React.FC = () => {
     // Reload addresses
     if (customer?.id) {
       supabase.from('customer_addresses')
-        .select('id, type, first_name, last_name, company, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, is_shipping, is_billing')
+        .select('id, first_name, last_name, company, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, is_shipping, is_billing')
         .eq('customer_id', customer.id)
         .order('is_default', { ascending: false })
-        .then(({ data }) => {
-          setAddresses(data || []);
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error reloading addresses:', error);
+            toast.error('Failed to reload addresses');
+          } else {
+            setAddresses(data || []);
+          }
         });
     }
+  };
+
+  const handleOrderClick = (order: OrderRow) => {
+    setSelectedOrderId(order.id);
+    setShowOrderDetailsModal(true);
+  };
+
+  const handleEditProfile = () => {
+    setShowEditProfileModal(true);
+  };
+
+  const handleProfileUpdateSuccess = () => {
+    // Profile data will be refreshed by the EditProfileModal itself
+    // through the refreshCustomer method in CustomerAuthContext
   };
 
   if (!customer && import.meta.env.PROD) {
@@ -157,6 +254,7 @@ const AccountPage: React.FC = () => {
     { id: 'profile' as const, label: 'Profile', icon: User },
     { id: 'orders' as const, label: 'Orders', icon: Package },
     { id: 'wishlist' as const, label: 'Wishlist', icon: Heart, badge: wishlist.length },
+    { id: 'reviews' as const, label: 'Reviews & Ratings', icon: Star, badge: totalReviews },
     { id: 'addresses' as const, label: 'Addresses', icon: MapPin },
     { id: 'settings' as const, label: 'Settings', icon: Settings },
   ];
@@ -267,7 +365,18 @@ const AccountPage: React.FC = () => {
                 {/* Profile Tab */}
                 {activeTab === 'profile' && (
                   <div className="p-6">
-                    <h2 className="text-xl font-semibold mb-6">Profile Information</h2>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-xl font-semibold">Profile Information</h2>
+                      {customer && (
+                        <button
+                          onClick={handleEditProfile}
+                          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                        >
+                          <Edit2 size={16} className="mr-2" />
+                          Edit Profile
+                        </button>
+                      )}
+                    </div>
                     {customer ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -288,10 +397,26 @@ const AccountPage: React.FC = () => {
                           <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                           <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">{customer.phone || 'Not provided'}</p>
                         </div>
+                        {customer.date_of_birth && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                            <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                              {formatDisplayDate(customer.date_of_birth)}
+                            </p>
+                          </div>
+                        )}
+                        {customer.gender && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                            <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                              {customer.gender.charAt(0).toUpperCase() + customer.gender.slice(1)}
+                            </p>
+                          </div>
+                        )}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Member Since</label>
                           <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
-                            {new Date().toLocaleDateString()}
+                            {formatDisplayDate(new Date())}
                           </p>
                         </div>
                       </div>
@@ -319,12 +444,16 @@ const AccountPage: React.FC = () => {
                     ) : (
                       <div className="space-y-4">
                         {orders.map((order) => (
-                          <div key={order.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                          <div 
+                            key={order.id} 
+                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
+                            onClick={() => handleOrderClick(order)}
+                          >
                             <div className="flex justify-between items-start mb-2">
                               <div>
                                 <h3 className="font-medium text-gray-900">Order #{order.order_number}</h3>
                                 <p className="text-sm text-gray-500">
-                                  {new Date(order.created_at).toLocaleDateString()}
+                                  {formatDisplayDate(order.created_at)}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -338,6 +467,10 @@ const AccountPage: React.FC = () => {
                                 </span>
                                 <p className="font-semibold text-gray-900 mt-1">₹{order.total_amount}</p>
                               </div>
+                            </div>
+                            <div className="flex items-center justify-between text-sm text-gray-500 mt-2">
+                              <span>Click to view details</span>
+                              <ChevronRight size={16} />
                             </div>
                           </div>
                         ))}
@@ -407,6 +540,132 @@ const AccountPage: React.FC = () => {
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Reviews Tab */}
+                {activeTab === 'reviews' && (
+                  <div className="p-6">
+                    <h2 className="text-xl font-semibold mb-6">My Reviews & Ratings</h2>
+                    {reviewsLoading ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                        <p className="mt-4 text-gray-600">Loading your reviews...</p>
+                      </div>
+                    ) : userReviews.length === 0 ? (
+                      <div className="text-center py-12">
+                        <Star size={48} className="mx-auto text-gray-300 mb-4" />
+                        <p className="text-gray-500 mb-4">You haven't reviewed any products yet</p>
+                        <Link 
+                          to="/products" 
+                          className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                        >
+                          Shop Products
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                          <p className="text-blue-800">
+                            <strong>Total Reviews:</strong> {totalReviews} review{totalReviews !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        {userReviews.map((review) => (
+                          <div key={review.id} className="border border-gray-200 rounded-lg p-6 bg-white">
+                            <div className="flex gap-4">
+                              {/* Product Image */}
+                              <div className="flex-shrink-0">
+                                <img
+                                  src={review.product_image || '/placeholder-product.jpg'}
+                                  alt={review.product_name}
+                                  className="w-16 h-16 object-cover rounded-lg"
+                                />
+                              </div>
+                              
+                              {/* Review Content */}
+                              <div className="flex-1">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div>
+                                    <h3 className="font-medium text-gray-900">{review.product_name}</h3>
+                                    <div className="flex items-center mt-1">
+                                      <div className="flex">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <Star
+                                            key={star}
+                                            size={16}
+                                            className={
+                                              star <= review.rating
+                                                ? 'text-yellow-400 fill-current'
+                                                : 'text-gray-300'
+                                            }
+                                          />
+                                        ))}
+                                      </div>
+                                      <span className="ml-2 text-sm text-gray-600">
+                                        {review.rating} out of 5 stars
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm text-gray-500">
+                                      {formatDisplayDate(review.created_at)}
+                                    </p>
+                                    {review.helpful > 0 && (
+                                      <p className="text-xs text-green-600 mt-1">
+                                        {review.helpful} found helpful
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Review Comment */}
+                                {review.comment && (
+                                  <div className="mt-3">
+                                    <p className="text-gray-700 text-sm leading-relaxed">
+                                      {review.comment}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {/* Review Images */}
+                                {review.images && review.images.length > 0 && (
+                                  <div className="mt-3">
+                                    <div className="flex gap-2">
+                                      {review.images.slice(0, 3).map((image, index) => (
+                                        <div key={index} className="w-12 h-12 bg-gray-100 rounded border">
+                                          <img
+                                            src={image}
+                                            alt={`Review image ${index + 1}`}
+                                            className="w-full h-full object-cover rounded"
+                                          />
+                                        </div>
+                                      ))}
+                                      {review.images.length > 3 && (
+                                        <div className="w-12 h-12 bg-gray-100 rounded border flex items-center justify-center">
+                                          <span className="text-xs text-gray-600">
+                                            +{review.images.length - 3}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Action */}
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                  <Link
+                                    to={`/products/${review.product_id}`}
+                                    className="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
+                                  >
+                                    View Product →
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -493,7 +752,7 @@ const AccountPage: React.FC = () => {
                                   )}
                                   {!address.is_shipping && !address.is_billing && (
                                     <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                                      {address.type.charAt(0).toUpperCase() + address.type.slice(1)}
+                                      Other
                                     </span>
                                   )}
                                 </div>
@@ -645,6 +904,20 @@ const AccountPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        onSuccess={handleProfileUpdateSuccess}
+      />
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        isOpen={showOrderDetailsModal}
+        onClose={() => setShowOrderDetailsModal(false)}
+        orderId={selectedOrderId}
+      />
     </div>
   );
 };

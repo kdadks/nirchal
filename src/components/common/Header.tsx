@@ -185,7 +185,7 @@ const Header: React.FC = () => {
                       if (!isAuthenticated) {
                         setAuthOpen(true);
                       } else {
-                        navigate('/account');
+                        navigate('/myaccount');
                       }
                       setMobileMenuOpen(false);
                     }}
@@ -210,7 +210,7 @@ const Header: React.FC = () => {
                     if (!isAuthenticated) {
                       setAuthOpen(true);
                     } else {
-                      navigate('/account');
+                      navigate('/myaccount');
                     }
                     setMobileMenuOpen(false);
                   }}

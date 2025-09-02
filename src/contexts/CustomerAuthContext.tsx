@@ -7,6 +7,8 @@ interface Customer {
   first_name: string;
   last_name: string;
   phone?: string;
+  date_of_birth?: string;
+  gender?: string;
 }
 
 interface CustomerAuthContextType {
@@ -17,6 +19,7 @@ interface CustomerAuthContextType {
   signOut: () => void;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string; message?: string }>;
   resetPasswordWithToken: (token: string, newPassword: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+  refreshCustomer: () => Promise<void>;
 }
 
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
@@ -72,7 +75,9 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         email: data.customer.email,
         first_name: data.customer.first_name,
         last_name: data.customer.last_name,
-        phone: data.customer.phone || undefined
+        phone: data.customer.phone || undefined,
+        date_of_birth: data.customer.date_of_birth || undefined,
+        gender: data.customer.gender || undefined
       };
       
       setCustomer(customerData);
@@ -121,7 +126,9 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         email: data.customer.email,
         first_name: data.customer.first_name,
         last_name: data.customer.last_name,
-        phone: data.customer.phone || undefined
+        phone: data.customer.phone || undefined,
+        date_of_birth: data.customer.date_of_birth || undefined,
+        gender: data.customer.gender || undefined
       };
       
       setCustomer(customerData);
@@ -178,6 +185,40 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const refreshCustomer = async (): Promise<void> => {
+    if (!customer?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, email, first_name, last_name, phone, date_of_birth, gender')
+        .eq('id', customer.id)
+        .single();
+
+      if (error) {
+        console.error('Error refreshing customer data:', error);
+        return;
+      }
+
+      if (data) {
+        const updatedCustomer = {
+          id: data.id,
+          email: data.email,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          phone: data.phone || undefined,
+          date_of_birth: data.date_of_birth || undefined,
+          gender: data.gender || undefined
+        };
+        
+        setCustomer(updatedCustomer);
+        localStorage.setItem('nirchal_customer', JSON.stringify(updatedCustomer));
+      }
+    } catch (error) {
+      console.error('Error refreshing customer:', error);
+    }
+  };
+
   const value = {
     customer,
     loading,
@@ -185,7 +226,8 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     signUp,
     signOut,
     resetPassword,
-    resetPasswordWithToken
+    resetPasswordWithToken,
+    refreshCustomer
   };
 
   return (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatDisplayDate } from '../../utils/formatDate';
 import { 
   Package, 
   ShoppingCart, 
@@ -439,10 +440,7 @@ const AdminDashboard: React.FC = () => {
                         </td>
                         <td>
                           <span className="admin-text-muted admin-text-sm">
-                            {new Date(order.created_at).toLocaleDateString('en-IN', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {formatDisplayDate(order.created_at)}
                           </span>
                         </td>
                       </tr>

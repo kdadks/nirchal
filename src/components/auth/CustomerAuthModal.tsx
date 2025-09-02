@@ -58,7 +58,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
         if (result.success) {
           onClose();
           // Redirect to dashboard after successful login
-          window.location.assign('/account');
+          window.location.assign('/myaccount');
         } else {
           setError(result.error || 'Login failed');
         }
@@ -78,7 +78,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
           // Redirect to account dashboard after short delay for UX
           setTimeout(() => {
             onClose();
-            window.location.assign('/account');
+            window.location.assign('/myaccount');
           }, 800);
         } else {
           setError(result.error || 'Registration failed');

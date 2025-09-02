@@ -1,4 +1,3 @@
-/* global setTimeout, HTMLSelectElement */
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag } from 'lucide-react';
@@ -7,6 +6,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile } from '@utils/orders';
+import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 
 interface CheckoutForm {
   // Contact Information
@@ -209,9 +209,9 @@ const CheckoutPage: React.FC = () => {
       try {
         const { data } = await supabase
           .from('customer_addresses')
-          .select('first_name, last_name, address_line_1, city, state, postal_code, type, is_default')
+          .select('first_name, last_name, address_line_1, city, state, postal_code, is_default, is_shipping')
           .eq('customer_id', customer.id)
-          .eq('type', 'delivery')
+          .eq('is_shipping', true)
           .order('is_default', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -252,17 +252,17 @@ const CheckoutPage: React.FC = () => {
       if (customer) {
         await updateCustomerProfile(supabase, {
           id: customer.id,
-          first_name: form.firstName.trim(),
-          last_name: form.lastName.trim(),
-          phone: form.phone.trim(),
+          first_name: form.firstName.trim() || 'Guest',
+          last_name: form.lastName.trim() || 'User',
+          phone: form.phone.trim() || undefined,
         });
       } else {
         // Not logged in: upsert by email to create a customer record
         const customerRes = await upsertCustomerByEmail(supabase, {
           email: form.email.trim(),
-          first_name: form.firstName.trim(),
-          last_name: form.lastName.trim(),
-          phone: form.phone.trim(),
+          first_name: form.firstName.trim() || 'Guest',
+          last_name: form.lastName.trim() || 'User',
+          phone: form.phone.trim() || undefined,
         });
         customerId = customerRes?.id || null;
         
@@ -276,18 +276,18 @@ const CheckoutPage: React.FC = () => {
       // 2) Create/Upsert delivery address with proper flags
       if (customerId) {
         // Save delivery address
-        const deliveryAddressData = {
-          first_name: form.firstName.trim(),
-          last_name: form.lastName.trim(),
-          address_line_1: form.deliveryAddress.trim(),
-          address_line_2: form.deliveryAddressLine2?.trim() || '',
-          city: form.deliveryCity.trim(),
-          state: form.deliveryState.trim(),
-          postal_code: form.deliveryPincode.trim(),
-          phone: form.phone.trim(),
+        const deliveryAddressData = sanitizeAddressData({
+          first_name: form.firstName,
+          last_name: form.lastName,
+          address_line_1: form.deliveryAddress,
+          address_line_2: form.deliveryAddressLine2,
+          city: form.deliveryCity,
+          state: form.deliveryState,
+          postal_code: form.deliveryPincode,
+          phone: form.phone,
           country: 'India',
           is_default: true,
-        };
+        });
 
         await upsertAddressWithFlags(deliveryAddressData, true, false);
 
@@ -297,18 +297,18 @@ const CheckoutPage: React.FC = () => {
           await upsertAddressWithFlags(deliveryAddressData, true, true);
         } else if (form.billingAddress.trim()) {
           // Save different billing address
-          const billingAddressData = {
-            first_name: form.billingFirstName.trim(),
-            last_name: form.billingLastName.trim(),
-            address_line_1: form.billingAddress.trim(),
-            address_line_2: form.billingAddressLine2?.trim() || '',
-            city: form.billingCity.trim(),
-            state: form.billingState.trim(),
-            postal_code: form.billingPincode.trim(),
-            phone: form.billingPhone.trim(),
+          const billingAddressData = sanitizeAddressData({
+            first_name: form.billingFirstName,
+            last_name: form.billingLastName,
+            address_line_1: form.billingAddress,
+            address_line_2: form.billingAddressLine2,
+            city: form.billingCity,
+            state: form.billingState,
+            postal_code: form.billingPincode,
+            phone: form.billingPhone,
             country: 'India',
             is_default: false,
-          };
+          });
           await upsertAddressWithFlags(billingAddressData, false, true);
         }
       }
@@ -316,35 +316,40 @@ const CheckoutPage: React.FC = () => {
       // 3) Create order with items
       const deliveryCost = total >= 2999 ? 0 : 99;
       const finalTotal = total + deliveryCost;
+      
+      const billingAddress = sanitizeOrderAddress({
+        first_name: form.billingIsSameAsDelivery ? form.firstName : form.billingFirstName,
+        last_name: form.billingIsSameAsDelivery ? form.lastName : form.billingLastName,
+        address_line_1: form.billingIsSameAsDelivery ? form.deliveryAddress : form.billingAddress,
+        address_line_2: form.billingIsSameAsDelivery ? form.deliveryAddressLine2 : form.billingAddressLine2,
+        city: form.billingIsSameAsDelivery ? form.deliveryCity : form.billingCity,
+        state: form.billingIsSameAsDelivery ? form.deliveryState : form.billingState,
+        postal_code: form.billingIsSameAsDelivery ? form.deliveryPincode : form.billingPincode,
+        country: 'India',
+        phone: form.billingIsSameAsDelivery ? form.phone : form.billingPhone,
+        email: form.email,
+      });
+
+      const deliveryAddress = sanitizeOrderAddress({
+        first_name: form.firstName,
+        last_name: form.lastName,
+        address_line_1: form.deliveryAddress,
+        address_line_2: form.deliveryAddressLine2,
+        city: form.deliveryCity,
+        state: form.deliveryState,
+        postal_code: form.deliveryPincode,
+        country: 'India',
+        phone: form.phone,
+      });
+
       const order = await createOrderWithItems(supabase, {
         customer_id: customerId,
         payment_method: form.paymentMethod,
         subtotal: total,
         shipping_amount: deliveryCost,
         total_amount: finalTotal,
-        billing: {
-          first_name: form.billingIsSameAsDelivery ? form.firstName : form.billingFirstName,
-          last_name: form.billingIsSameAsDelivery ? form.lastName : form.billingLastName,
-          address_line_1: form.billingIsSameAsDelivery ? form.deliveryAddress : form.billingAddress,
-          address_line_2: form.billingIsSameAsDelivery ? form.deliveryAddressLine2 : form.billingAddressLine2,
-          city: form.billingIsSameAsDelivery ? form.deliveryCity : form.billingCity,
-          state: form.billingIsSameAsDelivery ? form.deliveryState : form.billingState,
-          postal_code: form.billingIsSameAsDelivery ? form.deliveryPincode : form.billingPincode,
-          country: 'India',
-          phone: form.billingIsSameAsDelivery ? form.phone : form.billingPhone,
-          email: form.email,
-        },
-        delivery: {
-          first_name: form.firstName,
-          last_name: form.lastName,
-          address_line_1: form.deliveryAddress,
-          address_line_2: form.deliveryAddressLine2,
-          city: form.deliveryCity,
-          state: form.deliveryState,
-          postal_code: form.deliveryPincode,
-          country: 'India',
-          phone: form.phone,
-        },
+        billing: billingAddress,
+        delivery: deliveryAddress,
         items: items.map(it => ({
           product_id: Number(it.id) || null,
           product_variant_id: it.variantId ? Number(it.variantId) : null,
@@ -463,10 +468,77 @@ const CheckoutPage: React.FC = () => {
   const handleDeleteAddress = async (addressId: string) => {
     if (!customer) return;
     
-    const confirmDelete = window.confirm('Are you sure you want to delete this address?');
-    if (!confirmDelete) return;
-
     try {
+      // Get the address details to check if it's the default address
+      const { data: addressToDelete } = await supabase
+        .from('customer_addresses')
+        .select('*')
+        .eq('id', addressId)
+        .eq('customer_id', customer.id)
+        .single();
+
+      if (!addressToDelete) {
+        toast.error('Address not found');
+        return;
+      }
+
+      // Check if this is the default address and if it's the only address
+      if (addressToDelete.is_default) {
+        // Count total addresses for this customer
+        const { count: totalAddresses } = await supabase
+          .from('customer_addresses')
+          .select('*', { count: 'exact', head: true })
+          .eq('customer_id', customer.id);
+
+        if (totalAddresses === 1) {
+          toast.error('Cannot delete the only address. Please add another address first and make it default before deleting this one.');
+          return;
+        }
+
+        // Check if there's another default address (should not happen due to constraint, but safety check)
+        const { count: defaultCount } = await supabase
+          .from('customer_addresses')
+          .select('*', { count: 'exact', head: true })
+          .eq('customer_id', customer.id)
+          .eq('is_default', true)
+          .neq('id', addressId);
+
+        if (defaultCount === 0) {
+          toast.error('Cannot delete the default address. Please make another address default first.');
+          return;
+        }
+      }
+
+      // Check if this address is associated with any orders
+      const { data: orders, error: orderError } = await supabase
+        .from('orders')
+        .select('id, billing_address_line_1, billing_city, billing_postal_code, shipping_address_line_1, shipping_city, shipping_postal_code')
+        .eq('customer_id', customer.id);
+
+      if (orderError) throw orderError;
+
+      // Check if this address is used in any orders
+      const isUsedInOrders = orders?.some(order => {
+        const billingMatch = order.billing_address_line_1 === addressToDelete.address_line_1 &&
+          order.billing_city === addressToDelete.city &&
+          order.billing_postal_code === addressToDelete.postal_code;
+        
+        const shippingMatch = order.shipping_address_line_1 === addressToDelete.address_line_1 &&
+          order.shipping_city === addressToDelete.city &&
+          order.shipping_postal_code === addressToDelete.postal_code;
+
+        return billingMatch || shippingMatch;
+      });
+
+      let confirmMessage = 'Are you sure you want to delete this address?';
+      if (isUsedInOrders) {
+        confirmMessage = 'This address is associated with your past orders but the order information is safely stored. Are you sure you want to delete this address from your saved addresses?';
+      }
+
+      const confirmDelete = window.confirm(confirmMessage);
+      if (!confirmDelete) return;
+
+      // Delete the address
       const { error } = await supabase
         .from('customer_addresses')
         .delete()
@@ -497,15 +569,18 @@ const CheckoutPage: React.FC = () => {
     if (!customer?.id) return null;
 
     try {
+      // Sanitize the address data
+      const sanitizedAddress = sanitizeAddressData(addressData);
+      
       // Find existing address with same details
       const { data: existingAddresses } = await supabase
         .from('customer_addresses')
         .select('*')
         .eq('customer_id', customer.id)
-        .eq('address_line_1', addressData.address_line_1)
-        .eq('city', addressData.city)
-        .eq('state', addressData.state)
-        .eq('postal_code', addressData.postal_code);
+        .eq('address_line_1', sanitizedAddress.address_line_1)
+        .eq('city', sanitizedAddress.city)
+        .eq('state', sanitizedAddress.state)
+        .eq('postal_code', sanitizedAddress.postal_code);
 
       if (existingAddresses && existingAddresses.length > 0) {
         // Update existing address to add new flags
@@ -515,10 +590,10 @@ const CheckoutPage: React.FC = () => {
           .update({
             is_shipping: existingAddress.is_shipping || isDelivery,
             is_billing: existingAddress.is_billing || isBilling,
-            first_name: addressData.first_name,
-            last_name: addressData.last_name,
-            phone: addressData.phone,
-            is_default: addressData.is_default || existingAddress.is_default,
+            first_name: sanitizedAddress.first_name,
+            last_name: sanitizedAddress.last_name,
+            phone: sanitizedAddress.phone,
+            is_default: sanitizedAddress.is_default || existingAddress.is_default,
           })
           .eq('id', existingAddress.id);
 
@@ -530,17 +605,7 @@ const CheckoutPage: React.FC = () => {
           .from('customer_addresses')
           .insert({
             customer_id: customer.id,
-            type: isDelivery ? 'delivery' : 'billing',
-            first_name: addressData.first_name,
-            last_name: addressData.last_name,
-            address_line_1: addressData.address_line_1,
-            address_line_2: addressData.address_line_2,
-            city: addressData.city,
-            state: addressData.state,
-            postal_code: addressData.postal_code,
-            country: addressData.country || 'India',
-            phone: addressData.phone,
-            is_default: addressData.is_default,
+            ...sanitizedAddress,
             is_shipping: isDelivery,
             is_billing: isBilling,
           })
