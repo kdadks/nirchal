@@ -46,7 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleAccountClick = () => {
     if (customer) {
-      navigate('/account');
+      navigate('/myaccount');
     } else {
       setShowAuthModal(true);
     }
