@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
+import { transactionalEmailService } from '../../services/transactionalEmailService';
 
 interface CustomerAuthModalProps {
   open: boolean;
@@ -75,6 +76,20 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
         const result = await signUp(email, password, firstName, lastName, phone);
         if (result.success) {
           setMessage('Account created successfully! Redirecting...');
+          
+          // Send welcome email
+          try {
+            await transactionalEmailService.sendWelcomeEmail({
+              first_name: firstName,
+              last_name: lastName,
+              email: email
+            });
+            console.log('Welcome email sent successfully');
+          } catch (emailError) {
+            console.error('Failed to send welcome email:', emailError);
+            // Don't block the registration process if email fails
+          }
+          
           // Redirect to account dashboard after short delay for UX
           setTimeout(() => {
             onClose();
