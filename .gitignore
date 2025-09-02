@@ -51,3 +51,6 @@ temp_*.js
 *New.tsx
 *Temp*.tsx
 *Backup*.tsx
+
+# Local Netlify folder
+.netlify
