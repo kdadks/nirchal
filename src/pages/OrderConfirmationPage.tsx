@@ -13,6 +13,14 @@ const OrderConfirmationPage: React.FC = () => {
     const on = sessionStorage.getItem('last_order_number') || '';
     const em = sessionStorage.getItem('last_order_email') || '';
     const tp = sessionStorage.getItem('new_customer_temp_password') || '';
+    
+    console.log('OrderConfirmationPage - sessionStorage values:', {
+      orderNumber: on,
+      email: em,
+      tempPassword: tp,
+      hasTempPassword: !!tp
+    });
+    
     return { orderNumber: on, email: em, tempPassword: tp };
   }, []);
 
