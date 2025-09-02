@@ -24,6 +24,53 @@ export const useCategories = () => {
 
       if (error) {
         console.error('[useCategories] Error:', error);
+        
+        // Handle JWT expiration
+        const errorMsg = (error.message || '').toLowerCase();
+        if (errorMsg.includes('jwt') && errorMsg.includes('expired')) {
+          // Try to refresh the session
+          try {
+            await supabase.auth.refreshSession();
+            // Retry the request after refresh
+            const { data: retryData, error: retryError } = await supabase
+              .from('categories')
+              .select('*')
+              .order('name', { ascending: true });
+            
+            if (retryError) {
+              throw retryError;
+            }
+            
+            // Process the retry data
+            const transformedCategories: Category[] = (retryData || []).map((cat: any) => {
+              let imageUrl = '';
+              
+              if (cat.image_url) {
+                imageUrl = getCategoryImageUrl(cat.image_url);
+                if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
+              } else {
+                if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url`);
+              }
+
+              return {
+                id: String(cat.id),
+                name: String(cat.name),
+                image: imageUrl || '',
+                description: cat.description,
+                featured: cat.featured || false,
+                slug: cat.slug
+              };
+            });
+
+            setCategories(transformedCategories);
+            return; // Exit early on successful retry
+          } catch (refreshError) {
+            console.error('[useCategories] Token refresh failed:', refreshError);
+            setError('Authentication session expired. Please refresh the page.');
+            return;
+          }
+        }
+        
         throw error;
       }
 
