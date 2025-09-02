@@ -46,6 +46,9 @@ temp_*.js
 EmailTestPage.tsx
 *TestPage.tsx
 
+# Unused components
+FloatingActionBar.tsx
+
 # Temporary component and page variants
 *Professional.tsx
 *Old.tsx
