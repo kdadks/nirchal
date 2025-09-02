@@ -9,6 +9,7 @@ import {
 
 interface OrderData {
   id: string;
+  order_number?: string; // Add order_number field
   customer_name: string;
   customer_email: string;
   total_amount: number;
@@ -25,6 +26,7 @@ interface CustomerData {
   first_name: string;
   last_name: string;
   email: string;
+  temp_password?: string; // Add temp_password field for checkout customers
 }
 
 export class TransactionalEmailService {
@@ -41,15 +43,17 @@ export class TransactionalEmailService {
     try {
       const html = outlookCompatibleWelcomeEmail(
         `${customer.first_name} ${customer.last_name}`,
-        'https://nirchal.netlify.app'
+        'https://nirchal.netlify.app',
+        customer.temp_password // Pass temp password if available
       );
 
+      const subjectSuffix = customer.temp_password ? ' - Login Details Included' : '';
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: customer.email,
-          subject: `🎉 Welcome to Nirchal, ${customer.first_name}!`,
+          subject: `🎉 Welcome to Nirchal, ${customer.first_name}!${subjectSuffix}`,
           html
         })
       });
@@ -115,9 +119,10 @@ export class TransactionalEmailService {
   // Send order confirmation email
   async sendOrderConfirmationEmail(order: OrderData): Promise<boolean> {
     try {
+      const orderNumber = order.order_number || `ORD${order.id}`;
       const html = outlookCompatibleOrderConfirmationEmail(
         order.customer_name,
-        order.id,
+        orderNumber,
         (order.total_amount || 0).toString(),
         'https://nirchal.netlify.app'
       );
@@ -127,7 +132,7 @@ export class TransactionalEmailService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: order.customer_email,
-          subject: `✅ Order Confirmed #${order.id} - Nirchal`,
+          subject: `✅ Order Confirmed ${orderNumber} - Nirchal`,
           html
         })
       });
@@ -142,9 +147,10 @@ export class TransactionalEmailService {
   // Send order status update email
   async sendOrderStatusUpdateEmail(order: OrderData): Promise<boolean> {
     try {
+      const orderNumber = order.order_number || `ORD${order.id}`;
       const html = outlookCompatibleOrderStatusEmail(
         order.customer_name,
-        order.id,
+        orderNumber,
         order.status,
         order.tracking_number,
         'https://nirchal.netlify.app'
@@ -155,7 +161,7 @@ export class TransactionalEmailService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: order.customer_email,
-          subject: `📦 Order Update #${order.id} - ${order.status.toUpperCase()} - Nirchal`,
+          subject: `📦 Order Update ${orderNumber} - ${order.status.toUpperCase()} - Nirchal`,
           html
         })
       });
