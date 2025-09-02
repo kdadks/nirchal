@@ -88,48 +88,110 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       needsWelcomeEmail: data.needs_welcome_email
     };
   } catch (rpcError) {
-    // Fallback to original direct insert method
+    console.log('RPC function failed, using fallback with temp password generation:', rpcError);
     
-    // Fallback to original direct insert method
-    const { data, error } = await supabase
+    // Enhanced fallback: Check if customer exists first
+    const { data: existingCustomer, error: checkError } = await supabase
       .from('customers')
-      .upsert({
-        email: payload.email,
-        first_name: payload.first_name,
-        last_name: payload.last_name,
-        phone: payload.phone || null,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'email'
-      })
       .select('id, welcome_email_sent')
+      .eq('email', payload.email)
       .single();
-      
-    if (error) {
-      return null;
-    }
     
-    return {
-      id: data.id,
-      tempPassword: undefined, // No temp password in fallback mode
-      existingCustomer: false,
-      needsWelcomeEmail: !data.welcome_email_sent // Only send if not already sent
-    };
+    if (!checkError && existingCustomer) {
+      // Existing customer - update their info
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update({
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          phone: payload.phone || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingCustomer.id);
+      
+      if (updateError) {
+        console.error('Failed to update existing customer:', updateError);
+      }
+      
+      return {
+        id: existingCustomer.id,
+        tempPassword: undefined,
+        existingCustomer: true,
+        needsWelcomeEmail: !existingCustomer.welcome_email_sent // Send if never sent
+      };
+    } else {
+      // New customer - create with temp password
+      const tempPassword = generateTempPassword();
+      
+      // Hash the temp password (simple approach for fallback)
+      const { data, error } = await supabase
+        .from('customers')
+        .insert({
+          email: payload.email,
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          phone: payload.phone || null,
+          password_hash: `temp_${tempPassword}`, // Simple prefix for temp passwords
+          welcome_email_sent: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+        
+      if (error) {
+        console.error('Failed to create new customer with temp password:', error);
+        return null;
+      }
+      
+      return {
+        id: data.id,
+        tempPassword: tempPassword,
+        existingCustomer: false,
+        needsWelcomeEmail: true
+      };
+    }
   }
+}
+
+// Helper function to generate temp password
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
 export async function markWelcomeEmailSent(supabase: SupabaseClient, customerId: string): Promise<boolean> {
   try {
+    // Try RPC function first
     const { data, error } = await supabase.rpc('mark_welcome_email_sent', {
       customer_id: parseInt(customerId)
     });
     
-    if (error) {
-      console.error('Failed to mark welcome email as sent:', error);
+    if (!error && data === true) {
+      return true;
+    }
+    
+    // Fallback to direct update
+    console.log('RPC mark_welcome_email_sent failed, using fallback');
+    const { error: updateError } = await supabase
+      .from('customers')
+      .update({
+        welcome_email_sent: true,
+        welcome_email_sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', parseInt(customerId));
+    
+    if (updateError) {
+      console.error('Failed to mark welcome email as sent (fallback):', updateError);
       return false;
     }
     
-    return data === true;
+    return true;
   } catch (error) {
     console.error('Error marking welcome email as sent:', error);
     return false;

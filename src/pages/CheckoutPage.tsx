@@ -274,10 +274,20 @@ const CheckoutPage: React.FC = () => {
         shouldSendWelcomeEmail = customerRes?.needsWelcomeEmail || false;
         tempPassword = customerRes?.tempPassword || null;
         
+        console.log('Checkout customer creation result:', {
+          customerId: customerRes?.id,
+          tempPassword,
+          existingCustomer: customerRes?.existingCustomer,
+          shouldSendWelcomeEmail
+        });
+        
         // Store temp password info if this is a new customer with temp password
         if (tempPassword && !customerRes?.existingCustomer) {
+          console.log('Storing temp password in sessionStorage:', tempPassword);
           sessionStorage.setItem('new_customer_temp_password', tempPassword);
           sessionStorage.setItem('new_customer_email', form.email.trim());
+        } else {
+          console.log('No temp password to store:', { tempPassword, existingCustomer: customerRes?.existingCustomer });
         }
       }
 
