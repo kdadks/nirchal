@@ -31,6 +31,7 @@ debug*.js
 diagnose-*.js
 inspect-*.js
 test-*.js
+test-*.tsx
 apply-*.js
 fix*.sql
 *_fix.sql
@@ -40,6 +41,10 @@ emergency_cleanup.sql
 test_minimal.sql
 temp_*.sql
 temp_*.js
+
+# Temporary test pages
+EmailTestPage.tsx
+*TestPage.tsx
 
 # Temporary component and page variants
 *Professional.tsx
