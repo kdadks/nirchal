@@ -118,7 +118,7 @@ export class TransactionalEmailService {
       const html = outlookCompatibleOrderConfirmationEmail(
         order.customer_name,
         order.id,
-        order.total_amount.toString(),
+        (order.total_amount || 0).toString(),
         'https://nirchal.netlify.app'
       );
 

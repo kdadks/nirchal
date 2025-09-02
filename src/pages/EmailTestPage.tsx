@@ -55,10 +55,11 @@ const EmailTestPage: React.FC = () => {
       email: 'test@example.com'
     },
     orderConfirmation: {
-      customer_name: 'Test Customer',
-      customer_email: 'test@example.com',
-      order_number: 'ORD-TEST-001',
-      order_total: 2499.99,
+      id: 'ORD-TEST-001',
+      customer_name: 'Amit Ranjan',
+      customer_email: 'amit.ranjan78@outlook.com',
+      total_amount: 2499.99,
+      status: 'confirmed',
       order_date: new Date().toISOString(),
       items: [
         {
