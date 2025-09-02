@@ -782,78 +782,55 @@ const ProductDetailPage: React.FC = () => {
                   }}
                 />
               </div>
+
+              {/* Mobile Reviews Section - Show only on mobile after description and only when reviews exist */}
+              {reviews.length > 0 && (
+                <div className="lg:hidden mt-6">
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Customer Reviews</h4>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {reviews.slice(0, 3).map((review) => (
+                        <div key={review.id} className="bg-white p-3 rounded-lg border border-gray-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={12}
+                                    className={star <= review.rating ? 'text-amber-400 fill-current' : 'text-gray-300'}
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-xs font-medium text-gray-900">{review.userName}</span>
+                            </div>
+                            <span className="text-xs text-gray-500">{format(new Date(review.createdAt), 'MMM dd, yyyy')}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 line-clamp-2">{review.comment}</p>
+                        </div>
+                      ))}
+                      {reviews.length > 3 && (
+                        <button 
+                          onClick={() => {
+                            if (!customer) {
+                              setShowAuthModal(true);
+                            } else {
+                              setSelectedRating(5);
+                              setIsReviewModalOpen(true);
+                            }
+                          }}
+                          className="text-xs text-amber-600 hover:text-amber-700 font-medium"
+                        >
+                          View all {reviews.length} reviews
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-            {/* Mobile Action Buttons - Show only on mobile before description */}
-            <div className="lg:hidden mt-6">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <div className="space-y-4">
-                  {/* Buy Now Button */}
-                  <button
-                    onClick={handleBuyNow}
-                    disabled={!canAddToCart || isAdding}
-                    className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                      (!canAddToCart || isAdding)
-                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 transform hover:scale-[1.02] shadow-lg hover:shadow-xl'
-                    }`}
-                  >
-                    <ShoppingBag size={18} />
-                    {isAdding ? 'Processing...' : 'Buy Now'}
-                  </button>
-
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={!canAddToCart || isAdding}
-                    className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                      (!canAddToCart || isAdding)
-                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transform hover:scale-[1.02] shadow-lg hover:shadow-xl'
-                    }`}
-                  >
-                    <ShoppingBag size={18} />
-                    {isAdding ? 'Adding...' : 'Add to Cart'}
-                  </button>
-
-                  {/* Wishlist and Share Buttons */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      onClick={handleWishlistToggle}
-                      className={`flex items-center justify-center gap-2 px-4 py-3 border-2 rounded-xl font-medium transition-colors duration-200 text-sm ${
-                        isInWishlist(product.id)
-                          ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
-                          : 'border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300'
-                      }`}
-                    >
-                      <Heart 
-                        size={16} 
-                        className={isInWishlist(product.id) ? 'fill-current' : ''} 
-                      />
-                      {isInWishlist(product.id) ? 'Saved' : 'Save'}
-                    </button>
-                    
-                    <button 
-                      onClick={handleShareClick}
-                      className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-amber-200 rounded-xl font-medium hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-amber-700 text-sm"
-                    >
-                      <Share2 size={16} />
-                      Share
-                    </button>
-                  </div>
-                </div>
-
-                {/* Validation Message */}
-                {!canAddToCart && (
-                  <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-700 p-3 rounded-lg mt-4">
-                    <p className="text-xs font-medium">
-                      Please select {!selectedSize ? 'size' : 'color'} to continue
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
 
         </div>
