@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import { transactionalEmailService } from '../../services/transactionalEmailService';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -71,6 +72,28 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       if (!data.success) {
         setError(data.message || 'Failed to change password');
         return;
+      }
+
+      // Send password change confirmation email
+      try {
+        // Get customer information for the email
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('first_name, last_name')
+          .eq('email', email)
+          .single();
+
+        if (!customerError && customerData) {
+          await transactionalEmailService.sendPasswordChangeConfirmation({
+            first_name: customerData.first_name,
+            last_name: customerData.last_name,
+            email: email
+          });
+          console.log('Password change confirmation email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Failed to send password change confirmation email:', emailError);
+        // Don't block the password change process if email fails
       }
 
       // Clear temp password from storage

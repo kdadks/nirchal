@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile } from '@utils/orders';
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
+import { transactionalEmailService } from '../services/transactionalEmailService';
 
 interface CheckoutForm {
   // Contact Information
@@ -365,6 +366,26 @@ const CheckoutPage: React.FC = () => {
       
       if (!order) {
         throw new Error('Order creation failed - no order returned');
+      }
+      
+      // Send order confirmation email
+      try {
+        await transactionalEmailService.sendOrderConfirmationEmail({
+          id: order.id.toString(),
+          customer_name: `${form.firstName} ${form.lastName}`,
+          customer_email: form.email,
+          total_amount: finalTotal,
+          status: 'confirmed',
+          items: items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: (item.price * item.quantity).toFixed(2)
+          }))
+        });
+        console.log('Order confirmation email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+        // Don't block the checkout process if email fails
       }
       
       // Save basics for confirmation screen

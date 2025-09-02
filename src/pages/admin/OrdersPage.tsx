@@ -4,6 +4,7 @@ import { supabase } from '../../config/supabase';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import toast from 'react-hot-toast';
+import { transactionalEmailService } from '../../services/transactionalEmailService';
 
 interface Order {
   id: string;
@@ -75,6 +76,25 @@ const OrdersPage: React.FC = () => {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       setUpdating(orderId);
+      
+      // First, get the order details for email
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          billing_email,
+          billing_first_name,
+          billing_last_name,
+          total_amount,
+          created_at
+        `)
+        .eq('id', orderId)
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Update order status
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -82,12 +102,30 @@ const OrdersPage: React.FC = () => {
 
       if (error) throw error;
 
+      // Send order status update email
+      try {
+        await transactionalEmailService.sendOrderStatusUpdateEmail({
+          id: orderData.order_number,
+          customer_name: `${orderData.billing_first_name} ${orderData.billing_last_name}`,
+          customer_email: orderData.billing_email,
+          total_amount: orderData.total_amount,
+          status: newStatus,
+          tracking_number: newStatus === 'shipped' ? `TRK${orderData.order_number}${Date.now().toString().slice(-4)}` : undefined
+        });
+        console.log('Order status update email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send order status update email:', emailError);
+        // Don't block the status update if email fails
+      }
+
       // Update local state
       setOrders(orders.map(order => 
         order.id === orderId 
           ? { ...order, status: newStatus }
           : order
       ));
+      
+      toast.success(`Order status updated to ${newStatus}`);
     } catch (err) {
       console.error('Error updating order status:', err);
       toast.error('Failed to update order status');
