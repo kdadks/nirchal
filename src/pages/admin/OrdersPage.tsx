@@ -105,7 +105,8 @@ const OrdersPage: React.FC = () => {
       // Send order status update email
       try {
         await transactionalEmailService.sendOrderStatusUpdateEmail({
-          id: orderData.order_number,
+          id: orderData.id,
+          order_number: orderData.order_number,
           customer_name: `${orderData.billing_first_name} ${orderData.billing_last_name}`,
           customer_email: orderData.billing_email,
           total_amount: orderData.total_amount,
