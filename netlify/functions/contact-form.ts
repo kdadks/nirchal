@@ -106,29 +106,100 @@ const handler: Handler = async (event, context): Promise<HandlerResponse> => {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Thank you for contacting us</title>
+        <title>Thank you for contacting Nirchal</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #28a745; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
-          .content { background: #f8f9fa; padding: 20px; border-radius: 8px; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f9f9f9;
+          }
+          .container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          .header { 
+            background: linear-gradient(135deg, #ea580c, #f97316); 
+            color: white; 
+            padding: 30px 20px; 
+            text-align: center; 
+          }
+          .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+          .content { padding: 30px 20px; }
+          .message-box { 
+            background: #f8f9fa; 
+            border-left: 4px solid #ea580c; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 4px;
+            font-style: italic;
+          }
+          .footer { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            text-align: center; 
+            border-top: 1px solid #e9ecef;
+          }
+          .website-link { 
+            display: inline-block; 
+            background: #ea580c; 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: 600;
+            margin: 15px 0;
+          }
+          .social-info { color: #666; font-size: 14px; margin-top: 15px; }
         </style>
       </head>
       <body>
-        <div class="header">
-          <h1>Thank You!</h1>
-        </div>
-        
-        <div class="content">
-          <p>Hi ${name},</p>
+        <div class="container">
+          <div class="header">
+            <h1>🙏 Thank You!</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">We've received your message</p>
+          </div>
           
-          <p>Thank you for contacting us! We have received your message and will get back to you as soon as possible.</p>
+          <div class="content">
+            <p><strong>Dear ${name},</strong></p>
+            
+            <p>Thank you for reaching out to <strong>Nirchal</strong>! We truly appreciate you taking the time to contact us.</p>
+            
+            <p><strong>📨 Your message:</strong></p>
+            <div class="message-box">
+              <strong>Subject:</strong> ${subject || 'General Inquiry'}<br><br>
+              ${message.replace(/\n/g, '<br>')}
+            </div>
+            
+            <p>✅ <strong>What happens next?</strong></p>
+            <ul style="padding-left: 20px;">
+              <li>Our team will review your message carefully</li>
+              <li>We'll respond within <strong>24 hours</strong> (usually much sooner!)</li>
+              <li>You'll receive a personalized response to address your needs</li>
+            </ul>
+            
+            <p>While you wait, feel free to explore our latest collections and offers:</p>
+            
+            <div style="text-align: center;">
+              <a href="https://nirchal.netlify.app" class="website-link">🛍️ Visit Our Store</a>
+            </div>
+            
+            <p>We're here to serve you and make your shopping experience delightful. Thank you for choosing Nirchal!</p>
+            
+            <p style="margin-top: 30px;">
+              <strong>Warm regards,</strong><br>
+              <span style="color: #ea580c; font-weight: 600;">The Nirchal Team</span><br>
+              <small>Customer Support & Service</small>
+            </p>
+          </div>
           
-          <p><strong>Your message:</strong></p>
-          <p style="font-style: italic; border-left: 3px solid #28a745; padding-left: 15px;">${message}</p>
-          
-          <p>We typically respond within 24 hours.</p>
-          
-          <p>Best regards,<br>The Support Team</p>
+          <div class="footer">
+            <div class="social-info">
+              <p><strong>Nirchal</strong> - Your Trusted Shopping Destination</p>
+              <p>📧 Email: support@nirchal.com | 🌐 Website: <a href="https://nirchal.netlify.app" style="color: #ea580c;">nirchal.netlify.app</a></p>
+              <p><small>This is an automated response. Please do not reply to this email.</small></p>
+            </div>
+          </div>
         </div>
       </body>
       </html>
@@ -137,7 +208,7 @@ const handler: Handler = async (event, context): Promise<HandlerResponse> => {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: 'Thank you for contacting us',
+      subject: '🙏 Thank you for contacting Nirchal - We\'ll be in touch soon!',
       html: autoReplyHtml,
     });
 
