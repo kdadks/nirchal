@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Star, ThumbsUp, MessageCircle } from 'lucide-react';
+import { formatDisplayDate } from '../utils/formatDate';
 
 interface Review {
   id: number;
@@ -100,7 +101,7 @@ const ProductReviewPage: React.FC = () => {
                       {renderStars(review.rating)}
                     </div>
                     <span className="text-gray-500 text-sm">
-                      {new Date(review.date).toLocaleDateString()}
+                      {formatDisplayDate(review.date)}
                     </span>
                   </div>
                 </div>

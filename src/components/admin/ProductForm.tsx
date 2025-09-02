@@ -8,6 +8,7 @@ import type { ProductFormData, ProductFormDataWithDelete } from '../../types/adm
 import { useCategories, useVendors } from '../../hooks/useAdmin';
 import { SwatchSelectionModal } from './SwatchSelectionModal';
 import { getStorageImageUrl } from '../../utils/storageUtils';
+import { sanitizeFormData } from '../../utils/formUtils';
 
 interface ProductFormProps {
   initialData?: Partial<ProductFormData>;
@@ -394,9 +395,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
         console.debug('[ProductForm] sanitized variants', sanitizedFormData.variants);
         console.debug('[ProductForm] variantsToDelete', variantsToDelete);
       }
+      
+      // Sanitize the form data before submission
+      const finalFormData = sanitizeFormData(sanitizedFormData);
+      
       await onSubmit({
-        ...sanitizedFormData,
-        images: sanitizedFormData.images,
+        ...finalFormData,
+        images: finalFormData.images,
         variantsToDelete
       });
       navigate('/admin/products');

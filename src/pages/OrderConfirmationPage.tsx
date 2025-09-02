@@ -55,7 +55,7 @@ const OrderConfirmationPage: React.FC = () => {
       setShowPasswordModal(true);
     } else {
       // Navigate to account normally
-      window.location.href = '/account';
+      window.location.href = '/myaccount';
     }
   };
 
@@ -67,7 +67,7 @@ const OrderConfirmationPage: React.FC = () => {
     toast.success('Password updated successfully! Your account is now secure.');
     // Navigate to account after password change
     setTimeout(() => {
-      window.location.href = '/account';
+      window.location.href = '/myaccount';
     }, 500);
   };
 

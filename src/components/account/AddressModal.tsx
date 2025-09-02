@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
+import { sanitizeAddressData } from '../../utils/formUtils';
 import toast from 'react-hot-toast';
 
 interface AddressData {
   id?: number;
-  type: string;
   first_name: string;
   last_name: string;
   company?: string;
@@ -38,7 +38,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
   const { customer } = useCustomerAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<AddressData>({
-    type: 'shipping',
     first_name: '',
     last_name: '',
     company: '',
@@ -60,7 +59,6 @@ const AddressModal: React.FC<AddressModalProps> = ({
     } else {
       // Reset form for new address
       setFormData({
-        type: 'shipping',
         first_name: customer?.first_name || '',
         last_name: customer?.last_name || '',
         company: '',
@@ -82,14 +80,35 @@ const AddressModal: React.FC<AddressModalProps> = ({
     e.preventDefault();
     if (!customer) return;
 
+    // Validate that at least one usage type is selected
+    if (!formData.is_shipping && !formData.is_billing) {
+      toast.error('Please select at least one usage type (shipping or billing)');
+      return;
+    }
+
     setLoading(true);
     try {
+      // Sanitize form data before saving
+      const sanitizedData = sanitizeAddressData(formData);
+      
+      // If this address is being set as default, we need to unset other default addresses
+      if (sanitizedData.is_default) {
+        // First, unset all other default addresses for this customer
+        const { error: unsetError } = await supabase
+          .from('customer_addresses')
+          .update({ is_default: false })
+          .eq('customer_id', customer.id)
+          .neq('id', editAddress?.id || 0); // Don't unset the current address if editing
+          
+        if (unsetError) throw unsetError;
+      }
+      
       if (editAddress?.id) {
         // Update existing address
         const { error } = await supabase
           .from('customer_addresses')
           .update({
-            ...formData,
+            ...sanitizedData,
             updated_at: new Date().toISOString()
           })
           .eq('id', editAddress.id)
@@ -102,7 +121,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
         const { error } = await supabase
           .from('customer_addresses')
           .insert({
-            ...formData,
+            ...sanitizedData,
             customer_id: customer.id
           });
 
@@ -349,6 +368,39 @@ const AddressModal: React.FC<AddressModalProps> = ({
               <option value="Singapore">Singapore</option>
               <option value="UAE">UAE</option>
             </select>
+          </div>
+
+          {/* Address Usage */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700">Address Usage</label>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="is_shipping"
+                  id="is_shipping"
+                  checked={formData.is_shipping}
+                  onChange={handleChange}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label htmlFor="is_shipping" className="ml-2 text-sm text-gray-700">
+                  Use for shipping/delivery
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="is_billing"
+                  id="is_billing"
+                  checked={formData.is_billing}
+                  onChange={handleChange}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label htmlFor="is_billing" className="ml-2 text-sm text-gray-700">
+                  Use for billing
+                </label>
+              </div>
+            </div>
           </div>
 
           {/* Default Address Checkbox */}
