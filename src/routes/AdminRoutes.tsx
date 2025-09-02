@@ -11,7 +11,6 @@ import SettingsPage from '../pages/admin/SettingsPage';
 import OrdersPage from '../pages/admin/OrdersPage';
 import UsersPage from '../pages/admin/UsersPage';
 import AnalyticsPage from '../pages/admin/AnalyticsPage';
-import EmailTestPage from '../pages/EmailTestPage';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import { AdminProvider } from '../contexts/AdminContext';
 
@@ -31,7 +30,6 @@ const AdminRoutes: React.FC = () => {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/email-test" element={<EmailTestPage />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
         </AdminLayout>
