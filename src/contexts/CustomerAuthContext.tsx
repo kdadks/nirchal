@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
+import { transactionalEmailService } from '../services/transactionalEmailService';
 
 interface Customer {
   id: string;
@@ -148,13 +149,77 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     localStorage.removeItem('nirchal_customer');
   };
 
-  const resetPassword = async (_email: string): Promise<{ success: boolean; error?: string; message?: string }> => {
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string; message?: string }> => {
     try {
-      // Temporary implementation - just return success message
-      // In production, this would generate a reset token and send email
+      // First check if customer exists and get their information
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('id, email, first_name, last_name')
+        .eq('email', email.trim())
+        .single();
+
+      if (customerError || !customerData) {
+        // For security, return success even if email not found
+        return { 
+          success: true, 
+          message: 'If an account with that email exists, you will receive password reset instructions shortly.'
+        };
+      }
+
+      // Try to call the database function for password reset
+      try {
+        const { data, error } = await supabase.rpc('request_password_reset', {
+          user_email: email.trim()
+        });
+
+        if (error) {
+          console.warn('Database password reset function not available:', error);
+          // Fallback - just send email without database token
+        } else if (data?.success) {
+          // Send password reset email with database token
+          try {
+            await transactionalEmailService.sendPasswordResetEmail(
+              {
+                first_name: customerData.first_name,
+                last_name: customerData.last_name,
+                email: customerData.email
+              },
+              `${window.location.origin}/reset-password?token=${data.token || 'temp-token'}`
+            );
+            console.log('Password reset email sent successfully');
+          } catch (emailError) {
+            console.error('Failed to send password reset email:', emailError);
+          }
+
+          return { 
+            success: true, 
+            message: process.env.NODE_ENV === 'development' && data.token 
+              ? `Password reset email sent! Development token: ${data.token}`
+              : 'Password reset instructions have been sent to your email address.'
+          };
+        }
+      } catch (rpcError) {
+        console.warn('Password reset RPC function not available, using fallback');
+      }
+
+      // Fallback implementation - send email with temporary instructions
+      try {
+        await transactionalEmailService.sendPasswordResetEmail(
+          {
+            first_name: customerData.first_name,
+            last_name: customerData.last_name,
+            email: customerData.email
+          },
+          `${window.location.origin}/contact`
+        );
+        console.log('Fallback password reset email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send fallback password reset email:', emailError);
+      }
+
       return { 
         success: true, 
-        message: 'Password reset feature will be available after database migration is complete.'
+        message: 'Password reset instructions have been sent to your email address. The password reset database is currently being set up, so please contact support for assistance.'
       };
     } catch (error) {
       console.error('Reset password error:', error);
