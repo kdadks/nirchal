@@ -110,10 +110,10 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       id: product.id,
       name: product.name,
       price: adjustedPrice,
-      image: product.images[0],
-  size: selectedSize,
-  color: selectedColor,
-  variantId: selectedVariant?.id
+      image: product.images[currentImageIndex] || product.images[0],
+      size: selectedSize,
+      color: selectedColor,
+      variantId: selectedVariant?.id
     });
     onClose();
   };
