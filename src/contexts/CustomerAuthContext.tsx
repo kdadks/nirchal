@@ -52,6 +52,60 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setLoading(false);
   }, []);
 
+  // Monitor auth session and handle token refresh
+  useEffect(() => {
+    let refreshInterval: NodeJS.Timeout;
+
+    const setupTokenRefresh = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.access_token) {
+        // Set up periodic token refresh (every 50 minutes, tokens expire after 1 hour)
+        refreshInterval = setInterval(async () => {
+          try {
+            console.log('[CustomerAuth] Refreshing session token...');
+            const { error } = await supabase.auth.refreshSession();
+            if (error) {
+              console.error('[CustomerAuth] Token refresh failed:', error);
+              // If refresh fails and we have a customer, sign them out
+              if (customer) {
+                console.log('[CustomerAuth] Signing out due to token refresh failure');
+                signOut();
+              }
+            }
+          } catch (err) {
+            console.error('[CustomerAuth] Token refresh error:', err);
+          }
+        }, 50 * 60 * 1000); // 50 minutes
+      }
+    };
+
+    setupTokenRefresh();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          // Clear customer data if auth session is lost
+          if (customer) {
+            console.log('[CustomerAuth] Auth session lost, clearing customer data');
+            setCustomer(null);
+            localStorage.removeItem('nirchal_customer');
+          }
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[CustomerAuth] Token refreshed successfully');
+        }
+      }
+    );
+
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+      subscription.unsubscribe();
+    };
+  }, [customer]); // Depend on customer to handle signOut properly
+
   const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);

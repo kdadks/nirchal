@@ -292,6 +292,26 @@ export const useProductsWithFilters = (
       if (error) {
         console.error('[useProductsWithFilters] Database error:', error);
         const msg = (error.message || '').toLowerCase();
+        
+        // Handle JWT expiration
+        if (msg.includes('jwt') && msg.includes('expired')) {
+          try {
+            console.log('[useProductsWithFilters] JWT expired, attempting token refresh...');
+            await supabase.auth.refreshSession();
+            
+            // Retry the query manually after refresh
+            await fetchProducts();
+            return; // Exit early on successful retry
+          } catch (refreshError) {
+            console.error('[useProductsWithFilters] Token refresh failed:', refreshError);
+            setError('Authentication session expired. Please refresh the page.');
+            setProducts([]);
+            setTotalCount(0);
+            setTotalPages(0);
+            return;
+          }
+        }
+        
         const isSchemaIssue = msg.includes('column') || msg.includes('does not exist') || msg.includes('invalid input syntax for type json') || msg.includes('json');
         const isPermissionIssue = msg.includes('permission denied') || msg.includes('not allowed') || msg.includes('rls');
 
