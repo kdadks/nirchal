@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import { transactionalEmailService } from '../../services/transactionalEmailService';
@@ -10,6 +11,7 @@ interface CustomerAuthModalProps {
 
 const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) => {
   const { signIn, signUp, resetPassword } = useCustomerAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -58,8 +60,8 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
         const result = await signIn(email, password);
         if (result.success) {
           onClose();
-          // Redirect to dashboard after successful login
-          window.location.assign('/myaccount');
+          // Redirect to dashboard after successful login using React Router
+          navigate('/myaccount');
         } else {
           setError(result.error || 'Login failed');
         }
@@ -93,7 +95,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
           // Redirect to account dashboard after short delay for UX
           setTimeout(() => {
             onClose();
-            window.location.assign('/myaccount');
+            navigate('/myaccount');
           }, 800);
         } else {
           setError(result.error || 'Registration failed');
