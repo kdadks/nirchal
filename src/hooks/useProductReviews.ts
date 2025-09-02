@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { supabase } from '../config/supabase';
 import type { ReviewFormData, Review } from '../types';
-import { useAuth } from '../contexts/AuthContext';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 
 export const useProductReviews = (productId: string) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { customer } = useCustomerAuth();
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -43,8 +43,13 @@ export const useProductReviews = (productId: string) => {
       const isProd = import.meta.env.PROD;
       // Determine effective user based on environment
       let effectiveUser: { id: string; name: string } | null = null;
-      if (user) {
-        effectiveUser = { id: user.id, name: user.name || user.email || 'User' };
+      if (customer) {
+        effectiveUser = { 
+          id: customer.id, 
+          name: customer.first_name && customer.last_name 
+            ? `${customer.first_name} ${customer.last_name}` 
+            : customer.first_name || customer.email || 'Customer' 
+        };
       } else if (!isProd) {
         // In development, allow override or anonymous
         effectiveUser = overrideUser ?? { id: 'anonymous', name: 'Anonymous' };
@@ -61,7 +66,7 @@ export const useProductReviews = (productId: string) => {
 
       const { error } = await supabase.from('product_reviews').insert({
         product_id: productId,
-        user_id: effectiveUser.id,
+        customer_id: effectiveUser.id,
         user_name: effectiveUser.name,
         rating: form.rating,
         comment: form.comment,
@@ -78,7 +83,10 @@ export const useProductReviews = (productId: string) => {
           {
             id: `temp-${Date.now()}`,
             userId: 'anonymous',
-            userName: (overrideUser?.name || user?.name || user?.email || 'Anonymous') as string,
+            userName: (overrideUser?.name || 
+              (customer?.first_name && customer?.last_name 
+                ? `${customer.first_name} ${customer.last_name}` 
+                : customer?.first_name || customer?.email) || 'Anonymous') as string,
             rating: form.rating,
             comment: form.comment,
             createdAt: now,
