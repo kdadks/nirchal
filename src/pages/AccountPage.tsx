@@ -587,9 +587,9 @@ const AccountPage: React.FC = () => {
                               {/* Review Content */}
                               <div className="flex-1">
                                 <div className="flex items-start justify-between mb-2">
-                                  <div>
+                                  <div className="flex-1">
                                     <h3 className="font-medium text-gray-900">{review.product_name}</h3>
-                                    <div className="flex items-center mt-1">
+                                    <div className="flex items-center mt-1 gap-3">
                                       <div className="flex">
                                         {[1, 2, 3, 4, 5].map((star) => (
                                           <Star
@@ -603,17 +603,17 @@ const AccountPage: React.FC = () => {
                                           />
                                         ))}
                                       </div>
-                                      <span className="ml-2 text-sm text-gray-600">
+                                      <span className="text-sm text-gray-600">
                                         {review.rating} out of 5 stars
+                                      </span>
+                                      <span className="text-sm text-gray-500">
+                                        • {formatDisplayDate(review.created_at)}
                                       </span>
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-sm text-gray-500">
-                                      {formatDisplayDate(review.created_at)}
-                                    </p>
                                     {review.helpful > 0 && (
-                                      <p className="text-xs text-green-600 mt-1">
+                                      <p className="text-xs text-green-600">
                                         {review.helpful} found helpful
                                       </p>
                                     )}
