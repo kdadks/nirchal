@@ -21,7 +21,7 @@ import {
   Edit2, 
   Trash2,
   AlertTriangle,
-  Star 
+  Star
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDisplayDate } from '../utils/formatDate';
@@ -325,8 +325,38 @@ const AccountPage: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Navigation - Expanded width */}
-            <div className="lg:w-72 flex-shrink-0">
+            {/* Mobile Navigation - Tabs at top */}
+            <div className="lg:hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-6">
+                <div className="grid grid-cols-3 gap-1">
+                  {sidebarItems.slice(0, 6).map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex flex-col items-center gap-1 px-2 py-3 text-center rounded-lg transition-colors ${
+                          activeTab === item.id
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon size={20} className={activeTab === item.id ? 'text-primary-700' : 'text-gray-500'} />
+                        <span className="text-xs font-medium whitespace-nowrap">{item.label}</span>
+                        {'badge' in item && item.badge !== undefined && item.badge > 0 && (
+                          <span className="bg-primary-100 text-primary-700 text-xs font-medium px-1.5 py-0.5 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Sidebar Navigation - Expanded width */}
+            <div className="hidden lg:block lg:w-72 flex-shrink-0">
               <nav className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <ul className="space-y-2">
                   {sidebarItems.map((item) => {
@@ -447,7 +477,8 @@ const AccountPage: React.FC = () => {
                             key={order.id} 
                             className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all"
                           >
-                            <div className="flex items-center justify-between">
+                            {/* Desktop layout */}
+                            <div className="hidden sm:flex items-center justify-between">
                               {/* Order number - clickable */}
                               <button
                                 onClick={() => handleOrderClick(order)}
@@ -476,6 +507,34 @@ const AccountPage: React.FC = () => {
                                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                               </span>
                             </div>
+
+                            {/* Mobile layout */}
+                            <div className="block sm:hidden space-y-2">
+                              <div className="flex items-center justify-between">
+                                <button
+                                  onClick={() => handleOrderClick(order)}
+                                  className="font-medium text-primary-600 hover:text-primary-700 transition-colors text-sm"
+                                >
+                                  Order #{order.order_number}
+                                </button>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-md ${
+                                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                  order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                  order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">
+                                  {formatDisplayDate(order.created_at)}
+                                </span>
+                                <span className="font-semibold text-gray-900">
+                                  ₹{order.total_amount?.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -499,7 +558,7 @@ const AccountPage: React.FC = () => {
                         </Link>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {wishlist.map((productId) => {
                           const product = products.find(p => p.id === productId);
                           if (!product) return null;

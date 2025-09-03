@@ -381,7 +381,7 @@ const ProductDetailPage: React.FC = () => {
           {/* Main Content */}
           <div className="w-full">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 p-4 lg:p-8">
             {/* Images */}
             <div className="space-y-6">
               <div 
@@ -417,18 +417,18 @@ const ProductDetailPage: React.FC = () => {
                         e.stopPropagation();
                         prevImage();
                       }}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
+                      className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 w-12 h-12 lg:w-10 lg:h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-80 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
                     >
-                      <ChevronLeft size={20} className="text-gray-700" />
+                      <ChevronLeft size={24} className="text-gray-700" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         nextImage();
                       }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
+                      className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 w-12 h-12 lg:w-10 lg:h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-80 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
                     >
-                      <ChevronRight size={20} className="text-gray-700" />
+                      <ChevronRight size={24} className="text-gray-700" />
                     </button>
                   </>
                 )}
@@ -565,11 +565,11 @@ const ProductDetailPage: React.FC = () => {
                   </div>
 
                   {/* Wishlist and Share Icons */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {/* Wishlist Button */}
                     <button
                       onClick={handleWishlistToggle}
-                      className={`p-2 rounded-full border transition-all duration-200 ${
+                      className={`p-3 lg:p-2 rounded-full border transition-all duration-200 ${
                         isInWishlist(product.id)
                           ? 'bg-red-50 border-red-300 text-red-600 hover:bg-red-100'
                           : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
@@ -577,7 +577,7 @@ const ProductDetailPage: React.FC = () => {
                       title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                     >
                       <Heart
-                        size={18}
+                        size={20}
                         className={isInWishlist(product.id) ? 'fill-current' : ''}
                       />
                     </button>
@@ -585,10 +585,10 @@ const ProductDetailPage: React.FC = () => {
                     {/* Share Button */}
                     <button
                       onClick={handleShareClick}
-                      className="p-2 rounded-full border bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100 transition-all duration-200"
+                      className="p-3 lg:p-2 rounded-full border bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100 transition-all duration-200"
                       title="Share product"
                     >
-                      <Share2 size={18} />
+                      <Share2 size={20} />
                     </button>
                   </div>
                 </div>
@@ -734,14 +734,14 @@ const ProductDetailPage: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200"
+                    className="w-12 h-12 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg lg:text-base"
                   >
                     -
                   </button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <span className="w-12 text-center font-medium text-lg lg:text-base">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200"
+                    className="w-12 h-12 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg lg:text-base"
                   >
                     +
                   </button>
@@ -750,12 +750,12 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col gap-3">
                   {/* Add to Cart Button */}
                   <button
                     onClick={handleAddToCart}
                     disabled={!canAddToCart || isAdding}
-                    className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                    className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center gap-2"
                   >
                     <ShoppingBag size={20} />
                     {isAdding ? 'Adding...' : 'Add to Cart'}
@@ -765,7 +765,7 @@ const ProductDetailPage: React.FC = () => {
                   <button
                     onClick={handleBuyNow}
                     disabled={!canAddToCart}
-                    className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-medium transition-colors duration-200"
+                    className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200"
                   >
                     Buy Now
                   </button>

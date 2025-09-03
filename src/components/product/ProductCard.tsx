@@ -122,23 +122,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Action Buttons - Top Right */}
             <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              {/* Quick View Button */}
+              {/* Quick View Button - Hidden on mobile */}
               <button
                 onClick={handleQuickViewClick}
-                className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors duration-200"
+                className="hidden md:flex w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full items-center justify-center hover:bg-white transition-colors duration-200"
                 title="Quick View"
               >
                 <Eye className="w-4 h-4 text-gray-600 hover:text-amber-600" />
               </button>
               
-              {/* Wishlist Button */}
+              {/* Wishlist Button - Larger on mobile for better touch target */}
               <button
                 onClick={handleWishlistClick}
-                className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors duration-200"
+                className="w-9 h-9 md:w-8 md:h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors duration-200"
                 title="Add to Wishlist"
               >
                 <Heart 
-                  className={`w-4 h-4 transition-colors duration-200 ${
+                  className={`w-5 h-5 md:w-4 md:h-4 transition-colors duration-200 ${
                     isInWishlist(product.id)
                       ? 'fill-red-500 text-red-500' 
                       : 'text-gray-600 hover:text-red-500'
@@ -175,7 +175,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             </div>
 
-            {/* Add to Cart Button - 10px space */}
+            {/* Add to Cart Button - Larger touch target on mobile */}
             <div className="pt-2.5">
               <button
                 onClick={(e) => {
@@ -184,7 +184,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   handleAddToCart();
                 }}
                 disabled={product.stockStatus === 'Out of Stock'}
-                className="w-full py-2 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 md:py-2 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {product.stockStatus === 'Out of Stock' ? 'Out of Stock' : 'Add to Cart'}
               </button>

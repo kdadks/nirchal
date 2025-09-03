@@ -91,7 +91,7 @@ const ContactPage: React.FC = () => {
 
           {/* Contact Form */}
           <section className="mb-12">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Send us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -104,7 +104,7 @@ const ContactPage: React.FC = () => {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                       placeholder="Your Name"
                     />
                   </div>
@@ -117,7 +117,7 @@ const ContactPage: React.FC = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                       placeholder="you@email.com"
                     />
                   </div>
@@ -130,7 +130,7 @@ const ContactPage: React.FC = () => {
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                     placeholder="Subject (optional)"
                   />
                 </div>
@@ -143,14 +143,14 @@ const ContactPage: React.FC = () => {
                     onChange={handleChange}
                     rows={5}
                     required
-                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                     placeholder="Type your message here..."
                   ></textarea>
                 </div>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-3 px-4 rounded-lg font-semibold text-lg transition duration-200 shadow ${
+                  className={`w-full py-4 px-4 rounded-lg font-semibold text-lg transition duration-200 shadow ${
                     isSubmitting
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-primary-600 hover:bg-primary-700 text-white'

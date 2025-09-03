@@ -91,7 +91,7 @@ const HeroCarousel: React.FC = () => {
                   </div>
 
                   {/* Main Heading */}
-                  <h1 className={`font-display text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 leading-tight transition-all duration-1000 delay-500 ${
+                  <h1 className={`font-display text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 md:mb-6 leading-tight transition-all duration-1000 delay-500 ${
                     currentSlide === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                   }`}>
                     <span className="block bg-gradient-to-r from-white via-accent-200 to-white bg-clip-text text-transparent">
@@ -100,14 +100,14 @@ const HeroCarousel: React.FC = () => {
                   </h1>
 
                   {/* Subtitle */}
-                  <p className={`text-xl md:text-2xl text-neutral-200 mb-8 font-light leading-relaxed max-w-2xl transition-all duration-1000 delay-700 ${
+                  <p className={`text-lg sm:text-xl md:text-2xl text-neutral-200 mb-6 md:mb-8 font-light leading-relaxed max-w-2xl transition-all duration-1000 delay-700 ${
                     currentSlide === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                   }`}>
                     {slide.subtitle}
                   </p>
 
                   {/* Rating */}
-                  <div className={`flex items-center space-x-2 mb-8 transition-all duration-1000 delay-900 ${
+                  <div className={`flex items-center space-x-2 mb-6 md:mb-8 transition-all duration-1000 delay-900 ${
                     currentSlide === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
                   }`}>
                     <div className="flex space-x-1">
@@ -126,7 +126,7 @@ const HeroCarousel: React.FC = () => {
                   }`}>
                     <Link
                       to={slide.link}
-                      className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-primary-600 via-accent-500 to-secondary-500 text-white font-accent font-semibold rounded-2xl shadow-2xl hover:shadow-accent-500/25 transition-all duration-300 hover:-translate-y-1 hover:scale-105"
+                      className="group inline-flex items-center px-6 py-3 lg:px-8 lg:py-4 bg-gradient-to-r from-primary-600 via-accent-500 to-secondary-500 text-white font-accent font-semibold rounded-2xl shadow-2xl hover:shadow-accent-500/25 transition-all duration-300 hover:-translate-y-1 hover:scale-105"
                     >
                       <span>{slide.cta}</span>
                       <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
@@ -158,17 +158,17 @@ const HeroCarousel: React.FC = () => {
       <button
         onClick={prevSlide}
         disabled={isTransitioning}
-        className="absolute left-8 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+        className="absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 lg:w-14 lg:h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
       >
-        <ChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform duration-300" />
+        <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform duration-300" />
       </button>
 
       <button
         onClick={nextSlide}
         disabled={isTransitioning}
-        className="absolute right-8 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+        className="absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 lg:w-14 lg:h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
       >
-        <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform duration-300" />
+        <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
       </button>
 
       {/* Slide Indicators */}
