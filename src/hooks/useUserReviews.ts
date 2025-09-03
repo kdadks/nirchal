@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { getStorageImageUrl } from '../utils/storageUtils';
 
 export interface UserReview {
   id: string;
@@ -105,19 +106,38 @@ export const useUserReviews = () => {
         throw error;
       }
 
-      const userReviews = (data || []).map((review: any) => ({
-        id: String(review.id),
-        product_id: review.product_id,
-        product_name: review.products?.name || 'Unknown Product',
-        product_image: review.products?.product_images?.find((img: any) => img.is_primary)?.image_url || 
-                      review.products?.product_images?.[0]?.image_url || 
-                      undefined,
-        rating: review.rating,
-        comment: review.comment,
-        created_at: review.created_at,
-        helpful: review.helpful || 0,
-        images: review.images || []
-      }));
+      const userReviews = (data || []).map((review: any) => {
+        console.log('[useUserReviews] Processing review:', review);
+        console.log('[useUserReviews] Product images:', review.products?.product_images);
+        
+        let productImage: string | undefined;
+        
+        // Use the same logic as usePublicProducts for image handling
+        if (review.products?.product_images && Array.isArray(review.products.product_images) && review.products.product_images.length > 0) {
+          const productImages = review.products.product_images;
+          // Find primary image first, then fallback to first image
+          const primaryImage = productImages.find((img: any) => img.is_primary);
+          const selectedImageData = primaryImage || productImages[0];
+          
+          if (selectedImageData?.image_url) {
+            productImage = getStorageImageUrl(selectedImageData.image_url);
+          }
+        }
+        
+        console.log('[useUserReviews] Final product image URL:', productImage);
+        
+        return {
+          id: String(review.id),
+          product_id: review.product_id,
+          product_name: review.products?.name || 'Unknown Product',
+          product_image: productImage,
+          rating: review.rating,
+          comment: review.comment,
+          created_at: review.created_at,
+          helpful: review.helpful || 0,
+          images: review.images || []
+        };
+      });
 
       setReviews(userReviews);
     } catch (err: any) {
