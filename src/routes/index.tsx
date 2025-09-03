@@ -25,6 +25,7 @@ import TermsPage from '../pages/footer/TermsPage';
 // Admin Pages
 import LoginPage from '../pages/admin/LoginPage';
 import AdminRoutes from './AdminRoutes';
+import AuthDebug from '../pages/AuthDebug';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -39,6 +40,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
   <Route path="/myaccount" element={<AccountPage />} />
+  <Route path="/auth-debug" element={<AuthDebug />} />
 
       {/* Footer Pages */}
       <Route path="/about" element={<AboutPage />} />
