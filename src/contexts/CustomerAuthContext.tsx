@@ -36,6 +36,9 @@ export const useCustomerAuth = () => {
 export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  // If you run customer auth via Supabase Auth, set VITE_CUSTOMER_USES_SUPABASE_AUTH=true
+  // Default (undefined/false): customer auth is DB/RPC based and independent of Supabase auth session
+  const USE_SUPABASE_CUSTOMER_AUTH = import.meta.env.VITE_CUSTOMER_USES_SUPABASE_AUTH === 'true';
 
   // Load customer from localStorage on mount
   useEffect(() => {
@@ -52,59 +55,46 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setLoading(false);
   }, []);
 
-  // Monitor auth session and handle token refresh
+  // Monitor Supabase auth session only if explicitly enabled for customer auth
   useEffect(() => {
-    let refreshInterval: NodeJS.Timeout;
+    if (!USE_SUPABASE_CUSTOMER_AUTH) {
+      // In DB/RPC mode we do NOT couple customer state to Supabase auth events
+      return;
+    }
+
+    let refreshInterval: NodeJS.Timeout | undefined;
 
     const setupTokenRefresh = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (session?.access_token) {
-        // Set up periodic token refresh (every 50 minutes, tokens expire after 1 hour)
         refreshInterval = setInterval(async () => {
           try {
             console.log('[CustomerAuth] Refreshing session token...');
             const { error } = await supabase.auth.refreshSession();
             if (error) {
               console.error('[CustomerAuth] Token refresh failed:', error);
-              // If refresh fails and we have a customer, sign them out
-              if (customer) {
-                console.log('[CustomerAuth] Signing out due to token refresh failure');
-                signOut();
-              }
             }
           } catch (err) {
             console.error('[CustomerAuth] Token refresh error:', err);
           }
-        }, 50 * 60 * 1000); // 50 minutes
+        }, 50 * 60 * 1000);
       }
     };
 
     setupTokenRefresh();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          // Clear customer data if auth session is lost
-          if (customer) {
-            console.log('[CustomerAuth] Auth session lost, clearing customer data');
-            setCustomer(null);
-            localStorage.removeItem('nirchal_customer');
-          }
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('[CustomerAuth] Token refreshed successfully');
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('[CustomerAuth] Token refreshed successfully');
       }
-    );
+      // Do not auto-clear customer state here; customer auth is handled separately
+    });
 
     return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
+      if (refreshInterval) clearInterval(refreshInterval);
       subscription.unsubscribe();
     };
-  }, [customer]); // Depend on customer to handle signOut properly
+  }, [USE_SUPABASE_CUSTOMER_AUTH]);
 
   const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
