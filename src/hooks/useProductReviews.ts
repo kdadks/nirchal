@@ -21,7 +21,7 @@ export const useProductReviews = (productId: string) => {
     setReviews(
       (data || []).map((r: any) => ({
         id: String(r.id),
-        userId: r.user_id,
+        userId: r.customer_id,
         userName: r.user_name,
         rating: r.rating,
         comment: r.comment,

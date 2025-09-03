@@ -475,9 +475,9 @@ const ProductDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Compact Reviews Display */}
+              {/* Compact Reviews Display - Hide on mobile, show only on desktop */}
               {reviews.length > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <div className="hidden lg:block bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <h4 className="text-md font-semibold text-gray-900 mb-3">Customer Reviews</h4>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {reviews.slice(0, 3).map((review) => (

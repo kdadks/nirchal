@@ -45,10 +45,31 @@ export const useUserReviews = () => {
             images
           )
         `)
-        .eq('user_id', customer.id)
+        .eq('customer_id', customer.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useUserReviews] Error:', error);
+        
+        // Handle JWT expiration
+        const errorMsg = (error.message || '').toLowerCase();
+        if (errorMsg.includes('jwt') && errorMsg.includes('expired')) {
+          try {
+            console.log('[useUserReviews] JWT expired, attempting token refresh...');
+            await supabase.auth.refreshSession();
+            
+            // Retry the query after refresh
+            await fetchUserReviews();
+            return; // Exit early on successful retry
+          } catch (refreshError) {
+            console.error('[useUserReviews] Token refresh failed:', refreshError);
+            setError('Your session has expired. Please refresh the page to continue.');
+            return;
+          }
+        }
+        
+        throw error;
+      }
 
       const userReviews = (data || []).map((review: any) => ({
         id: String(review.id),
