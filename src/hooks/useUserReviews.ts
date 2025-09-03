@@ -30,23 +30,57 @@ export const useUserReviews = () => {
     setError(null);
 
     try {
+      console.log('[useUserReviews] Fetching reviews for customer ID:', customer.id);
+      console.log('[useUserReviews] Customer ID type:', typeof customer.id);
+      
+      // First, let's check if there are any reviews in the table at all
+      const { data: allReviews } = await supabase
+        .from('product_reviews')
+        .select('id, customer_id, comment')
+        .limit(5);
+      
+      console.log('[useUserReviews] All reviews in table (first 5):', allReviews);
+      
       const { data, error } = await supabase
         .from('product_reviews')
         .select(`
           id,
           product_id,
+          customer_id,
           rating,
           comment,
           created_at,
           helpful,
           images,
-          products!inner(
+          products(
             name,
             images
           )
         `)
         .eq('customer_id', customer.id)
         .order('created_at', { ascending: false });
+
+      console.log('[useUserReviews] Query result:', { 
+        data, 
+        error, 
+        customerIdUsed: customer.id,
+        dataLength: data?.length || 0 
+      });
+
+      // If the main query fails or returns no results, try a simpler query
+      if ((!data || data.length === 0) && !error) {
+        console.log('[useUserReviews] No results from main query, trying simple query...');
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('product_reviews')
+          .select('*')
+          .eq('customer_id', customer.id);
+        
+        console.log('[useUserReviews] Simple query result:', { 
+          simpleData, 
+          simpleError,
+          simpleDataLength: simpleData?.length || 0
+        });
+      }
 
       if (error) {
         console.error('[useUserReviews] Error:', error);
