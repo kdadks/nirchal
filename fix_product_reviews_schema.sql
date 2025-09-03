@@ -16,6 +16,7 @@ ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES
 
 -- Update RLS policies to work with customer_id
 DROP POLICY IF EXISTS "Authenticated can insert product_reviews" ON product_reviews;
+DROP POLICY IF EXISTS "Authenticated customers can insert product_reviews" ON product_reviews;
 CREATE POLICY "Authenticated customers can insert product_reviews" ON product_reviews
   FOR INSERT WITH CHECK (
     customer_id IS NOT NULL AND 
