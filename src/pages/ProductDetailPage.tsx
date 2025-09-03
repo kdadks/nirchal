@@ -639,7 +639,7 @@ const ProductDetailPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900">Color</h3>
-                    <span className="text-xs text-gray-500 italic">(Select image here)</span>
+                    <span className="text-xs text-gray-500 italic">(Select Here)</span>
                   </div>
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-3 max-w-md">
                     {colors.map(color => {
