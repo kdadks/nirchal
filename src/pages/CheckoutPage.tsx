@@ -369,8 +369,8 @@ const CheckoutPage: React.FC = () => {
         billing: billingAddress,
         delivery: deliveryAddress,
         items: items.map(it => ({
-          product_id: Number(it.id) || null,
-          product_variant_id: it.variantId ? Number(it.variantId) : null,
+          product_id: it.id, // Keep as string UUID, don't convert to number
+          product_variant_id: it.variantId ? it.variantId : null, // Keep as string UUID if exists
           product_name: it.name,
           product_sku: undefined,
           unit_price: it.price,
