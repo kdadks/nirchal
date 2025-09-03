@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
-import { getStorageImageUrl } from '../../utils/storageUtils';
+import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
 import toast from 'react-hot-toast';
 
 interface OrderItem {
@@ -110,20 +110,23 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       if (itemsError) throw itemsError;
 
-      // Process items to extract product images using the same logic as reviews
+      // Process items to extract product images 
       const processedItems = (items || []).map((item: any) => {
         let productImage: string | undefined;
         
-        // Use the same logic as usePublicProducts for image handling
+        // Check if we have product data and images from the join
         if (item.products?.product_images && Array.isArray(item.products.product_images) && item.products.product_images.length > 0) {
           const productImages = item.products.product_images;
-          // Find primary image first, then fallback to first image
           const primaryImage = productImages.find((img: any) => img.is_primary);
           const selectedImageData = primaryImage || productImages[0];
           
           if (selectedImageData?.image_url) {
             productImage = getStorageImageUrl(selectedImageData.image_url);
           }
+        } else if (item.product_id) {
+          // Fallback: try pattern-based URLs if we have a product_id but no joined images
+          const possibleImages = getProductImageUrls(item.product_id, item.product_name);
+          productImage = possibleImages[0]; // Use first possible URL
         }
         
         return {
@@ -255,15 +258,28 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       <div className="flex gap-4">
                         {/* Product Image */}
                         <div className="flex-shrink-0">
-                          <img
-                            src={item.product_image || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'}
-                            alt={item.product_name}
-                            className="w-16 h-16 object-cover rounded-lg"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.src = 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
-                            }}
-                          />
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                            {item.product_image ? (
+                              <img
+                                src={item.product_image}
+                                alt={item.product_name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  // Hide the image and show placeholder
+                                  target.style.display = 'none';
+                                  const placeholder = target.nextElementSibling as HTMLElement;
+                                  if (placeholder) placeholder.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-full h-full flex items-center justify-center text-gray-400"
+                              style={{ display: item.product_image ? 'none' : 'flex' }}
+                            >
+                              <Package size={24} />
+                            </div>
+                          </div>
                         </div>
                         
                         {/* Product Details */}
