@@ -71,9 +71,7 @@ const ContactPage: React.FC = () => {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Contact Information</h2>
                 <div className="space-y-3">
-                  <p className="text-gray-700"><b>Email:</b> info@nirchal.com</p>
-                  <p className="text-gray-700"><b>Phone:</b> +91 98765 43210</p>
-                  <p className="text-gray-700"><b>Address:</b> 123, Nirchal Store, Bengaluru, Karnataka, India</p>
+                  <p className="text-gray-700"><b>Email:</b> support@nirchal.com</p>
                   <p className="text-gray-700"><b>Business Hours:</b> Mon-Sat, 10am - 7pm</p>
                 </div>
               </div>
