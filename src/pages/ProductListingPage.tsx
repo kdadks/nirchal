@@ -289,10 +289,10 @@ const ProductListingPage: React.FC = () => {
             <div className="lg:hidden mb-4">
               <button
                 onClick={() => setMobileFiltersOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 w-full sm:w-auto justify-center font-medium"
               >
-                <Filter className="w-4 h-4" />
-                Filters
+                <Filter className="w-5 h-5" />
+                Filters & Sort
               </button>
             </div>
 
@@ -355,7 +355,7 @@ const ProductListingPage: React.FC = () => {
             ) : (
               <>
                 <div className={`grid gap-6 ${viewMode === 'grid' 
-                  ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
                   : 'grid-cols-1'
                 }`}>
                   {products.map((product) => (

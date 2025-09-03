@@ -198,29 +198,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 
                 {/* Mobile Actions */}
                 <div className="border-t border-primary-100 pt-4 mt-6">
-                  <div className="grid grid-cols-4 gap-4">
-                    <button className="flex flex-col items-center space-y-2 p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
-                      <Search size={20} />
-                      <span className="text-xs font-medium">Search</span>
+                  <div className="grid grid-cols-4 gap-3">
+                    <button className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+                      <Search size={22} />
+                      <span className="text-sm font-medium">Search</span>
                     </button>
-                    <button className="flex flex-col items-center space-y-2 p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
-                      <Heart size={20} />
-                      <span className="text-xs font-medium">Wishlist</span>
+                    <button className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+                      <Heart size={22} />
+                      <span className="text-sm font-medium">Wishlist</span>
                     </button>
                     <button 
                       onClick={handleAccountClick}
-                      className="flex flex-col items-center space-y-2 p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+                      className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
                     >
-                      <User size={20} />
-                      <span className="text-xs font-medium">Account</span>
+                      <User size={22} />
+                      <span className="text-sm font-medium">Account</span>
                     </button>
                     <Link 
                       to="/cart"
-                      className="flex flex-col items-center space-y-2 p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300 relative"
+                      className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300 relative"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      <ShoppingBag size={20} />
-                      <span className="text-xs font-medium">Cart</span>
+                      <ShoppingBag size={22} />
+                      <span className="text-sm font-medium">Cart</span>
                       {cartItemCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-gradient-to-r from-accent-500 to-secondary-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                           {cartItemCount}
