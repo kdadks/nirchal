@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Integration Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background: #f59e0b;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #d97706;
+        }
+        .log {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Razorpay Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Order Creation</h2>
+        <button onclick="testCreateOrder()">Create Test Order</button>
+        <div id="orderLog" class="log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test Payment Flow</h2>
+        <button onclick="testPaymentFlow()">Start Test Payment</button>
+        <div id="paymentLog" class="log"></div>
+    </div>
+
+    <script>
+        const log = (elementId, message) => {
+            const element = document.getElementById(elementId);
+            element.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        };
+
+        async function testCreateOrder() {
+            const orderLog = document.getElementById('orderLog');
+            orderLog.textContent = '';
+            
+            try {
+                log('orderLog', 'Creating test order...');
+                
+                const response = await fetch('/.netlify/functions/create-razorpay-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: 100,
+                        currency: 'INR',
+                        receipt: 'test_receipt_' + Date.now(),
+                        customer_email: 'test@example.com',
+                        customer_phone: '9999999999'
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                log('orderLog', 'Order created successfully:');
+                log('orderLog', JSON.stringify(result, null, 2));
+                
+                // Store for payment test
+                window.lastOrder = result;
+                
+            } catch (error) {
+                log('orderLog', 'Error: ' + error.message);
+            }
+        }
+
+        async function testPaymentFlow() {
+            const paymentLog = document.getElementById('paymentLog');
+            paymentLog.textContent = '';
+            
+            try {
+                log('paymentLog', 'Starting payment flow...');
+                
+                // First create an order
+                const orderResponse = await fetch('/.netlify/functions/create-razorpay-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: 500,
+                        currency: 'INR',
+                        receipt: 'payment_test_' + Date.now(),
+                        customer_email: 'customer@test.com',
+                        customer_phone: '9876543210'
+                    }),
+                });
+
+                if (!orderResponse.ok) {
+                    throw new Error('Failed to create order for payment test');
+                }
+
+                const orderData = await orderResponse.json();
+                log('paymentLog', 'Order created for payment test');
+                
+                // Configure Razorpay options
+                const options = {
+                    ...orderData.checkout_config,
+                    handler: function (response) {
+                        log('paymentLog', 'Payment successful!');
+                        log('paymentLog', 'Payment ID: ' + response.razorpay_payment_id);
+                        log('paymentLog', 'Order ID: ' + response.razorpay_order_id);
+                        log('paymentLog', 'Signature: ' + response.razorpay_signature);
+                        
+                        // Test payment verification
+                        verifyPayment(response);
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            log('paymentLog', 'Payment cancelled by user');
+                        }
+                    }
+                };
+
+                // Open Razorpay checkout
+                const rzp = new Razorpay(options);
+                rzp.open();
+                
+            } catch (error) {
+                log('paymentLog', 'Error: ' + error.message);
+            }
+        }
+
+        async function verifyPayment(response) {
+            try {
+                log('paymentLog', 'Verifying payment...');
+                
+                const verifyResponse = await fetch('/.netlify/functions/verify-razorpay-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_signature: response.razorpay_signature,
+                        order_id: response.razorpay_order_id
+                    }),
+                });
+
+                if (!verifyResponse.ok) {
+                    throw new Error('Payment verification failed');
+                }
+
+                const verifyResult = await verifyResponse.json();
+                log('paymentLog', 'Payment verified successfully!');
+                log('paymentLog', JSON.stringify(verifyResult, null, 2));
+                
+            } catch (error) {
+                log('paymentLog', 'Verification error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

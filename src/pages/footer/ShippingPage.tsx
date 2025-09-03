@@ -11,31 +11,31 @@ const ShippingPage: React.FC = () => {
       </Helmet>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white py-16">
+      <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white py-12 md:py-16">
         <div className="container mx-auto px-4 text-center">
-          <Truck className="w-16 h-16 mx-auto mb-4" />
-          <h1 className="text-4xl font-bold mb-4">Shipping Policy</h1>
-          <p className="text-xl text-primary-100 max-w-2xl mx-auto">
+          <Truck className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Shipping Policy</h1>
+          <p className="text-lg md:text-xl text-primary-100 max-w-2xl mx-auto">
             Fast, secure, and reliable delivery of your favorite ethnic wear
           </p>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
 
           {/* Shipping Options */}
-          <section className="mb-12">
-            <h2 className="text-3xl font-bold text-gray-800 mb-8">Shipping Options</h2>
+          <section className="mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">Shipping Options</h2>
             
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 gap-6 md:gap-8">
               {/* Domestic Shipping */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                <div className="flex items-center mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mr-4">
-                    <MapPin className="w-6 h-6 text-white" />
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div className="flex items-center mb-4 md:mb-6">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
+                    <MapPin className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800">Domestic Shipping</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-gray-800">Domestic Shipping</h3>
                 </div>
                 
                 <div className="space-y-4">
@@ -61,12 +61,12 @@ const ShippingPage: React.FC = () => {
               </div>
 
               {/* International Shipping */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                <div className="flex items-center mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mr-4">
-                    <Globe className="w-6 h-6 text-white" />
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <div className="flex items-center mb-4 md:mb-6">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
+                    <Globe className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800">International Shipping</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-gray-800">International Shipping</h3>
                 </div>
                 
                 <div className="space-y-4">

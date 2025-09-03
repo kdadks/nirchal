@@ -6,6 +6,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Ensure containers don't overflow */
+* {
+  box-sizing: border-box;
+}
 :root {
   /* Brand Colors for Nirchal - Indian Ethnic Clothing */
   --color-primary-50: #fdf8f6;

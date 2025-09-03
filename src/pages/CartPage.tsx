@@ -12,12 +12,12 @@ const CartPage: React.FC = () => {
         {/* Hero Banner Section */}
         <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
           <div className="absolute inset-0 bg-black/20"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
             <div className="text-center">
-              <h1 className="text-4xl font-bold mb-4">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
                 Your Shopping Cart
               </h1>
-              <p className="text-xl text-amber-100 max-w-2xl mx-auto">
+              <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
                 Ready to complete your purchase? Your cart is waiting for you.
               </p>
             </div>
@@ -56,12 +56,12 @@ const CartPage: React.FC = () => {
       {/* Hero Banner Section */}
       <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
               Your Shopping Cart
             </h1>
-            <p className="text-xl text-amber-100 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
               Review your selected items and proceed to checkout when you're ready.
             </p>
           </div>
