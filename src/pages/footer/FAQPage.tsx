@@ -112,21 +112,21 @@ const FAQPage: React.FC = () => {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-16">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">
           {/* Hero Section */}
-          <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl shadow-lg p-8 mb-10 text-center">
-            <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h1>
-            <p className="text-xl text-primary-100 mb-6">Find answers to common questions about our products, services, and policies</p>
+          <section className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white rounded-xl shadow-lg p-6 md:p-8 mb-8 md:mb-10 text-center">
+            <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Frequently Asked Questions</h1>
+            <p className="text-lg md:text-xl text-amber-100 mb-6">Find answers to common questions about our products, services, and policies</p>
             {/* Search Bar */}
             <div className="relative max-w-xl mx-auto mb-4">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
               <input
                 type="text"
                 placeholder="Search frequently asked questions..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-full text-gray-900 text-lg focus:outline-none focus:ring-4 focus:ring-orange-200 shadow"
+                className="w-full pl-10 md:pl-12 pr-4 py-2 md:py-3 rounded-full text-gray-900 text-base md:text-lg focus:outline-none focus:ring-4 focus:ring-orange-200 shadow"
               />
             </div>
             {/* Category Filter */}
@@ -152,12 +152,12 @@ const FAQPage: React.FC = () => {
           </section>
 
           {/* FAQ Content */}
-          <section className="mb-10">
+          <section className="mb-8 md:mb-10">
             <div>
               {filteredFAQs.length === 0 ? (
-                <div className="text-center py-16">
-                  <HelpCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-2xl font-semibold text-gray-600 mb-2">No FAQs Found</h3>
+                <div className="text-center py-12 md:py-16">
+                  <HelpCircle className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl md:text-2xl font-semibold text-gray-600 mb-2">No FAQs Found</h3>
                   <p className="text-gray-500">Try adjusting your search terms or category filter.</p>
                 </div>
               ) : (
@@ -169,10 +169,10 @@ const FAQPage: React.FC = () => {
                     >
                       <button
                         onClick={() => toggleExpanded(faq.id)}
-                        className="w-full px-6 py-5 text-left focus:outline-none focus:ring-4 focus:ring-orange-200 hover:bg-orange-50 transition-colors duration-300"
+                        className="w-full px-4 md:px-6 py-4 md:py-5 text-left focus:outline-none focus:ring-4 focus:ring-orange-200 hover:bg-orange-50 transition-colors duration-300"
                       >
                         <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-gray-900 text-lg pr-4">
+                          <h3 className="font-semibold text-gray-900 text-base md:text-lg pr-4">
                             {faq.question}
                           </h3>
                           {expandedItems.includes(faq.id) ? (
@@ -183,9 +183,9 @@ const FAQPage: React.FC = () => {
                         </div>
                       </button>
                       {expandedItems.includes(faq.id) && (
-                        <div className="px-6 pb-5">
+                        <div className="px-4 md:px-6 pb-4 md:pb-5">
                           <div className="h-px bg-gradient-to-r from-orange-200 to-pink-200 mb-4"></div>
-                          <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                          <p className="text-gray-600 leading-relaxed text-sm md:text-base">{faq.answer}</p>
                         </div>
                       )}
                     </div>
