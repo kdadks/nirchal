@@ -3,10 +3,21 @@ import { supabase } from '../config/supabase';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { getStorageImageUrl } from '../utils/storageUtils';
 
+// Helper function to generate slug from product name
+const generateSlug = (name: string) => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
+};
+
 export interface UserReview {
   id: string;
   product_id: number;
   product_name: string;
+  product_slug?: string;
   product_image?: string;
   rating: number;
   comment: string;
@@ -31,17 +42,6 @@ export const useUserReviews = () => {
     setError(null);
 
     try {
-      console.log('[useUserReviews] Fetching reviews for customer ID:', customer.id);
-      console.log('[useUserReviews] Customer ID type:', typeof customer.id);
-      
-      // First, let's check if there are any reviews in the table at all
-      const { data: allReviews } = await supabase
-        .from('product_reviews')
-        .select('id, customer_id, comment')
-        .limit(5);
-      
-      console.log('[useUserReviews] All reviews in table (first 5):', allReviews);
-      
       const { data, error } = await supabase
         .from('product_reviews')
         .select(`
@@ -55,49 +55,25 @@ export const useUserReviews = () => {
           images,
           products(
             name,
+            slug,
             product_images(image_url, is_primary)
           )
         `)
         .eq('customer_id', customer.id)
         .order('created_at', { ascending: false });
 
-      console.log('[useUserReviews] Query result:', { 
-        data, 
-        error, 
-        customerIdUsed: customer.id,
-        dataLength: data?.length || 0 
-      });
-
-      // If the main query fails or returns no results, try a simpler query
-      if ((!data || data.length === 0) && !error) {
-        console.log('[useUserReviews] No results from main query, trying simple query...');
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('product_reviews')
-          .select('*')
-          .eq('customer_id', customer.id);
-        
-        console.log('[useUserReviews] Simple query result:', { 
-          simpleData, 
-          simpleError,
-          simpleDataLength: simpleData?.length || 0
-        });
-      }
-
       if (error) {
-        console.error('[useUserReviews] Error:', error);
         
         // Handle JWT expiration
         const errorMsg = (error.message || '').toLowerCase();
         if (errorMsg.includes('jwt') && errorMsg.includes('expired')) {
           try {
-            console.log('[useUserReviews] JWT expired, attempting token refresh...');
             await supabase.auth.refreshSession();
             
             // Retry the query after refresh
             await fetchUserReviews();
             return; // Exit early on successful retry
           } catch (refreshError) {
-            console.error('[useUserReviews] Token refresh failed:', refreshError);
             setError('Your session has expired. Please refresh the page to continue.');
             return;
           }
@@ -107,9 +83,6 @@ export const useUserReviews = () => {
       }
 
       const userReviews = (data || []).map((review: any) => {
-        console.log('[useUserReviews] Processing review:', review);
-        console.log('[useUserReviews] Product images:', review.products?.product_images);
-        
         let productImage: string | undefined;
         
         // Use the same logic as usePublicProducts for image handling
@@ -124,12 +97,11 @@ export const useUserReviews = () => {
           }
         }
         
-        console.log('[useUserReviews] Final product image URL:', productImage);
-        
         return {
           id: String(review.id),
           product_id: review.product_id,
           product_name: review.products?.name || 'Unknown Product',
+          product_slug: review.products?.slug || generateSlug(review.products?.name || 'unknown-product'),
           product_image: productImage,
           rating: review.rating,
           comment: review.comment,
