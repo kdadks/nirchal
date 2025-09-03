@@ -54,7 +54,7 @@ export const useUserReviews = () => {
           images,
           products(
             name,
-            images
+            image_url
           )
         `)
         .eq('customer_id', customer.id)
@@ -109,7 +109,7 @@ export const useUserReviews = () => {
         id: String(review.id),
         product_id: review.product_id,
         product_name: review.products?.name || 'Unknown Product',
-        product_image: review.products?.images?.[0] || null,
+        product_image: review.products?.image_url || null,
         rating: review.rating,
         comment: review.comment,
         created_at: review.created_at,
