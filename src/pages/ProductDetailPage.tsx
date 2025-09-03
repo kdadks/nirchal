@@ -637,7 +637,10 @@ const ProductDetailPage: React.FC = () => {
               {/* Color Selection with Swatches */}
               {colors.length > 0 && (
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Color</h3>
+                  <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Color</h3>
+                    <span className="text-xs text-gray-500 italic">(Select image here)</span>
+                  </div>
                   <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-3 max-w-md">
                     {colors.map(color => {
                       // Find the variant for this color to check for swatch image
@@ -777,7 +780,7 @@ const ProductDetailPage: React.FC = () => {
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-amber-100">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Description</h3>
                 <div 
-                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none text-sm sm:text-base"
+                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none text-sm"
                   dangerouslySetInnerHTML={{
                     __html: product.description || "Experience the perfect blend of traditional craftsmanship and contemporary design with this exquisite piece. Made from premium quality fabrics with intricate detailing that showcases the rich heritage of Indian ethnic wear."
                   }}
