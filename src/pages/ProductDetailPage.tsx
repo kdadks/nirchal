@@ -353,12 +353,12 @@ const ProductDetailPage: React.FC = () => {
       {/* Hero Banner Section */}
       <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4">
               Premium Quality Products
             </h1>
-            <p className="text-xl text-amber-100 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-amber-100 max-w-2xl mx-auto">
               Discover our curated collection of authentic, high-quality products crafted with traditional excellence and modern style.
             </p>
           </div>
@@ -366,24 +366,24 @@ const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <nav className="flex items-center space-x-2 text-sm text-gray-600">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4">
+        <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
           <button onClick={() => navigate('/')} className="hover:text-amber-600 transition-colors">Home</button>
           <span>/</span>
           <button onClick={() => navigate('/products')} className="hover:text-amber-600 transition-colors">Products</button>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{product.name}</span>
+          <span className="text-gray-900 font-medium truncate">{product.name}</span>
         </nav>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
-        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 sm:gap-6 lg:gap-8">
           {/* Main Content */}
           <div className="w-full">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 p-4 lg:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 p-3 sm:p-4 lg:p-8">
             {/* Images */}
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
               <div 
                 className="relative group overflow-hidden rounded-xl cursor-pointer"
                 onClick={openImageModal}
@@ -392,19 +392,19 @@ const ProductDetailPage: React.FC = () => {
                 <img
                   src={product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
                   alt={product.name}
-                  className="w-full h-96 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer"
+                  className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer"
                 />
 
                 {/* Click to Zoom Indicator */}
                 <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
-                  <div className="bg-white/90 backdrop-blur-sm text-gray-800 p-3 rounded-full shadow-lg">
-                    <Search size={24} />
+                  <div className="bg-white/90 backdrop-blur-sm text-gray-800 p-2 sm:p-3 rounded-full shadow-lg">
+                    <Search size={20} className="sm:w-6 sm:h-6" />
                   </div>
                 </div>
 
                 {/* Sale Badge */}
                 {product.originalPrice && product.originalPrice > product.price && (
-                  <div className="absolute top-4 left-4 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
+                  <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-lg z-10">
                     {discountPercentage}% OFF
                   </div>
                 )}
@@ -417,18 +417,18 @@ const ProductDetailPage: React.FC = () => {
                         e.stopPropagation();
                         prevImage();
                       }}
-                      className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 w-12 h-12 lg:w-10 lg:h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-80 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
+                      className="absolute left-2 sm:left-3 lg:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 lg:w-10 lg:h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-80 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
                     >
-                      <ChevronLeft size={24} className="text-gray-700" />
+                      <ChevronLeft size={20} className="sm:w-6 sm:h-6 lg:w-6 lg:h-6 text-gray-700" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         nextImage();
                       }}
-                      className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 w-12 h-12 lg:w-10 lg:h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-80 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
+                      className="absolute right-2 sm:right-3 lg:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 lg:w-10 lg:h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-80 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 hover:bg-white shadow-lg z-20"
                     >
-                      <ChevronRight size={24} className="text-gray-700" />
+                      <ChevronRight size={20} className="sm:w-6 sm:h-6 lg:w-6 lg:h-6 text-gray-700" />
                     </button>
                   </>
                 )}
@@ -436,7 +436,7 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Thumbnail Images */}
               {product.images.length > 1 && (
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
                   {product.images.map((image, index) => (
                     <button
                       key={index}
@@ -450,7 +450,7 @@ const ProductDetailPage: React.FC = () => {
                       <img
                         src={image}
                         alt={`${product.name} view ${index + 1}`}
-                        className="w-full h-20 object-cover"
+                        className="w-full h-16 sm:h-20 object-cover"
                       />
                     </button>
                   ))}
@@ -458,19 +458,19 @@ const ProductDetailPage: React.FC = () => {
               )}
 
               {/* Free Shipping Notes */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-100">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-amber-800">
-                    <Truck size={18} className="text-amber-600" />
-                    <span className="text-sm font-medium">Free shipping on orders above ₹2,999</span>
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-amber-100">
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
+                    <Truck size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
+                    <span className="text-xs sm:text-sm font-medium">Free shipping on orders above ₹2,999</span>
                   </div>
-                  <div className="flex items-center gap-3 text-amber-800">
-                    <RefreshCw size={18} className="text-amber-600" />
-                    <span className="text-sm font-medium">30-day easy returns</span>
+                  <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
+                    <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
+                    <span className="text-xs sm:text-sm font-medium">30-day easy returns</span>
                   </div>
-                  <div className="flex items-center gap-3 text-amber-800">
-                    <Shield size={18} className="text-amber-600" />
-                    <span className="text-sm font-medium">100% authentic products</span>
+                  <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
+                    <Shield size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
+                    <span className="text-xs sm:text-sm font-medium">100% authentic products</span>
                   </div>
                 </div>
               </div>
@@ -521,27 +521,27 @@ const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* Product Details */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-5 lg:space-y-6">
               {/* Product Title and Rating */}
               <div>
-                <h2 className="text-2xl lg:text-3xl font-normal text-gray-900 mb-3">
+                <h2 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-normal text-gray-900 mb-2 sm:mb-3">
                   {product.name}
                 </h2>
 
                 {/* Rating */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
-                          size={16}
-                          className={star <= Math.round((reviews.length > 0 ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length) : product.rating) || 0)
-                            ? 'text-amber-400 fill-current' : 'text-gray-300'}
+                          size={14}
+                          className={`sm:w-4 sm:h-4 ${star <= Math.round((reviews.length > 0 ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length) : product.rating) || 0)
+                            ? 'text-amber-400 fill-current' : 'text-gray-300'}`}
                         />
                       ))}
                     </div>
-                    <span className="text-sm text-gray-600">(
+                    <span className="text-xs sm:text-sm text-gray-600">(
                       {(reviews.length > 0
                         ? (reviews.reduce((a, r) => a + r.rating, 0) / reviews.length)
                         : product.rating
@@ -558,18 +558,19 @@ const ProductDetailPage: React.FC = () => {
                           setIsReviewModalOpen(true);
                         }
                       }}
-                      className="ml-3 px-2 py-1 text-xs bg-sky-500 hover:bg-sky-600 text-white rounded transition-colors duration-200"
+                      className="ml-2 sm:ml-3 px-2 sm:px-3 py-1 text-xs sm:text-sm bg-sky-500 hover:bg-sky-600 text-white rounded transition-colors duration-200"
                     >
-                      Write A Review
+                      <span className="hidden sm:inline">Write A Review</span>
+                      <span className="sm:hidden">Review</span>
                     </button>
                   </div>
 
                   {/* Wishlist and Share Icons */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     {/* Wishlist Button */}
                     <button
                       onClick={handleWishlistToggle}
-                      className={`p-3 lg:p-2 rounded-full border transition-all duration-200 ${
+                      className={`p-2 sm:p-3 lg:p-2 rounded-full border transition-all duration-200 ${
                         isInWishlist(product.id)
                           ? 'bg-red-50 border-red-300 text-red-600 hover:bg-red-100'
                           : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
@@ -577,33 +578,33 @@ const ProductDetailPage: React.FC = () => {
                       title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                     >
                       <Heart
-                        size={20}
-                        className={isInWishlist(product.id) ? 'fill-current' : ''}
+                        size={18}
+                        className={`sm:w-5 sm:h-5 ${isInWishlist(product.id) ? 'fill-current' : ''}`}
                       />
                     </button>
 
                     {/* Share Button */}
                     <button
                       onClick={handleShareClick}
-                      className="p-3 lg:p-2 rounded-full border bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100 transition-all duration-200"
+                      className="p-2 sm:p-3 lg:p-2 rounded-full border bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100 transition-all duration-200"
                       title="Share product"
                     >
-                      <Share2 size={20} />
+                      <Share2 size={18} className="sm:w-5 sm:h-5" />
                     </button>
                   </div>
                 </div>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-3 mb-6">
-                  <span className="text-3xl font-bold text-gray-900">
+                <div className="flex items-baseline gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
                     ₹{adjustedPrice.toLocaleString()}
                   </span>
                   {product.originalPrice && product.originalPrice > product.price && (
                     <>
-                      <span className="text-xl text-gray-500 line-through">
+                      <span className="text-base sm:text-lg lg:text-xl text-gray-500 line-through">
                         ₹{product.originalPrice.toLocaleString()}
                       </span>
-                      <span className="bg-gradient-to-r from-red-100 to-red-50 text-red-700 px-3 py-1 rounded-full text-sm font-medium border border-red-200">
+                      <span className="bg-gradient-to-r from-red-100 to-red-50 text-red-700 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border border-red-200">
                         Save ₹{(product.originalPrice - product.price).toLocaleString()}
                       </span>
                     </>
@@ -614,13 +615,13 @@ const ProductDetailPage: React.FC = () => {
               {/* Size Selection */}
               {sizes.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Size</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Size</h3>
                   <div className="flex flex-wrap gap-2">
                     {sizes.map(size => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size!)}
-                        className={`px-3 py-1 text-sm border rounded transition-colors ${
+                        className={`px-3 sm:px-4 py-2 sm:py-2 text-sm sm:text-base border rounded transition-colors ${
                           selectedSize === size
                             ? 'border-amber-500 bg-amber-50 text-amber-700'
                             : 'border-gray-300 hover:border-gray-400'
@@ -636,8 +637,8 @@ const ProductDetailPage: React.FC = () => {
               {/* Color Selection with Swatches */}
               {colors.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Color</h3>
-                  <div className="grid grid-cols-5 gap-3 max-w-md">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Color</h3>
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-3 max-w-md">
                     {colors.map(color => {
                       // Find the variant for this color to check for swatch image
                       const colorVariant = product.variants?.find(v => v.color === color);
@@ -712,7 +713,7 @@ const ProductDetailPage: React.FC = () => {
                           <button
                             key={color}
                             onClick={handleSwatchClick}
-                            className={`px-4 py-2 text-sm border rounded-lg transition-colors ${
+                            className={`px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg transition-colors ${
                               selectedColor === color
                                 ? 'border-amber-500 bg-amber-50 text-amber-700'
                                 : 'border-gray-300 hover:border-gray-400'
@@ -730,18 +731,18 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Quantity */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Quantity</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Quantity</h3>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-12 h-12 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg lg:text-base"
+                    className="w-12 h-12 sm:w-11 sm:h-11 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg sm:text-base lg:text-base"
                   >
                     -
                   </button>
-                  <span className="w-12 text-center font-medium text-lg lg:text-base">{quantity}</span>
+                  <span className="w-12 text-center font-medium text-lg sm:text-base lg:text-base">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-12 h-12 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg lg:text-base"
+                    className="w-12 h-12 sm:w-11 sm:h-11 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg sm:text-base lg:text-base"
                   >
                     +
                   </button>
@@ -749,15 +750,15 @@ const ProductDetailPage: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="flex flex-col gap-3">
                   {/* Add to Cart Button */}
                   <button
                     onClick={handleAddToCart}
                     disabled={!canAddToCart || isAdding}
-                    className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                    className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 sm:px-6 py-3 sm:py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
-                    <ShoppingBag size={20} />
+                    <ShoppingBag size={18} className="sm:w-5 sm:h-5" />
                     {isAdding ? 'Adding...' : 'Add to Cart'}
                   </button>
 
@@ -765,7 +766,7 @@ const ProductDetailPage: React.FC = () => {
                   <button
                     onClick={handleBuyNow}
                     disabled={!canAddToCart}
-                    className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200"
+                    className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 sm:px-6 py-3 sm:py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200 text-sm sm:text-base"
                   >
                     Buy Now
                   </button>
@@ -773,10 +774,10 @@ const ProductDetailPage: React.FC = () => {
               </div>
 
               {/* Description with Rich Text Support */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-100">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-amber-100">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Description</h3>
                 <div 
-                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
+                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none text-sm sm:text-base"
                   dangerouslySetInnerHTML={{
                     __html: product.description || "Experience the perfect blend of traditional craftsmanship and contemporary design with this exquisite piece. Made from premium quality fabrics with intricate detailing that showcases the rich heritage of Indian ethnic wear."
                   }}
@@ -785,28 +786,28 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Mobile Reviews Section - Show only on mobile after description and only when reviews exist */}
               {reviews.length > 0 && (
-                <div className="lg:hidden mt-6">
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">Customer Reviews</h4>
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                <div className="lg:hidden mt-4 sm:mt-6">
+                  <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Customer Reviews</h4>
+                    <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto">
                       {reviews.slice(0, 3).map((review) => (
-                        <div key={review.id} className="bg-white p-3 rounded-lg border border-gray-100">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
+                        <div key={review.id} className="bg-white p-2 sm:p-3 rounded-lg border border-gray-100">
+                          <div className="flex items-center justify-between mb-1 sm:mb-2">
+                            <div className="flex items-center gap-1 sm:gap-2">
                               <div className="flex items-center">
                                 {[1, 2, 3, 4, 5].map((star) => (
                                   <Star
                                     key={star}
-                                    size={12}
-                                    className={star <= review.rating ? 'text-amber-400 fill-current' : 'text-gray-300'}
+                                    size={10}
+                                    className={`sm:w-3 sm:h-3 ${star <= review.rating ? 'text-amber-400 fill-current' : 'text-gray-300'}`}
                                   />
                                 ))}
                               </div>
-                              <span className="text-xs font-medium text-gray-900">{review.userName}</span>
+                              <span className="text-xs sm:text-sm font-medium text-gray-900">{review.userName}</span>
                             </div>
                             <span className="text-xs text-gray-500">{format(new Date(review.createdAt), 'MMM dd, yyyy')}</span>
                           </div>
-                          <p className="text-sm text-gray-700 line-clamp-2">{review.comment}</p>
+                          <p className="text-xs sm:text-sm text-gray-700 line-clamp-2">{review.comment}</p>
                         </div>
                       ))}
                       {reviews.length > 3 && (
@@ -819,7 +820,7 @@ const ProductDetailPage: React.FC = () => {
                               setIsReviewModalOpen(true);
                             }
                           }}
-                          className="text-xs text-amber-600 hover:text-amber-700 font-medium"
+                          className="text-xs sm:text-sm text-amber-600 hover:text-amber-700 font-medium"
                         >
                           View all {reviews.length} reviews
                         </button>
@@ -839,7 +840,7 @@ const ProductDetailPage: React.FC = () => {
       {/* Full Screen Image Modal */}
       {isImageModalOpen && (
         <div 
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={closeImageModal}
         >
           {/* Close Button */}
@@ -848,9 +849,9 @@ const ProductDetailPage: React.FC = () => {
               e.stopPropagation();
               closeImageModal();
             }}
-            className="absolute top-4 right-4 z-60 w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
+            className="absolute top-2 sm:top-4 right-2 sm:right-4 z-60 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
           >
-            <X size={24} />
+            <X size={20} className="sm:w-6 sm:h-6" />
           </button>
 
           {/* Image Navigation - Previous */}
@@ -860,9 +861,9 @@ const ProductDetailPage: React.FC = () => {
                 e.stopPropagation();
                 prevImageInModal();
               }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-60 w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-60 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
             >
-              <ChevronLeft size={24} />
+              <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
             </button>
           )}
 
@@ -873,9 +874,9 @@ const ProductDetailPage: React.FC = () => {
                 e.stopPropagation();
                 nextImageInModal();
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-60 w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-60 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
             >
-              <ChevronRight size={24} />
+              <ChevronRight size={20} className="sm:w-6 sm:h-6" />
             </button>
           )}
 
@@ -894,13 +895,13 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Image Counter */}
           {product.images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm">
+            <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm">
               {selectedImage + 1} / {product.images.length}
             </div>
           )}
 
           {/* Product Name Overlay */}
-          <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm max-w-xs truncate">
+          <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 bg-black/50 backdrop-blur-sm text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm max-w-xs truncate">
             {product.name}
           </div>
         </div>
@@ -913,88 +914,88 @@ const ProductDetailPage: React.FC = () => {
           onClick={handleCloseShareModal}
         >
           <div 
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Share Product</h3>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Share Product</h3>
               <button
                 onClick={handleCloseShareModal}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
-                <X size={20} />
+                <X size={18} className="sm:w-5 sm:h-5" />
               </button>
             </div>
 
             {/* Product Info */}
-            <div className="flex gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="flex gap-3 sm:gap-4 mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
               <img
                 src={product.images[selectedImage] || product.images[0] || '/placeholder-product.jpg'}
                 alt={product.name}
-                className="w-16 h-16 object-cover rounded-lg"
+                className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg"
               />
               <div className="flex-1">
-                <h4 className="font-medium text-gray-900 line-clamp-2">{product.name}</h4>
+                <h4 className="font-medium text-gray-900 line-clamp-2 text-sm sm:text-base">{product.name}</h4>
                 {(selectedSize || selectedColor) && (
-                  <div className="text-sm text-gray-600 mb-1">
+                  <div className="text-xs sm:text-sm text-gray-600 mb-1">
                     {selectedSize && <span>Size: {selectedSize}</span>}
                     {selectedSize && selectedColor && <span> • </span>}
                     {selectedColor && <span>Color: {selectedColor}</span>}
                   </div>
                 )}
-                <p className="text-amber-600 font-semibold">₹{adjustedPrice.toLocaleString()}</p>
+                <p className="text-amber-600 font-semibold text-sm sm:text-base">₹{adjustedPrice.toLocaleString()}</p>
               </div>
             </div>
 
             {/* Social Media Buttons */}
-            <div className="grid grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
               <button
                 onClick={() => handleSocialShare('whatsapp')}
-                className="flex items-center justify-center p-3 bg-[#25D366] hover:bg-[#1ebe57] text-white rounded-lg transition-colors"
+                className="flex items-center justify-center p-2 sm:p-3 bg-[#25D366] hover:bg-[#1ebe57] text-white rounded-lg transition-colors"
                 title="Share on WhatsApp"
               >
-                <MessageCircle size={20} />
+                <MessageCircle size={18} className="sm:w-5 sm:h-5" />
               </button>
 
               <button
                 onClick={() => handleSocialShare('facebook')}
-                className="flex items-center justify-center p-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-lg transition-colors"
+                className="flex items-center justify-center p-2 sm:p-3 bg-[#1877F2] hover:bg-[#166fe5] text-white rounded-lg transition-colors"
                 title="Share on Facebook"
               >
-                <Facebook size={20} />
+                <Facebook size={18} className="sm:w-5 sm:h-5" />
               </button>
 
               <button
                 onClick={() => handleSocialShare('twitter')}
-                className="flex items-center justify-center p-3 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
+                className="flex items-center justify-center p-2 sm:p-3 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
                 title="Share on X (Twitter)"
               >
-                <XIcon size={20} />
+                <XIcon size={18} />
               </button>
 
               <button
                 onClick={() => handleSocialShare('linkedin')}
-                className="flex items-center justify-center p-3 bg-[#0A66C2] hover:bg-[#0958a5] text-white rounded-lg transition-colors"
+                className="flex items-center justify-center p-2 sm:p-3 bg-[#0A66C2] hover:bg-[#0958a5] text-white rounded-lg transition-colors"
                 title="Share on LinkedIn"
               >
-                <Linkedin size={20} />
+                <Linkedin size={18} className="sm:w-5 sm:h-5" />
               </button>
 
               <button
                 onClick={() => handleSocialShare('telegram')}
-                className="flex items-center justify-center p-3 bg-[#0088CC] hover:bg-[#007bb8] text-white rounded-lg transition-colors"
+                className="flex items-center justify-center p-2 sm:p-3 bg-[#0088CC] hover:bg-[#007bb8] text-white rounded-lg transition-colors"
                 title="Share on Telegram"
               >
-                <TelegramIcon size={20} />
+                <TelegramIcon size={18} />
               </button>
             </div>
 
             {/* Copy Link */}
-            <div className="border-t pt-4">
+            <div className="border-t pt-3 sm:pt-4">
               <button
                 onClick={handleCopyLink}
-                className={`w-full flex items-center justify-center gap-3 p-3 border-2 rounded-lg transition-colors ${
+                className={`w-full flex items-center justify-center gap-2 sm:gap-3 p-2 sm:p-3 border-2 rounded-lg transition-colors text-sm sm:text-base ${
                   copySuccess
                     ? 'border-green-300 bg-green-50 text-green-700'
                     : 'border-gray-300 hover:border-gray-400 text-gray-700'
@@ -1002,12 +1003,12 @@ const ProductDetailPage: React.FC = () => {
               >
                 {copySuccess ? (
                   <>
-                    <Check size={20} />
+                    <Check size={16} className="sm:w-5 sm:h-5" />
                     <span>Link Copied!</span>
                   </>
                 ) : (
                   <>
-                    <Link2 size={20} />
+                    <Link2 size={16} className="sm:w-5 sm:h-5" />
                     <span>Copy Link</span>
                   </>
                 )}
@@ -1031,14 +1032,14 @@ const ProductDetailPage: React.FC = () => {
       {isReviewModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Write a Review</h3>
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Write a Review</h3>
                 <button
                   onClick={() => setIsReviewModalOpen(false)}
                   className="p-1 hover:bg-gray-100 rounded-full transition-colors"
                 >
-                  <X size={20} />
+                  <X size={18} className="sm:w-5 sm:h-5" />
                 </button>
               </div>
               
@@ -1049,9 +1050,9 @@ const ProductDetailPage: React.FC = () => {
                 const comment = formData.get('comment') as string;
                 addReview({ rating: selectedRating, comment });
                 setIsReviewModalOpen(false);
-              }} className="space-y-4">
+              }} className="space-y-3 sm:space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Rating</label>
+                  <label className="block text-sm font-medium mb-1 sm:mb-2">Rating</label>
                   <div className="flex space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -1061,8 +1062,8 @@ const ProductDetailPage: React.FC = () => {
                         className="cursor-pointer focus:outline-none"
                       >
                         <Star 
-                          size={24} 
-                          className={`transition-colors ${
+                          size={20} 
+                          className={`sm:w-6 sm:h-6 transition-colors ${
                             star <= selectedRating 
                               ? 'text-amber-400 fill-amber-400' 
                               : 'text-gray-300 hover:text-amber-400'
@@ -1074,27 +1075,27 @@ const ProductDetailPage: React.FC = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Comment</label>
+                  <label className="block text-sm font-medium mb-1 sm:mb-2">Comment</label>
                   <textarea
                     name="comment"
                     rows={4}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-3 text-sm sm:text-base focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder="Share your experience with this product..."
                     required
                   />
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setIsReviewModalOpen(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 sm:py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm sm:text-base"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+                    className="flex-1 px-4 py-2 sm:py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm sm:text-base"
                   >
                     Submit Review
                   </button>
