@@ -94,7 +94,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       if (orderError) throw orderError;
 
-      // Load order items with product images
+      // Load order items with product images and variant swatch images
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -102,7 +102,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           products(
             id,
             name,
-            product_images(image_url, is_primary)
+            product_images(image_url, is_primary),
+            product_variants(
+              id,
+              color,
+              size,
+              swatch_image_id,
+              product_images!swatch_image_id(image_url)
+            )
           )
         `)
         .eq('order_id', orderId)
@@ -110,23 +117,57 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       if (itemsError) throw itemsError;
 
-      // Process items to extract product images 
+      // Process items to extract product images with variant-specific swatch support
       const processedItems = (items || []).map((item: any) => {
         let productImage: string | undefined;
+        let productData = item.products;
         
-        // Check if we have product data and images from the join
-        if (item.products?.product_images && Array.isArray(item.products.product_images) && item.products.product_images.length > 0) {
-          const productImages = item.products.product_images;
+        // If no product data from join (product_id was null), try to find product by name
+        if (!productData && item.product_name) {
+          // This is a fallback for old order items without product_id
+          // We can't fetch additional data here, so we'll rely on pattern-based URLs
+        }
+        
+        // First priority: Try to find variant-specific swatch image
+        if (item.variant_color && productData?.product_variants) {
+          const matchingVariant = productData.product_variants.find((variant: any) => {
+            const colorMatch = variant.color === item.variant_color;
+            // Handle size matching - if variant has no size (null) and order item has 'Free Size', consider it a match
+            const sizeMatch = !item.variant_size || 
+                             item.variant_size === 'Free Size' || 
+                             variant.size === item.variant_size ||
+                             !variant.size;
+            return colorMatch && sizeMatch;
+          });
+          
+          if (matchingVariant?.product_images?.image_url) {
+            productImage = getStorageImageUrl(matchingVariant.product_images.image_url);
+            if (import.meta.env.DEV) {
+              console.log('[OrderDetailsModal] Using variant swatch image:', {
+                itemId: item.id,
+                variantColor: item.variant_color,
+                variantSize: item.variant_size,
+                swatchImageUrl: productImage
+              });
+            }
+          }
+        }
+        
+        // Second priority: Use primary/first product image as fallback
+        if (!productImage && productData?.product_images && Array.isArray(productData.product_images) && productData.product_images.length > 0) {
+          const productImages = productData.product_images;
           const primaryImage = productImages.find((img: any) => img.is_primary);
           const selectedImageData = primaryImage || productImages[0];
           
           if (selectedImageData?.image_url) {
             productImage = getStorageImageUrl(selectedImageData.image_url);
           }
-        } else if (item.product_id) {
-          // Fallback: try pattern-based URLs if we have a product_id but no joined images
-          const possibleImages = getProductImageUrls(item.product_id, item.product_name);
-          productImage = possibleImages[0]; // Use first possible URL
+        } 
+        
+        // Third priority: Pattern-based fallback (for items without proper product_id)
+        if (!productImage && (item.product_id || item.product_name)) {
+          const possibleImages = getProductImageUrls(item.product_id || 'unknown', item.product_name);
+          productImage = possibleImages[0];
         }
         
         return {
