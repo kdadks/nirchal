@@ -578,9 +578,13 @@ const AccountPage: React.FC = () => {
                               {/* Product Image */}
                               <div className="flex-shrink-0">
                                 <img
-                                  src={review.product_image || '/placeholder-product.jpg'}
+                                  src={review.product_image || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'}
                                   alt={review.product_name}
                                   className="w-16 h-16 object-cover rounded-lg"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+                                  }}
                                 />
                               </div>
                               
