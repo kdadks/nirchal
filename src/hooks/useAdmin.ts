@@ -445,10 +445,20 @@ export const useProducts = () => {
 
 			// Insert variants and inventory for each variant
 			if (variants?.length) {
-				// Remove quantity and low_stock_threshold from variant insert, collect for inventory
-				const variantsToInsert = variants.map(({ quantity, low_stock_threshold, ...rest }: { quantity: number; low_stock_threshold: number; [key: string]: any }) => ({
-					...rest,
+				// Only include fields that exist in the database schema
+				const variantsToInsert = variants.map(({ quantity, low_stock_threshold, material, style, variant_type, swatch_image, ...rest }: { 
+					quantity: number; 
+					low_stock_threshold: number; 
+					material?: any;
+					style?: any;
+					variant_type?: any;
+					swatch_image?: any;
+					[key: string]: any 
+				}) => ({
 					sku: rest.sku === '' ? null : rest.sku,
+					size: rest.size || null,
+					color: rest.color || null,
+					price_adjustment: rest.price_adjustment || 0,
 					swatch_image_id: rest.swatch_image_id || null,
 					color_hex: rest.color_hex || null,
 					product_id: newProduct.id
