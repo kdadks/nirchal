@@ -575,24 +575,30 @@ const AccountPage: React.FC = () => {
                         {userReviews.map((review) => (
                           <div key={review.id} className="border border-gray-200 rounded-lg p-6 bg-white">
                             <div className="flex gap-4">
-                              {/* Product Image */}
+                              {/* Product Image - Clickable */}
                               <div className="flex-shrink-0">
-                                <img
-                                  src={review.product_image || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'}
-                                  alt={review.product_name}
-                                  className="w-16 h-16 object-cover rounded-lg"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
-                                  }}
-                                />
+                                <Link to={`/products/${review.product_slug}`}>
+                                  <img
+                                    src={review.product_image || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'}
+                                    alt={review.product_name}
+                                    className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+                                    }}
+                                  />
+                                </Link>
                               </div>
                               
                               {/* Review Content */}
                               <div className="flex-1">
                                 <div className="flex items-start justify-between mb-2">
                                   <div className="flex-1">
-                                    <h3 className="font-medium text-gray-900">{review.product_name}</h3>
+                                    <Link to={`/products/${review.product_slug}`}>
+                                      <h3 className="font-medium text-gray-900 hover:text-primary-600 transition-colors cursor-pointer">
+                                        {review.product_name}
+                                      </h3>
+                                    </Link>
                                     <div className="flex items-center mt-1 gap-3">
                                       <div className="flex">
                                         {[1, 2, 3, 4, 5].map((star) => (
@@ -656,16 +662,6 @@ const AccountPage: React.FC = () => {
                                     </div>
                                   </div>
                                 )}
-                                
-                                {/* Action */}
-                                <div className="mt-4 pt-4 border-t border-gray-100">
-                                  <Link
-                                    to={`/products/${review.product_id}`}
-                                    className="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
-                                  >
-                                    View Product →
-                                  </Link>
-                                </div>
                               </div>
                             </div>
                           </div>
