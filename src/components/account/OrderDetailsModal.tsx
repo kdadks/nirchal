@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import { getStorageImageUrl } from '../../utils/storageUtils';
 import toast from 'react-hot-toast';
 
 interface OrderItem {
   id: number;
+  product_id: number;
   product_name: string;
   product_sku?: string;
+  product_image?: string;
   variant_size?: string;
   variant_color?: string;
   variant_material?: string;
@@ -91,17 +94,46 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       if (orderError) throw orderError;
 
-      // Load order items
+      // Load order items with product images
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select(`
+          *,
+          products(
+            id,
+            name,
+            product_images(image_url, is_primary)
+          )
+        `)
         .eq('order_id', orderId)
         .order('id');
 
       if (itemsError) throw itemsError;
 
+      // Process items to extract product images using the same logic as reviews
+      const processedItems = (items || []).map((item: any) => {
+        let productImage: string | undefined;
+        
+        // Use the same logic as usePublicProducts for image handling
+        if (item.products?.product_images && Array.isArray(item.products.product_images) && item.products.product_images.length > 0) {
+          const productImages = item.products.product_images;
+          // Find primary image first, then fallback to first image
+          const primaryImage = productImages.find((img: any) => img.is_primary);
+          const selectedImageData = primaryImage || productImages[0];
+          
+          if (selectedImageData?.image_url) {
+            productImage = getStorageImageUrl(selectedImageData.image_url);
+          }
+        }
+        
+        return {
+          ...item,
+          product_image: productImage
+        };
+      });
+
       setOrderDetails(order);
-      setOrderItems(items || []);
+      setOrderItems(processedItems);
     } catch (error) {
       console.error('Error loading order details:', error);
       toast.error('Failed to load order details');
@@ -220,23 +252,41 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <div className="space-y-3">
                   {orderItems.map((item) => (
                     <div key={item.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{item.product_name}</h4>
-                          {item.product_sku && (
-                            <p className="text-sm text-gray-500">SKU: {item.product_sku}</p>
-                          )}
-                          <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
-                            {item.variant_size && <span>Size: {item.variant_size}</span>}
-                            {item.variant_color && <span>Color: {item.variant_color}</span>}
-                            {item.variant_material && <span>Material: {item.variant_material}</span>}
-                          </div>
+                      <div className="flex gap-4">
+                        {/* Product Image */}
+                        <div className="flex-shrink-0">
+                          <img
+                            src={item.product_image || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'}
+                            alt={item.product_name}
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+                            }}
+                          />
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">{formatCurrency(item.unit_price)} × {item.quantity}</p>
-                          <p className="text-lg font-semibold text-primary-600">
-                            {formatCurrency(item.total_price)}
-                          </p>
+                        
+                        {/* Product Details */}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">{item.product_name}</h4>
+                              {item.product_sku && (
+                                <p className="text-sm text-gray-500">SKU: {item.product_sku}</p>
+                              )}
+                              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                                {item.variant_size && <span>Size: {item.variant_size}</span>}
+                                {item.variant_color && <span>Color: {item.variant_color}</span>}
+                                {item.variant_material && <span>Material: {item.variant_material}</span>}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{formatCurrency(item.unit_price)} × {item.quantity}</p>
+                              <p className="text-lg font-semibold text-primary-600">
+                                {formatCurrency(item.total_price)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
