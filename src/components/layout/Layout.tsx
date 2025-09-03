@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Menu, X, Search, Heart, User, Crown, LogOut } from 'lucide-react';
-import Footer from '../common/Footer_new';
+import Footer from '../common/Footer';
 import AIChatbot from '../common/AIChatbot';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
