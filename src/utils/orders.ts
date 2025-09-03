@@ -21,8 +21,8 @@ export type AddressUpsert = {
 };
 
 export type OrderItemInput = {
-  product_id: number | null;
-  product_variant_id: number | null;
+  product_id: string | null; // Changed from number to string to support UUIDs
+  product_variant_id: string | null; // Changed from number to string to support UUIDs
   product_name: string;
   product_sku?: string;
   unit_price: number;
