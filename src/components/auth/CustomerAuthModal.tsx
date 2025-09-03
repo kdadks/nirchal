@@ -147,13 +147,13 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md rounded-xl shadow-xl border border-gray-200 p-6 mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white w-full max-w-md rounded-xl shadow-xl border border-gray-200 p-4 sm:p-6 mx-4 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute right-3 top-3 p-2 text-gray-500 hover:text-gray-700"
+          className="absolute right-3 top-3 p-3 text-gray-500 hover:text-gray-700"
           aria-label="Close"
         >
-          <X size={18} />
+          <X size={20} />
         </button>
         
         <h2 className="text-2xl font-serif font-bold mb-1">{getTitle()}</h2>
@@ -181,7 +181,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               required
               disabled={loading}
             />
@@ -189,7 +189,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
 
           {mode === 'register' && (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
                     First Name
@@ -199,7 +199,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     required
                     disabled={loading}
                   />
@@ -213,7 +213,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     required
                     disabled={loading}
                   />
@@ -228,7 +228,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   disabled={loading}
                 />
               </div>
@@ -245,7 +245,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
                 disabled={loading}
                 minLength={6}
@@ -263,7 +263,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full border border-gray-300 rounded-lg px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
                 disabled={loading}
                 minLength={6}
@@ -274,7 +274,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-primary-600 text-white py-4 px-4 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base font-medium"
           >
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : mode === 'register' ? 'Create Account' : 'Send Reset Email'}
           </button>
