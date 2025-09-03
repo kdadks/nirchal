@@ -31,10 +31,10 @@ const HomePage: React.FC = () => {
       <section className="py-20 bg-gradient-to-br from-orange-50 to-pink-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+            <h2 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
               Shop by Category
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
               Discover our handpicked collections of authentic Indian ethnic wear, crafted by skilled artisans from across the country
             </p>
           </div>
@@ -111,10 +111,10 @@ const HomePage: React.FC = () => {
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+            <h2 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
               Trending Now
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
               Discover our most loved pieces, handpicked by our style experts and loved by thousands of customers
             </p>
           </div>
@@ -155,10 +155,10 @@ const HomePage: React.FC = () => {
       <section className="py-20 bg-gradient-to-br from-primary-50 to-accent-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+            <h2 className="font-display text-2xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
               Why Choose Nirchal?
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
               Experience the difference with our commitment to quality, authenticity, and exceptional customer service
             </p>
           </div>
@@ -206,8 +206,8 @@ const HomePage: React.FC = () => {
       <section className="py-20 bg-gradient-to-r from-primary-600 to-accent-600 text-white">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl font-bold mb-6">Stay in Style</h2>
-            <p className="text-xl text-primary-100 mb-8 leading-relaxed">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6">Stay in Style</h2>
+            <p className="text-lg md:text-xl text-primary-100 mb-8 leading-relaxed">
               Subscribe to our newsletter and be the first to know about new collections, exclusive offers, and styling tips from our fashion experts.
             </p>
             <div className="flex flex-col sm:flex-row max-w-md mx-auto gap-4">

@@ -112,7 +112,7 @@ const ProductDetailPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <div className="animate-pulse">
                 <div className="bg-zinc-200 h-96 lg:h-[600px] rounded-2xl mb-4"></div>
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map(i => (
                     <div key={i} className="bg-zinc-200 h-24 rounded-xl"></div>
                   ))}
@@ -436,7 +436,7 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Thumbnail Images */}
               {product.images.length > 1 && (
-                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
                   {product.images.map((image, index) => (
                     <button
                       key={index}
@@ -641,7 +641,7 @@ const ProductDetailPage: React.FC = () => {
                     <h3 className="text-base sm:text-lg font-semibold text-gray-900">Color</h3>
                     <span className="text-xs text-gray-500 italic">(Select Here)</span>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-3 max-w-md">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 max-w-md">
                     {colors.map(color => {
                       // Find the variant for this color to check for swatch image
                       const colorVariant = product.variants?.find(v => v.color === color);
@@ -952,7 +952,7 @@ const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* Social Media Buttons */}
-            <div className="grid grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mb-4 sm:mb-6">
               <button
                 onClick={() => handleSocialShare('whatsapp')}
                 className="flex items-center justify-center p-2 sm:p-3 bg-[#25D366] hover:bg-[#1ebe57] text-white rounded-lg transition-colors"

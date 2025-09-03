@@ -8,6 +8,7 @@ import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile, markWelcomeEmailSent } from '@utils/orders';
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 import { transactionalEmailService } from '../services/transactionalEmailService';
+import { useRazorpay } from '../hooks/useRazorpay';
 
 interface CheckoutForm {
   // Contact Information
@@ -36,7 +37,7 @@ interface CheckoutForm {
   selectedBillingAddressId?: string;
   billingIsSameAsDelivery: boolean;
   
-  paymentMethod: 'cod' | 'online' | 'upi';
+  paymentMethod: 'cod' | 'online' | 'upi' | 'razorpay';
 }
 
 interface CustomerAddress {
@@ -61,6 +62,7 @@ const CheckoutPage: React.FC = () => {
   const { state: { items, total }, clearCart } = useCart();
   const { supabase } = useAuth();
   const { customer } = useCustomerAuth();
+  const { isLoaded: isRazorpayLoaded, createOrder: createRazorpayOrder, openCheckout: openRazorpayCheckout, verifyPayment: verifyRazorpayPayment } = useRazorpay();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep] = useState(1);
   const [form, setForm] = useState<CheckoutForm>({
@@ -384,73 +386,85 @@ const CheckoutPage: React.FC = () => {
       if (!order) {
         throw new Error('Order creation failed - no order returned');
       }
-      
-      // Handle welcome email for customers who need it
-      if (shouldSendWelcomeEmail && customerId) {
-        // Send welcome email (with temp password if available)
-        try {
-          await transactionalEmailService.sendWelcomeEmail({
-            first_name: form.firstName,
-            last_name: form.lastName,
-            email: form.email,
-            temp_password: tempPassword || undefined // Pass the temp password if available
-          });
-          console.log('Welcome email sent successfully', tempPassword ? 'with temp password' : 'for existing customer');
-          
-          // Mark welcome email as sent in database
-          if (customerId) {
-            await markWelcomeEmailSent(supabase, customerId);
-          }
-        } catch (emailError) {
-          console.error('Failed to send welcome email:', emailError);
-          // Don't block the checkout process if email fails
+
+      // 4) Handle Razorpay payment if selected
+      if (form.paymentMethod === 'razorpay') {
+        if (!isRazorpayLoaded) {
+          throw new Error('Razorpay is not loaded. Please try again.');
         }
-      }
-      
-      // ALWAYS send order confirmation email for successful orders
-      // For customers with temp password: Send after 30 seconds delay
-      // For all other customers: Send immediately
-      const sendOrderConfirmation = async () => {
+
         try {
-          await transactionalEmailService.sendOrderConfirmationEmail({
-            id: order.id.toString(),
-            order_number: order.order_number,
-            customer_name: `${form.firstName} ${form.lastName}`,
+          // Create Razorpay order
+          const razorpayOrderData = await createRazorpayOrder({
+            amount: finalTotal,
+            currency: 'INR',
+            receipt: order.order_number,
             customer_email: form.email,
-            total_amount: finalTotal,
-            status: 'confirmed',
-            items: items.map(item => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: (item.price * item.quantity).toFixed(2)
-            }))
+            customer_phone: form.phone,
+            notes: {
+              order_id: order.id.toString(),
+              customer_name: `${form.firstName} ${form.lastName}`
+            }
           });
-          console.log('Order confirmation email sent successfully');
-        } catch (emailError) {
-          console.error('Failed to send order confirmation email:', emailError);
+
+          // Open Razorpay checkout
+          openRazorpayCheckout({
+            key: razorpayOrderData.checkout_config.key,
+            amount: razorpayOrderData.checkout_config.amount,
+            currency: razorpayOrderData.checkout_config.currency,
+            name: razorpayOrderData.checkout_config.name,
+            description: razorpayOrderData.checkout_config.description,
+            order_id: razorpayOrderData.order.id,
+            image: razorpayOrderData.checkout_config.image,
+            prefill: {
+              name: `${form.firstName} ${form.lastName}`,
+              email: form.email,
+              contact: form.phone
+            },
+            theme: razorpayOrderData.checkout_config.theme,
+            handler: async (response) => {
+              try {
+                // Verify payment
+                const verificationResult = await verifyRazorpayPayment({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  order_id: order.id.toString()
+                });
+
+                if (verificationResult.verified) {
+                  // Payment successful - proceed with post-order actions
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                } else {
+                  throw new Error('Payment verification failed');
+                }
+              } catch (paymentError) {
+                console.error('Payment verification error:', paymentError);
+                toast.error('Payment verification failed. Please contact support.');
+                setIsSubmitting(false);
+              }
+            },
+            modal: {
+              ondismiss: () => {
+                console.log('Razorpay checkout dismissed');
+                setIsSubmitting(false);
+              }
+            }
+          });
+
+          // Don't proceed to confirmation page here - wait for payment handler
+          return;
+
+        } catch (razorpayError) {
+          console.error('Razorpay error:', razorpayError);
+          toast.error('Payment initialization failed. Please try again.');
+          throw razorpayError;
         }
-      };
-      
-      if (tempPassword && shouldSendWelcomeEmail) {
-        // New customer with temp password: Send order confirmation after 30 seconds delay
-        console.log('Scheduling order confirmation email after 30 second delay (new customer with temp password)');
-        setTimeout(sendOrderConfirmation, 30000);
       } else {
-        // All other cases: Send order confirmation immediately
-        console.log('Sending order confirmation email immediately');
-        await sendOrderConfirmation();
+        // For non-Razorpay payments (COD, etc.), proceed as usual
+        await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
       }
       
-      // Save basics for confirmation screen
-      if (order?.order_number) sessionStorage.setItem('last_order_number', order.order_number);
-      if (form?.email) sessionStorage.setItem('last_order_email', form.email.trim());
-      
-      navigate('/order-confirmation');
-      
-      // Clear cart AFTER navigation to avoid redirect race condition
-      setTimeout(() => {
-        clearCart();
-      }, 100);
     } catch (error) {
       console.error('Checkout error details:', error);
       
@@ -463,8 +477,89 @@ const CheckoutPage: React.FC = () => {
       
       toast.error('There was an error processing your order. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      if (form.paymentMethod !== 'razorpay') {
+        setIsSubmitting(false);
+      }
+      // For Razorpay, isSubmitting will be set to false in the payment handler or modal dismiss
     }
+  };
+
+  // Extracted function for handling successful orders
+  const handleSuccessfulOrder = async (
+    order: any, 
+    shouldSendWelcomeEmail: boolean, 
+    tempPassword: string | null, 
+    customerId: string | null, 
+    finalTotal: number
+  ) => {
+    // Handle welcome email for customers who need it
+    if (shouldSendWelcomeEmail && customerId) {
+      // Send welcome email (with temp password if available)
+      try {
+        await transactionalEmailService.sendWelcomeEmail({
+          first_name: form.firstName,
+          last_name: form.lastName,
+          email: form.email,
+          temp_password: tempPassword || undefined // Pass the temp password if available
+        });
+        console.log('Welcome email sent successfully', tempPassword ? 'with temp password' : 'for existing customer');
+        
+        // Mark welcome email as sent in database
+        if (customerId) {
+          await markWelcomeEmailSent(supabase, customerId);
+        }
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't block the checkout process if email fails
+      }
+    }
+    
+    // ALWAYS send order confirmation email for successful orders
+    // For customers with temp password: Send after 30 seconds delay
+    // For all other customers: Send immediately
+    const sendOrderConfirmation = async () => {
+      try {
+        await transactionalEmailService.sendOrderConfirmationEmail({
+          id: order.id.toString(),
+          order_number: order.order_number,
+          customer_name: `${form.firstName} ${form.lastName}`,
+          customer_email: form.email,
+          total_amount: finalTotal,
+          status: 'confirmed',
+          items: items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: (item.price * item.quantity).toFixed(2)
+          }))
+        });
+        console.log('Order confirmation email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send order confirmation email:', emailError);
+      }
+    };
+    
+    if (tempPassword && shouldSendWelcomeEmail) {
+      // New customer with temp password: Send order confirmation after 30 seconds delay
+      console.log('Scheduling order confirmation email after 30 second delay (new customer with temp password)');
+      setTimeout(sendOrderConfirmation, 30000);
+    } else {
+      // All other cases: Send order confirmation immediately
+      console.log('Sending order confirmation email immediately');
+      await sendOrderConfirmation();
+    }
+    
+    // Save basics for confirmation screen
+    if (order?.order_number) sessionStorage.setItem('last_order_number', order.order_number);
+    if (form?.email) sessionStorage.setItem('last_order_email', form.email.trim());
+    
+    navigate('/order-confirmation');
+    
+    // Clear cart AFTER navigation to avoid redirect race condition
+    setTimeout(() => {
+      clearCart();
+    }, 100);
+
+    setIsSubmitting(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -727,12 +822,12 @@ const CheckoutPage: React.FC = () => {
       {/* Hero Banner Section */}
       <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
               Secure Checkout
             </h1>
-            <p className="text-xl text-amber-100 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
               Complete your order securely with our trusted checkout process
             </p>
           </div>
@@ -1173,8 +1268,9 @@ const CheckoutPage: React.FC = () => {
                     <div className="space-y-4">
                       {[
                         { value: 'cod', label: 'Cash on Delivery', desc: 'Pay when you receive your order', icon: '💵' },
-                        { value: 'online', label: 'Credit/Debit Card', desc: 'Secure payment via card', icon: '💳' },
-                        { value: 'upi', label: 'UPI Payment', desc: 'Pay using UPI apps', icon: '📱' }
+                        { value: 'razorpay', label: 'Credit/Debit Card & UPI', desc: 'Secure payment via Razorpay', icon: '💳' },
+                        { value: 'online', label: 'Other Online Payment', desc: 'Alternative payment methods', icon: '🌐' },
+                        { value: 'upi', label: 'Direct UPI', desc: 'Pay using UPI apps directly', icon: '📱' }
                       ].map((method) => (
                         <label key={method.value} className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                           form.paymentMethod === method.value

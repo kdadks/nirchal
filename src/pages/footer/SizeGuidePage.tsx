@@ -71,16 +71,16 @@ const SizeGuidePage: React.FC = () => {
   const selectedChart = sizeCharts.find(chart => chart.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-16">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-12 md:py-16">
       <div className="container mx-auto px-4 max-w-3xl">
-        <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white rounded-xl shadow-lg p-8 mb-10 text-center">
+        <section className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white rounded-xl shadow-lg p-6 md:p-8 mb-8 md:mb-10 text-center">
           <div className="flex items-center gap-3 justify-center mb-4">
-            <Ruler className="w-8 h-8 text-white" />
-            <h1 className="font-display text-4xl md:text-5xl font-bold">Size Guide</h1>
+            <Ruler className="w-6 h-6 md:w-8 md:h-8 text-white" />
+            <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold">Size Guide</h1>
           </div>
-          <p className="text-xl text-primary-100 mb-2">Find your perfect fit with our detailed size guide</p>
+          <p className="text-lg md:text-xl text-amber-100 mb-2">Find your perfect fit with our detailed size guide</p>
         </section>
-        <section className="bg-white rounded-xl shadow p-8 mb-8">
+        <section className="bg-white rounded-xl shadow p-6 md:p-8 mb-6 md:mb-8">
           {/* Category Selection */}
           <div className="flex flex-wrap gap-2 mb-8">
             {sizeCharts.map(chart => {
@@ -105,13 +105,13 @@ const SizeGuidePage: React.FC = () => {
             })}
           </div>
           {selectedChart && (
-            <div className="overflow-x-auto mb-8">
-              <table className="w-full text-left">
+            <div className="overflow-x-auto mb-6 md:mb-8">
+              <table className="w-full text-left text-sm md:text-base">
                 <thead>
                   <tr className="bg-gray-50">
-                    <th className="px-6 py-4 font-semibold text-gray-900">Size</th>
+                    <th className="px-3 md:px-6 py-3 md:py-4 font-semibold text-gray-900">Size</th>
                     {selectedChart.measurements.map(measurement => (
-                      <th key={measurement} className="px-6 py-4 font-semibold text-gray-900">
+                      <th key={measurement} className="px-3 md:px-6 py-3 md:py-4 font-semibold text-gray-900">
                         {measurement}
                       </th>
                     ))}
@@ -120,9 +120,9 @@ const SizeGuidePage: React.FC = () => {
                 <tbody>
                   {Object.entries(selectedChart.sizes).map(([size, measurements]) => (
                     <tr key={size} className="border-t border-gray-200">
-                      <td className="px-6 py-4 font-medium text-gray-900">{size}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 font-medium text-gray-900">{size}</td>
                       {measurements.map((measurement, index) => (
-                        <td key={index} className="px-6 py-4 text-gray-600">
+                        <td key={index} className="px-3 md:px-6 py-3 md:py-4 text-gray-600">
                           {measurement}
                         </td>
                       ))}
@@ -133,8 +133,8 @@ const SizeGuidePage: React.FC = () => {
             </div>
           )}
           {/* How to Measure */}
-          <div className="bg-primary-50 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-primary-900 mb-4">How to Measure</h2>
+          <div className="bg-primary-50 rounded-lg p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-semibold text-primary-900 mb-4">How to Measure</h2>
             <div className="space-y-4">
               {howToMeasure.map(item => (
                 <div key={item.measurement}>
