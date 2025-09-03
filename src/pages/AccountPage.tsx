@@ -21,7 +21,6 @@ import {
   Edit2, 
   Trash2,
   AlertTriangle,
-  ChevronRight,
   Star 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -252,7 +251,7 @@ const AccountPage: React.FC = () => {
 
   const sidebarItems = [
     { id: 'profile' as const, label: 'Profile', icon: User },
-    { id: 'orders' as const, label: 'Orders', icon: Package },
+    { id: 'orders' as const, label: 'Orders', icon: Package, badge: orders.length },
     { id: 'wishlist' as const, label: 'Wishlist', icon: Heart, badge: wishlist.length },
     { id: 'reviews' as const, label: 'Reviews & Ratings', icon: Star, badge: totalReviews },
     { id: 'addresses' as const, label: 'Addresses', icon: MapPin },
@@ -326,8 +325,8 @@ const AccountPage: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Navigation */}
-            <div className="lg:w-64 flex-shrink-0">
+            {/* Sidebar Navigation - Expanded width */}
+            <div className="lg:w-72 flex-shrink-0">
               <nav className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <ul className="space-y-2">
                   {sidebarItems.map((item) => {
@@ -344,7 +343,7 @@ const AccountPage: React.FC = () => {
                         >
                           <div className="flex items-center gap-3">
                             <Icon size={20} className={activeTab === item.id ? 'text-primary-700' : 'text-gray-500'} />
-                            <span className="font-medium">{item.label}</span>
+                            <span className="font-medium whitespace-nowrap">{item.label}</span>
                           </div>
                           {'badge' in item && item.badge !== undefined && item.badge > 0 && (
                             <span className="bg-primary-100 text-primary-700 text-xs font-medium px-2 py-1 rounded-full">
@@ -442,35 +441,40 @@ const AccountPage: React.FC = () => {
                         </Link>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {orders.map((order) => (
                           <div 
                             key={order.id} 
-                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
-                            onClick={() => handleOrderClick(order)}
+                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all"
                           >
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <h3 className="font-medium text-gray-900">Order #{order.order_number}</h3>
-                                <p className="text-sm text-gray-500">
-                                  {formatDisplayDate(order.created_at)}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
-                                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                  order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                                  order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                                </span>
-                                <p className="font-semibold text-gray-900 mt-1">₹{order.total_amount}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between text-sm text-gray-500 mt-2">
-                              <span>Click to view details</span>
-                              <ChevronRight size={16} />
+                            <div className="flex items-center justify-between">
+                              {/* Order number - clickable */}
+                              <button
+                                onClick={() => handleOrderClick(order)}
+                                className="font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                              >
+                                Order #{order.order_number}
+                              </button>
+                              
+                              {/* Order date */}
+                              <span className="text-sm text-gray-500">
+                                {formatDisplayDate(order.created_at)}
+                              </span>
+                              
+                              {/* Price */}
+                              <span className="font-semibold text-gray-900">
+                                ₹{order.total_amount?.toLocaleString()}
+                              </span>
+                              
+                              {/* Status - rounded rectangle */}
+                              <span className={`px-3 py-1 text-xs font-medium rounded-md ${
+                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                              </span>
                             </div>
                           </div>
                         ))}
