@@ -94,16 +94,19 @@ When you click "Place Order", the Razorpay checkout modal should appear with:
 2. Complete the payment
 3. Verify you're redirected to success page
 4. Check that order status updates to "paid"
+5. **📧 Check email inbox for payment confirmation email**
 
 **❌ Failed Payment Test:**
 1. Use the test card: `4000 0000 0000 0002`
 2. This should simulate a payment failure
 3. Verify appropriate error handling
+4. **📧 Check email inbox for payment failure notification**
 
 **🚫 Payment Cancellation Test:**
 1. Start payment process
 2. Close the Razorpay modal
 3. Verify order remains in "pending" status
+4. **📧 Check email inbox for payment cancellation notification**
 
 ### Step 5: Verify Backend Processing
 
@@ -123,17 +126,43 @@ When you click "Place Order", the Razorpay checkout modal should appear with:
    - `/.netlify/functions/create-razorpay-order` ✅
    - `/.netlify/functions/verify-razorpay-payment` ✅
 
-### Step 6: Test Error Scenarios
+### Step 6: Verify Email Notifications
 
-#### 6.1 Invalid Payment Data
+#### 6.1 Payment Success Email
+After successful payment, customers should receive:
+- ✅ **Subject**: "✅ Payment Successful - Order [ORDER_NUMBER] - Nirchal"
+- ✅ **Content**: Payment confirmation with order details
+- ✅ **Includes**: Order number, amount paid, payment ID, order tracking link
+
+#### 6.2 Payment Failure Email  
+After failed payment, customers should receive:
+- ❌ **Subject**: "❌ Payment Failed - Order [ORDER_NUMBER] - Nirchal"  
+- ❌ **Content**: Payment failure notification with retry instructions
+- ❌ **Includes**: Order number, amount, failure reason, retry payment link
+
+#### 6.3 Payment Cancellation Email
+When payment is cancelled, customers should receive:
+- 🚫 **Subject**: "❌ Payment Failed - Order [ORDER_NUMBER] - Nirchal"
+- 🚫 **Content**: Payment cancellation notification  
+- 🚫 **Includes**: Order number, cancellation reason, retry payment option
+
+#### 6.4 Order Confirmation Email (Separate)
+In addition to payment emails, customers also receive:
+- 📦 **Subject**: "✅ Order Confirmed [ORDER_NUMBER] - Nirchal"
+- 📦 **Content**: Order details and delivery information
+- 📦 **Timing**: Sent after successful payment verification
+
+---
+
+#### 7.1 Invalid Payment Data
 1. Try submitting order with incomplete customer info
 2. Verify appropriate validation messages
 
-#### 6.2 Network Issues
+#### 7.2 Network Issues
 1. Disable internet connection during payment
 2. Verify graceful error handling
 
-#### 6.3 Invalid Signature
+#### 7.3 Invalid Signature
 1. This is handled automatically by the verification function
 2. Should reject any tampered payment responses
 
@@ -183,6 +212,11 @@ When you click "Place Order", the Razorpay checkout modal should appear with:
 node test-razorpay-integration.js
 ```
 
+**Test Payment Email Functionality:**
+```bash
+node test-payment-emails.js
+```
+
 **Check Settings:**
 ```bash
 node razorpay-settings-manager.js
@@ -211,6 +245,7 @@ npm run dev
 5. **Verification**: ✅ Payment signature verified
 6. **Database Update**: ✅ Order updated with payment details
 7. **User Experience**: ✅ Smooth checkout flow without errors
+8. **📧 Email Notifications**: ✅ Customer receives appropriate payment emails
 
 ### 🎯 Key Metrics to Monitor
 

@@ -155,7 +155,6 @@ const OrderConfirmationPage: React.FC = () => {
             <ul className="list-disc list-inside text-sm space-y-1">
               <li>Use the Account page to view orders and saved addresses.</li>
               <li>{email ? `Sign in with ${email} to link this order to your account.` : 'Sign in with your email to link this order to your account.'}</li>
-              <li>In production, an account is required to see order history.</li>
             </ul>
           </div>
           <p className="text-gray-600">

@@ -42,6 +42,7 @@ const SettingsPage: React.FC = React.memo(() => {
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [showSecrets, setShowSecrets] = useState({
     razorpay_key_secret: false,
+    razorpay_webhook_secret: false,
     stripe_secret_key: false,
     paypal_client_secret: false,
     smtp_password: false,
@@ -390,6 +391,136 @@ const SettingsPage: React.FC = React.memo(() => {
                 )}
               </button>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Environment</label>
+            <select
+              value={tabSettings.payment?.razorpay_environment || 'test'}
+              onChange={(e) => handleTabSettingChange('payment', 'razorpay_environment', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="test">Test Environment</option>
+              <option value="live">Live Environment</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+            <select
+              value={tabSettings.payment?.razorpay_currency || 'INR'}
+              onChange={(e) => handleTabSettingChange('payment', 'razorpay_currency', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="INR">INR - Indian Rupee</option>
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+            <input
+              type="text"
+              value={tabSettings.payment?.razorpay_company_name || ''}
+              onChange={(e) => handleTabSettingChange('payment', 'razorpay_company_name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Your Company Name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
+            <input
+              type="color"
+              value={tabSettings.payment?.razorpay_theme_color || '#f59e0b'}
+              onChange={(e) => handleTabSettingChange('payment', 'razorpay_theme_color', e.target.value)}
+              className="w-full h-10 px-1 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+
+        {/* Webhook Configuration */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <h4 className="text-md font-semibold text-gray-900 mb-4">Webhook Configuration</h4>
+          <div className="bg-blue-50 rounded-lg p-4 mb-4">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="text-sm text-blue-800">
+                <p className="font-medium">Webhook Setup Instructions:</p>
+                <p className="mt-1">1. Copy the webhook URL below</p>
+                <p>2. Go to Razorpay Dashboard → Settings → Webhooks</p>
+                <p>3. Add webhook with events: payment.captured, payment.failed, order.paid</p>
+                <p>4. Copy the webhook secret and paste it below</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Webhook URL (Copy to Razorpay)</label>
+              <div className="flex">
+                <input
+                  type="text"
+                  value={`${window.location.origin}/.netlify/functions/razorpay-webhook`}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-l-md focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}/.netlify/functions/razorpay-webhook`)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Webhook Secret</label>
+              <div className="relative">
+                <input
+                  type={showSecrets.razorpay_webhook_secret ? "text" : "password"}
+                  value={tabSettings.payment?.razorpay_webhook_secret || ''}
+                  onChange={(e) => handleTabSettingChange('payment', 'razorpay_webhook_secret', e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder="Paste webhook secret from Razorpay"
+                />
+                <button
+                  type="button"
+                  onClick={() => toggleSecretVisibility('razorpay_webhook_secret')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  {showSecrets.razorpay_webhook_secret ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Auto Capture Setting */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-md font-semibold text-gray-900">Auto Capture Payments</h4>
+              <p className="text-sm text-gray-600 mt-1">Automatically capture payments when authorized</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={tabSettings.payment?.razorpay_auto_capture === 'true'}
+                onChange={(e) => handleTabSettingChange('payment', 'razorpay_auto_capture', e.target.checked ? 'true' : 'false')}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
           </div>
         </div>
       </div>
