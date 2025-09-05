@@ -167,6 +167,22 @@ async function handlePaymentCaptured(payment: any) {
   try {
     console.log('Processing payment.captured event:', payment.id);
     
+    // 🔒 DUPLICATE PAYMENT PROTECTION: Check if this payment ID is already processed
+    const { data: existingPayment } = await supabase
+      .from('orders')
+      .select('id, order_number, payment_status')
+      .eq('razorpay_payment_id', payment.id)
+      .single();
+
+    if (existingPayment) {
+      console.warn('🚫 WEBHOOK DUPLICATE PAYMENT BLOCKED:', {
+        payment_id: payment.id,
+        existing_order: existingPayment.order_number,
+        existing_status: existingPayment.payment_status
+      });
+      return; // Skip processing duplicate payment
+    }
+    
     // Find the order in our database using Razorpay order ID
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -179,23 +195,32 @@ async function handlePaymentCaptured(payment: any) {
       return;
     }
 
-    // Update order status to paid if not already
-    if (order.payment_status !== 'paid') {
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          payment_status: 'paid',
-          razorpay_payment_id: payment.id,
-          payment_details: payment,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', order.id);
+    // 🔒 Additional protection: Check if order is already paid
+    if (order.payment_status === 'paid') {
+      console.warn('🚫 WEBHOOK ORDER ALREADY PAID:', {
+        order_id: order.id,
+        order_number: order.order_number,
+        existing_payment_id: order.razorpay_payment_id,
+        new_payment_id: payment.id
+      });
+      return; // Skip processing for already paid orders
+    }
 
-      if (updateError) {
-        console.error('Failed to update order status:', updateError);
-      } else {
-        console.log('Order status updated to paid:', order.order_number);
-      }
+    // Update order status to paid
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        payment_status: 'paid',
+        razorpay_payment_id: payment.id,
+        payment_details: payment,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', order.id);
+
+    if (updateError) {
+      console.error('Failed to update order status:', updateError);
+    } else {
+      console.log('✅ Order status updated to paid:', order.order_number);
     }
 
   } catch (error) {

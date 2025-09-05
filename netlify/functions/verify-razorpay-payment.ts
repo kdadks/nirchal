@@ -145,6 +145,75 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       };
     }
 
+    // 🔒 DUPLICATE PAYMENT PROTECTION: Check if order is already paid
+    const { data: currentOrder, error: orderCheckError } = await supabase
+      .from('orders')
+      .select('payment_status, razorpay_payment_id, total_amount, order_number')
+      .eq('id', order_id)
+      .single();
+
+    if (orderCheckError) {
+      console.error('Error checking order status:', orderCheckError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to verify order status' })
+      };
+    }
+
+    // If order is already paid, prevent duplicate payment processing
+    if (currentOrder.payment_status === 'paid') {
+      console.warn('🚫 DUPLICATE PAYMENT ATTEMPT BLOCKED:', {
+        order_id,
+        order_number: currentOrder.order_number,
+        existing_payment_id: currentOrder.razorpay_payment_id,
+        new_payment_id: razorpay_payment_id,
+        amount: currentOrder.total_amount
+      });
+
+      return {
+        statusCode: 409, // Conflict status code
+        headers,
+        body: JSON.stringify({
+          error: 'Order has already been paid',
+          verified: false,
+          duplicate_payment: true,
+          existing_payment_id: currentOrder.razorpay_payment_id,
+          order_number: currentOrder.order_number,
+          message: 'This order has already been successfully paid. No additional payment is required.'
+        })
+      };
+    }
+
+    // Additional protection: Check if this exact payment ID has already been processed
+    const { data: existingPayment } = await supabase
+      .from('orders')
+      .select('id, order_number, payment_status')
+      .eq('razorpay_payment_id', razorpay_payment_id)
+      .neq('id', order_id) // Exclude current order
+      .single();
+
+    if (existingPayment) {
+      console.warn('🚫 PAYMENT ID ALREADY USED:', {
+        payment_id: razorpay_payment_id,
+        existing_order: existingPayment.order_number,
+        current_order_id: order_id,
+        existing_status: existingPayment.payment_status
+      });
+
+      return {
+        statusCode: 409,
+        headers,
+        body: JSON.stringify({
+          error: 'Payment ID has already been used for another order',
+          verified: false,
+          duplicate_payment_id: true,
+          existing_order: existingPayment.order_number,
+          message: 'This payment has already been processed for a different order.'
+        })
+      };
+    }
+
     // Get additional credentials for fetching payment details
     const keyId = settings.razorpay_key_id;
 
