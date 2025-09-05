@@ -55,7 +55,7 @@ const AIChatbot: React.FC = () => {
     }
     
     if (lowerMessage.includes('return') || lowerMessage.includes('exchange')) {
-      return "We have a 30-day hassle-free return and exchange policy. Items should be in original condition with tags intact. Would you like more details about our return process?";
+      return "We have a 2-day hassle-free return and exchange policy. Items should be in original condition with tags intact. Would you like more details about our return process?";
     }
     
     if (lowerMessage.includes('wedding') || lowerMessage.includes('bridal')) {

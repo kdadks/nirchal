@@ -21,7 +21,7 @@ const HomePage: React.FC = () => {
             <Star className="w-5 h-5" />
             <span className="font-medium">Free Shipping on orders above ₹2,999</span>
             <span className="hidden md:inline">•</span>
-            <span className="hidden md:inline font-medium">30-day Easy Returns</span>
+            <span className="hidden md:inline font-medium">2-day Easy Returns</span>
             <Star className="w-5 h-5" />
           </div>
         </div>
@@ -186,7 +186,7 @@ const HomePage: React.FC = () => {
               {
                 icon: <RefreshCw className="w-12 h-12 text-white" />,
                 title: 'Easy Returns',
-                description: 'Hassle-free 30-day return and exchange policy for your peace of mind',
+                description: 'Hassle-free 2-day return and exchange policy for your peace of mind',
                 color: 'from-orange-500 to-orange-600'
               }
             ].map((feature, index) => (

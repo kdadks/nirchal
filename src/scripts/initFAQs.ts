@@ -20,7 +20,7 @@ const faqs = [
   {
     category: 'Returns & Refunds',
     question: 'What is your return policy?',
-    answer: 'We accept returns within 30 days of delivery. Items must be unworn, unused, and in their original packaging with all tags attached. Some items like intimate wear and customized products are not eligible for return.',
+    answer: 'We accept returns within 2 days of delivery. Items must be unworn, unused, and in their original packaging with all tags attached. Some items like intimate wear and customized products are not eligible for return.',
     order_num: 3
   },
   {
