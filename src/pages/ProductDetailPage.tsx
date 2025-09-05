@@ -483,7 +483,7 @@ const ProductDetailPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
                     <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
-                    <span className="text-xs sm:text-sm font-medium">30-day easy returns</span>
+                    <span className="text-xs sm:text-sm font-medium">2-day easy returns</span>
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
                     <Shield size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { netlifyEmailService } from '../../services/netlifyEmailService';
 
@@ -146,27 +145,6 @@ const ContactPage: React.FC = () => {
                   {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
-            </div>
-          </section>
-
-          {/* Google Map Embed */}
-          <section>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <MapPin className="w-7 h-7 text-primary-600" /> Our Store Location
-              </h2>
-              <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200" style={{height:'350px', maxWidth:'100%'}}>
-                <iframe
-                  title="Nirchal Store Location"
-                  src="https://www.google.com/maps?q=Nirchal%20Store%2C%20Bengaluru%2C%20Karnataka%2C%20India&output=embed"
-                  width="100%"
-                  height="350"
-                  style={{border:0}}
-                  allowFullScreen={true}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                ></iframe>
-              </div>
             </div>
           </section>
         </div>

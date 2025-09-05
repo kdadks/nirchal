@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { Ruler } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import { Ruler, Info, Shirt } from 'lucide-react';
 
 interface SizeChart {
   category: string;
@@ -71,90 +72,150 @@ const SizeGuidePage: React.FC = () => {
   const selectedChart = sizeCharts.find(chart => chart.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-12 md:py-16">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <section className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white rounded-xl shadow-lg p-6 md:p-8 mb-8 md:mb-10 text-center">
-          <div className="flex items-center gap-3 justify-center mb-4">
-            <Ruler className="w-6 h-6 md:w-8 md:h-8 text-white" />
-            <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold">Size Guide</h1>
-          </div>
-          <p className="text-lg md:text-xl text-amber-100 mb-2">Find your perfect fit with our detailed size guide</p>
-        </section>
-        <section className="bg-white rounded-xl shadow p-6 md:p-8 mb-6 md:mb-8">
-          {/* Category Selection */}
-          <div className="flex flex-wrap gap-2 mb-8">
-            {sizeCharts.map(chart => {
-              // Prettify category label for display
-              let label = chart.category
-                .replace('kurtis/suits/dresses', 'Kurtis / Suits / Dresses')
-                .replace('lehengas', 'Lehengas')
-                .replace('sarees', 'Sarees');
-              return (
-                <button
-                  key={chart.category}
-                  className={`px-4 py-2 rounded-full text-sm font-medium capitalize ${
-                    selectedCategory === chart.category
-                      ? 'bg-primary-600 text-white'
-                      : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                  }`}
-                  onClick={() => setSelectedCategory(chart.category)}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          {selectedChart && (
-            <div className="overflow-x-auto mb-6 md:mb-8">
-              <table className="w-full text-left text-sm md:text-base">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-3 md:px-6 py-3 md:py-4 font-semibold text-gray-900">Size</th>
-                    {selectedChart.measurements.map(measurement => (
-                      <th key={measurement} className="px-3 md:px-6 py-3 md:py-4 font-semibold text-gray-900">
-                        {measurement}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(selectedChart.sizes).map(([size, measurements]) => (
-                    <tr key={size} className="border-t border-gray-200">
-                      <td className="px-3 md:px-6 py-3 md:py-4 font-medium text-gray-900">{size}</td>
-                      {measurements.map((measurement, index) => (
-                        <td key={index} className="px-3 md:px-6 py-3 md:py-4 text-gray-600">
-                          {measurement}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {/* How to Measure */}
-          <div className="bg-primary-50 rounded-lg p-4 md:p-6">
-            <h2 className="text-lg md:text-xl font-semibold text-primary-900 mb-4">How to Measure</h2>
-            <div className="space-y-4">
-              {howToMeasure.map(item => (
-                <div key={item.measurement}>
-                  <h3 className="font-medium text-primary-900 mb-1">{item.measurement}</h3>
-                  <p className="text-primary-800">{item.instruction}</p>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+      <Helmet>
+        <title>Size Guide - Nirchal | Perfect Fit Guide</title>
+        <meta name="description" content="Find your perfect fit with Nirchal's detailed size guide for kurtis, lehengas, sarees and more." />
+      </Helmet>
+
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="max-w-4xl mx-auto">
+
+          {/* Size Guide Header */}
+          <section className="mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">Size Guide</h2>
+            
+            {/* Category Selection */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mb-6 md:mb-8">
+              <div className="flex items-center mb-4 md:mb-6">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
+                  <Shirt className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
-              ))}
+                <h3 className="text-xl md:text-2xl font-bold text-gray-800">Select Category</h3>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 mb-8">
+                {sizeCharts.map(chart => {
+                  let label = chart.category
+                    .replace('kurtis/suits/dresses', 'Kurtis / Suits / Dresses')
+                    .replace('lehengas', 'Lehengas')
+                    .replace('sarees', 'Sarees');
+                  return (
+                    <button
+                      key={chart.category}
+                      className={`px-4 py-2 rounded-full text-sm font-medium capitalize transition-all duration-200 ${
+                        selectedCategory === chart.category
+                          ? 'bg-primary-600 text-white shadow-lg'
+                          : 'border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                      }`}
+                      onClick={() => setSelectedCategory(chart.category)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Size Chart Table */}
+              {selectedChart && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm md:text-base border border-gray-200 rounded-lg overflow-hidden">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <th className="px-3 md:px-6 py-3 md:py-4 font-semibold text-gray-900 border-r border-gray-200">Size</th>
+                        {selectedChart.measurements.map(measurement => (
+                          <th key={measurement} className="px-3 md:px-6 py-3 md:py-4 font-semibold text-gray-900 border-r last:border-r-0 border-gray-200">
+                            {measurement} (inches)
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(selectedChart.sizes).map(([size, measurements]) => (
+                        <tr key={size} className="border-t border-gray-200 hover:bg-gray-50 transition-colors">
+                          <td className="px-3 md:px-6 py-3 md:py-4 font-medium text-gray-900 border-r border-gray-200 bg-gray-50">{size}</td>
+                          {measurements.map((measurement, index) => (
+                            <td key={index} className="px-3 md:px-6 py-3 md:py-4 text-gray-600 border-r last:border-r-0 border-gray-200">
+                              {measurement}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          </div>
-        </section>
-        {/* Additional Notes */}
-        <section className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold text-primary-900 mb-2">Important Notes:</h2>
-          <ul className="list-disc pl-5 text-primary-800 space-y-1">
-            <li>All measurements are in inches unless specified otherwise</li>
-            <li>For the best fit, get measured by a professional tailor</li>
-            <li>If between sizes, choose the larger size</li>
-            <li>Custom sizing available for select products</li>
-          </ul>
-        </section>
+          </section>
+
+          {/* How to Measure */}
+          <section className="mb-12">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+              <div className="flex items-center mb-6">
+                <Ruler className="w-8 h-8 text-primary-600 mr-3" />
+                <h2 className="text-2xl font-bold text-gray-800">How to Measure</h2>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                {howToMeasure.map((item, index) => (
+                  <div key={item.measurement} className="bg-gradient-to-r from-primary-50 to-accent-50 p-4 rounded-lg border border-primary-100">
+                    <div className="flex items-center mb-2">
+                      <div className="w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                        {index + 1}
+                      </div>
+                      <h3 className="font-semibold text-primary-900">{item.measurement}</h3>
+                    </div>
+                    <p className="text-primary-800 text-sm leading-relaxed ml-11">{item.instruction}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Important Notes */}
+          <section>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+              <div className="flex items-center mb-6">
+                <Info className="w-8 h-8 text-primary-600 mr-3" />
+                <h2 className="text-2xl font-bold text-gray-800">Important Notes</h2>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700">All measurements are in inches unless specified otherwise</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700">For the best fit, get measured by a professional tailor</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700">If between sizes, choose the larger size</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-700">Custom sizing available for select products</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 text-center">
+                <p className="text-gray-600 mb-4">Need help finding your size?</p>
+                <a 
+                  href="mailto:support@nirchal.com"
+                  className="bg-gradient-to-r from-primary-500 to-accent-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
+                >
+                  Contact Size Expert
+                </a>
+              </div>
+            </div>
+          </section>
+
+        </div>
       </div>
     </div>
   );
