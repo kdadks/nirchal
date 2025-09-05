@@ -4,7 +4,9 @@ import {
   outlookCompatibleOrderConfirmationEmail,
   outlookCompatiblePasswordResetEmail,
   outlookCompatibleOrderStatusEmail,
-  outlookCompatiblePasswordChangeEmail
+  outlookCompatiblePasswordChangeEmail,
+  outlookCompatiblePaymentSuccessEmail,
+  outlookCompatiblePaymentFailedEmail
 } from './outlookCompatibleEmailTemplates';
 
 interface OrderData {
@@ -213,6 +215,108 @@ export class TransactionalEmailService {
       return response.ok;
     } catch (error) {
       console.error('Failed to send order status update email:', error);
+      return false;
+    }
+  }
+
+  // Send payment success email
+  async sendPaymentSuccessEmail(paymentData: {
+    customer_name: string;
+    customer_email: string;
+    order_number: string;
+    amount: number;
+    payment_id: string;
+  }): Promise<boolean> {
+    try {
+      console.log('TransactionalEmailService: Preparing payment success email for:', paymentData.customer_email);
+      
+      const html = outlookCompatiblePaymentSuccessEmail(
+        paymentData.customer_name,
+        paymentData.order_number,
+        paymentData.amount.toString(),
+        paymentData.payment_id,
+        'https://nirchal.netlify.app'
+      );
+
+      const emailPayload = {
+        to: paymentData.customer_email,
+        subject: `✅ Payment Successful - Order ${paymentData.order_number} - Nirchal`,
+        html
+      };
+      
+      console.log('TransactionalEmailService: Sending payment success email with payload:', {
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        hasHtml: !!emailPayload.html
+      });
+
+      const response = await fetch(`${this.baseUrl}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+
+      console.log('TransactionalEmailService: Payment success email response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('TransactionalEmailService: Payment success email failed with response:', errorText);
+      }
+
+      return response.ok;
+    } catch (error) {
+      console.error('TransactionalEmailService: Failed to send payment success email:', error);
+      return false;
+    }
+  }
+
+  // Send payment failure email
+  async sendPaymentFailureEmail(paymentData: {
+    customer_name: string;
+    customer_email: string;
+    order_number: string;
+    amount: number;
+    error_reason: string;
+  }): Promise<boolean> {
+    try {
+      console.log('TransactionalEmailService: Preparing payment failure email for:', paymentData.customer_email);
+      
+      const html = outlookCompatiblePaymentFailedEmail(
+        paymentData.customer_name,
+        paymentData.order_number,
+        paymentData.amount.toString(),
+        paymentData.error_reason,
+        'https://nirchal.netlify.app'
+      );
+
+      const emailPayload = {
+        to: paymentData.customer_email,
+        subject: `❌ Payment Failed - Order ${paymentData.order_number} - Nirchal`,
+        html
+      };
+      
+      console.log('TransactionalEmailService: Sending payment failure email with payload:', {
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        hasHtml: !!emailPayload.html
+      });
+
+      const response = await fetch(`${this.baseUrl}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+
+      console.log('TransactionalEmailService: Payment failure email response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('TransactionalEmailService: Payment failure email failed with response:', errorText);
+      }
+
+      return response.ok;
+    } catch (error) {
+      console.error('TransactionalEmailService: Failed to send payment failure email:', error);
       return false;
     }
   }
