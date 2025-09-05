@@ -394,6 +394,11 @@ const CheckoutPage: React.FC = () => {
         }
 
         try {
+          // Show processing toast
+          toast('💳 Initializing secure payment...', {
+            duration: 3000,
+          });
+          
           // Create Razorpay order
           const razorpayOrderData = await createRazorpayOrder({
             amount: finalTotal,
@@ -433,6 +438,11 @@ const CheckoutPage: React.FC = () => {
                 });
 
                 if (verificationResult.verified) {
+                  // 🎉 Payment successful toast
+                  toast.success('💳 Payment successful! Processing your order...', {
+                    duration: 4000,
+                  });
+                  
                   // Payment successful - send payment success email first
                   try {
                     await transactionalEmailService.sendPaymentSuccessEmail({
@@ -456,14 +466,18 @@ const CheckoutPage: React.FC = () => {
                     
                     if (verificationResult.duplicate_payment) {
                       // Order already paid - redirect to confirmation
-                      toast.success('This order has already been paid successfully!');
+                      toast.success('✅ This order has already been paid successfully!', {
+                        duration: 5000,
+                      });
                       await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
                       return;
                     }
                     
                     if (verificationResult.duplicate_payment_id) {
                       // Payment ID already used
-                      toast.error('This payment has already been processed. Please contact support if you were charged multiple times.');
+                      toast.error('⚠️ This payment has already been processed. Please contact support if you were charged multiple times.', {
+                        duration: 6000,
+                      });
                       setIsSubmitting(false);
                       return;
                     }
@@ -488,7 +502,9 @@ const CheckoutPage: React.FC = () => {
                 }
                 
                 if (isDuplicatePayment) {
-                  toast.success('Order already paid successfully!');
+                  toast.success('✅ Order already paid successfully!', {
+                    duration: 4000,
+                  });
                   // Redirect to confirmation for already paid orders
                   await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
                   return;
@@ -508,7 +524,9 @@ const CheckoutPage: React.FC = () => {
                   console.error('Failed to send payment failure email:', emailError);
                 }
                 
-                toast.error('Payment verification failed. Please contact support.');
+                toast.error('❌ Payment verification failed. Please contact support.', {
+                  duration: 6000,
+                });
                 setIsSubmitting(false);
               }
             },
@@ -530,6 +548,9 @@ const CheckoutPage: React.FC = () => {
                   console.error('Failed to send payment cancellation email:', emailError);
                 }
                 
+                toast('💳 Payment cancelled. Your order has been saved and you can retry payment later.', {
+                  duration: 4000,
+                });
                 setIsSubmitting(false);
               }
             }
@@ -555,7 +576,9 @@ const CheckoutPage: React.FC = () => {
             console.error('Failed to send payment initialization failure email:', emailError);
           }
           
-          toast.error('Payment initialization failed. Please try again.');
+          toast.error('⚠️ Payment initialization failed. Please try again.', {
+            duration: 5000,
+          });
           throw razorpayError;
         }
       } else {
@@ -573,7 +596,9 @@ const CheckoutPage: React.FC = () => {
         return;
       }
       
-      toast.error('There was an error processing your order. Please try again.');
+      toast.error('❌ There was an error processing your order. Please try again.', {
+        duration: 5000,
+      });
     } finally {
       if (form.paymentMethod !== 'razorpay') {
         setIsSubmitting(false);
@@ -745,7 +770,9 @@ const CheckoutPage: React.FC = () => {
         .single();
 
       if (!addressToDelete) {
-        toast.error('Address not found');
+        toast.error('📍 Address not found', {
+          duration: 3000,
+        });
         return;
       }
 
@@ -758,7 +785,9 @@ const CheckoutPage: React.FC = () => {
           .eq('customer_id', customer.id);
 
         if (totalAddresses === 1) {
-          toast.error('Cannot delete the only address. Please add another address first and make it default before deleting this one.');
+          toast.error('⚠️ Cannot delete the only address. Please add another address first and make it default before deleting this one.', {
+            duration: 5000,
+          });
           return;
         }
 
@@ -771,7 +800,9 @@ const CheckoutPage: React.FC = () => {
           .neq('id', addressId);
 
         if (defaultCount === 0) {
-          toast.error('Cannot delete the default address. Please make another address default first.');
+          toast.error('🏠 Cannot delete the default address. Please make another address default first.', {
+            duration: 4000,
+          });
           return;
         }
       }
@@ -824,10 +855,14 @@ const CheckoutPage: React.FC = () => {
         ...(prev.selectedBillingAddressId === addressId ? { selectedBillingAddressId: '' } : {})
       }));
 
-      toast.success('Address deleted successfully');
+      toast.success('✅ Address deleted successfully', {
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error deleting address:', error);
-      toast.error('Failed to delete address');
+      toast.error('❌ Failed to delete address', {
+        duration: 4000,
+      });
     }
   };
 
