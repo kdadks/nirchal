@@ -72,8 +72,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
       .eq('category', 'payment')
       .in('key', [
         'razorpay_environment',
-        'razorpay_key_secret',
-        'razorpay_test_key_secret'
+        'razorpay_key_id',
+        'razorpay_key_secret'
       ]);
 
     if (settingsError) {
@@ -93,9 +93,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
     // Get appropriate secret based on environment
     const environment = settings.razorpay_environment || 'test';
-    const keySecret = environment === 'test' 
-      ? settings.razorpay_test_key_secret 
-      : settings.razorpay_key_secret;
+    const keySecret = settings.razorpay_key_secret;
 
     if (!keySecret) {
       return {
@@ -145,23 +143,7 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
     }
 
     // Get additional credentials for fetching payment details
-    const { data: credentialsData } = await supabase
-      .from('settings')
-      .select('key, value')
-      .eq('category', 'payment')
-      .in('key', [
-        'razorpay_key_id',
-        'razorpay_test_key_id'
-      ]);
-
-    const credentials: { [key: string]: string } = {};
-    credentialsData?.forEach(setting => {
-      credentials[setting.key] = setting.value;
-    });
-
-    const keyId = environment === 'test' 
-      ? credentials.razorpay_test_key_id 
-      : credentials.razorpay_key_id;
+    const keyId = settings.razorpay_key_id;
 
     // Fetch payment details from Razorpay
     let paymentDetails = null;

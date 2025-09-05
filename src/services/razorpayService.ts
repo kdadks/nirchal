@@ -89,8 +89,8 @@ class RazorpayService {
       }
 
       const environment = settingsMap.environment as 'test' | 'live';
-      const keyId = environment === 'test' ? settingsMap.test_key_id : settingsMap.key_id;
-      const keySecret = environment === 'test' ? settingsMap.test_key_secret : settingsMap.key_secret;
+      const keyId = settingsMap.key_id;
+      const keySecret = settingsMap.key_secret;
 
       if (!keyId || !keySecret) {
         throw new Error(`Razorpay ${environment} credentials not configured`);
