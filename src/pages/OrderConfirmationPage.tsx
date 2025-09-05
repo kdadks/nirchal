@@ -62,8 +62,8 @@ const OrderConfirmationPage: React.FC = () => {
     if (tempPassword && !passwordChanged) {
       setShowPasswordModal(true);
     } else {
-      // Navigate to account normally
-      window.location.href = '/myaccount';
+      // Navigate to account orders tab
+      window.location.href = '/myaccount?tab=orders';
     }
   };
 
@@ -73,9 +73,9 @@ const OrderConfirmationPage: React.FC = () => {
     // Clear temp password notification
     sessionStorage.removeItem('new_customer_temp_password');
     toast.success('Password updated successfully! Your account is now secure.');
-    // Navigate to account after password change
+    // Navigate to account orders tab after password change
     setTimeout(() => {
-      window.location.href = '/myaccount';
+      window.location.href = '/myaccount?tab=orders';
     }, 500);
   };
 
