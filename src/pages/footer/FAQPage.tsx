@@ -45,7 +45,7 @@ const faqs: FAQ[] = [
     id: 6,
     category: 'returns',
     question: 'What is your return policy?',
-    answer: 'We offer a 30-day return policy from the date of delivery. Items must be unused, with original tags and packaging. Custom-made or altered items cannot be returned.'
+    answer: 'We offer a 2-day return policy from the date of delivery. Items must be unused, with original tags and packaging. Custom-made or altered items cannot be returned.'
   },
   {
     id: 7,

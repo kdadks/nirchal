@@ -320,7 +320,7 @@ const Footer: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm font-semibold">Easy Returns</p>
-                <p className="text-xs">30-day policy</p>
+                <p className="text-xs">2-day policy</p>
               </div>
             </div>
             

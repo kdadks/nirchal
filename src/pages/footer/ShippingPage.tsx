@@ -1,6 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Clock, MapPin, Shield, Package, Globe } from 'lucide-react';
+import { Clock, MapPin, Shield, Package } from 'lucide-react';
 
 const ShippingPage: React.FC = () => {
   return (
@@ -17,8 +17,8 @@ const ShippingPage: React.FC = () => {
           <section className="mb-8 md:mb-12">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">Shipping Options</h2>
             
-            <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-              {/* Domestic Shipping */}
+            <div className="max-w-2xl mx-auto">
+              {/* Domestic Shipping - Centered */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
                 <div className="flex items-center mb-4 md:mb-6">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
@@ -45,37 +45,6 @@ const ShippingPage: React.FC = () => {
                 <div className="mt-6 p-4 bg-green-50 rounded-lg">
                   <p className="text-sm text-green-700">
                     <strong>Free shipping</strong> on all orders above ₹2,999. For orders below this amount, standard shipping charge is ₹150.
-                  </p>
-                </div>
-              </div>
-
-              {/* International Shipping */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <div className="flex items-center mb-4 md:mb-6">
-                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mr-3 md:mr-4">
-                    <Globe className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-800">International Shipping</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">USA, Canada</span>
-                    <span className="font-semibold text-gray-800">7-15 business days</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">UK, Europe</span>
-                    <span className="font-semibold text-gray-800">10-18 business days</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-600">Rest of World</span>
-                    <span className="font-semibold text-gray-800">15-25 business days</span>
-                  </div>
-                </div>
-                
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700">
-                    International shipping charges calculated at checkout. Customs duties and taxes may apply.
                   </p>
                 </div>
               </div>

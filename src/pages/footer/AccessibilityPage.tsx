@@ -18,7 +18,7 @@ const AccessibilityPage: React.FC = () => (
         </ul>
         <h2 className="font-semibold text-lg md:text-xl mt-6 md:mt-8 mb-2">Feedback</h2>
         <p className="mb-4 text-gray-700 text-sm md:text-base">If you encounter any accessibility barriers, please let us know so we can address them promptly.</p>
-        <p className="mt-6 md:mt-8 text-gray-600 text-sm md:text-base">Contact us at <a href="mailto:accessibility@nirchal.com" className="text-primary-600 underline">accessibility@nirchal.com</a>.</p>
+        <p className="mt-6 md:mt-8 text-gray-600 text-sm md:text-base">Contact us at <a href="mailto:support@nirchal.com" className="text-primary-600 underline">support@nirchal.com</a>.</p>
       </div>
     </div>
   </>

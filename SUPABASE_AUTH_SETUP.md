@@ -47,7 +47,7 @@ VITE_APP_NAME=Nirchal
      raw_app_meta_data,
      raw_user_meta_data
    ) VALUES (
-     'admin@nirchal.com',
+     'support@nirchal.com',
      crypt('your-secure-password', gen_salt('bf')),
      now(),
      now(),
@@ -76,7 +76,7 @@ VITE_APP_NAME=Nirchal
    ```
 
 3. **Use your admin credentials**:
-   - Email: `admin@nirchal.com` (or the email you created)
+   - Email: `support@nirchal.com` (or the email you created)
    - Password: Your chosen password
 
 #### 4. Debugging Steps
@@ -126,7 +126,7 @@ The following components have been updated to fix the login issue:
 ### Test Credentials
 
 For development/testing, you can create a test admin user:
-- Email: `admin@nirchal.com`
+- Email: `support@nirchal.com`
 - Password: `Admin123!` (or your preferred secure password)
 
 ### Next Steps
