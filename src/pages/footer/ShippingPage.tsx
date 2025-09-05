@@ -1,6 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Truck, Clock, MapPin, Shield, Package, Globe } from 'lucide-react';
+import { Clock, MapPin, Shield, Package, Globe } from 'lucide-react';
 
 const ShippingPage: React.FC = () => {
   return (
@@ -9,17 +9,6 @@ const ShippingPage: React.FC = () => {
         <title>Shipping Policy - Nirchal | Delivery Information</title>
         <meta name="description" content="Learn about Nirchal's shipping policy, delivery times, and shipping charges for domestic and international orders." />
       </Helmet>
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white py-12 md:py-16">
-        <div className="container mx-auto px-4 text-center">
-          <Truck className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Shipping Policy</h1>
-          <p className="text-lg md:text-xl text-primary-100 max-w-2xl mx-auto">
-            Fast, secure, and reliable delivery of your favorite ethnic wear
-          </p>
-        </div>
-      </section>
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">

@@ -10,17 +10,6 @@ const AboutPage: React.FC = () => {
         <meta name="description" content="Discover the story behind Nirchal - India's premier destination for authentic ethnic wear, celebrating tradition with modern elegance." />
       </Helmet>
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white py-12 md:py-16">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative container mx-auto px-4 text-center">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">About Nirchal</h1>
-          <p className="text-lg md:text-xl text-amber-100 max-w-3xl mx-auto">
-            Celebrating the rich heritage of Indian craftsmanship while bringing you contemporary designs that blend tradition with modern elegance.
-          </p>
-        </div>
-      </section>
-
       {/* Story Section */}
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4">

@@ -46,17 +46,6 @@ const CategoryPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-            <div className="text-center">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Shop by Categories</h1>
-              <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
-                Discover our curated collection organized by style
-              </p>
-            </div>
-          </div>
-        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <LoadingSpinner />
         </div>
@@ -67,17 +56,6 @@ const CategoryPage = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-            <div className="text-center">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Shop by Categories</h1>
-              <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
-                Discover our curated collection organized by style
-              </p>
-            </div>
-          </div>
-        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="text-center">
             <div className="text-amber-500 mb-4">
@@ -123,38 +101,6 @@ const CategoryPage = () => {
       </Helmet>
       
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-        {/* Hero Section */}
-        <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-            <div className="text-center">
-              {isShowingCategoryProducts ? (
-                <>
-                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-                    {currentCategory?.name || categoryId}
-                  </h1>
-                  <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
-                    Discover our beautiful collection of {currentCategory?.name || categoryId}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Shop by Categories</h1>
-                  <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
-                    Discover our curated collection organized by style
-                  </p>
-                  <div className="mt-6 flex items-center justify-center gap-2 text-amber-200">
-                    <ShoppingBag className="w-5 h-5" />
-                    <span className="text-sm font-medium">
-                      {categories.length} Categories Available
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Content Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {isShowingCategoryProducts ? (
