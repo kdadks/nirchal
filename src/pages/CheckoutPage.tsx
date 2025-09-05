@@ -450,19 +450,58 @@ const CheckoutPage: React.FC = () => {
                   // Payment successful - proceed with post-order actions
                   await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
                 } else {
-                  throw new Error('Payment verification failed');
+                  // Check if this is a duplicate payment attempt
+                  if (verificationResult.duplicate_payment || verificationResult.duplicate_payment_id) {
+                    console.warn('🚫 Duplicate payment detected:', verificationResult);
+                    
+                    if (verificationResult.duplicate_payment) {
+                      // Order already paid - redirect to confirmation
+                      toast.success('This order has already been paid successfully!');
+                      await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                      return;
+                    }
+                    
+                    if (verificationResult.duplicate_payment_id) {
+                      // Payment ID already used
+                      toast.error('This payment has already been processed. Please contact support if you were charged multiple times.');
+                      setIsSubmitting(false);
+                      return;
+                    }
+                  }
+                  
+                  throw new Error(verificationResult.error || 'Payment verification failed');
                 }
               } catch (paymentError) {
                 console.error('Payment verification error:', paymentError);
                 
-                // Send payment failure email
+                // Parse error response for duplicate payment handling
+                let errorMessage = paymentError instanceof Error ? paymentError.message : 'Payment verification failed';
+                let isDuplicatePayment = false;
+                
+                try {
+                  if (paymentError instanceof Error && paymentError.message.includes('duplicate_payment')) {
+                    isDuplicatePayment = true;
+                    errorMessage = 'This order has already been paid. No additional payment is required.';
+                  }
+                } catch (parseError) {
+                  // Continue with original error handling
+                }
+                
+                if (isDuplicatePayment) {
+                  toast.success('Order already paid successfully!');
+                  // Redirect to confirmation for already paid orders
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                  return;
+                }
+                
+                // Send payment failure email for actual failures
                 try {
                   await transactionalEmailService.sendPaymentFailureEmail({
                     customer_name: `${form.firstName} ${form.lastName}`,
                     customer_email: form.email,
                     order_number: order.order_number,
                     amount: finalTotal,
-                    error_reason: paymentError instanceof Error ? paymentError.message : 'Payment verification failed'
+                    error_reason: errorMessage
                   });
                   console.log('Payment failure email sent');
                 } catch (emailError) {
