@@ -10,23 +10,14 @@ const OrderConfirmationPage: React.FC = () => {
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
   const { orderNumber, email, tempPassword } = useMemo(() => {
-    // Check multiple times to ensure we catch any delayed updates
-    const checkStorage = () => {
-      const on = sessionStorage.getItem('last_order_number') || '';
-      const em = sessionStorage.getItem('last_order_email') || '';
-      const tp = sessionStorage.getItem('new_customer_temp_password') || '';
-      return { on, em, tp };
-    };
+    const on = sessionStorage.getItem('last_order_number') || '';
+    const em = sessionStorage.getItem('last_order_email') || '';
+    const tp = sessionStorage.getItem('new_customer_temp_password') || '';
     
-    const { on, em, tp } = checkStorage();
-    
-    console.log('OrderConfirmationPage - sessionStorage values:', {
+    console.log('OrderConfirmationPage loaded:', {
       orderNumber: on,
       email: em,
-      tempPassword: tp,
-      hasTempPassword: !!tp,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent
+      hasTempPassword: !!tp
     });
     
     return { orderNumber: on, email: em, tempPassword: tp };
@@ -34,38 +25,15 @@ const OrderConfirmationPage: React.FC = () => {
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
-    // Add a small delay to ensure sessionStorage is fully updated
-    const checkRedirect = () => {
-      // Re-check sessionStorage in case it was updated after initial load
-      const currentOrderNumber = sessionStorage.getItem('last_order_number');
-      const currentEmail = sessionStorage.getItem('last_order_email');
-      
-      console.log('OrderConfirmationPage - redirect check:', {
-        orderNumber: currentOrderNumber,
-        email: currentEmail,
-        hasOrderNumber: !!currentOrderNumber,
-        orderNumberLength: currentOrderNumber?.length,
-        location: window.location.href,
-        sessionStorageKeys: Object.keys(sessionStorage),
-        allSessionStorage: Object.fromEntries(Object.keys(sessionStorage).map(key => [key, sessionStorage.getItem(key)]))
-      });
-      
-      if (!currentOrderNumber) {
-        console.log('OrderConfirmationPage - No order number found, redirecting to cart');
-        setShouldRedirect(true);
-      } else {
-        console.log('OrderConfirmationPage - Order number found, staying on confirmation page');
-        setShouldRedirect(false);
-      }
-      setHasCheckedRedirect(true);
-    };
-    
-    // Check immediately and also after a short delay
-    checkRedirect();
-    const timeoutId = setTimeout(checkRedirect, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
+    if (!orderNumber) {
+      console.log('OrderConfirmationPage: No order number found, redirecting to cart');
+      setShouldRedirect(true);
+    } else {
+      console.log('OrderConfirmationPage: Order found, displaying confirmation');
+      setShouldRedirect(false);
+    }
+    setHasCheckedRedirect(true);
+  }, [orderNumber]);
 
   // Show password change notification for new customers - REMOVED AUTO-MODAL
   // Users will see notification on account page instead
@@ -93,9 +61,8 @@ const OrderConfirmationPage: React.FC = () => {
     );
   }
 
-  // Render redirect if needed - but add more context
+  // Render redirect if needed
   if (shouldRedirect) {
-    console.log('OrderConfirmationPage - Redirecting to cart due to missing order number');
     return <Navigate to="/cart" replace />;
   }
 

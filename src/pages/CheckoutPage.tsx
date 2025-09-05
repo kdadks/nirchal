@@ -706,19 +706,10 @@ const CheckoutPage: React.FC = () => {
       last_order_email: sessionStorage.getItem('last_order_email')
     });
 
-    console.log('About to navigate to order-confirmation page');
-    console.log('Current location before navigation:', window.location.href);
-    
-    try {
-      // Try direct window.location first to bypass React Router issues
-      console.log('Using window.location.href for navigation');
-      window.location.href = '/order-confirmation';
-      
-    } catch (navError) {
-      console.error('Navigation error:', navError);
-      // If even window.location fails, try navigate as backup
-      navigate('/order-confirmation');
-    }
+    // Navigate to order confirmation page
+    // Using window.location.href for reliable navigation in production
+    console.log('Navigating to order confirmation page');
+    window.location.href = '/order-confirmation';
     
     // Clear cart AFTER navigation to avoid redirect race condition
     setTimeout(() => {
