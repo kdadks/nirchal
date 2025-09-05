@@ -2,8 +2,10 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import toast from 'react-hot-toast';
 const OrderConfirmationPage: React.FC = () => {
+  const { customer } = useCustomerAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -162,7 +164,9 @@ const OrderConfirmationPage: React.FC = () => {
             <p className="font-medium mb-1">Manage your order</p>
             <ul className="list-disc list-inside text-sm space-y-1">
               <li>Use the Account page to view orders and saved addresses.</li>
-              <li>{email ? `Sign in with ${email} to link this order to your account.` : 'Sign in with your email to link this order to your account.'}</li>
+              {!customer && (
+                <li>{email ? `Sign in with ${email} to link this order to your account.` : 'Sign in with your email to link this order to your account.'}</li>
+              )}
             </ul>
           </div>
           <p className="text-gray-600">
