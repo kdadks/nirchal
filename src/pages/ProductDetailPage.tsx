@@ -53,12 +53,24 @@ const ProductDetailPage: React.FC = () => {
   // Default selections when product is loaded
   useEffect(() => {
     if (!product) return;
-    // Preselect first available size (including 'Free Size') and color if available
-    if (!selectedSize && product.sizes && product.sizes.length > 0) {
+    // Preselect first available size only if sizes exist and are not empty
+    if (!selectedSize && product.sizes && product.sizes.length > 0 && product.sizes.some(size => size && size.trim() !== '')) {
       setSelectedSize(product.sizes[0]!);
     }
     if (!selectedColor && product.colors && product.colors.length > 0) {
       setSelectedColor(product.colors[0]!);
+    }
+
+    // Set default image to first swatch image if available
+    if (product.variants && product.variants.length > 0) {
+      const firstVariantWithSwatch = product.variants.find(v => v.swatchImage);
+      if (firstVariantWithSwatch && firstVariantWithSwatch.swatchImage) {
+        // Find the index of the first swatch image in the main product images
+        const swatchImageIndex = product.images.findIndex(img => img === firstVariantWithSwatch.swatchImage);
+        if (swatchImageIndex !== -1) {
+          setSelectedImage(swatchImageIndex);
+        }
+      }
     }
   }, [product, selectedSize, selectedColor]);
 
@@ -149,7 +161,7 @@ const ProductDetailPage: React.FC = () => {
           name: product.name,
           price: adjustedPrice,
           image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-          size: selectedSize,
+          size: selectedSize || undefined,
           color: selectedColor || product.color,
           variantId: selectedVariant?.id
         });
@@ -174,7 +186,7 @@ const ProductDetailPage: React.FC = () => {
           name: product.name,
           price: adjustedPrice,
           image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
-          size: selectedSize,
+          size: selectedSize || undefined,
           color: selectedColor || product.color,
           variantId: selectedVariant?.id
         });
@@ -207,12 +219,27 @@ const ProductDetailPage: React.FC = () => {
     setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
   };
 
-  const sizes = product.sizes || [];
+  const sizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
   const colors = product.colors && product.colors.length > 0 
     ? product.colors 
     : product.color ? [product.color] : [];
 
-  const hasVariants = sizes.length > 0;
+  // Get all swatch image URLs
+  const swatchImageUrls = product.variants 
+    ? product.variants.map(v => v.swatchImage).filter(Boolean) as string[]
+    : [];
+
+  // Filter gallery images to exclude swatch images
+  const galleryImages = product.images.filter(img => !swatchImageUrls.includes(img));
+  
+  // Create mapping from gallery image index to original image index
+  const galleryToOriginalIndex = (galleryIndex: number): number => {
+    const galleryImage = galleryImages[galleryIndex];
+    return product.images.findIndex(img => img === galleryImage);
+  };
+
+  // Only consider it as having variants if sizes exist and are not empty
+  const hasVariants = sizes.length > 0 && sizes.some(size => size && size.trim() !== '');
   const canAddToCart = !hasVariants || selectedSize;
 
   const nextImage = () => {
@@ -228,10 +255,12 @@ const ProductDetailPage: React.FC = () => {
   // Helper: find selected variant and compute adjusted price
   const getSelectedVariant = () => {
     if (!product.variants || product.variants.length === 0) return undefined;
+    // Only normalize size if a size is actually selected
     const normalizedSize = selectedSize && selectedSize.toLowerCase() === 'free size' ? undefined : selectedSize;
     return product.variants.find(v => {
       const colorMatch = selectedColor ? v.color === selectedColor : true;
-      const sizeMatch = normalizedSize ? v.size === normalizedSize : true;
+      // If no size is selected (product has no sizes), match any size
+      const sizeMatch = selectedSize ? (normalizedSize ? v.size === normalizedSize : true) : true;
       return colorMatch && sizeMatch;
     });
   };
@@ -350,23 +379,8 @@ const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Hero Banner Section */}
-      <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-          <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4">
-              Premium Quality Products
-            </h1>
-            <p className="text-base sm:text-lg lg:text-xl text-amber-100 max-w-2xl mx-auto">
-              Discover our curated collection of authentic, high-quality products crafted with traditional excellence and modern style.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
           <button onClick={() => navigate('/')} className="hover:text-amber-600 transition-colors">Home</button>
           <span>/</span>
@@ -376,7 +390,7 @@ const ProductDetailPage: React.FC = () => {
         </nav>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4 sm:pb-6 lg:pb-8 relative">
         <div className="grid grid-cols-1 lg:grid-cols-1 gap-4 sm:gap-6 lg:gap-8">
           {/* Main Content */}
           <div className="w-full">
@@ -434,26 +448,29 @@ const ProductDetailPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Thumbnail Images */}
-              {product.images.length > 1 && (
+              {/* Thumbnail Images - Show only non-swatch images */}
+              {galleryImages.length > 1 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
-                  {product.images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedImage(index)}
-                      className={`relative rounded-lg overflow-hidden transition-all duration-200 ${
-                        selectedImage === index
-                          ? 'ring-2 ring-amber-500 ring-offset-2'
-                          : 'hover:opacity-80'
-                      }`}
-                    >
-                      <img
-                        src={image}
-                        alt={`${product.name} view ${index + 1}`}
-                        className="w-full h-16 sm:h-20 object-cover"
-                      />
-                    </button>
-                  ))}
+                  {galleryImages.map((image, galleryIndex) => {
+                    const originalIndex = galleryToOriginalIndex(galleryIndex);
+                    return (
+                      <button
+                        key={galleryIndex}
+                        onClick={() => setSelectedImage(originalIndex)}
+                        className={`relative rounded-lg overflow-hidden transition-all duration-200 ${
+                          selectedImage === originalIndex
+                            ? 'ring-2 ring-amber-500 ring-offset-2'
+                            : 'hover:opacity-80'
+                        }`}
+                      >
+                        <img
+                          src={image}
+                          alt={`${product.name} view ${galleryIndex + 1}`}
+                          className="w-full h-16 sm:h-20 object-cover"
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
@@ -604,7 +621,7 @@ const ProductDetailPage: React.FC = () => {
                       <span className="text-base sm:text-lg lg:text-xl text-gray-500 line-through">
                         ₹{product.originalPrice.toLocaleString()}
                       </span>
-                      <span className="bg-gradient-to-r from-red-100 to-red-50 text-red-700 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium border border-red-200">
+                      <span className="bg-gradient-to-r from-red-100 to-red-50 text-red-700 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border border-red-200">
                         Save ₹{(product.originalPrice - product.price).toLocaleString()}
                       </span>
                     </>
@@ -612,16 +629,16 @@ const ProductDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Size Selection */}
-              {sizes.length > 0 && (
+              {/* Size Selection - Only show if sizes are defined and not empty */}
+              {sizes.length > 0 && sizes.some(size => size && size.trim() !== '') && (
                 <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Size</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2 sm:mb-3">Size</h3>
                   <div className="flex flex-wrap gap-2">
                     {sizes.map(size => (
                       <button
                         key={size}
                         onClick={() => setSelectedSize(size!)}
-                        className={`px-3 sm:px-4 py-2 sm:py-2 text-sm sm:text-base border rounded transition-colors ${
+                        className={`px-3 sm:px-4 py-2 sm:py-2 text-sm border rounded transition-colors ${
                           selectedSize === size
                             ? 'border-amber-500 bg-amber-50 text-amber-700'
                             : 'border-gray-300 hover:border-gray-400'
@@ -638,10 +655,10 @@ const ProductDetailPage: React.FC = () => {
               {colors.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Color</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">Color</h3>
                     <span className="text-xs text-gray-500 italic">(Select Here)</span>
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-3 max-w-md">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4 max-w-lg">
                     {colors.map(color => {
                       // Find the variant for this color to check for swatch image
                       const colorVariant = product.variants?.find(v => v.color === color);
@@ -732,47 +749,50 @@ const ProductDetailPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Quantity */}
-              <div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Quantity</h3>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-12 h-12 sm:w-11 sm:h-11 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg sm:text-base lg:text-base"
-                  >
-                    -
-                  </button>
-                  <span className="w-12 text-center font-medium text-lg sm:text-base lg:text-base">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-12 h-12 sm:w-11 sm:h-11 lg:w-10 lg:h-10 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-lg sm:text-base lg:text-base"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
+              {/* Quantity and Action Buttons - Side by Side */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  {/* Quantity */}
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-gray-900 whitespace-nowrap">Qty:</h3>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center font-medium text-sm">{quantity}</span>
+                      <button
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex flex-col gap-3">
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={!canAddToCart || isAdding}
-                    className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 sm:px-6 py-3 sm:py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
-                  >
-                    <ShoppingBag size={18} className="sm:w-5 sm:h-5" />
-                    {isAdding ? 'Adding...' : 'Add to Cart'}
-                  </button>
+                  {/* Action Buttons - Side by Side */}
+                  <div className="flex gap-2 flex-1">
+                    {/* Add to Cart Button */}
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={!canAddToCart || isAdding}
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
+                    >
+                      <ShoppingBag size={16} />
+                      {isAdding ? 'Adding...' : 'Add to Cart'}
+                    </button>
 
-                  {/* Buy Now Button */}
-                  <button
-                    onClick={handleBuyNow}
-                    disabled={!canAddToCart}
-                    className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 sm:px-6 py-3 sm:py-4 lg:py-3 rounded-xl font-medium transition-colors duration-200 text-sm sm:text-base"
-                  >
-                    Buy Now
-                  </button>
+                    {/* Buy Now Button */}
+                    <button
+                      onClick={handleBuyNow}
+                      disabled={!canAddToCart}
+                      className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm"
+                    >
+                      Buy Now
+                    </button>
+                  </div>
                 </div>
               </div>
 

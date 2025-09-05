@@ -52,18 +52,6 @@ const ContactPage: React.FC = () => {
         <meta name="description" content="Get in touch with Nirchal's customer service team for any questions or support." />
       </Helmet>
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white py-12 md:py-16">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative container mx-auto px-4 text-center">
-          <MapPin className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4" />
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Contact Us</h1>
-          <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
-            We're here to help! Reach out for support, feedback, or business inquiries.
-          </p>
-        </div>
-      </section>
-
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           {/* Contact Info Cards */}

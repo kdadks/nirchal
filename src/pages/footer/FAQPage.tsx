@@ -114,10 +114,8 @@ const FAQPage: React.FC = () => {
 
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">
-          {/* Hero Section */}
-          <section className="bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white rounded-xl shadow-lg p-6 md:p-8 mb-8 md:mb-10 text-center">
-            <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Frequently Asked Questions</h1>
-            <p className="text-lg md:text-xl text-amber-100 mb-6">Find answers to common questions about our products, services, and policies</p>
+          {/* Search and Filter Section */}
+          <section className="mb-8 md:mb-10">
             {/* Search Bar */}
             <div className="relative max-w-xl mx-auto mb-4">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 md:w-5 md:h-5" />
