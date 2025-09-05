@@ -33,7 +33,7 @@ const FeaturedCategories: React.FC = () => {
           {featuredCategories.map((category) => (
             <Link 
               key={category.id}
-              to={`/products?category=${category.slug || category.name}`}
+              to={`/category/${category.slug || category.name}`}
               className="group block"
             >
               <div className="relative overflow-hidden rounded-lg shadow-md">
