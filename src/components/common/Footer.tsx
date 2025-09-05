@@ -215,7 +215,7 @@ const Footer: React.FC = () => {
               {categories.slice(0, 6).map((category) => (
                 <li key={category.id}>
                   <Link 
-                    to={`/products?category=${category.slug}`} 
+                    to={`/category/${category.slug}`} 
                     className="text-gray-300 hover:text-accent-400 transition-colors"
                   >
                     {category.name}

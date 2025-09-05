@@ -49,7 +49,7 @@ const Header: React.FC = () => {
             {categories.slice(0, 4).map(category => (
               <Link 
                 key={category.id}
-                to={`/products?category=${category.slug || category.name}`}
+                to={`/category/${category.slug || category.name}`}
                 className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
               >
                 {category.name}
@@ -160,7 +160,7 @@ const Header: React.FC = () => {
               {categories.map(category => (
                 <Link 
                   key={category.id}
-                  to={`/products?category=${category.slug || category.name}`}
+                  to={`/category/${category.slug || category.name}`}
                   className="py-3 border-b border-gray-100 text-gray-700"
                   onClick={() => setMobileMenuOpen(false)}
                 >
