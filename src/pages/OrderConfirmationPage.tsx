@@ -10,15 +10,23 @@ const OrderConfirmationPage: React.FC = () => {
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
   const { orderNumber, email, tempPassword } = useMemo(() => {
-    const on = sessionStorage.getItem('last_order_number') || '';
-    const em = sessionStorage.getItem('last_order_email') || '';
-    const tp = sessionStorage.getItem('new_customer_temp_password') || '';
+    // Check multiple times to ensure we catch any delayed updates
+    const checkStorage = () => {
+      const on = sessionStorage.getItem('last_order_number') || '';
+      const em = sessionStorage.getItem('last_order_email') || '';
+      const tp = sessionStorage.getItem('new_customer_temp_password') || '';
+      return { on, em, tp };
+    };
+    
+    const { on, em, tp } = checkStorage();
     
     console.log('OrderConfirmationPage - sessionStorage values:', {
       orderNumber: on,
       email: em,
       tempPassword: tp,
-      hasTempPassword: !!tp
+      hasTempPassword: !!tp,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
     });
     
     return { orderNumber: on, email: em, tempPassword: tp };
@@ -26,23 +34,38 @@ const OrderConfirmationPage: React.FC = () => {
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
-    console.log('OrderConfirmationPage - redirect check:', {
-      orderNumber,
-      hasOrderNumber: !!orderNumber,
-      orderNumberLength: orderNumber?.length,
-      location: window.location.href,
-      sessionStorageKeys: Object.keys(sessionStorage)
-    });
+    // Add a small delay to ensure sessionStorage is fully updated
+    const checkRedirect = () => {
+      // Re-check sessionStorage in case it was updated after initial load
+      const currentOrderNumber = sessionStorage.getItem('last_order_number');
+      const currentEmail = sessionStorage.getItem('last_order_email');
+      
+      console.log('OrderConfirmationPage - redirect check:', {
+        orderNumber: currentOrderNumber,
+        email: currentEmail,
+        hasOrderNumber: !!currentOrderNumber,
+        orderNumberLength: currentOrderNumber?.length,
+        location: window.location.href,
+        sessionStorageKeys: Object.keys(sessionStorage),
+        allSessionStorage: Object.fromEntries(Object.keys(sessionStorage).map(key => [key, sessionStorage.getItem(key)]))
+      });
+      
+      if (!currentOrderNumber) {
+        console.log('OrderConfirmationPage - No order number found, redirecting to cart');
+        setShouldRedirect(true);
+      } else {
+        console.log('OrderConfirmationPage - Order number found, staying on confirmation page');
+        setShouldRedirect(false);
+      }
+      setHasCheckedRedirect(true);
+    };
     
-    if (!orderNumber) {
-      console.log('OrderConfirmationPage - No order number found, redirecting to cart');
-      setShouldRedirect(true);
-    } else {
-      console.log('OrderConfirmationPage - Order number found, staying on confirmation page');
-      setShouldRedirect(false);
-    }
-    setHasCheckedRedirect(true);
-  }, [orderNumber]);
+    // Check immediately and also after a short delay
+    checkRedirect();
+    const timeoutId = setTimeout(checkRedirect, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   // Show password change notification for new customers - REMOVED AUTO-MODAL
   // Users will see notification on account page instead
@@ -60,11 +83,19 @@ const OrderConfirmationPage: React.FC = () => {
 
   // Don't render anything until we've checked the redirect condition
   if (!hasCheckedRedirect) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading order confirmation...</p>
+        </div>
+      </div>
+    );
   }
 
-  // Render redirect if needed
+  // Render redirect if needed - but add more context
   if (shouldRedirect) {
+    console.log('OrderConfirmationPage - Redirecting to cart due to missing order number');
     return <Navigate to="/cart" replace />;
   }
 
