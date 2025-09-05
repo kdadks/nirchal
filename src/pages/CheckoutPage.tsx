@@ -683,9 +683,29 @@ const CheckoutPage: React.FC = () => {
     }
     
     // Save basics for confirmation screen
-    if (order?.order_number) sessionStorage.setItem('last_order_number', order.order_number);
-    if (form?.email) sessionStorage.setItem('last_order_email', form.email.trim());
+    console.log('Saving order details to sessionStorage:', {
+      orderNumber: order?.order_number,
+      email: form?.email?.trim()
+    });
     
+    if (order?.order_number) {
+      sessionStorage.setItem('last_order_number', order.order_number);
+      console.log('Saved order number to sessionStorage:', order.order_number);
+    } else {
+      console.error('No order number to save!', order);
+    }
+    
+    if (form?.email) {
+      sessionStorage.setItem('last_order_email', form.email.trim());
+      console.log('Saved email to sessionStorage:', form.email.trim());
+    }
+    
+    // Verify the values were saved
+    console.log('Verification - sessionStorage now contains:', {
+      last_order_number: sessionStorage.getItem('last_order_number'),
+      last_order_email: sessionStorage.getItem('last_order_email')
+    });
+
     navigate('/order-confirmation');
     
     // Clear cart AFTER navigation to avoid redirect race condition

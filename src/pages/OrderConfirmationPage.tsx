@@ -26,9 +26,19 @@ const OrderConfirmationPage: React.FC = () => {
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
+    console.log('OrderConfirmationPage - redirect check:', {
+      orderNumber,
+      hasOrderNumber: !!orderNumber,
+      orderNumberLength: orderNumber?.length,
+      location: window.location.href,
+      sessionStorageKeys: Object.keys(sessionStorage)
+    });
+    
     if (!orderNumber) {
+      console.log('OrderConfirmationPage - No order number found, redirecting to cart');
       setShouldRedirect(true);
     } else {
+      console.log('OrderConfirmationPage - Order number found, staying on confirmation page');
       setShouldRedirect(false);
     }
     setHasCheckedRedirect(true);
