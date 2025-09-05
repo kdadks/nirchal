@@ -3,12 +3,13 @@ import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useUserReviews } from '../hooks/useUserReviews';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../config/supabase';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 import AddressModal from '../components/account/AddressModal';
 import EditProfileModal from '../components/account/EditProfileModal';
 import OrderDetailsModal from '../components/account/OrderDetailsModal';
+import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 import { 
   Heart, 
   ShoppingBag, 
@@ -21,7 +22,8 @@ import {
   Edit2, 
   Trash2,
   AlertTriangle,
-  Star
+  Star,
+  LogIn
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDisplayDate } from '../utils/formatDate';
@@ -62,6 +64,7 @@ const AccountPage: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressRow | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<number | null>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -255,8 +258,43 @@ const AccountPage: React.FC = () => {
     // through the refreshCustomer method in CustomerAuthContext
   };
 
+  // Show login prompt instead of redirecting for Track Order functionality
   if (!customer && import.meta.env.PROD) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <LogIn className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Access Required</h2>
+            <p className="text-gray-600 mb-6">
+              Please sign in to access your account, track orders, and manage your profile.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+              >
+                Sign In / Register
+              </button>
+              <Link
+                to="/"
+                className="block w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Continue Shopping
+              </Link>
+            </div>
+          </div>
+        </div>
+        
+        {/* Auth Modal */}
+        <CustomerAuthModal 
+          open={showAuthModal} 
+          onClose={() => setShowAuthModal(false)} 
+        />
+      </div>
+    );
   }
 
   const sidebarItems = [
@@ -267,10 +305,6 @@ const AccountPage: React.FC = () => {
     { id: 'addresses' as const, label: 'Addresses', icon: MapPin },
     { id: 'settings' as const, label: 'Settings', icon: Settings },
   ];
-
-  if (!customer && import.meta.env.PROD) {
-    return <Navigate to="/" replace />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

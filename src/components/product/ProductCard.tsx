@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
@@ -20,6 +20,30 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [imageSrc, setImageSrc] = React.useState(product.images[0] || '/placeholder-product.jpg');
   const [imageError, setImageError] = React.useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Intersection Observer for better lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '50px', // Start loading 50px before the card comes into view
+        threshold: 0.1
+      }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   const getDefaultAdjustedPrice = () => {
     if (!product.variants || product.variants.length === 0) return product.price;
@@ -94,17 +118,31 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <>
-      <div className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200 h-auto flex flex-col">
+      <div 
+        ref={cardRef}
+        className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200 h-auto flex flex-col"
+      >
         <Link to={`/products/${product.slug}`} className="flex-1 flex flex-col">
           {/* Image Container */}
           <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 flex-shrink-0">
-            <img
-              src={imageSrc}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              onError={handleImageError}
-              loading="lazy"
-            />
+            {isInView ? (
+              <img
+                src={imageSrc}
+                srcSet={`${imageSrc} 1x, ${imageSrc}?w=800&q=80 2x`}
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 product-image hw-accelerate"
+                onError={handleImageError}
+                loading="lazy"
+                style={{
+                  imageRendering: 'auto',
+                  filter: 'contrast(1.02) saturate(1.01)',
+                }}
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
+              </div>
+            )}
             
             {/* Stock Status Badge */}
             {product.stockStatus === 'Out of Stock' && (

@@ -158,17 +158,19 @@ const HeroCarousel: React.FC = () => {
       <button
         onClick={prevSlide}
         disabled={isTransitioning}
-        className="absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 lg:w-14 lg:h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+        className="absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 lg:w-14 lg:h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group retina-button hw-accelerate"
+        style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
       >
-        <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform duration-300" />
+        <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform duration-300 lucide" style={{ shapeRendering: 'geometricPrecision' }} />
       </button>
 
       <button
         onClick={nextSlide}
         disabled={isTransitioning}
-        className="absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 lg:w-14 lg:h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+        className="absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 lg:w-14 lg:h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/20 hover:scale-110 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group retina-button hw-accelerate"
+        style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
       >
-        <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
+        <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform duration-300 lucide" style={{ shapeRendering: 'geometricPrecision' }} />
       </button>
 
       {/* Slide Indicators */}

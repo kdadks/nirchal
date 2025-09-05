@@ -7,6 +7,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Retina Display Optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  * {
+    /* Enhanced text rendering for retina displays */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-variant-ligatures: common-ligatures;
+    font-feature-settings: "liga" 1, "calt" 1, "kern" 1;
+  }
+  
+  /* Sharp image rendering */
+  img, svg, canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  /* Enhanced contrast and sharpness */
+  .retina-enhance {
+    filter: contrast(1.1) saturate(1.05) brightness(1.02);
+  }
+}
+
+/* Universal retina optimizations */
+* {
+  /* Improved text rendering on all displays */
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: optimizeSpeed;
+}
+
 /* Prevent horizontal scroll on mobile */
 html, body {
   overflow-x: hidden;
@@ -558,4 +591,86 @@ body {
   white-space: nowrap;
   font-size: 1rem;       /* text-sm */
   color: #111827;        /* text-gray-900 */
+}
+
+/* =============================================
+   RETINA DISPLAY ENHANCEMENTS
+   ============================================= */
+
+/* High-DPI image optimization */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi), (min-resolution: 2dppx) {
+  /* Enhanced image sharpness and color vibrancy */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    filter: contrast(1.05) saturate(1.03) brightness(1.01);
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* SVG icon optimization */
+  svg {
+    shape-rendering: geometricPrecision;
+    text-rendering: geometricPrecision;
+    image-rendering: -webkit-optimize-contrast;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+  
+  /* Text sharpening for retina */
+  h1, h2, h3, h4, h5, h6, p, span, a, button, label {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "liga" 1, "calt" 1, "kern" 1;
+  }
+}
+
+/* Product image enhancements */
+.product-image {
+  image-rendering: auto;
+  transform: translateZ(0);
+  will-change: transform;
+  transition: transform 0.3s ease-in-out, filter 0.3s ease-in-out;
+}
+
+.product-image:hover {
+  filter: contrast(1.08) saturate(1.05) brightness(1.02);
+}
+
+/* Retina-optimized button styling */
+.retina-button {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Enhanced icon sharpness */
+.lucide, .icon {
+  shape-rendering: geometricPrecision;
+  fill-rule: evenodd;
+  clip-rule: evenodd;
+  stroke-linejoin: round;
+  stroke-miterlimit: 2;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  img {
+    filter: contrast(1.2) saturate(1.1);
+  }
+  
+  text, h1, h2, h3, h4, h5, h6, p, span, a {
+    font-weight: 500;
+  }
+}
+
+/* Force hardware acceleration for smooth rendering */
+.hw-accelerate {
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
 }

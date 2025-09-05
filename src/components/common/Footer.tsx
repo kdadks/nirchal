@@ -168,9 +168,10 @@ const Footer: React.FC = () => {
                       href={socialLinks.instagram} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="bg-gray-800 p-3 rounded-full hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-110"
+                      className="bg-gray-800 p-3 rounded-full hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-110 retina-button hw-accelerate"
+                      style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
                     >
-                      <Instagram size={20} />
+                      <Instagram size={20} className="lucide" style={{ shapeRendering: 'geometricPrecision' }} />
                     </a>
                   )}
                   {socialLinks.facebook && (
@@ -178,9 +179,10 @@ const Footer: React.FC = () => {
                       href={socialLinks.facebook} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="bg-gray-800 p-3 rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-110"
+                      className="bg-gray-800 p-3 rounded-full hover:bg-blue-600 transition-all duration-300 transform hover:scale-110 retina-button hw-accelerate"
+                      style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
                     >
-                      <Facebook size={20} />
+                      <Facebook size={20} className="lucide" style={{ shapeRendering: 'geometricPrecision' }} />
                     </a>
                   )}
                   {socialLinks.twitter && (
@@ -188,9 +190,10 @@ const Footer: React.FC = () => {
                       href={socialLinks.twitter} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="bg-gray-800 p-3 rounded-full hover:bg-blue-400 transition-all duration-300 transform hover:scale-110"
+                      className="bg-gray-800 p-3 rounded-full hover:bg-blue-400 transition-all duration-300 transform hover:scale-110 retina-button hw-accelerate"
+                      style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
                     >
-                      <Twitter size={20} />
+                      <Twitter size={20} className="lucide" style={{ shapeRendering: 'geometricPrecision' }} />
                     </a>
                   )}
                   {socialLinks.youtube && (
@@ -198,9 +201,10 @@ const Footer: React.FC = () => {
                       href={socialLinks.youtube} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="bg-gray-800 p-3 rounded-full hover:bg-red-600 transition-all duration-300 transform hover:scale-110"
+                      className="bg-gray-800 p-3 rounded-full hover:bg-red-600 transition-all duration-300 transform hover:scale-110 retina-button hw-accelerate"
+                      style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
                     >
-                      <Youtube size={20} />
+                      <Youtube size={20} className="lucide" style={{ shapeRendering: 'geometricPrecision' }} />
                     </a>
                   )}
                 </div>
@@ -294,9 +298,9 @@ const Footer: React.FC = () => {
         {/* Trust Badges */}
         <div className="mt-12 pt-8 border-t border-gray-800">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="flex items-center space-x-3 text-gray-300">
-              <div className="bg-gradient-to-r from-green-500 to-green-600 p-2 rounded-full">
-                <Truck size={16} className="text-white" />
+            <div className="flex items-center space-x-3 text-gray-300 hw-accelerate" style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
+              <div className="bg-gradient-to-r from-green-500 to-green-600 p-2 rounded-full retina-button">
+                <Truck size={16} className="text-white lucide" style={{ shapeRendering: 'geometricPrecision' }} />
               </div>
               <div>
                 <p className="text-sm font-semibold">Free Shipping</p>
@@ -304,9 +308,9 @@ const Footer: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-3 text-gray-300">
-              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2 rounded-full">
-                <Shield size={16} className="text-white" />
+            <div className="flex items-center space-x-3 text-gray-300 hw-accelerate" style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
+              <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2 rounded-full retina-button">
+                <Shield size={16} className="text-white lucide" style={{ shapeRendering: 'geometricPrecision' }} />
               </div>
               <div>
                 <p className="text-sm font-semibold">Secure Payment</p>
@@ -314,9 +318,9 @@ const Footer: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-3 text-gray-300">
-              <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-2 rounded-full">
-                <RefreshCw size={16} className="text-white" />
+            <div className="flex items-center space-x-3 text-gray-300 hw-accelerate" style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
+              <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-2 rounded-full retina-button">
+                <RefreshCw size={16} className="text-white lucide" style={{ shapeRendering: 'geometricPrecision' }} />
               </div>
               <div>
                 <p className="text-sm font-semibold">Easy Returns</p>
@@ -324,9 +328,9 @@ const Footer: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-3 text-gray-300">
-              <div className="bg-gradient-to-r from-red-500 to-red-600 p-2 rounded-full">
-                <Heart size={16} className="text-white" />
+            <div className="flex items-center space-x-3 text-gray-300 hw-accelerate" style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}>
+              <div className="bg-gradient-to-r from-red-500 to-red-600 p-2 rounded-full retina-button">
+                <Heart size={16} className="text-white lucide" style={{ shapeRendering: 'geometricPrecision' }} />
               </div>
               <div>
                 <p className="text-sm font-semibold">Made with Love</p>
