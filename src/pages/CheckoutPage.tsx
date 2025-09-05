@@ -433,6 +433,20 @@ const CheckoutPage: React.FC = () => {
                 });
 
                 if (verificationResult.verified) {
+                  // Payment successful - send payment success email first
+                  try {
+                    await transactionalEmailService.sendPaymentSuccessEmail({
+                      customer_name: `${form.firstName} ${form.lastName}`,
+                      customer_email: form.email,
+                      order_number: order.order_number,
+                      amount: finalTotal,
+                      payment_id: response.razorpay_payment_id
+                    });
+                    console.log('Payment success email sent');
+                  } catch (emailError) {
+                    console.error('Failed to send payment success email:', emailError);
+                  }
+                  
                   // Payment successful - proceed with post-order actions
                   await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
                 } else {
@@ -440,13 +454,43 @@ const CheckoutPage: React.FC = () => {
                 }
               } catch (paymentError) {
                 console.error('Payment verification error:', paymentError);
+                
+                // Send payment failure email
+                try {
+                  await transactionalEmailService.sendPaymentFailureEmail({
+                    customer_name: `${form.firstName} ${form.lastName}`,
+                    customer_email: form.email,
+                    order_number: order.order_number,
+                    amount: finalTotal,
+                    error_reason: paymentError instanceof Error ? paymentError.message : 'Payment verification failed'
+                  });
+                  console.log('Payment failure email sent');
+                } catch (emailError) {
+                  console.error('Failed to send payment failure email:', emailError);
+                }
+                
                 toast.error('Payment verification failed. Please contact support.');
                 setIsSubmitting(false);
               }
             },
             modal: {
-              ondismiss: () => {
-                console.log('Razorpay checkout dismissed');
+              ondismiss: async () => {
+                console.log('Razorpay checkout dismissed - payment cancelled by user');
+                
+                // Send payment failure email for cancelled payments
+                try {
+                  await transactionalEmailService.sendPaymentFailureEmail({
+                    customer_name: `${form.firstName} ${form.lastName}`,
+                    customer_email: form.email,
+                    order_number: order.order_number,
+                    amount: finalTotal,
+                    error_reason: 'Payment cancelled by user'
+                  });
+                  console.log('Payment cancellation email sent');
+                } catch (emailError) {
+                  console.error('Failed to send payment cancellation email:', emailError);
+                }
+                
                 setIsSubmitting(false);
               }
             }
@@ -457,6 +501,21 @@ const CheckoutPage: React.FC = () => {
 
         } catch (razorpayError) {
           console.error('Razorpay error:', razorpayError);
+          
+          // Send payment failure email for Razorpay initialization errors
+          try {
+            await transactionalEmailService.sendPaymentFailureEmail({
+              customer_name: `${form.firstName} ${form.lastName}`,
+              customer_email: form.email,
+              order_number: order.order_number,
+              amount: finalTotal,
+              error_reason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed'
+            });
+            console.log('Payment initialization failure email sent');
+          } catch (emailError) {
+            console.error('Failed to send payment initialization failure email:', emailError);
+          }
+          
           toast.error('Payment initialization failed. Please try again.');
           throw razorpayError;
         }

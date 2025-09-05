@@ -265,3 +265,65 @@ export const outlookCompatiblePasswordChangeEmail = (customerName: string, websi
     websiteUrl
   });
 };
+
+export const outlookCompatiblePaymentSuccessEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  amount: string, 
+  paymentId: string,
+  websiteUrl: string
+) => {
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Payment Successful',
+    headerText: '✅ Payment Confirmed',
+    subHeaderText: `Payment received for order ${orderNumber}`,
+    customerName,
+    content: [
+      `We're happy to confirm that your payment has been successfully processed!`,
+      `<strong>Order Number:</strong> ${orderNumber}`,
+      `<strong>Amount Paid:</strong> ₹${amount}`,
+      `<strong>Payment ID:</strong> ${paymentId}`,
+      `<strong>Payment Status:</strong> <span style="color: #10b981; font-weight: bold;">Successful</span>`,
+      '',
+      'Your order is now being processed and you should receive it within 5-7 business days.',
+      'We\'ll send you tracking information once your order ships.'
+    ],
+    ctaText: '📦 Track Your Order',
+    ctaUrl: `${websiteUrl}/myaccount/orders`,
+    footerText: 'Thank you for shopping with us!',
+    websiteUrl
+  });
+};
+
+export const outlookCompatiblePaymentFailedEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  amount: string, 
+  errorReason: string,
+  websiteUrl: string
+) => {
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Payment Failed',
+    headerText: '❌ Payment Could Not Be Processed',
+    subHeaderText: `Payment failed for order ${orderNumber}`,
+    customerName,
+    content: [
+      `We're sorry, but we couldn't process your payment for the following order:`,
+      `<strong>Order Number:</strong> ${orderNumber}`,
+      `<strong>Amount:</strong> ₹${amount}`,
+      `<strong>Payment Status:</strong> <span style="color: #ef4444; font-weight: bold;">Failed</span>`,
+      `<strong>Reason:</strong> ${errorReason}`,
+      '',
+      '<strong>What happens next?</strong>',
+      '• Your order has been placed but is pending payment',
+      '• No amount has been charged to your account',
+      '• You can retry payment or choose a different payment method',
+      '',
+      'Please try again or contact our support team if you continue to experience issues.'
+    ],
+    ctaText: '🔄 Retry Payment',
+    ctaUrl: `${websiteUrl}/myaccount/orders`,
+    footerText: 'Need help? Contact our support team',
+    websiteUrl
+  });
+};
