@@ -3,7 +3,7 @@ import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useUserReviews } from '../hooks/useUserReviews';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { supabase } from '../config/supabase';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 import AddressModal from '../components/account/AddressModal';
@@ -68,6 +68,16 @@ const AccountPage: React.FC = () => {
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings'>('profile');
+  const location = useLocation();
+
+  // Check URL parameters for tab selection
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['profile', 'orders', 'wishlist', 'reviews', 'addresses', 'settings'].includes(tabParam)) {
+      setActiveTab(tabParam as 'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings');
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const load = async () => {
