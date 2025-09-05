@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { SecurityUtils } from '../../utils/securityUtils';
 
 interface SecurePaymentFormProps {
-  paymentMethod: 'cod' | 'online' | 'upi' | 'razorpay';
-  onPaymentMethodChange: (method: 'cod' | 'online' | 'upi' | 'razorpay') => void;
+  paymentMethod: 'razorpay';
+  onPaymentMethodChange: (method: 'razorpay') => void;
 }
 
 /**
@@ -54,7 +54,7 @@ const SecurePaymentForm: React.FC<SecurePaymentFormProps> = ({
   };
 
   const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const method = e.target.value as 'cod' | 'online' | 'upi' | 'razorpay';
+    const method = e.target.value as 'razorpay';
     
     // Validate method selection for security
     if (method === 'razorpay' && !validatePaymentEnvironment()) {
@@ -71,10 +71,7 @@ const SecurePaymentForm: React.FC<SecurePaymentFormProps> = ({
   return (
     <div className="space-y-4">
       {[
-        { value: 'cod', label: 'Cash on Delivery', desc: 'Pay when you receive your order', icon: '💵' },
-        { value: 'razorpay', label: 'Credit/Debit Card & UPI', desc: 'Secure payment via Razorpay', icon: '💳' },
-        { value: 'online', label: 'Other Online Payment', desc: 'Alternative payment methods', icon: '🌐' },
-        { value: 'upi', label: 'Direct UPI', desc: 'Pay using UPI apps directly', icon: '📱' }
+        { value: 'razorpay', label: 'Credit/Debit Card & UPI', desc: 'Secure payment via Razorpay', icon: '💳' }
       ].map((method) => (
         <label key={method.value} className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
           paymentMethod === method.value

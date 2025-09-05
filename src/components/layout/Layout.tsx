@@ -78,10 +78,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-accent-400 rounded-full animate-pulse"></div>
               </div>
               <div className="flex flex-col">
-                <span className="font-display text-3xl font-bold bg-gradient-to-r from-primary-700 via-accent-600 to-secondary-600 bg-clip-text text-transparent">
+                <span className="font-display text-3xl font-bold bg-gradient-to-r from-primary-700 via-accent-600 to-secondary-600 bg-clip-text text-transparent hw-accelerate" style={{ 
+                  WebkitFontSmoothing: 'antialiased',
+                  MozOsxFontSmoothing: 'grayscale',
+                  textRendering: 'optimizeLegibility'
+                }}>
                   Nirchal
                 </span>
-                <span className="text-xs font-medium text-primary-600 tracking-widest uppercase -mt-1">
+                <span className="text-xs font-medium text-primary-600 tracking-widest uppercase -mt-1 hw-accelerate" style={{
+                  WebkitFontSmoothing: 'antialiased',
+                  MozOsxFontSmoothing: 'grayscale'
+                }}>
                   Ethnic Heritage
                 </span>
               </div>
@@ -93,7 +100,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="relative font-accent font-medium text-neutral-700 hover:text-primary-700 transition-all duration-300 group py-2"
+                  className="relative font-accent font-medium text-neutral-700 hover:text-primary-700 transition-all duration-300 group py-2 retina-button"
+                  style={{
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale',
+                    textRendering: 'optimizeLegibility'
+                  }}
                 >
                   {link.label}
                   <span className="absolute -bottom-2 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 group-hover:w-full transition-all duration-300 rounded-full"></span>
@@ -119,14 +131,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* User Account */}
               <button 
                 onClick={handleAccountClick}
-                className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+                className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300 retina-button"
               >
                 {customer ? (
-                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold">
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-600 text-white text-xs font-bold hw-accelerate" style={{
+                    WebkitFontSmoothing: 'antialiased',
+                    MozOsxFontSmoothing: 'grayscale'
+                  }}>
                     {customer.first_name?.[0]?.toUpperCase() || 'U'}
                   </span>
                 ) : (
-                  <User size={20} />
+                  <User size={20} className="lucide hw-accelerate" style={{
+                    shapeRendering: 'geometricPrecision'
+                  }} />
                 )}
                 <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100 to-accent-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
               </button>
@@ -138,11 +155,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     signOut();
                     navigate('/');
                   }}
-                  className="group relative p-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300"
+                  className="group relative p-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300 retina-button"
                   title="Logout"
                   aria-label="Logout"
                 >
-                  <LogOut size={20} />
+                  <LogOut size={20} className="lucide hw-accelerate" style={{
+                    shapeRendering: 'geometricPrecision'
+                  }} />
                   <span className="absolute inset-0 rounded-xl bg-red-100/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
                 </button>
               )}
@@ -150,9 +169,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* Cart */}
               <Link 
                 to="/cart" 
-                className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+                className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300 retina-button hw-accelerate"
+                style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
               >
-                <ShoppingBag size={20} />
+                <ShoppingBag size={20} className="lucide" style={{ shapeRendering: 'geometricPrecision' }} />
                 {cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-gradient-to-r from-accent-500 to-secondary-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-lg animate-pulse">
                     {cartItemCount}
@@ -165,10 +185,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Mobile Menu Button */}
             <button
               onClick={toggleMenu}
-              className="lg:hidden flex items-center justify-center w-12 h-12 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+              className="lg:hidden flex items-center justify-center w-12 h-12 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300 retina-button hw-accelerate"
               aria-label="Menu"
+              style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
             >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {isMenuOpen ? <X size={24} className="lucide" style={{ shapeRendering: 'geometricPrecision' }} /> : <Menu size={24} className="lucide" style={{ shapeRendering: 'geometricPrecision' }} />}
             </button>
           </div>
 
