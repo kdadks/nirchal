@@ -45,21 +45,21 @@ const HomePage: React.FC = () => {
                 name: 'Sarees',
                 description: 'Timeless elegance in silk and cotton',
                 image: 'https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=800&h=1000&dpr=1',
-                link: '/products?category=sarees',
+                link: '/category/sarees',
                 badge: 'Traditional'
               },
               {
                 name: 'Lehengas',
                 description: 'Regal designs for special occasions',
                 image: 'https://images.pexels.com/photos/2836486/pexels-photo-2836486.jpeg?auto=compress&cs=tinysrgb&w=800&h=1000&dpr=1',
-                link: '/products?category=lehengas',
+                link: '/category/lehengas',
                 badge: 'Bridal'
               },
               {
                 name: 'Gowns',
                 description: 'Contemporary elegance meets tradition',
                 image: 'https://images.pexels.com/photos/2916814/pexels-photo-2916814.jpeg?auto=compress&cs=tinysrgb&w=800&h=1000&dpr=1',
-                link: '/products?category=gowns',
+                link: '/category/gowns',
                 badge: 'Designer'
               }
             ].map((category) => (

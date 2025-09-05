@@ -1,26 +1,47 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { ShoppingBag, ArrowRight, Filter } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Filter, Grid, List } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
+import { useProductsWithFilters } from '../hooks/useProductsWithFilters';
 import CategoryCard from '../components/category/CategoryCard';
+import ProductCard from '../components/product/ProductCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import Pagination from '../components/common/Pagination';
 
 const CategoryPage = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
-  const { categories, loading, error } = useCategories();
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const productsPerPage = 12;
 
-  // If we have a categoryId, redirect to product listing with category filter
-  useEffect(() => {
-    if (categoryId) {
-      navigate(`/products?category=${categoryId}`);
-    }
-  }, [categoryId, navigate]);
+  // If we have a categoryId, we're showing products for that category
+  const isShowingCategoryProducts = !!categoryId;
+  
+  // Get products for the specific category if categoryId is provided
+  const { 
+    products, 
+    loading: productsLoading, 
+    error: productsError, 
+    totalPages 
+  } = useProductsWithFilters({
+    category: isShowingCategoryProducts ? categoryId : undefined,
+    sortBy: 'newest'
+  }, { page: currentPage, limit: productsPerPage });
+
+  // Find the current category info
+  const currentCategory = categories.find(cat => 
+    (cat as any).slug === categoryId || cat.name.toLowerCase().replace(/\s+/g, '-') === categoryId
+  );
 
   const handleCategoryClick = (categorySlug: string) => {
-    navigate(`/products?category=${categorySlug}`);
+    navigate(`/category/${categorySlug}`);
   };
+
+  const loading = isShowingCategoryProducts ? productsLoading : categoriesLoading;
+  const error = isShowingCategoryProducts ? productsError : categoriesError;
 
   if (loading) {
     return (
@@ -85,8 +106,20 @@ const CategoryPage = () => {
   return (
     <>
       <Helmet>
-        <title>Shop by Categories | Nirchal</title>
-        <meta name="description" content="Browse our complete collection of ethnic wear organized by categories" />
+        <title>
+          {isShowingCategoryProducts 
+            ? `${currentCategory?.name || categoryId} - Shop by Category | Nirchal`
+            : 'Shop by Categories | Nirchal'
+          }
+        </title>
+        <meta 
+          name="description" 
+          content={
+            isShowingCategoryProducts 
+              ? `Browse our complete collection of ${currentCategory?.name || categoryId} ethnic wear`
+              : 'Browse our complete collection of ethnic wear organized by categories'
+          } 
+        />
       </Helmet>
       
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
@@ -95,63 +128,156 @@ const CategoryPage = () => {
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
             <div className="text-center">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Shop by Categories</h1>
-              <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
-                Discover our curated collection organized by style
-              </p>
-              <div className="mt-6 flex items-center justify-center gap-2 text-amber-200">
-                <ShoppingBag className="w-5 h-5" />
-                <span className="text-sm font-medium">
-                  {categories.length} Categories Available
-                </span>
-              </div>
+              {isShowingCategoryProducts ? (
+                <>
+                  <div className="flex items-center justify-center gap-2 text-amber-200 mb-4">
+                    <Link to="/categories" className="hover:text-white transition-colors">Categories</Link>
+                    <ArrowRight className="w-4 h-4" />
+                    <span>{currentCategory?.name || categoryId}</span>
+                  </div>
+                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+                    {currentCategory?.name || categoryId}
+                  </h1>
+                  <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
+                    Discover our beautiful collection of {currentCategory?.name || categoryId}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">Shop by Categories</h1>
+                  <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
+                    Discover our curated collection organized by style
+                  </p>
+                  <div className="mt-6 flex items-center justify-center gap-2 text-amber-200">
+                    <ShoppingBag className="w-5 h-5" />
+                    <span className="text-sm font-medium">
+                      {categories.length} Categories Available
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Categories Grid */}
+        {/* Content Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {categories.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="text-gray-400 mb-4">
-                <ShoppingBag className="w-16 h-16 mx-auto" />
+          {isShowingCategoryProducts ? (
+            /* Products View */
+            <div>
+              {/* View Toggle */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="text-sm text-gray-600">
+                  {products.length} products found
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-amber-100 text-amber-700' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <Grid className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-amber-100 text-amber-700' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <List className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Available</h3>
-              <p className="text-gray-600">
-                Categories are being updated. Please check back soon.
-              </p>
+
+              {/* Products Grid/List */}
+              {products.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="text-gray-400 mb-4">
+                    <ShoppingBag className="w-16 h-16 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Products Found</h3>
+                  <p className="text-gray-600 mb-6">
+                    No products are available in this category at the moment.
+                  </p>
+                  <Link
+                    to="/categories"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300"
+                  >
+                    <ArrowRight className="w-4 h-4 rotate-180" />
+                    Browse Other Categories
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className={viewMode === 'grid' 
+                    ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+                    : "space-y-6"
+                  }>
+                    {products.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="mt-12">
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        itemsPerPage={productsPerPage}
+                        totalItems={products.length}
+                        onPageChange={setCurrentPage}
+                        onItemsPerPageChange={() => {}}
+                        showItemsPerPage={false}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {categories.map((category) => (
-                <CategoryCard 
-                  key={category.id} 
-                  category={category} 
-                  onClick={handleCategoryClick} 
-                />
-              ))}
+            /* Categories View */
+            <div>
+              {categories.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="text-gray-400 mb-4">
+                    <ShoppingBag className="w-16 h-16 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Categories Available</h3>
+                  <p className="text-gray-600">
+                    Categories are being updated. Please check back soon.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {categories.map((category) => (
+                    <CategoryCard 
+                      key={category.id} 
+                      category={category} 
+                      onClick={handleCategoryClick} 
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Call to Action */}
+              <div className="mt-16 text-center">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    Can't Find What You're Looking For?
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    Browse our complete collection to discover all available products
+                  </p>
+                  <Link
+                    to="/products"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    View All Products
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
             </div>
           )}
-
-          {/* Call to Action */}
-          <div className="mt-16 text-center">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-2xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Can't Find What You're Looking For?
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Browse our complete collection to discover all available products
-              </p>
-              <Link
-                to="/products"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-8 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                View All Products
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </>
