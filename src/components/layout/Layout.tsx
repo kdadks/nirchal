@@ -55,8 +55,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigationLinks = [
     { to: '/products', label: 'Collections' },
     { to: '/categories', label: 'Categories' },
-    { to: '/about', label: 'Our Story' },
-    { to: '/contact', label: 'Contact' },
   ];
 
   return (
