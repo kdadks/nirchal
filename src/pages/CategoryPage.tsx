@@ -130,11 +130,6 @@ const CategoryPage = () => {
             <div className="text-center">
               {isShowingCategoryProducts ? (
                 <>
-                  <div className="flex items-center justify-center gap-2 text-amber-200 mb-4">
-                    <Link to="/categories" className="hover:text-white transition-colors">Categories</Link>
-                    <ArrowRight className="w-4 h-4" />
-                    <span>{currentCategory?.name || categoryId}</span>
-                  </div>
                   <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
                     {currentCategory?.name || categoryId}
                   </h1>
@@ -165,6 +160,13 @@ const CategoryPage = () => {
           {isShowingCategoryProducts ? (
             /* Products View */
             <div>
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-2 text-gray-500 mb-6">
+                <Link to="/categories" className="hover:text-amber-600 transition-colors">Categories</Link>
+                <ArrowRight className="w-4 h-4" />
+                <span className="text-gray-700">{currentCategory?.name || categoryId}</span>
+              </div>
+              
               {/* View Toggle */}
               <div className="flex items-center justify-between mb-6">
                 <div className="text-sm text-gray-600">
@@ -189,6 +191,13 @@ const CategoryPage = () => {
               {/* Products Grid/List */}
               {products.length === 0 ? (
                 <div className="text-center py-16">
+                  {/* Breadcrumb */}
+                  <div className="flex items-center justify-center gap-2 text-gray-500 mb-6">
+                    <Link to="/categories" className="hover:text-amber-600 transition-colors">Categories</Link>
+                    <ArrowRight className="w-4 h-4" />
+                    <span className="text-gray-700">{currentCategory?.name || categoryId}</span>
+                  </div>
+                  
                   <div className="text-gray-400 mb-4">
                     <ShoppingBag className="w-16 h-16 mx-auto" />
                   </div>
