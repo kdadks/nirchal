@@ -39,7 +39,7 @@ interface CheckoutForm {
   selectedBillingAddressId?: string;
   billingIsSameAsDelivery: boolean;
   
-  paymentMethod: 'cod' | 'online' | 'upi' | 'razorpay';
+  paymentMethod: 'razorpay';
 }
 
 interface CustomerAddress {
@@ -94,7 +94,7 @@ const CheckoutPage: React.FC = () => {
     selectedBillingAddressId: '',
     billingIsSameAsDelivery: true,
     
-    paymentMethod: 'cod'
+    paymentMethod: 'razorpay'
   });
 
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
@@ -249,6 +249,15 @@ const CheckoutPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before proceeding
+    const formElement = e.target as HTMLFormElement;
+    if (!formElement.checkValidity()) {
+      formElement.reportValidity();
+      setIsSubmitting(false);
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -1419,6 +1428,38 @@ const CheckoutPage: React.FC = () => {
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
+              {/* Additional Place Order Button */}
+              <div className="mb-6">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    // Trigger the form submission
+                    const form = document.querySelector('form');
+                    if (form) {
+                      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    }
+                  }}
+                  className={`w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
+                    isSubmitting
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
+                      Processing Order...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={20} />
+                      Place Order - ₹{finalTotal.toLocaleString()}
+                    </>
+                  )}
+                </button>
+              </div>
+              
               <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 sticky top-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                   <ShoppingBag size={24} className="text-amber-600" />
@@ -1473,7 +1514,7 @@ const CheckoutPage: React.FC = () => {
                 <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
                   <div className="flex items-center gap-3 text-sm text-green-700 bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200">
                     <Shield size={16} />
-                    <span className="font-medium">Secure 256-bit SSL encryption</span>
+                    <span className="font-medium">PCI DSS compliant secure encryption</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
                     <Truck size={16} />

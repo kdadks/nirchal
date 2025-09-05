@@ -405,8 +405,23 @@ const ProductDetailPage: React.FC = () => {
                 {/* Main Image with Click to Open */}
                 <img
                   src={product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
+                  srcSet={`${product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'} 1x, ${product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=2400&q=85'} 2x`}
                   alt={product.name}
-                  className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer"
+                  className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer product-image hw-accelerate"
+                  loading="lazy"
+                  style={{
+                    imageRendering: 'auto',
+                    filter: 'contrast(1.03) saturate(1.02) brightness(1.01)',
+                  }}
+                  onLoad={() => {
+                    // Preload other images in the background
+                    product.images.forEach((img, index) => {
+                      if (index !== selectedImage && index < 3) {
+                        const preloadImg = new Image();
+                        preloadImg.src = img;
+                      }
+                    });
+                  }}
                 />
 
                 {/* Click to Zoom Indicator */}
@@ -465,8 +480,14 @@ const ProductDetailPage: React.FC = () => {
                       >
                         <img
                           src={image}
+                          srcSet={`${image} 1x, ${image}?w=320&q=85 2x`}
                           alt={`${product.name} view ${galleryIndex + 1}`}
-                          className="w-full h-16 sm:h-20 object-cover"
+                          className="w-full h-16 sm:h-20 object-cover product-image hw-accelerate"
+                          loading="lazy"
+                          style={{
+                            imageRendering: 'auto',
+                            filter: 'contrast(1.02) saturate(1.01)',
+                          }}
                         />
                       </button>
                     );
@@ -587,16 +608,18 @@ const ProductDetailPage: React.FC = () => {
                     {/* Wishlist Button */}
                     <button
                       onClick={handleWishlistToggle}
-                      className={`p-2 sm:p-3 lg:p-2 rounded-full border transition-all duration-200 ${
+                      className={`p-2 sm:p-3 lg:p-2 rounded-full border transition-all duration-200 retina-button hw-accelerate ${
                         isInWishlist(product.id)
                           ? 'bg-red-50 border-red-300 text-red-600 hover:bg-red-100'
                           : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'
                       }`}
                       title={isInWishlist(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                      style={{ WebkitFontSmoothing: 'antialiased', MozOsxFontSmoothing: 'grayscale' }}
                     >
                       <Heart
                         size={18}
-                        className={`sm:w-5 sm:h-5 ${isInWishlist(product.id) ? 'fill-current' : ''}`}
+                        className={`sm:w-5 sm:h-5 lucide ${isInWishlist(product.id) ? 'fill-current' : ''}`}
+                        style={{ shapeRendering: 'geometricPrecision' }}
                       />
                     </button>
 
