@@ -2,30 +2,46 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
-// Lazy load components for better performance
-const HomePage = lazy(() => import('../pages/HomePage'));
-const ProductListingPage = lazy(() => import('../pages/ProductListingPage'));
-const ProductDetailPage = lazy(() => import('../pages/ProductDetailPage'));
-const CategoryPage = lazy(() => import('../pages/CategoryPage'));
-const CartPage = lazy(() => import('../pages/CartPage'));
-const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
-const OrderConfirmationPage = lazy(() => import('../pages/OrderConfirmationPage'));
-const AccountPage = lazy(() => import('../pages/AccountPage'));
+// Helper function to handle lazy loading with retry mechanism
+const lazyWithRetry = (componentImport: () => Promise<any>) => {
+  return lazy(() => 
+    componentImport().catch((error) => {
+      console.error('Failed to load component, retrying...', error);
+      // Force a page reload if dynamic import fails completely
+      // This helps with cache/build mismatch issues
+      if (error.message?.includes('Failed to fetch dynamically imported module')) {
+        console.log('Dynamic import failed, reloading page to clear cache...');
+        setTimeout(() => window.location.reload(), 1000);
+      }
+      return componentImport(); // Retry once
+    })
+  );
+};
 
-// Footer Pages - Lazy loaded
-const AboutPage = lazy(() => import('../pages/footer/AboutPage'));
-const SizeGuidePage = lazy(() => import('../pages/footer/SizeGuidePage'));
-const FAQPage = lazy(() => import('../pages/footer/FAQPage'));
-const PrivacyPolicyPage = lazy(() => import('../pages/footer/PrivacyPolicyPage'));
-const ContactPage = lazy(() => import('../pages/footer/ContactPage'));
-const ShippingPage = lazy(() => import('../pages/footer/ShippingPage'));
-const ReturnPolicyPage = lazy(() => import('../pages/footer/ReturnPolicyPage'));
-const TermsPage = lazy(() => import('../pages/footer/TermsPage'));
+// Lazy load components for better performance with error handling
+const HomePage = lazyWithRetry(() => import('../pages/HomePage'));
+const ProductListingPage = lazyWithRetry(() => import('../pages/ProductListingPage'));
+const ProductDetailPage = lazyWithRetry(() => import('../pages/ProductDetailPage'));
+const CategoryPage = lazyWithRetry(() => import('../pages/CategoryPage'));
+const CartPage = lazyWithRetry(() => import('../pages/CartPage'));
+const CheckoutPage = lazyWithRetry(() => import('../pages/CheckoutPage'));
+const OrderConfirmationPage = lazyWithRetry(() => import('../pages/OrderConfirmationPage'));
+const AccountPage = lazyWithRetry(() => import('../pages/AccountPage'));
 
-// Admin Pages - Lazy loaded
-const LoginPage = lazy(() => import('../pages/admin/LoginPage'));
-const AdminRoutes = lazy(() => import('./AdminRoutes'));
-const AuthDebug = lazy(() => import('../pages/AuthDebug'));
+// Footer Pages - Lazy loaded with error handling
+const AboutPage = lazyWithRetry(() => import('../pages/footer/AboutPage'));
+const SizeGuidePage = lazyWithRetry(() => import('../pages/footer/SizeGuidePage'));
+const FAQPage = lazyWithRetry(() => import('../pages/footer/FAQPage'));
+const PrivacyPolicyPage = lazyWithRetry(() => import('../pages/footer/PrivacyPolicyPage'));
+const ContactPage = lazyWithRetry(() => import('../pages/footer/ContactPage'));
+const ShippingPage = lazyWithRetry(() => import('../pages/footer/ShippingPage'));
+const ReturnPolicyPage = lazyWithRetry(() => import('../pages/footer/ReturnPolicyPage'));
+const TermsPage = lazyWithRetry(() => import('../pages/footer/TermsPage'));
+
+// Admin Pages - Lazy loaded with error handling
+const LoginPage = lazyWithRetry(() => import('../pages/admin/LoginPage'));
+const AdminRoutes = lazyWithRetry(() => import('./AdminRoutes'));
+const AuthDebug = lazyWithRetry(() => import('../pages/AuthDebug'));
 
 export const AppRoutes: React.FC = () => {
   return (
