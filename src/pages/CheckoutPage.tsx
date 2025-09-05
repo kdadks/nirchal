@@ -9,6 +9,8 @@ import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile, mar
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 import { transactionalEmailService } from '../services/transactionalEmailService';
 import { useRazorpay } from '../hooks/useRazorpay';
+import PaymentSecurityWrapper from '../components/security/PaymentSecurityWrapper';
+import SecurePaymentForm from '../components/security/SecurePaymentForm';
 
 interface CheckoutForm {
   // Contact Information
@@ -951,23 +953,24 @@ const CheckoutPage: React.FC = () => {
   const finalTotal = total + deliveryCost;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Hero Banner Section */}
-      <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-          <div className="text-center">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-              Secure Checkout
-            </h1>
-            <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
-              Complete your order securely with our trusted checkout process
-            </p>
+    <PaymentSecurityWrapper>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        {/* Hero Banner Section */}
+        <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
+          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+            <div className="text-center">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
+                Secure Checkout
+              </h1>
+              <p className="text-lg md:text-xl text-amber-100 max-w-2xl mx-auto">
+                Complete your order securely with our trusted checkout process
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Back to Cart Link */}
           <div className="mb-8">
@@ -1388,48 +1391,21 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Payment Method */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                      <CreditCard size={20} className="text-amber-600" />
-                      Payment Method
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-4">
-                      {[
-                        { value: 'cod', label: 'Cash on Delivery', desc: 'Pay when you receive your order', icon: '💵' },
-                        { value: 'razorpay', label: 'Credit/Debit Card & UPI', desc: 'Secure payment via Razorpay', icon: '💳' },
-                        { value: 'online', label: 'Other Online Payment', desc: 'Alternative payment methods', icon: '🌐' },
-                        { value: 'upi', label: 'Direct UPI', desc: 'Pay using UPI apps directly', icon: '📱' }
-                      ].map((method) => (
-                        <label key={method.value} className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
-                          form.paymentMethod === method.value
-                            ? 'border-amber-500 bg-amber-50'
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value={method.value}
-                          checked={form.paymentMethod === method.value}
-                          onChange={handleInputChange}
-                          className="w-4 h-4 text-amber-600 border-gray-300 focus:ring-amber-500 focus:ring-2"
-                        />
-                        <div className="ml-4 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{method.icon}</span>
-                            <span className="font-medium text-gray-900">{method.label}</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">{method.desc}</p>
-                        </div>
-                      </label>
-                    ))}
-                    </div>
-                  </div>
-                </div>
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                  <div className="p-6 border-b border-gray-200">
+                                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                                      <CreditCard size={20} className="text-amber-600" />
+                                      Payment Method
+                                    </h2>
+                                  </div>
+                                  
+                                  <div className="p-6">
+                                    <SecurePaymentForm
+                                      paymentMethod={form.paymentMethod}
+                                      onPaymentMethodChange={(method) => setForm(prev => ({ ...prev, paymentMethod: method }))}
+                                    />
+                                  </div>
+                                </div>
 
                 {/* Place Order Button */}
                 <button
@@ -1524,7 +1500,8 @@ const CheckoutPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PaymentSecurityWrapper>
   );
 };
 
