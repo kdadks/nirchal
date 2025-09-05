@@ -60,7 +60,7 @@ const PaymentSecurityWrapper: React.FC<PaymentSecurityWrapperProps> = ({
         }
       }
 
-      // 2. Validate session security
+      // 2. Validate session security (actual violations only)
       const sessionValidation = SecurityUtils.validateSessionSecurity();
       if (!sessionValidation.isSecure) {
         violations.push(...sessionValidation.issues);
@@ -107,15 +107,22 @@ const PaymentSecurityWrapper: React.FC<PaymentSecurityWrapperProps> = ({
         }
       }
 
-      // 4. Validate CSP implementation
+      // 4. Infrastructure security checks (separate from violations)
+      const infrastructureIssues: string[] = [];
+      
+      // Get infrastructure recommendations
+      const infraRecommendations = SecurityUtils.getInfrastructureRecommendations();
+      infrastructureIssues.push(...infraRecommendations);
+      
+      // Validate CSP implementation
       const cspValidation = SecurityUtils.validateCSP();
       if (!cspValidation.hasCSP) {
-        violations.push('Content Security Policy not implemented');
+        infrastructureIssues.push('Content Security Policy not implemented');
       }
 
-      // 5. Check security headers
+      // Check security headers
       const headersCheck = await SecurityUtils.checkSecurityHeaders();
-      violations.push(...headersCheck.recommendations);
+      infrastructureIssues.push(...headersCheck.recommendations);
 
       // Update security state
       setSecurityState({
@@ -124,12 +131,21 @@ const PaymentSecurityWrapper: React.FC<PaymentSecurityWrapperProps> = ({
         sessionValidated: true,
       });
 
-      // Report violations
+      // Report actual violations (not infrastructure issues)
       if (violations.length > 0) {
         violations.forEach(violation => {
           SecurityUtils.auditLog('security_violation', { violation }, 'high');
           onSecurityViolation?.(violation);
         });
+      }
+
+      // Log infrastructure issues only in development or as info level
+      if (infrastructureIssues.length > 0) {
+        if (process.env.NODE_ENV === 'development') {
+          infrastructureIssues.forEach(issue => {
+            SecurityUtils.auditLog('infrastructure_recommendation', { recommendation: issue }, 'low');
+          });
+        }
       }
 
       // Log successful validation

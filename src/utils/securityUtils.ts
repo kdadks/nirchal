@@ -267,20 +267,10 @@ export class SecurityUtils {
       };
     }
     
-    // Check if running over HTTPS (except localhost)
+    // Check if running over HTTPS (except localhost) - this is a real security violation
     if (typeof window !== 'undefined') {
       if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
         issues.push('Session not running over HTTPS');
-      }
-
-      // Check for secure cookie attributes
-      if (!document.cookie.includes('Secure') && window.location.protocol === 'https:') {
-        issues.push('Cookies missing Secure attribute');
-      }
-
-      // Check for HttpOnly flag (can't be checked from client-side, but we note it)
-      if (!document.cookie.includes('HttpOnly')) {
-        issues.push('Consider enabling HttpOnly cookies for session management');
       }
     }
 
@@ -288,6 +278,32 @@ export class SecurityUtils {
       isSecure: issues.length === 0,
       issues
     };
+  }
+
+  /**
+   * Get infrastructure-level security recommendations (not violations)
+   */
+  static getInfrastructureRecommendations(): string[] {
+    const recommendations: string[] = [];
+
+    // Skip in development
+    if (process.env.NODE_ENV === 'development') {
+      return recommendations;
+    }
+
+    if (typeof window !== 'undefined') {
+      // Check for secure cookie attributes - infrastructure level
+      if (!document.cookie.includes('Secure') && window.location.protocol === 'https:') {
+        recommendations.push('Cookies missing Secure attribute');
+      }
+
+      // Check for HttpOnly flag - infrastructure level
+      if (!document.cookie.includes('HttpOnly')) {
+        recommendations.push('Consider enabling HttpOnly cookies for session management');
+      }
+    }
+
+    return recommendations;
   }
 
   /**
@@ -313,10 +329,27 @@ export class SecurityUtils {
       console.groupEnd();
     }
 
-    // In production, this would be sent to a secure audit service
+    // In production, only log actual security violations, not infrastructure recommendations
     if (process.env.NODE_ENV === 'production') {
-      // TODO: Send to audit logging service
-      console.log('[AUDIT]', JSON.stringify(auditEntry));
+      // Filter out infrastructure recommendations that should be handled at hosting level
+      const infrastructureEvents = ['infrastructure_recommendation'];
+      const infrastructureTerms = [
+        'Cookies missing Secure attribute',
+        'Consider enabling HttpOnly cookies',
+        'Content Security Policy not implemented',
+        'Configure Referrer-Policy header'
+      ];
+      
+      const isInfrastructureIssue = infrastructureEvents.includes(event) ||
+        (typeof details === 'object' && details?.violation && 
+         infrastructureTerms.some(term => details.violation.includes(term))) ||
+        (typeof details === 'object' && details?.recommendation && 
+         infrastructureTerms.some(term => details.recommendation.includes(term)));
+      
+      if (!isInfrastructureIssue) {
+        // TODO: Send to audit logging service
+        console.log('[AUDIT]', JSON.stringify(auditEntry));
+      }
     }
   }
 
