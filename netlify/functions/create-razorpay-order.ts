@@ -90,8 +90,6 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
         'razorpay_environment', 
         'razorpay_key_id',
         'razorpay_key_secret',
-        'razorpay_test_key_id',
-        'razorpay_test_key_secret',
         'razorpay_auto_capture'
       ]);
 
@@ -121,12 +119,8 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
 
     // Get appropriate credentials based on environment
     const environment = settings.razorpay_environment || 'test';
-    const keyId = environment === 'test' 
-      ? settings.razorpay_test_key_id 
-      : settings.razorpay_key_id;
-    const keySecret = environment === 'test' 
-      ? settings.razorpay_test_key_secret 
-      : settings.razorpay_key_secret;
+    const keyId = settings.razorpay_key_id;
+    const keySecret = settings.razorpay_key_secret;
 
     if (!keyId || !keySecret) {
       return {
