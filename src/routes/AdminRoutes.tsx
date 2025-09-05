@@ -8,6 +8,7 @@ import VendorsPage from '../pages/admin/VendorsPage';
 import CreateProductPage from '../pages/admin/CreateProductPage';
 import EditProductPage from '../pages/admin/EditProductPage';
 import SettingsPage from '../pages/admin/SettingsPage';
+import SecurityPage from '../pages/admin/SecurityPage';
 import OrdersPage from '../pages/admin/OrdersPage';
 import UsersPage from '../pages/admin/UsersPage';
 import AnalyticsPage from '../pages/admin/AnalyticsPage';
@@ -29,6 +30,7 @@ const AdminRoutes: React.FC = () => {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/security" element={<SecurityPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>

@@ -17,7 +17,8 @@ import {
   Search,
   User,
   RefreshCw,
-  Truck
+  Truck,
+  Shield
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -78,6 +79,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       badge: counts.users?.toString() || '0'
     },
     {
+      name: 'Security',
+      path: '/admin/security',
+      icon: <Shield className="admin-nav-icon" />,
+      badge: null
+    },
+    {
       name: 'Settings',
       path: '/admin/settings',
       icon: <Settings className="admin-nav-icon" />,
@@ -94,6 +101,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     if (path.includes('/orders')) return 'orders';
     if (path.includes('/users')) return 'users';
     if (path.includes('/analytics')) return 'analytics';
+    if (path.includes('/security')) return 'security';
     if (path.includes('/settings')) return 'settings';
     return 'dashboard';
   };
