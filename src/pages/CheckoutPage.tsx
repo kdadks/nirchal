@@ -671,6 +671,23 @@ const CheckoutPage: React.FC = () => {
         console.error('Failed to send order confirmation email:', emailError);
       }
     };
+
+    // Send order notification to support team
+    const sendOrderNotification = async () => {
+      try {
+        await transactionalEmailService.sendOrderNotificationToSupport({
+          order_number: order.order_number,
+          customer_name: `${form.firstName} ${form.lastName}`,
+          customer_email: form.email,
+          total_amount: finalTotal,
+          items_count: items.length,
+          payment_method: form.paymentMethod
+        });
+        console.log('Order notification sent to support team successfully');
+      } catch (emailError) {
+        console.error('Failed to send order notification to support:', emailError);
+      }
+    };
     
     if (tempPassword && shouldSendWelcomeEmail) {
       // New customer with temp password: Send order confirmation after 30 seconds delay
@@ -681,6 +698,9 @@ const CheckoutPage: React.FC = () => {
       console.log('Sending order confirmation email immediately');
       await sendOrderConfirmation();
     }
+
+    // Send order notification to support team (always immediate)
+    await sendOrderNotification();
     
     // Save basics for confirmation screen
     console.log('Saving order details to sessionStorage:', {
@@ -1002,28 +1022,30 @@ const CheckoutPage: React.FC = () => {
 
           {/* Progress Steps */}
           <div className="flex items-center justify-center mb-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-8 py-6">
-              <div className="flex items-center space-x-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-4 sm:px-8 py-4 sm:py-6 w-full max-w-md sm:max-w-none">
+              <div className="flex items-center justify-between sm:justify-center sm:space-x-4">
                 {[
                   { step: 1, label: 'Shipping' },
                   { step: 2, label: 'Payment' },
                   { step: 3, label: 'Review' }
                 ].map((item, index) => (
                   <React.Fragment key={item.step}>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold ${
-                      currentStep >= item.step
-                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {item.step}
+                    <div className="flex flex-col sm:flex-row items-center sm:space-x-2">
+                      <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full font-semibold text-sm ${
+                        currentStep >= item.step
+                          ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white'
+                          : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {item.step}
+                      </div>
+                      <span className={`text-xs sm:text-sm font-medium mt-1 sm:mt-0 ${
+                        currentStep >= item.step ? 'text-gray-900' : 'text-gray-500'
+                      }`}>
+                        {item.label}
+                      </span>
                     </div>
-                    <span className={`text-sm font-medium ${
-                      currentStep >= item.step ? 'text-gray-900' : 'text-gray-500'
-                    }`}>
-                      {item.label}
-                    </span>
                     {index < 2 && (
-                      <div className={`w-12 h-0.5 ${
+                      <div className={`hidden sm:block w-12 h-0.5 ${
                         currentStep > item.step 
                           ? 'bg-gradient-to-r from-amber-600 to-orange-600' 
                           : 'bg-gray-200'
@@ -1451,8 +1473,8 @@ const CheckoutPage: React.FC = () => {
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
-              {/* Additional Place Order Button */}
-              <div className="mb-6">
+              {/* Additional Place Order Button - Hidden on Mobile */}
+              <div className="mb-6 hidden lg:block">
                 <button
                   type="button"
                   disabled={isSubmitting}
