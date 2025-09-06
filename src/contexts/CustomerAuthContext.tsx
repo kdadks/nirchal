@@ -179,6 +179,26 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setCustomer(customerData);
       localStorage.setItem('nirchal_customer', JSON.stringify(customerData));
       
+      // Send signup notification to support team
+      try {
+        await transactionalEmailService.sendSignupNotificationToSupport({
+          customer_name: `${firstName} ${lastName}`,
+          customer_email: email,
+          phone: phone,
+          signup_date: new Date().toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        });
+        console.log('Signup notification sent to support team successfully');
+      } catch (emailError) {
+        console.error('Failed to send signup notification to support:', emailError);
+        // Don't block the signup process if notification fails
+      }
+      
       return { success: true };
     } catch (error) {
       console.error('Sign up error:', error);

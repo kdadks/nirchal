@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingBag, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingBag, ChevronRight, CreditCard } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
@@ -23,6 +23,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
       image: product.images[0],
       size: selectedSize
     });
+  };
+
+  const handleBuyNow = () => {
+    // Add to cart first
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images[0],
+      size: selectedSize
+    });
+    // Navigate to checkout
+    window.location.href = '/checkout';
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,21 +215,33 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            onClick={handleAddToCart}
-            className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-md font-medium hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
-          >
-            <ShoppingBag size={18} />
-            Add to Cart
-          </button>
+        <div className="space-y-4">
+          {/* Primary Actions - Add to Cart & Buy Now */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleAddToCart}
+              className="flex-1 bg-gray-100 text-gray-900 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-300"
+            >
+              <ShoppingBag size={18} />
+              Add to Cart
+            </button>
+            
+            <button
+              onClick={handleBuyNow}
+              className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <CreditCard size={18} />
+              Buy Now
+            </button>
+          </div>
           
+          {/* Secondary Action - Wishlist */}
           <button
             onClick={() => addToWishlist(product.id)}
-            className={`flex-1 py-3 px-6 rounded-md font-medium flex items-center justify-center gap-2 ${
+            className={`w-full py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
               isInWishlist(product.id)
                 ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+                : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
             }`}
           >
             <Heart 
