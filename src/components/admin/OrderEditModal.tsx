@@ -3,6 +3,8 @@ import { X, Package, User, MapPin, Edit2, Lock, Truck } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
 import { useLogisticsPartners } from '../../hooks/useAdmin';
+import StateDropdown from '../common/StateDropdown';
+import CityDropdown from '../common/CityDropdown';
 import toast from 'react-hot-toast';
 
 interface OrderItem {
@@ -349,6 +351,14 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleBillingCityChange = (city: string) => {
+    setFormData(prev => ({ ...prev, billing_city: city }));
+  };
+
+  const handleShippingCityChange = (city: string) => {
+    setFormData(prev => ({ ...prev, shipping_city: city }));
+  };
+
   const isReadOnly = orderDetails?.status === 'shipped' || orderDetails?.status === 'delivered' || orderDetails?.status === 'cancelled';
   const formatCurrency = (amount: number | undefined | null) => {
     if (amount == null) return '₹0';
@@ -498,23 +508,38 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                      <input
-                        type="text"
-                        value={formData.billing_city || ''}
-                        onChange={(e) => handleInputChange('billing_city', e.target.value)}
-                        disabled={isReadOnly}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                      />
+                      {isReadOnly ? (
+                        <input
+                          type="text"
+                          value={formData.billing_city || ''}
+                          readOnly
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                        />
+                      ) : (
+                        <CityDropdown
+                          name="billing_city"
+                          value={formData.billing_city || ''}
+                          onChange={handleBillingCityChange}
+                          selectedState={formData.billing_state || ''}
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                      <input
-                        type="text"
-                        value={formData.billing_state || ''}
-                        onChange={(e) => handleInputChange('billing_state', e.target.value)}
-                        disabled={isReadOnly}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                      />
+                      {isReadOnly ? (
+                        <input
+                          type="text"
+                          value={formData.billing_state || ''}
+                          readOnly
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                        />
+                      ) : (
+                        <StateDropdown
+                          name="billing_state"
+                          value={formData.billing_state || ''}
+                          onChange={(value) => handleInputChange('billing_state', value)}
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
@@ -587,23 +612,38 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                      <input
-                        type="text"
-                        value={formData.shipping_city || ''}
-                        onChange={(e) => handleInputChange('shipping_city', e.target.value)}
-                        disabled={isReadOnly}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                      />
+                      {isReadOnly ? (
+                        <input
+                          type="text"
+                          value={formData.shipping_city || ''}
+                          readOnly
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                        />
+                      ) : (
+                        <CityDropdown
+                          name="shipping_city"
+                          value={formData.shipping_city || ''}
+                          onChange={handleShippingCityChange}
+                          selectedState={formData.shipping_state || ''}
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                      <input
-                        type="text"
-                        value={formData.shipping_state || ''}
-                        onChange={(e) => handleInputChange('shipping_state', e.target.value)}
-                        disabled={isReadOnly}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                      />
+                      {isReadOnly ? (
+                        <input
+                          type="text"
+                          value={formData.shipping_state || ''}
+                          readOnly
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-100"
+                        />
+                      ) : (
+                        <StateDropdown
+                          name="shipping_state"
+                          value={formData.shipping_state || ''}
+                          onChange={(value) => handleInputChange('shipping_state', value)}
+                        />
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
