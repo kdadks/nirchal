@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabaseAdmin } from '../config/supabase';
 import type {
 	Product,
 	Category,
@@ -265,23 +266,28 @@ export const useLogisticsPartners = () => {
 
 	const updateLogisticsPartner = async (id: string, data: Partial<Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>>) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
+		
+		// Use admin client if available, fallback to regular client
+		const client = supabaseAdmin || supabase;
+		const clientType = supabaseAdmin ? 'ADMIN' : 'REGULAR';
+		
 		try {
-			console.log('Updating logistics partner with data:', data);
-			const { data: result, error } = await supabase
+			console.log(`[${clientType}] Updating logistics partner with data:`, data);
+			const { data: result, error } = await client
 				.from('logistics_partners')
 				.update(data)
 				.eq('id', id)
 				.select();
 
 			if (error) {
-				console.error('Supabase error:', error);
+				console.error(`[${clientType}] Supabase error:`, error);
 				throw new Error(`Database error: ${error.message} (Code: ${error.code})`);
 			}
 			
-			console.log('Update successful:', result);
+			console.log(`[${clientType}] Update successful:`, result);
 			await fetchLogisticsPartners();
 		} catch (e) {
-			console.error('Full error details:', e);
+			console.error(`[${clientType}] Full error details:`, e);
 			throw e instanceof Error ? e : new Error('Error updating logistics partner');
 		}
 	};
