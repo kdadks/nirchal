@@ -6,7 +6,8 @@ import {
   outlookCompatibleOrderStatusEmail,
   outlookCompatiblePasswordChangeEmail,
   outlookCompatiblePaymentSuccessEmail,
-  outlookCompatiblePaymentFailedEmail
+  outlookCompatiblePaymentFailedEmail,
+  outlookCompatibleShippingEmail
 } from './outlookCompatibleEmailTemplates';
 
 interface OrderData {
@@ -22,6 +23,10 @@ interface OrderData {
     price: string;
   }>;
   tracking_number?: string;
+  logistics_partner?: {
+    name: string;
+    tracking_url_template?: string;
+  };
 }
 
 interface CustomerData {
@@ -215,6 +220,69 @@ export class TransactionalEmailService {
       return response.ok;
     } catch (error) {
       console.error('Failed to send order status update email:', error);
+      return false;
+    }
+  }
+
+  // Send shipping notification email with tracking details
+  async sendShippingEmail(order: OrderData): Promise<boolean> {
+    try {
+      console.log('TransactionalEmailService: Preparing shipping email for:', order.customer_email);
+      
+      if (!order.tracking_number) {
+        console.error('TransactionalEmailService: Cannot send shipping email - no tracking number provided');
+        return false;
+      }
+
+      const orderNumber = order.order_number || `ORD${order.id}`;
+      const logisticsPartner = order.logistics_partner?.name || 'Logistics Partner';
+      
+      // Generate tracking URL if template is available
+      let trackingUrl: string | undefined;
+      if (order.logistics_partner?.tracking_url_template && order.tracking_number) {
+        trackingUrl = order.logistics_partner.tracking_url_template.replace('{tracking_number}', order.tracking_number);
+      }
+      
+      const html = outlookCompatibleShippingEmail(
+        order.customer_name,
+        orderNumber,
+        order.tracking_number,
+        trackingUrl,
+        logisticsPartner,
+        'https://nirchal.netlify.app'
+      );
+
+      const emailPayload = {
+        to: order.customer_email,
+        subject: `🚚 Your Order ${orderNumber} is Shipped! - Track: ${order.tracking_number} - Nirchal`,
+        html
+      };
+
+      console.log('TransactionalEmailService: Sending shipping email with payload:', {
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        trackingNumber: order.tracking_number,
+        logisticsPartner,
+        trackingUrl,
+        hasHtml: !!emailPayload.html
+      });
+
+      const response = await fetch(`${this.baseUrl}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+
+      console.log('TransactionalEmailService: Shipping email response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('TransactionalEmailService: Shipping email failed with response:', errorText);
+      }
+
+      return response.ok;
+    } catch (error) {
+      console.error('TransactionalEmailService: Failed to send shipping email:', error);
       return false;
     }
   }
