@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useVendors } from '../../hooks/useAdmin';
 import { useAdminContext } from '../../contexts/AdminContext';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import type { Vendor } from '../../types/admin';
@@ -9,6 +10,7 @@ import { Plus, Trash2, AlertTriangle, Edit } from 'lucide-react';
 const VendorsPage: React.FC = () => {
   const { vendors, loading, createVendor, updateVendor, deleteVendor } = useVendors();
   const { refreshSpecificCount } = useAdminContext();
+  const { searchTerm } = useAdminSearch();
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -52,6 +54,25 @@ const VendorsPage: React.FC = () => {
     setShowForm(true);
   };
 
+  // Filter vendors based on search term
+  const filteredVendors = React.useMemo(() => {
+    if (!vendors) return [];
+    
+    if (!searchTerm) return vendors;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return vendors.filter(vendor => {
+      const matchesName = vendor.name.toLowerCase().includes(searchLower);
+      const matchesDescription = vendor.description?.toLowerCase().includes(searchLower);
+      const matchesEmail = vendor.email?.toLowerCase().includes(searchLower);
+      const matchesPhone = vendor.phone?.toLowerCase().includes(searchLower);
+      const matchesWebsite = vendor.website?.toLowerCase().includes(searchLower);
+      const matchesAddress = vendor.address?.toLowerCase().includes(searchLower);
+      
+      return matchesName || matchesDescription || matchesEmail || matchesPhone || matchesWebsite || matchesAddress;
+    });
+  }, [vendors, searchTerm]);
+
   // Pagination
   const {
     currentPage,
@@ -62,7 +83,7 @@ const VendorsPage: React.FC = () => {
     setCurrentPage,
     setItemsPerPage,
   } = usePagination({
-    data: vendors || [],
+    data: filteredVendors || [],
     defaultItemsPerPage: 25,
   });
 
@@ -177,7 +198,7 @@ const VendorsPage: React.FC = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md ${
+                      <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 ${
                         vendor.is_active 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
