@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useVendors } from '../../hooks/useAdmin';
 import { useAdminContext } from '../../contexts/AdminContext';
 import { usePagination } from '../../hooks/usePagination';
-import DataTable from '../../components/admin/DataTable';
 import Pagination from '../../components/common/Pagination';
 import type { Vendor } from '../../types/admin';
 import { Plus, Trash2, AlertTriangle, Edit } from 'lucide-react';
@@ -100,188 +99,264 @@ const VendorsPage: React.FC = () => {
     }
   };
 
-  const columns = [
-    {
-      key: 'name',
-      title: 'Vendor',
-      render: (vendor: Vendor) => (
-        <div className="admin-product-title-wrapper">
-          <div className="admin-product-title-link">{vendor.name}</div>
-          {vendor.email && (
-            <div className="admin-text-muted admin-text-sm">{vendor.email}</div>
-          )}
-        </div>
-      ),
-      sortable: true,
-    },
-    {
-      key: 'contact',
-      title: 'Contact Info',
-      render: (vendor: Vendor) => (
-        <div className="admin-text-sm">
-          {vendor.phone && <div className="admin-text-muted">📞 {vendor.phone}</div>}
-          {vendor.website && (
-            <div className="admin-text-muted">
-              🌐 <a href={vendor.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--admin-primary)', textDecoration: 'none' }}>
-                {vendor.website.replace(/^https?:\/\//, '')}
-              </a>
-            </div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: 'status',
-      title: 'Status',
-      render: (vendor: Vendor) => (
-        <span className={`admin-badge ${
-          vendor.is_active ? 'admin-badge-success' : 'admin-badge-neutral'
-        }`}>
-          {vendor.is_active ? 'Active' : 'Inactive'}
-        </span>
-      )
-    },
-    {
-      key: 'actions',
-      title: 'Actions',
-      render: (vendor: Vendor) => (
-        <div className="admin-table-actions">
-          <button
-            onClick={() => handleEdit(vendor)}
-            className="admin-btn admin-btn-sm admin-btn-secondary"
-            title="Edit Vendor"
-          >
-            <Edit className="h-3 w-3" />
-          </button>
-          <button
-            onClick={() => {
-              setDeleteTarget(vendor.id);
-              setShowDeleteConfirm(true);
-            }}
-            className="admin-btn admin-btn-sm admin-btn-danger"
-            title="Delete Vendor"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        </div>
-      ),
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-500">Loading vendors...</div>
+      </div>
+    );
+  }
 
   return (
     <div>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
+          <p className="text-gray-600 mt-1">Manage vendor partnerships and supplier relationships</p>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Vendor
+        </button>
+      </div>
+
+      {/* Vendors Table */}
+      <div className="bg-white shadow-sm rounded-lg border">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">All Vendors</h2>
+        </div>
+        <div className="overflow-x-auto">
+          {vendors.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No vendors found</p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Vendor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact Info
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Website
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedVendors.map((vendor) => (
+                  <tr key={vendor.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{vendor.name}</div>
+                      {vendor.description && (
+                        <div className="text-sm text-gray-500">{vendor.description}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm">
+                        {vendor.email && <div className="text-gray-900">{vendor.email}</div>}
+                        {vendor.phone && <div className="text-gray-500">{vendor.phone}</div>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {vendor.website ? (
+                        <a 
+                          href={vendor.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          Visit Website
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md ${
+                        vendor.is_active 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {vendor.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleEdit(vendor)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Edit vendor"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeleteTarget(vendor.id);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete vendor"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="border-t border-gray-200 px-6 py-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Vendor Form Modal */}
       {showForm && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal">
-            <div className="admin-modal-header">
-              <h3 className="admin-modal-title">
-                {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
-              </h3>
-              <button
-                onClick={resetForm}
-                className="admin-modal-close"
-              >
-                ×
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={resetForm}></div>
             
-            <div className="admin-modal-content">
-              <form id="vendor-form" onSubmit={handleSubmit} className="admin-form">
-              <div className="admin-form-group">
-                <label className="admin-label">
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="admin-input"
-                  required
-                />
-              </div>
-              
-              <div className="admin-form-group">
-                <label className="admin-label">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  className="admin-input"
-                />
-              </div>
-              
-              <div className="admin-form-group">
-                <label className="admin-label">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  className="admin-input"
-                />
-              </div>
-              
-              <div className="admin-form-group">
-                <label className="admin-label">
-                  Website
-                </label>
-                <input
-                  type="url"
-                  value={formData.website}
-                  onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
-                  className="admin-input"
-                  placeholder="https://"
-                />
-              </div>
-              
-              <div className="admin-form-group">
-                <label className="admin-label">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  className="admin-textarea"
-                />
-              </div>
-              
-              <div className="admin-form-group">
-                <div className="admin-checkbox-wrapper">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                    className="admin-checkbox"
-                  />
-                  <label htmlFor="is_active" className="admin-checkbox-label">
-                    Active
-                  </label>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <form onSubmit={handleSubmit}>
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
+                    </h3>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Vendor Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., ABC Suppliers"
+                      />
+                    </div>
+
+                    {/* Email & Phone */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="contact@vendor.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="+91 98765 43210"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Website */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                      <input
+                        type="url"
+                        value={formData.website}
+                        onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://www.vendor.com"
+                      />
+                    </div>
+
+                    {/* Address */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                      <textarea
+                        value={formData.address}
+                        onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={3}
+                        placeholder="Complete business address..."
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={3}
+                        placeholder="Brief description of services..."
+                      />
+                    </div>
+
+                    {/* Active Status */}
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="is_active"
+                        checked={formData.is_active}
+                        onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+                        Active (can accept orders)
+                      </label>
+                    </div>
+                  </div>
                 </div>
-              </div>
+                
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    {editingVendor ? 'Update Vendor' : 'Add Vendor'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </form>
-            </div>
-            
-            <div className="admin-modal-footer">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="admin-btn admin-btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="vendor-form"
-                className="admin-btn admin-btn-primary"
-              >
-                {editingVendor ? 'Update' : 'Create'} Vendor
-              </button>
             </div>
           </div>
         </div>
@@ -289,70 +364,50 @@ const VendorsPage: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal">
-            <div className="admin-modal-header">
-              <div className="admin-modal-icon-wrapper">
-                <AlertTriangle className="admin-icon admin-text-danger" />
-                <h3 className="admin-modal-title">Confirm Delete</h3>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"></div>
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex items-center">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Delete Vendor
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        Are you sure you want to delete this vendor? This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="admin-modal-content">
-              <p className="admin-text-muted admin-text-sm">
-                Are you sure you want to delete this vendor? This action cannot be undone.
-              </p>
-            </div>
-            <div className="admin-modal-footer">
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDeleteTarget(null);
-                }}
-                className="admin-btn admin-btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="admin-btn admin-btn-danger"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setDeleteTarget(null);
+                  }}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Vendors Table */}
-      <DataTable
-        columns={columns}
-        data={paginatedVendors || []}
-        isLoading={loading}
-        searchable={true}
-        filterable={false}
-        title={`Vendors (${totalItems})`}
-        subtitle="Manage your vendor relationships"
-        headerActions={
-          <button
-            onClick={() => setShowForm(true)}
-            className="admin-btn admin-btn-primary"
-          >
-            <Plus className="admin-icon-sm admin-mr-2" />
-            Add Vendor
-          </button>
-        }
-        footerContent={
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            totalItems={totalItems}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        }
-      />
     </div>
   );
 };
