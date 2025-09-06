@@ -131,9 +131,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/admin/login');
     } catch (error) {
+      // Log the error but don't prevent logout navigation
       console.error('Error signing out:', error);
+    } finally {
+      // Always navigate to login page regardless of signOut success
+      navigate('/admin/login');
     }
   };
 
