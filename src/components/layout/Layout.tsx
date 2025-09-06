@@ -151,9 +151,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* Logout Icon */}
               {customer && (
                 <button
-                  onClick={() => {
-                    signOut();
-                    navigate('/');
+                  onClick={async () => {
+                    try {
+                      signOut();
+                    } catch (error) {
+                      console.error('Error signing out:', error);
+                    } finally {
+                      navigate('/');
+                    }
                   }}
                   className="group relative p-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300 retina-button"
                   title="Logout"

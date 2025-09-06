@@ -125,10 +125,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
       const { error } = await supabase.auth.signOut();
+      
+      // Handle the specific case where there's no session to sign out
+      if (error && error.message === 'Auth session missing!') {
+        // User is already signed out, just clean up the local state
+        setUser(null);
+        setIsAdmin(false);
+        return;
+      }
+      
       if (error) throw error;
       setUser(null);
       setIsAdmin(false);
     } catch (err) {
+      // If it's the session missing error, don't throw, just clean up
+      if (err instanceof Error && err.message === 'Auth session missing!') {
+        setUser(null);
+        setIsAdmin(false);
+        return;
+      }
+      
       if (err instanceof Error) {
         setError(err.message);
       } else {
