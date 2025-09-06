@@ -247,6 +247,43 @@ export const outlookCompatibleOrderStatusEmail = (customerName: string, orderNum
   });
 };
 
+export const outlookCompatibleShippingEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  trackingNumber: string,
+  trackingUrl: string | undefined,
+  logisticsPartner: string,
+  websiteUrl: string
+) => {
+  const content = [
+    `Great news! Your order <strong>${orderNumber}</strong> has been shipped and is on its way to you.`,
+    `<strong>📦 Shipping Details:</strong><br>📍 <strong>Tracking Number:</strong> ${trackingNumber}<br>🚚 <strong>Logistics Partner:</strong> ${logisticsPartner}`,
+  ];
+
+  if (trackingUrl) {
+    content.push(
+      '<strong>🔍 Track Your Package:</strong><br>You can track your package in real-time using the tracking number above or by clicking the button below.'
+    );
+  }
+
+  content.push(
+    '<strong>📅 Estimated Delivery:</strong> 3-7 business days from ship date',
+    '<strong>💡 Delivery Tips:</strong><br>• Ensure someone is available to receive the package<br>• Check your tracking regularly for updates<br>• Contact us if you have any delivery concerns'
+  );
+
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Order Shipped',
+    headerText: '🚚 Your Order is Shipped!',
+    subHeaderText: `Order ${orderNumber} - Tracking: ${trackingNumber}`,
+    customerName,
+    content,
+    ctaText: trackingUrl ? '📍 Track Your Package' : '📱 View Order Details',
+    ctaUrl: trackingUrl || `${websiteUrl}/myaccount`,
+    footerText: 'Fast & Reliable Delivery',
+    websiteUrl
+  });
+};
+
 export const outlookCompatiblePasswordChangeEmail = (customerName: string, websiteUrl: string) => {
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Password Changed Successfully',

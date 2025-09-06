@@ -24,6 +24,21 @@ export interface Vendor {
   updated_at: string;
 }
 
+export interface LogisticsPartner {
+  id: string; // UUID
+  name: string;
+  description: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  address: string | null;
+  tracking_url_template: string | null;
+  contact_person: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Product {
   id: string; // UUID
   name: string;
