@@ -9,6 +9,13 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "diagnose": "node diagnose-db.js",
+    "diagnose-db": "node database-diagnostics.js",
+    "diagnose-auth": "node auth-diagnostics.js",
+    "diagnose-direct": "node direct-db-check.js",
+    "advanced-diagnose": "node advanced-diagnose.js",
+    "test-other-tables": "node test-other-tables.js",
+    "security-analysis": "node security-deep-analysis.js",
+    "test-fix": "node test-fix.js",
     "init-settings": "node scripts/init-settings.js",
     "migrate-settings": "node scripts/migrate-settings.js"
   },

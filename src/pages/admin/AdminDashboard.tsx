@@ -23,7 +23,7 @@ interface Order {
   created_at: string;
   billing_first_name: string;
   billing_last_name: string;
-  billing_email: string;
+  billing_email?: string;
 }
 
 interface Product {
@@ -129,11 +129,10 @@ const AdminDashboard: React.FC = () => {
           total_amount,
           created_at,
           billing_first_name,
-          billing_last_name,
-          billing_email
+          billing_last_name
         `)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
 
       if (ordersError) {
         throw ordersError;
@@ -287,14 +286,18 @@ const AdminDashboard: React.FC = () => {
 
   const getStatusBadgeClass = (status: string) => {
     switch (status.toLowerCase()) {
+      case 'pending':
+        return 'inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 bg-yellow-100 text-yellow-800';
       case 'processing':
-        return 'admin-badge admin-badge-warning';
+        return 'inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 bg-blue-100 text-blue-800';
       case 'shipped':
-        return 'admin-badge admin-badge-neutral';
+        return 'inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 bg-purple-100 text-purple-800';
       case 'delivered':
-        return 'admin-badge admin-badge-success';
+        return 'inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 bg-red-100 text-red-800';
       default:
-        return 'admin-badge admin-badge-neutral';
+        return 'inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 bg-gray-100 text-gray-800';
     }
   };
 
@@ -401,7 +404,7 @@ const AdminDashboard: React.FC = () => {
                     <th>Customer</th>
                     <th>Status</th>
                     <th>Amount</th>
-                    <th>Time</th>
+                    <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -412,22 +415,22 @@ const AdminDashboard: React.FC = () => {
                           <span className="admin-font-mono admin-text-sm">{order.order_number}</span>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <div style={{
-                              width: '32px',
-                              height: '32px',
+                              width: '24px',
+                              height: '24px',
                               borderRadius: '50%',
                               backgroundColor: 'var(--admin-primary)',
                               color: 'white',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '12px',
+                              fontSize: '10px',
                               fontWeight: '600'
                             }}>
                               {getInitials(order.billing_first_name, order.billing_last_name)}
                             </div>
-                            <span>{order.billing_first_name} {order.billing_last_name}</span>
+                            <span className="admin-text-sm">{order.billing_first_name} {order.billing_last_name}</span>
                           </div>
                         </td>
                         <td>

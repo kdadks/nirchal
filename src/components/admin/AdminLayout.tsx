@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminContext } from '../../contexts/AdminContext';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import {
   LayoutDashboard,
   Package,
@@ -31,6 +32,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Get search context
+  const { searchTerm, setSearchTerm, setCurrentPage } = useAdminSearch();
   
   // Get counts from AdminContext
   const { counts, refreshCounts } = useAdminContext();
@@ -114,6 +118,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   const currentPage = getCurrentPageContext();
+
+  // Update search context when page changes
+  useEffect(() => {
+    setCurrentPage(currentPage);
+  }, [currentPage, setCurrentPage]);
 
   // Smart refresh function that refreshes data based on current page
   const handleRefresh = async () => {
@@ -235,11 +244,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <Search className="absolute left-3 h-4 w-4 text-gray-400" />
               <input
                 type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={`Search ${currentPage === 'products' ? 'products...' : 
                              currentPage === 'categories' ? 'categories...' : 
+                             currentPage === 'vendors' ? 'vendors...' :
+                             currentPage === 'logistics' ? 'logistics partners...' :
                              currentPage === 'orders' ? 'orders...' : 
                              currentPage === 'users' ? 'users...' : 
-                             'products, orders, customers...'}`}
+                             'items...'}`}
                 className="admin-search pl-10"
               />
             </div>

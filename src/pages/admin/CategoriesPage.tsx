@@ -1,12 +1,11 @@
-/* global HTMLTextAreaElement */
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCategories, useProducts } from '../../hooks/useAdmin';
 import { usePagination } from '../../hooks/usePagination';
-import DataTable from '../../components/admin/DataTable';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
-import type { Category, CategoryFormData } from '../../types/admin';
-import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, AlertTriangle } from 'lucide-react';
+import type { CategoryFormData } from '../../types/admin';
+import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, AlertTriangle, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const initialForm: CategoryFormData = {
@@ -22,6 +21,7 @@ const CategoriesPage: React.FC = () => {
   const { supabase } = useAuth();
   const { categories, loading, error, createCategory, updateCategory, deleteCategory, refresh } = useCategories();
   const { products } = useProducts();
+  const { searchTerm } = useAdminSearch();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -43,6 +43,22 @@ const CategoriesPage: React.FC = () => {
     return products?.filter(product => product.category_id === categoryId).length || 0;
   };
 
+  // Filter categories based on search term
+  const filteredCategories = React.useMemo(() => {
+    if (!categories) return [];
+    
+    if (!searchTerm) return categories;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return categories.filter(category => {
+      const matchesName = category.name.toLowerCase().includes(searchLower);
+      const matchesDescription = category.description?.toLowerCase().includes(searchLower);
+      const matchesSlug = category.slug?.toLowerCase().includes(searchLower);
+      
+      return matchesName || matchesDescription || matchesSlug;
+    });
+  }, [categories, searchTerm]);
+
   // Pagination
   const {
     currentPage,
@@ -53,7 +69,7 @@ const CategoriesPage: React.FC = () => {
     setCurrentPage,
     setItemsPerPage,
   } = usePagination({
-    data: categories || [],
+    data: filteredCategories || [],
     defaultItemsPerPage: 25,
   });
 
@@ -115,106 +131,6 @@ const CategoriesPage: React.FC = () => {
       setIsDeleting(false);
     }
   };
-
-  const columns = [
-    {
-      key: 'select',
-      title: (
-        <input
-          type="checkbox"
-          checked={
-            categories?.length > 0 && 
-            selectedCategories.length === categories?.filter(c => !hasAssociatedProducts(c.id)).length
-          }
-          onChange={(e) => handleSelectAll(e.target.checked)}
-          className="admin-checkbox"
-        />
-      ),
-      render: (row: Category) => {
-        const hasProducts = hasAssociatedProducts(row.id);
-        return (
-          <input
-            type="checkbox"
-            checked={selectedCategories.includes(row.id)}
-            onChange={(e) => handleSelectCategory(row.id, e.target.checked)}
-            disabled={hasProducts}
-            className="admin-checkbox"
-            title={hasProducts ? `Cannot select - ${getAssociatedProductsCount(row.id)} products associated` : ''}
-          />
-        );
-      },
-    },
-    {
-      key: 'image_url',
-      title: '',
-      render: (row: Category) =>
-        row.image_url ? (
-          <img 
-            src={row.image_url} 
-            alt={row.name} 
-            style={{ 
-              width: '40px', 
-              height: '40px', 
-              objectFit: 'cover', 
-              borderRadius: '6px',
-              border: '1px solid var(--admin-border)'
-            }} 
-          />
-        ) : (
-          <div className="admin-image-placeholder" style={{ width: '40px', height: '40px' }}>
-            <ImageIcon className="h-5 w-5" />
-          </div>
-        ),
-    },
-    { 
-      key: 'name', 
-      title: 'Category Name', 
-      sortable: true,
-      render: (row: Category) => (
-        <div className="admin-product-title-wrapper">
-          <button
-            onClick={() => {
-              setForm(row);
-              setIsEditing(true);
-              setEditingId(row.id);
-              setModalOpen(true);
-            }}
-            className="admin-product-title-link"
-          >
-            {row.name}
-          </button>
-        </div>
-      )
-    },
-    { 
-      key: 'is_active', 
-      title: 'Status', 
-      render: (row: Category) => (
-        <span className={`admin-badge ${row.is_active ? 'admin-badge-success' : 'admin-badge-neutral'}`}>
-          {row.is_active ? 'Active' : 'Inactive'}
-        </span>
-      )
-    },
-    {
-      key: 'actions',
-      title: 'Actions',
-      render: (row: Category) => {
-        const hasProducts = hasAssociatedProducts(row.id);
-        const productsCount = getAssociatedProductsCount(row.id);
-        
-        return (
-          <button
-            onClick={() => hasProducts ? null : handleDeleteCategory(row.id)}
-            disabled={hasProducts}
-            className={`admin-btn admin-btn-sm ${hasProducts ? 'admin-btn-secondary' : 'admin-btn-danger'}`}
-            title={hasProducts ? `Cannot delete as ${productsCount} product${productsCount === 1 ? ' is' : 's are'} associated with this category` : 'Delete Category'}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        );
-      },
-    },
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -319,74 +235,237 @@ const CategoriesPage: React.FC = () => {
 
   return (
     <div>
-      {/* Categories Table */}
-      <DataTable
-        columns={columns}
-        data={paginatedCategories || []}
-        isLoading={loading}
-        searchable={true}
-        filterable={true}
-        title={`Categories (${totalItems})`}
-        subtitle="Product categories and organization"
-        headerActions={
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {selectedCategories.length > 0 && (
-              <>
-                <span className="admin-text-secondary admin-text-sm">
-                  {selectedCategories.length} selected
-                </span>
-                <button
-                  onClick={handleBulkDelete}
-                  className="admin-btn admin-btn-danger admin-btn-sm"
-                  title={`Delete ${selectedCategories.length} selected categories`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Selected
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="admin-btn admin-btn-secondary admin-btn-sm"
-            >
-              <Filter className="h-4 w-4" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </button>
-            <button
-              className="admin-btn admin-btn-secondary admin-btn-sm"
-              title="Import Categories"
-            >
-              <Upload className="h-4 w-4" />
-              Import
-            </button>
-            <button
-              className="admin-btn admin-btn-secondary admin-btn-sm"
-              title="Export Categories"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="admin-btn admin-btn-primary admin-btn-sm"
-              title="Add Category"
-            >
-              <Plus className="h-4 w-4" />
-              Add Category
-            </button>
+      {/* Header with Title and Actions */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Categories ({totalItems})</h1>
+            </div>
+            <div className="flex items-center space-x-3">
+              {selectedCategories.length > 0 && (
+                <>
+                  <span className="text-sm text-gray-500">
+                    {selectedCategories.length} selected
+                  </span>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete Selected
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Filter className="h-4 w-4 mr-1" />
+                {showFilters ? 'Hide Filters' : 'Filters'}
+              </button>
+              <button
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Import
+              </button>
+              <button
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </button>
+              <button
+                onClick={() => setModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Category
+              </button>
+            </div>
           </div>
-        }
-        footerContent={
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            totalItems={totalItems}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        }
-      />
+        </div>
+
+        {/* Filters Section */}
+        {showFilters && (
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                  <option>All Statuses</option>
+                  <option>Active</option>
+                  <option>Inactive</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <select className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                  <option>All Types</option>
+                  <option>Parent Category</option>
+                  <option>Sub Category</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Table */}
+        <div className="overflow-hidden">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-sm text-gray-500">Loading categories...</p>
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="relative px-4 py-2 text-left">
+                    <input
+                      type="checkbox"
+                      checked={
+                        paginatedCategories?.length > 0 && 
+                        selectedCategories.length === paginatedCategories?.filter(c => !hasAssociatedProducts(c.id)).length
+                      }
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Image
+                  </th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Products
+                  </th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="relative px-4 py-2">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedCategories?.map((category) => {
+                  const hasProducts = hasAssociatedProducts(category.id);
+                  const productsCount = getAssociatedProductsCount(category.id);
+                  
+                  return (
+                    <tr key={category.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedCategories.includes(category.id)}
+                          onChange={(e) => handleSelectCategory(category.id, e.target.checked)}
+                          disabled={hasProducts}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                          title={hasProducts ? `Cannot select - ${productsCount} products associated` : ''}
+                        />
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        {category.image_url ? (
+                          <img 
+                            src={category.image_url} 
+                            alt={category.name} 
+                            className="h-8 w-8 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <ImageIcon className="h-4 w-4 text-gray-400" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div>
+                            <button
+                              onClick={() => {
+                                setForm(category);
+                                setIsEditing(true);
+                                setEditingId(category.id);
+                                setModalOpen(true);
+                              }}
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600"
+                            >
+                              {category.name}
+                            </button>
+                            <div className="text-xs text-gray-400">/{category.slug}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                        {productsCount > 0 ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {productsCount} product{productsCount !== 1 ? 's' : ''}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">No products</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 ${
+                          category.is_active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {category.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => {
+                              setForm(category);
+                              setIsEditing(true);
+                              setEditingId(category.id);
+                              setModalOpen(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Edit category"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => hasProducts ? null : handleDeleteCategory(category.id)}
+                            disabled={hasProducts}
+                            className={`${
+                              hasProducts 
+                                ? 'text-gray-400 cursor-not-allowed' 
+                                : 'text-red-600 hover:text-red-800'
+                            }`}
+                            title={hasProducts ? `Cannot delete - ${productsCount} products associated` : 'Delete category'}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="border-t border-gray-200 px-4 py-2">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Modal */}
       {modalOpen && (

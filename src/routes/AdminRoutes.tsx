@@ -15,28 +15,31 @@ import UsersPage from '../pages/admin/UsersPage';
 import AnalyticsPage from '../pages/admin/AnalyticsPage';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import { AdminProvider } from '../contexts/AdminContext';
+import { AdminSearchProvider } from '../contexts/AdminSearchContext';
 
 const AdminRoutes: React.FC = () => {
   return (
     <ProtectedRoute requireAdmin={true}>
       <AdminProvider>
-        <AdminLayout>
-          <Routes>
-            <Route path="/" element={<AdminDashboard />} />
-            <Route path="/categories" element={<CategoriesPage />} />
-            <Route path="/vendors" element={<VendorsPage />} />
-            <Route path="/logistics-partners" element={<LogisticsPartnersPage />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/products/create" element={<CreateProductPage />} />
-            <Route path="/products/edit/:id" element={<EditProductPage />} />
-            <Route path="/orders" element={<OrdersPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/analytics" element={<AnalyticsPage />} />
-            <Route path="/security" element={<SecurityPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/admin" replace />} />
-          </Routes>
-        </AdminLayout>
+        <AdminSearchProvider>
+          <AdminLayout>
+            <Routes>
+              <Route path="/" element={<AdminDashboard />} />
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/vendors" element={<VendorsPage />} />
+              <Route path="/logistics-partners" element={<LogisticsPartnersPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/products/create" element={<CreateProductPage />} />
+              <Route path="/products/edit/:id" element={<EditProductPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/security" element={<SecurityPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </Routes>
+          </AdminLayout>
+        </AdminSearchProvider>
       </AdminProvider>
     </ProtectedRoute>
   );

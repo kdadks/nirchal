@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLogisticsPartners } from '../../hooks/useAdmin';
 import { useAdminContext } from '../../contexts/AdminContext';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import type { LogisticsPartner } from '../../types/admin';
@@ -9,6 +10,7 @@ import { Plus, Trash2, AlertTriangle, Edit, Truck, ExternalLink } from 'lucide-r
 const LogisticsPartnersPage: React.FC = () => {
   const { logisticsPartners, loading, createLogisticsPartner, updateLogisticsPartner, deleteLogisticsPartner } = useLogisticsPartners();
   const { refreshSpecificCount } = useAdminContext();
+  const { searchTerm } = useAdminSearch();
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -58,6 +60,26 @@ const LogisticsPartnersPage: React.FC = () => {
     setShowForm(true);
   };
 
+  // Filter logistics partners based on search term
+  const filteredPartners = React.useMemo(() => {
+    if (!logisticsPartners) return [];
+    
+    if (!searchTerm) return logisticsPartners;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return logisticsPartners.filter(partner => {
+      const matchesName = partner.name.toLowerCase().includes(searchLower);
+      const matchesDescription = partner.description?.toLowerCase().includes(searchLower);
+      const matchesEmail = partner.email?.toLowerCase().includes(searchLower);
+      const matchesPhone = partner.phone?.toLowerCase().includes(searchLower);
+      const matchesWebsite = partner.website?.toLowerCase().includes(searchLower);
+      const matchesAddress = partner.address?.toLowerCase().includes(searchLower);
+      const matchesContact = partner.contact_person?.toLowerCase().includes(searchLower);
+      
+      return matchesName || matchesDescription || matchesEmail || matchesPhone || matchesWebsite || matchesAddress || matchesContact;
+    });
+  }, [logisticsPartners, searchTerm]);
+
   // Pagination
   const {
     currentPage,
@@ -68,7 +90,7 @@ const LogisticsPartnersPage: React.FC = () => {
     setCurrentPage,
     setItemsPerPage,
   } = usePagination({
-    data: logisticsPartners || [],
+    data: filteredPartners || [],
     defaultItemsPerPage: 25,
   });
 
@@ -209,7 +231,7 @@ const LogisticsPartnersPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md ${
+                      <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 ${
                         partner.is_active 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
