@@ -217,10 +217,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
         {/* Action Buttons */}
         <div className="space-y-4">
           {/* Primary Actions - Add to Cart & Buy Now */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col md:flex-row gap-3">
             <button
               onClick={handleAddToCart}
-              className="flex-1 bg-gray-100 text-gray-900 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-300"
+              className="w-full md:flex-1 bg-gray-100 text-gray-900 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-300"
             >
               <ShoppingBag size={18} />
               Add to Cart
@@ -228,7 +228,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
             
             <button
               onClick={handleBuyNow}
-              className="flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
+              className="w-full md:flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
             >
               <CreditCard size={18} />
               Buy Now
