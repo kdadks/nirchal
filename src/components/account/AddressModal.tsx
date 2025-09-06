@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import { sanitizeAddressData } from '../../utils/formUtils';
+import StateDropdown from '../common/StateDropdown';
+import CityDropdown from '../common/CityDropdown';
 import toast from 'react-hot-toast';
 
 interface AddressData {
@@ -153,6 +155,21 @@ const AddressModal: React.FC<AddressModalProps> = ({
         [name]: value
       }));
     }
+  };
+
+  const handleStateChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      state: value,
+      city: '' // Reset city when state changes
+    }));
+  };
+
+  const handleCityChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      city: value
+    }));
   };
 
   if (!isOpen) return null;
@@ -306,28 +323,27 @@ const AddressModal: React.FC<AddressModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                City *
+                State *
               </label>
-              <input
-                type="text"
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              <StateDropdown
+                name="state"
+                value={formData.state}
+                onChange={handleStateChange}
                 required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                State *
+                City *
               </label>
-              <input
-                type="text"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              <CityDropdown
+                name="city"
+                value={formData.city}
+                onChange={handleCityChange}
+                selectedState={formData.state}
                 required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
             <div>

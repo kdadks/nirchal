@@ -11,6 +11,8 @@ import { transactionalEmailService } from '../services/transactionalEmailService
 import { useRazorpay } from '../hooks/useRazorpay';
 import PaymentSecurityWrapper from '../components/security/PaymentSecurityWrapper';
 import SecurePaymentForm from '../components/security/SecurePaymentForm';
+import StateDropdown from '../components/common/StateDropdown';
+import CityDropdown from '../components/common/CityDropdown';
 
 interface CheckoutForm {
   // Contact Information
@@ -760,6 +762,14 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  const handleDeliveryStateChange = (value: string) => {
+    setForm(prev => ({ ...prev, deliveryState: value, deliveryCity: '' }));
+  };
+
+  const handleBillingStateChange = (value: string) => {
+    setForm(prev => ({ ...prev, billingState: value, billingCity: '' }));
+  };
+
   const handleDeliveryAddressSelect = (addressId: string) => {
     const selectedAddress = customerAddresses.find(addr => addr.id === addressId);
     if (selectedAddress) {
@@ -809,6 +819,15 @@ const CheckoutPage: React.FC = () => {
     } catch (error) {
       console.error('Error updating billing address flag:', error);
     }
+  };
+
+  // City dropdown handlers
+  const handleDeliveryCityChange = (value: string) => {
+    setForm(prev => ({ ...prev, deliveryCity: value }));
+  };
+
+  const handleBillingCityChange = (value: string) => {
+    setForm(prev => ({ ...prev, billingCity: value }));
   };
 
   const handleDeleteAddress = async (addressId: string) => {
@@ -1228,32 +1247,31 @@ const CheckoutPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          City *
+                          State *
                         </label>
-                        <input
-                          type="text"
-                          name="deliveryCity"
-                          value={form.deliveryCity}
-                          onChange={handleInputChange}
+                        <StateDropdown
+                          name="deliveryState"
+                          value={form.deliveryState}
+                          onChange={handleDeliveryStateChange}
                           required
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                          placeholder="City"
+                          placeholder="Select State"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          State *
+                          City *
                         </label>
-                        <input
-                          type="text"
-                          name="deliveryState"
-                        value={form.deliveryState}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                        placeholder="State"
-                      />
-                    </div>
+                        <CityDropdown
+                          name="deliveryCity"
+                          value={form.deliveryCity}
+                          onChange={handleDeliveryCityChange}
+                          selectedState={form.deliveryState}
+                          required
+                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                          placeholder="Select City"
+                        />
+                      </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         PIN Code *
@@ -1383,30 +1401,29 @@ const CheckoutPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              City *
+                              State *
                             </label>
-                            <input
-                              type="text"
-                              name="billingCity"
-                              value={form.billingCity}
-                              onChange={handleInputChange}
+                            <StateDropdown
+                              name="billingState"
+                              value={form.billingState}
+                              onChange={handleBillingStateChange}
                               required
                               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                              placeholder="City"
+                              placeholder="Select State"
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              State *
+                              City *
                             </label>
-                            <input
-                              type="text"
-                              name="billingState"
-                              value={form.billingState}
-                              onChange={handleInputChange}
+                            <CityDropdown
+                              name="billingCity"
+                              value={form.billingCity}
+                              onChange={handleBillingCityChange}
+                              selectedState={form.billingState}
                               required
                               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                              placeholder="State"
+                              placeholder="Select City"
                             />
                           </div>
                           <div>
