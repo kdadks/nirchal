@@ -266,14 +266,22 @@ export const useLogisticsPartners = () => {
 	const updateLogisticsPartner = async (id: string, data: Partial<Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>>) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { error } = await supabase
+			console.log('Updating logistics partner with data:', data);
+			const { data: result, error } = await supabase
 				.from('logistics_partners')
 				.update(data)
-				.eq('id', id);
+				.eq('id', id)
+				.select();
 
-			if (error) throw error;
+			if (error) {
+				console.error('Supabase error:', error);
+				throw new Error(`Database error: ${error.message} (Code: ${error.code})`);
+			}
+			
+			console.log('Update successful:', result);
 			await fetchLogisticsPartners();
 		} catch (e) {
+			console.error('Full error details:', e);
 			throw e instanceof Error ? e : new Error('Error updating logistics partner');
 		}
 	};

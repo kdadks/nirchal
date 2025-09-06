@@ -75,16 +75,29 @@ const LogisticsPartnersPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Form submission - editingPartner:', editingPartner);
+      console.log('Form submission - formData:', formData);
+      
       if (editingPartner) {
+        console.log('Updating partner with ID:', editingPartner.id);
         await updateLogisticsPartner(editingPartner.id, formData);
+        console.log('Update completed successfully');
       } else {
+        console.log('Creating new partner');
         await createLogisticsPartner(formData);
         // Refresh logistics partners count after creating new partner
         await refreshSpecificCount('logisticsPartners');
+        console.log('Creation completed successfully');
       }
       resetForm();
     } catch (error) {
       console.error('Error saving logistics partner:', error);
+      // Show more detailed error information
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      // TODO: Show user-friendly error message in UI
     }
   };
 
@@ -115,25 +128,17 @@ const LogisticsPartnersPage: React.FC = () => {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Logistics Partners</h1>
-          <p className="text-gray-600 mt-1">Manage shipping and delivery partners</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Partner
-        </button>
-      </div>
-
       {/* Partners Table */}
       <div className="bg-white shadow-sm rounded-lg border">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg font-medium text-gray-900">All Logistics Partners</h2>
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Partner
+          </button>
         </div>
         <div className="overflow-x-auto">
           {logisticsPartners.length === 0 ? (
