@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingBag, ChevronRight, CreditCard } from 'lucide-react';
+import { Heart, ChevronRight } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
@@ -14,6 +14,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
   const [activeImage, setActiveImage] = useState(0);
   const { addToCart } = useCart();
   const { addToWishlist, isInWishlist } = useWishlist();
+
+  const handleToggleWishlist = () => {
+    addToWishlist(product.id);
+  };
 
   const handleAddToCart = () => {
     addToCart({
@@ -215,29 +219,47 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="space-y-4">
-          {/* Primary Actions - Add to Cart & Buy Now */}
-          <div className="flex flex-col md:flex-row gap-3">
-            <button
-              onClick={handleAddToCart}
-              className="w-full md:flex-1 bg-gray-100 text-gray-900 py-3 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-300"
-            >
-              <ShoppingBag size={18} />
-              Add to Cart
-            </button>
-            
-            <button
-              onClick={handleBuyNow}
-              className="w-full md:flex-1 bg-primary-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-primary-700 transition-colors flex items-center justify-center gap-2"
-            >
-              <CreditCard size={18} />
-              Buy Now
-            </button>
-          </div>
-          
-          {/* Secondary Action - Wishlist */}
+        <div style={{ marginTop: '24px', width: '100%' }}>
           <button
-            onClick={() => addToWishlist(product.id)}
+            onClick={handleAddToCart}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '50px',
+              marginBottom: '16px',
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #ccc',
+              borderRadius: '6px',
+              fontSize: '16px',
+              color: '#333',
+              cursor: 'pointer'
+            }}
+          >
+            Add to Cart
+          </button>
+          
+          <button
+            onClick={handleBuyNow}
+            style={{
+              display: 'block',
+              width: '100%',
+              height: '50px',
+              backgroundColor: '#e53e3e',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '16px',
+              color: 'white',
+              cursor: 'pointer'
+            }}
+          >
+            Buy Now
+          </button>
+        </div>
+          
+        {/* Secondary Action - Wishlist */}
+        <div className="mt-4">
+          <button
+            onClick={handleToggleWishlist}
             className={`w-full py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
               isInWishlist(product.id)
                 ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
