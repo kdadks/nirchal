@@ -61,6 +61,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       badge: counts.vendors?.toString() || '0'
     },
     {
+      name: 'Logistics',
+      path: '/admin/logistics-partners',
+      icon: <RefreshCw className="admin-nav-icon" />,
+      badge: counts.logisticsPartners?.toString() || '0'
+    },
+    {
       name: 'Orders',
       path: '/admin/orders',
       icon: <FileText className="admin-nav-icon" />,
@@ -98,6 +104,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     if (path.includes('/products')) return 'products';
     if (path.includes('/categories')) return 'categories';
     if (path.includes('/vendors')) return 'vendors';
+    if (path.includes('/logistics-partners')) return 'logistics';
     if (path.includes('/orders')) return 'orders';
     if (path.includes('/users')) return 'users';
     if (path.includes('/analytics')) return 'analytics';

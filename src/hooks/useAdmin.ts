@@ -4,6 +4,7 @@ import type {
 	Product,
 	Category,
 	Vendor,
+	LogisticsPartner,
 	ProductWithDetails,
 	ProductFormData,
 	CategoryFormData,
@@ -206,6 +207,100 @@ export const useVendors = () => {
 		updateVendor,
 		deleteVendor,
 		refresh: fetchVendors
+	};
+};
+
+// Logistics Partners
+export const useLogisticsPartners = () => {
+	const { supabase } = useAuth();
+	const [logisticsPartners, setLogisticsPartners] = useState<LogisticsPartner[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (!supabase) return;
+		fetchLogisticsPartners();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [supabase]);
+
+	React.useEffect(() => {
+		if (error) console.error('[LogisticsPartners] Error:', error);
+		if (import.meta.env.DEV && logisticsPartners) console.debug('[LogisticsPartners] data:', logisticsPartners);
+	}, [logisticsPartners, error]);
+
+	const fetchLogisticsPartners = async () => {
+		if (!supabase) return;
+		setLoading(true);
+		try {
+			const { data, error } = await supabase
+				.from('logistics_partners')
+				.select('*')
+				.order('name');
+
+			if (error) throw error;
+			setLogisticsPartners(data || []);
+		} catch (e) {
+			setError(e instanceof Error ? e.message : 'Error fetching logistics partners');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const createLogisticsPartner = async (data: Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { data: partner, error } = await supabase
+				.from('logistics_partners')
+				.insert([data])
+				.select()
+				.single();
+
+			if (error) throw error;
+			await fetchLogisticsPartners();
+			return partner;
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error creating logistics partner');
+		}
+	};
+
+	const updateLogisticsPartner = async (id: string, data: Partial<Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>>) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { error } = await supabase
+				.from('logistics_partners')
+				.update(data)
+				.eq('id', id);
+
+			if (error) throw error;
+			await fetchLogisticsPartners();
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error updating logistics partner');
+		}
+	};
+
+	const deleteLogisticsPartner = async (id: string) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { error } = await supabase
+				.from('logistics_partners')
+				.delete()
+				.eq('id', id);
+
+			if (error) throw error;
+			await fetchLogisticsPartners();
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error deleting logistics partner');
+		}
+	};
+
+	return {
+		logisticsPartners,
+		loading,
+		error,
+		createLogisticsPartner,
+		updateLogisticsPartner,
+		deleteLogisticsPartner,
+		refresh: fetchLogisticsPartners
 	};
 };
 

@@ -5,6 +5,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import ProductsPage from '../pages/admin/ProductsPage';
 import CategoriesPage from '../pages/admin/CategoriesPage';
 import VendorsPage from '../pages/admin/VendorsPage';
+import LogisticsPartnersPage from '../pages/admin/LogisticsPartnersPage';
 import CreateProductPage from '../pages/admin/CreateProductPage';
 import EditProductPage from '../pages/admin/EditProductPage';
 import SettingsPage from '../pages/admin/SettingsPage';
@@ -24,6 +25,7 @@ const AdminRoutes: React.FC = () => {
             <Route path="/" element={<AdminDashboard />} />
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/vendors" element={<VendorsPage />} />
+            <Route path="/logistics-partners" element={<LogisticsPartnersPage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/products/create" element={<CreateProductPage />} />
             <Route path="/products/edit/:id" element={<EditProductPage />} />
