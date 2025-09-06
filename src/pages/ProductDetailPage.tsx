@@ -772,9 +772,10 @@ const ProductDetailPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Quantity and Action Buttons - Side by Side */}
+              {/* Quantity and Action Buttons - Responsive Layout */}
               <div className="space-y-4">
-                <div className="flex items-center gap-4">
+                {/* Desktop Layout - Quantity and Buttons Side by Side */}
+                <div className="hidden md:flex items-center gap-4">
                   {/* Quantity */}
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-gray-900 whitespace-nowrap">Qty:</h3>
@@ -795,7 +796,7 @@ const ProductDetailPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Action Buttons - Side by Side */}
+                  {/* Desktop Action Buttons - Side by Side */}
                   <div className="flex gap-2 flex-1">
                     {/* Add to Cart Button */}
                     <button
@@ -812,6 +813,51 @@ const ProductDetailPage: React.FC = () => {
                       onClick={handleBuyNow}
                       disabled={!canAddToCart}
                       className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm"
+                    >
+                      Buy Now
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mobile Layout - Quantity First, Then Buttons Stacked */}
+                <div className="md:hidden space-y-4">
+                  {/* Quantity Section */}
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-gray-900 whitespace-nowrap">Qty:</h3>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center font-medium text-sm">{quantity}</span>
+                      <button
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mobile Action Buttons - Stacked Vertically */}
+                  <div className="flex flex-col gap-3">
+                    {/* Add to Cart Button */}
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={!canAddToCart || isAdding}
+                      className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
+                    >
+                      <ShoppingBag size={16} />
+                      {isAdding ? 'Adding...' : 'Add to Cart'}
+                    </button>
+
+                    {/* Buy Now Button */}
+                    <button
+                      onClick={handleBuyNow}
+                      disabled={!canAddToCart}
+                      className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-3 rounded-lg font-medium transition-colors duration-200 text-sm"
                     >
                       Buy Now
                     </button>
