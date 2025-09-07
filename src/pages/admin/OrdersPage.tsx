@@ -156,7 +156,19 @@ const OrdersPage: React.FC = () => {
 
       // Send appropriate email based on status
       try {
-        if (newStatus === 'shipped' && orderData.tracking_number) {
+        if (newStatus === 'processing') {
+          // Send order confirmation email when admin processes the order
+          await transactionalEmailService.sendOrderConfirmationEmail({
+            id: orderData.id,
+            order_number: orderData.order_number,
+            customer_name: `${orderData.billing_first_name} ${orderData.billing_last_name}`,
+            customer_email: orderData.billing_email,
+            total_amount: orderData.total_amount,
+            status: 'confirmed',
+            items: [] // Items will be fetched in the email service if needed
+          });
+          console.log('Order confirmation email sent successfully');
+        } else if (newStatus === 'shipped' && orderData.tracking_number) {
           // Send specialized shipping email with tracking details
           await transactionalEmailService.sendShippingEmail({
             id: orderData.id,
@@ -173,7 +185,7 @@ const OrdersPage: React.FC = () => {
           });
           console.log('Shipping email sent successfully');
         } else {
-          // Send regular order status update email
+          // Send regular order status update email for other status changes
           await transactionalEmailService.sendOrderStatusUpdateEmail({
             id: orderData.id,
             order_number: orderData.order_number,
