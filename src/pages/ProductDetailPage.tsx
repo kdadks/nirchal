@@ -8,6 +8,12 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 import { format } from 'date-fns';
+import { 
+  getSelectedProductStockInfo, 
+  isSizeAvailable, 
+  isColorAvailable, 
+  getMaxQuantity 
+} from '../utils/inventoryUtils';
 
 // Custom SVG Icons
 const TelegramIcon = ({ size = 20 }: { size?: number }) => (
@@ -240,7 +246,13 @@ const ProductDetailPage: React.FC = () => {
 
   // Only consider it as having variants if sizes exist and are not empty
   const hasVariants = sizes.length > 0 && sizes.some(size => size && size.trim() !== '');
-  const canAddToCart = !hasVariants || selectedSize;
+  
+  // Check stock availability for current selection
+  const stockInfo = getSelectedProductStockInfo(product, selectedSize, selectedColor);
+  const maxQuantity = getMaxQuantity(product, selectedSize, selectedColor);
+  
+  // Can add to cart if: has no variants OR size is selected AND stock is available
+  const canAddToCart = (!hasVariants || selectedSize) && stockInfo.isAvailable;
 
   const nextImage = () => {
     if (!product || !product.images || product.images.length === 0) return;
@@ -657,19 +669,25 @@ const ProductDetailPage: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-2 sm:mb-3">Size</h3>
                   <div className="flex flex-wrap gap-2">
-                    {sizes.map(size => (
-                      <button
-                        key={size}
-                        onClick={() => setSelectedSize(size!)}
-                        className={`px-3 sm:px-4 py-2 sm:py-2 text-sm border rounded transition-colors ${
-                          selectedSize === size
-                            ? 'border-amber-500 bg-amber-50 text-amber-700'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
+                    {sizes.map(size => {
+                      const isAvailable = isSizeAvailable(product, size!, selectedColor);
+                      return (
+                        <button
+                          key={size}
+                          onClick={() => isAvailable && setSelectedSize(size!)}
+                          disabled={!isAvailable}
+                          className={`px-3 sm:px-4 py-2 sm:py-2 text-sm border rounded transition-colors ${
+                            selectedSize === size
+                              ? 'border-amber-500 bg-amber-50 text-amber-700'
+                              : isAvailable
+                                ? 'border-gray-300 hover:border-gray-400'
+                                : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -687,8 +705,12 @@ const ProductDetailPage: React.FC = () => {
                       const colorVariant = product.variants?.find(v => v.color === color);
                       // Only show swatch image if variant has actual swatch_image_id in database
                       const hasSwatchImage = !!(colorVariant?.swatchImageId && colorVariant?.swatchImage);
+                      // Check if this color is available based on selected size
+                      const isAvailable = isColorAvailable(product, color!, selectedSize);
                       
                       const handleSwatchClick = () => {
+                        if (!isAvailable) return;
+                        
                         setSelectedColor(color!);
                         // If swatch has an image, try to find it in main product images
                         if (hasSwatchImage && colorVariant.swatchImage) {
@@ -717,21 +739,30 @@ const ProductDetailPage: React.FC = () => {
                           <button
                             key={color}
                             onClick={handleSwatchClick}
+                            disabled={!isAvailable}
                             className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                               selectedColor === color
                                 ? 'border-amber-500 ring-2 ring-amber-200'
-                                : 'border-gray-300 hover:border-amber-300'
+                                : isAvailable
+                                  ? 'border-gray-300 hover:border-amber-300'
+                                  : 'border-gray-200 opacity-50 cursor-not-allowed'
                             }`}
-                            title={color}
+                            title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
                           >
                             <img
                               src={colorVariant.swatchImage}
                               alt={`${color} swatch`}
-                              className="w-full h-full object-cover"
+                              className={`w-full h-full object-cover ${!isAvailable ? 'grayscale' : ''}`}
                             />
                             {selectedColor === color && (
                               <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
                                 <div className="w-3 h-3 bg-white rounded-full shadow-md"></div>
+                              </div>
+                            )}
+                            {!isAvailable && (
+                              <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
+                                <div className="w-6 h-0.5 bg-red-500 rotate-45"></div>
+                                <div className="w-6 h-0.5 bg-red-500 -rotate-45 absolute"></div>
                               </div>
                             )}
                           </button>
@@ -744,10 +775,17 @@ const ProductDetailPage: React.FC = () => {
                             <button
                               key={color}
                               onClick={handleSwatchClick}
-          className={`relative w-20 h-20 overflow-hidden border border-black`}
-                              title={color}
+                              disabled={!isAvailable}
+          className={`relative w-20 h-20 overflow-hidden border border-black ${!isAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
                             >
-                              <div className="w-full h-full" style={{ backgroundColor: hex }} />
+                              <div className={`w-full h-full ${!isAvailable ? 'grayscale' : ''}`} style={{ backgroundColor: hex }} />
+                              {!isAvailable && (
+                                <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
+                                  <div className="w-6 h-0.5 bg-red-500 rotate-45"></div>
+                                  <div className="w-6 h-0.5 bg-red-500 -rotate-45 absolute"></div>
+                                </div>
+                              )}
                             </button>
                           );
                         }
@@ -756,12 +794,15 @@ const ProductDetailPage: React.FC = () => {
                           <button
                             key={color}
                             onClick={handleSwatchClick}
+                            disabled={!isAvailable}
                             className={`px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg transition-colors ${
                               selectedColor === color
                                 ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                : 'border-gray-300 hover:border-gray-400'
+                                : isAvailable
+                                  ? 'border-gray-300 hover:border-gray-400'
+                                  : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                             }`}
-                            title={color}
+                            title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
                           >
                             {color}
                           </button>
@@ -769,6 +810,24 @@ const ProductDetailPage: React.FC = () => {
                       }
                     })}
                   </div>
+                </div>
+              )}
+
+              {/* Stock Status Display */}
+              {!stockInfo.isAvailable ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-800 text-sm font-medium">Out of Stock</p>
+                  <p className="text-red-600 text-xs mt-1">This item is currently unavailable</p>
+                </div>
+              ) : stockInfo.stockStatus === 'Low Stock' ? (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <p className="text-orange-800 text-sm font-medium">Low Stock</p>
+                  <p className="text-orange-600 text-xs mt-1">Only {stockInfo.quantity} left in stock</p>
+                </div>
+              ) : (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-green-800 text-sm font-medium">In Stock</p>
+                  <p className="text-green-600 text-xs mt-1">{stockInfo.quantity} available</p>
                 </div>
               )}
 
@@ -782,14 +841,16 @@ const ProductDetailPage: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                        disabled={!stockInfo.isAvailable}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         -
                       </button>
                       <span className="w-8 text-center font-medium text-sm">{quantity}</span>
                       <button
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                        onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                        disabled={!stockInfo.isAvailable || quantity >= maxQuantity}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
@@ -805,7 +866,7 @@ const ProductDetailPage: React.FC = () => {
                       className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
                     >
                       <ShoppingBag size={16} />
-                      {isAdding ? 'Adding...' : 'Add to Cart'}
+                      {!stockInfo.isAvailable ? 'Out of Stock' : isAdding ? 'Adding...' : 'Add to Cart'}
                     </button>
 
                     {/* Buy Now Button */}
@@ -814,7 +875,7 @@ const ProductDetailPage: React.FC = () => {
                       disabled={!canAddToCart}
                       className="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm"
                     >
-                      Buy Now
+                      {!stockInfo.isAvailable ? 'Out of Stock' : 'Buy Now'}
                     </button>
                   </div>
                 </div>
@@ -827,14 +888,16 @@ const ProductDetailPage: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                        disabled={!stockInfo.isAvailable}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         -
                       </button>
                       <span className="w-8 text-center font-medium text-sm">{quantity}</span>
                       <button
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm"
+                        onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                        disabled={!stockInfo.isAvailable || quantity >= maxQuantity}
+                        className="w-8 h-8 border border-gray-200 rounded-lg flex items-center justify-center hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
@@ -850,7 +913,7 @@ const ProductDetailPage: React.FC = () => {
                       className="w-full bg-amber-600 hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
                     >
                       <ShoppingBag size={16} />
-                      {isAdding ? 'Adding...' : 'Add to Cart'}
+                      {!stockInfo.isAvailable ? 'Out of Stock' : isAdding ? 'Adding...' : 'Add to Cart'}
                     </button>
 
                     {/* Buy Now Button */}
@@ -859,7 +922,7 @@ const ProductDetailPage: React.FC = () => {
                       disabled={!canAddToCart}
                       className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-3 rounded-lg font-medium transition-colors duration-200 text-sm"
                     >
-                      Buy Now
+                      {!stockInfo.isAvailable ? 'Out of Stock' : 'Buy Now'}
                     </button>
                   </div>
                 </div>
