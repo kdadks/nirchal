@@ -18,7 +18,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const { addToWishlist, isInWishlist } = useWishlist();
   const { addToCart } = useCart();
   const navigate = useNavigate();
-  const [imageSrc, setImageSrc] = React.useState(product.images[0] || '/placeholder-product.jpg');
+  // Use first image (should be primary due to sorting in usePublicProducts)
+  const primaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
+  const [imageSrc, setImageSrc] = React.useState(primaryImage);
   const [imageError, setImageError] = React.useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [isInView, setIsInView] = useState(false);
@@ -27,6 +29,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // Check if product has any stock available
   const stockInfo = getProductStockInfo(product);
   const hasStock = stockInfo.isInStock;
+
+  // Update image source when product changes
+  useEffect(() => {
+    const newPrimaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
+    setImageSrc(newPrimaryImage);
+    setImageError(false);
+  }, [product]);
 
   // Intersection Observer for better lazy loading
   useEffect(() => {

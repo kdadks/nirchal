@@ -9,9 +9,10 @@ import { markWelcomeEmailSent } from '../../utils/orders';
 interface CustomerAuthModalProps {
   open: boolean;
   onClose: () => void;
+  preventRedirect?: boolean; // New prop to prevent automatic redirect after login
 }
 
-const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) => {
+const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose, preventRedirect = false }) => {
   const { signIn, signUp, resetPassword, customer } = useCustomerAuth();
   const { supabase } = useAuth();
   const navigate = useNavigate();
@@ -63,8 +64,10 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
         const result = await signIn(email, password);
         if (result.success) {
           onClose();
-          // Redirect to dashboard after successful login using React Router
-          navigate('/myaccount');
+          // Only redirect to dashboard if not prevented (e.g., when on checkout page)
+          if (!preventRedirect) {
+            navigate('/myaccount');
+          }
         } else {
           setError(result.error || 'Login failed');
         }
@@ -101,10 +104,12 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
             // Don't block the registration process if email fails
           }
           
-          // Redirect to account dashboard after short delay for UX
+          // Redirect to account dashboard after short delay for UX (only if not prevented)
           setTimeout(() => {
             onClose();
-            navigate('/myaccount');
+            if (!preventRedirect) {
+              navigate('/myaccount');
+            }
           }, 800);
         } else {
           setError(result.error || 'Registration failed');
