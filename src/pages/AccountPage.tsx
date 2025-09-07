@@ -23,7 +23,13 @@ import {
   Trash2,
   AlertTriangle,
   Star,
-  LogIn
+  LogIn,
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDisplayDate } from '../utils/formatDate';
@@ -34,6 +40,10 @@ type OrderRow = {
   status: string;
   total_amount: number;
   created_at: string;
+  payment_status?: string;
+  razorpay_payment_id?: string;
+  razorpay_order_id?: string;
+  payment_details?: any;
 };
 
 type AddressRow = {
@@ -70,6 +80,7 @@ const AccountPage: React.FC = () => {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings'>('profile');
   const location = useLocation();
 
@@ -93,7 +104,7 @@ const AccountPage: React.FC = () => {
         // Filter orders and addresses by current customer ID
         const [ordersResult, addressesResult] = await Promise.all([
           supabase.from('orders')
-            .select('id, order_number, status, total_amount, created_at')
+            .select('id, order_number, status, total_amount, created_at, payment_status, razorpay_payment_id, razorpay_order_id, payment_details')
             .eq('customer_id', customer.id)
             .order('created_at', { ascending: false }),
           supabase.from('customer_addresses')
@@ -247,6 +258,18 @@ const AccountPage: React.FC = () => {
   const handleOrderClick = (order: OrderRow) => {
     setSelectedOrderId(order.id);
     setShowOrderDetailsModal(true);
+  };
+
+  const togglePaymentDetails = (orderId: number) => {
+    setExpandedPaymentDetails(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
   };
 
   const handleEditProfile = () => {
@@ -502,7 +525,7 @@ const AccountPage: React.FC = () => {
                 {/* Orders Tab */}
                 {activeTab === 'orders' && (
                   <div className="p-6">
-                    <h2 className="text-xl font-semibold mb-6">Recent Orders</h2>
+                    <h2 className="text-xl font-semibold mb-6">Your Orders</h2>
                     {orders.length === 0 ? (
                       <div className="text-center py-12">
                         <Package size={48} className="mx-auto text-gray-300 mb-4" />
@@ -541,15 +564,30 @@ const AccountPage: React.FC = () => {
                                 ₹{order.total_amount?.toLocaleString()}
                               </span>
                               
-                              {/* Status - rounded rectangle */}
-                              <span className={`px-3 py-1 text-xs font-medium rounded-md ${
-                                order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                                order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                              </span>
+                              {/* Status and Payment Status */}
+                              <div className="flex items-center gap-2">
+                                <span className={`px-3 py-1 text-xs font-medium rounded-md ${
+                                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                  order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                  order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                </span>
+                                {order.payment_status && (
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-md flex items-center gap-1 ${
+                                    order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                                    order.payment_status === 'failed' ? 'bg-red-100 text-red-800' :
+                                    order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {order.payment_status === 'paid' ? <CheckCircle size={10} /> :
+                                     order.payment_status === 'failed' ? <XCircle size={10} /> :
+                                     order.payment_status === 'pending' ? <Clock size={10} /> : null}
+                                    {order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             {/* Mobile layout */}
@@ -561,14 +599,28 @@ const AccountPage: React.FC = () => {
                                 >
                                   Order #{order.order_number}
                                 </button>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-md ${
-                                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                                  order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                                  order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-md ${
+                                    order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                    order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                    order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                  </span>
+                                  {order.payment_status && (
+                                    <span className={`px-1 py-1 text-xs font-medium rounded-md flex items-center gap-1 ${
+                                      order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                                      order.payment_status === 'failed' ? 'bg-red-100 text-red-800' :
+                                      order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {order.payment_status === 'paid' ? <CheckCircle size={10} /> :
+                                       order.payment_status === 'failed' ? <XCircle size={10} /> :
+                                       order.payment_status === 'pending' ? <Clock size={10} /> : null}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-500">
@@ -579,6 +631,105 @@ const AccountPage: React.FC = () => {
                                 </span>
                               </div>
                             </div>
+
+                            {/* Payment History Section */}
+                            {(order.payment_status || order.razorpay_payment_id) && (
+                              <div className="mt-4 border-t">
+                                <button
+                                  onClick={() => togglePaymentDetails(order.id)}
+                                  className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <CreditCard size={16} className="text-gray-600" />
+                                    <span className="text-sm font-medium text-gray-900">Payment Details</span>
+                                  </div>
+                                  {expandedPaymentDetails.has(order.id) ? (
+                                    <ChevronDown size={16} className="text-gray-500" />
+                                  ) : (
+                                    <ChevronRight size={16} className="text-gray-500" />
+                                  )}
+                                </button>
+                                
+                                {expandedPaymentDetails.has(order.id) && (
+                                  <div className="p-3 bg-gray-50 rounded-b-lg space-y-2">
+                                    {/* Payment Status */}
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-gray-600">Payment Status:</span>
+                                      <div className="flex items-center gap-1">
+                                        {order.payment_status === 'paid' ? (
+                                          <>
+                                            <CheckCircle size={14} className="text-green-600" />
+                                            <span className="text-green-600 font-medium">Paid</span>
+                                          </>
+                                        ) : order.payment_status === 'failed' ? (
+                                          <>
+                                            <XCircle size={14} className="text-red-600" />
+                                            <span className="text-red-600 font-medium">Failed</span>
+                                          </>
+                                        ) : order.payment_status === 'pending' ? (
+                                          <>
+                                            <Clock size={14} className="text-yellow-600" />
+                                            <span className="text-yellow-600 font-medium">Pending</span>
+                                          </>
+                                        ) : (
+                                          <span className="text-gray-500 font-medium">{order.payment_status || 'N/A'}</span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Transaction ID */}
+                                    {order.razorpay_payment_id && (
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Transaction ID:</span>
+                                        <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                          {order.razorpay_payment_id}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Razorpay Order ID */}
+                                    {order.razorpay_order_id && (
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Order ID:</span>
+                                        <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                          {order.razorpay_order_id}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Payment Method from payment_details */}
+                                    {order.payment_details && (
+                                      <div className="mt-2 pt-2 border-t border-gray-200">
+                                        {order.payment_details.method && (
+                                          <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-600">Payment Method:</span>
+                                            <span className="text-gray-900 capitalize">
+                                              {order.payment_details.method}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {order.payment_details.bank && (
+                                          <div className="flex items-center justify-between text-sm mt-1">
+                                            <span className="text-gray-600">Bank:</span>
+                                            <span className="text-gray-900">
+                                              {order.payment_details.bank}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {order.payment_details.wallet && (
+                                          <div className="flex items-center justify-between text-sm mt-1">
+                                            <span className="text-gray-600">Wallet:</span>
+                                            <span className="text-gray-900">
+                                              {order.payment_details.wallet}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

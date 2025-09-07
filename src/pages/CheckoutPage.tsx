@@ -68,6 +68,7 @@ const CheckoutPage: React.FC = () => {
   const { customer } = useCustomerAuth();
   const { isLoaded: isRazorpayLoaded, createOrder: createRazorpayOrder, openCheckout: openRazorpayCheckout, verifyPayment: verifyRazorpayPayment } = useRazorpay();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [currentStep] = useState(1);
   const [form, setForm] = useState<CheckoutForm>({
     // Contact Information
@@ -605,7 +606,7 @@ const CheckoutPage: React.FC = () => {
       // Check if order was actually created despite the error
       const orderNumber = sessionStorage.getItem('last_order_number');
       if (orderNumber) {
-        navigate('/order-confirmation');
+        window.location.href = '/order-confirmation';
         return;
       }
       
@@ -628,6 +629,9 @@ const CheckoutPage: React.FC = () => {
     customerId: string | null, 
     finalTotal: number
   ) => {
+    // Immediately show processing state to prevent cart page flash
+    setIsOrderProcessing(true);
+    
     // Handle welcome email for customers who need it
     if (shouldSendWelcomeEmail && customerId) {
       // Send welcome email (with temp password if available)
@@ -1025,6 +1029,24 @@ const CheckoutPage: React.FC = () => {
 
   return (
     <PaymentSecurityWrapper>
+      {/* Order Processing Overlay */}
+      {isOrderProcessing && (
+        <div className="fixed inset-0 bg-white bg-opacity-95 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
+            <p className="text-gray-600 mb-4">Processing your order details...</p>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-6xl mx-auto">
