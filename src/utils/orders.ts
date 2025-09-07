@@ -417,12 +417,11 @@ async function updateInventoryForOrder(supabase: SupabaseClient, items: OrderIte
         .from('inventory_history')
         .insert({
           inventory_id: inventoryRecord.id,
-          old_quantity: oldQuantity,
+          previous_quantity: oldQuantity, // Use correct column name
           new_quantity: newQuantity,
-          adjustment: -item.quantity, // Negative because it's a sale
+          change_type: 'STOCK_OUT', // Use change_type instead of action_type
           reason: 'Customer Order',
-          reference: orderNumber,
-          action_type: 'sale',
+          created_by: null, // Use created_by instead of user_name
           created_at: new Date().toISOString()
         });
 
