@@ -654,27 +654,27 @@ const CheckoutPage: React.FC = () => {
       }
     }
     
-    // ALWAYS send order confirmation email for successful orders
+    // ALWAYS send order received email for successful orders (not confirmation yet)
     // For customers with temp password: Send after 30 seconds delay
     // For all other customers: Send immediately
-    const sendOrderConfirmation = async () => {
+    const sendOrderReceived = async () => {
       try {
-        await transactionalEmailService.sendOrderConfirmationEmail({
+        await transactionalEmailService.sendOrderReceivedEmail({
           id: order.id.toString(),
           order_number: order.order_number,
           customer_name: `${form.firstName} ${form.lastName}`,
           customer_email: form.email,
           total_amount: finalTotal,
-          status: 'confirmed',
+          status: 'received',
           items: items.map(item => ({
             name: item.name,
             quantity: item.quantity,
             price: (item.price * item.quantity).toFixed(2)
           }))
         });
-        console.log('Order confirmation email sent successfully');
+        console.log('Order received email sent successfully');
       } catch (emailError) {
-        console.error('Failed to send order confirmation email:', emailError);
+        console.error('Failed to send order received email:', emailError);
       }
     };
 
@@ -696,13 +696,13 @@ const CheckoutPage: React.FC = () => {
     };
     
     if (tempPassword && shouldSendWelcomeEmail) {
-      // New customer with temp password: Send order confirmation after 30 seconds delay
-      console.log('Scheduling order confirmation email after 30 second delay (new customer with temp password)');
-      setTimeout(sendOrderConfirmation, 30000);
+      // New customer with temp password: Send order received email after 30 seconds delay
+      console.log('Scheduling order received email after 30 second delay (new customer with temp password)');
+      setTimeout(sendOrderReceived, 30000);
     } else {
-      // All other cases: Send order confirmation immediately
-      console.log('Sending order confirmation email immediately');
-      await sendOrderConfirmation();
+      // All other cases: Send order received email immediately
+      console.log('Sending order received email immediately');
+      await sendOrderReceived();
     }
 
     // Send order notification to support team (always immediate)
@@ -1029,25 +1029,25 @@ const CheckoutPage: React.FC = () => {
 
   return (
     <PaymentSecurityWrapper>
-      {/* Order Processing Overlay */}
-      {isOrderProcessing && (
-        <div className="fixed inset-0 bg-white bg-opacity-95 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
-            <p className="text-gray-600 mb-4">Processing your order details...</p>
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-              <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 relative">
+        {/* Order Processing Overlay - positioned to cover only main content area */}
+        {isOrderProcessing && (
+          <div className="absolute inset-0 bg-white bg-opacity-95 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
+              <p className="text-gray-600 mb-4">Processing your order details...</p>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        )}
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Back to Cart Link */}

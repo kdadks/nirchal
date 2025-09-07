@@ -203,6 +203,25 @@ export const outlookCompatibleOrderConfirmationEmail = (customerName: string, or
   });
 };
 
+export const outlookCompatibleOrderReceivedEmail = (customerName: string, orderNumber: string, orderTotal: string, websiteUrl: string) => {
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Order Received',
+    headerText: '📨 Order Received!',
+    subHeaderText: `Order ${orderNumber}`,
+    customerName,
+    content: [
+      `Thank you for placing your order with us! We have successfully received your order <strong>${orderNumber}</strong> and it is now being processed.`,
+      `<strong>Order Total:</strong> ₹${orderTotal}`,
+      '<strong>🔄 What happens next?</strong><br>• Our team will review and process your order<br>• You\'ll receive an order confirmation once processed<br>• We\'ll send tracking details when your order ships',
+      'Thank you for choosing us! We\'ll keep you updated on your order status.'
+    ],
+    ctaText: '📋 View Order Details',
+    ctaUrl: `${websiteUrl}/myaccount?tab=orders`,
+    footerText: 'Your Trusted Shopping Destination',
+    websiteUrl
+  });
+};
+
 export const outlookCompatiblePasswordResetEmail = (customerName: string, resetUrl: string, websiteUrl: string) => {
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Password Reset Request',

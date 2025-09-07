@@ -2,6 +2,7 @@
 import { 
   outlookCompatibleWelcomeEmail,
   outlookCompatibleOrderConfirmationEmail,
+  outlookCompatibleOrderReceivedEmail,
   outlookCompatiblePasswordResetEmail,
   outlookCompatibleOrderStatusEmail,
   outlookCompatiblePasswordChangeEmail,
@@ -191,6 +192,54 @@ export class TransactionalEmailService {
       return response.ok;
     } catch (error) {
       console.error('TransactionalEmailService: Failed to send order confirmation email:', error);
+      return false;
+    }
+  }
+
+  // Send order received email (when order is first placed)
+  async sendOrderReceivedEmail(order: OrderData): Promise<boolean> {
+    try {
+      const websiteUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://nirchal.netlify.app' 
+        : 'http://localhost:5173';
+      
+      const orderNumber = order.order_number || `ORD${order.id}`;
+      const html = outlookCompatibleOrderReceivedEmail(
+        order.customer_name,
+        orderNumber,
+        (order.total_amount || 0).toString(),
+        websiteUrl
+      );
+
+      const emailPayload = {
+        to: order.customer_email,
+        subject: `Order Received for Processing - ${orderNumber}`,
+        html: html
+      };
+      
+      console.log('TransactionalEmailService: Sending order received email with payload:', {
+        to: emailPayload.to,
+        subject: emailPayload.subject,
+        hasHtml: !!emailPayload.html,
+        htmlLength: emailPayload.html.length
+      });
+
+      const response = await fetch(`${this.baseUrl}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+
+      console.log('TransactionalEmailService: Order received email response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('TransactionalEmailService: Order received email failed with response:', errorText);
+      }
+
+      return response.ok;
+    } catch (error) {
+      console.error('TransactionalEmailService: Failed to send order received email:', error);
       return false;
     }
   }
