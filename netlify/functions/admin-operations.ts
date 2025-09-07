@@ -266,14 +266,11 @@ async function adjustInventory(event: any, headers: any) {
         .from('inventory_history')
         .insert({
           inventory_id: item_id,
-          product_id: currentItem.product_id,
-          old_quantity: oldQuantity,
+          previous_quantity: oldQuantity, // Use correct column name
           new_quantity: newQuantity,
-          adjustment: adjustment,
+          change_type: adjustment > 0 ? 'STOCK_IN' : 'STOCK_OUT', // Use change_type
           reason: reason,
-          notes: notes,
-          action_type: 'adjustment',
-          user_name: 'Admin', // TODO: Get from auth context
+          created_by: null, // Use created_by instead of user_name
           created_at: new Date().toISOString()
         });
 
@@ -329,8 +326,10 @@ async function getInventoryHistory(event: any, headers: any) {
       .from('inventory_history')
       .select(`
         *,
-        products!inner(
-          name
+        inventory!inner(
+          id,
+          product_id,
+          products!inner(name)
         )
       `)
       .order('created_at', { ascending: false });
@@ -340,12 +339,9 @@ async function getInventoryHistory(event: any, headers: any) {
       query = query.eq('inventory_id', params.inventory_id);
     }
     
-    if (params.product_id) {
-      query = query.eq('product_id', params.product_id);
-    }
-    
     if (params.action_type) {
-      query = query.eq('action_type', params.action_type);
+      // Map action_type to change_type
+      query = query.eq('change_type', params.action_type.toUpperCase());
     }
     
     if (params.start_date) {
@@ -396,15 +392,15 @@ async function getInventoryHistory(event: any, headers: any) {
     const history = (historyData || []).map(item => ({
       id: item.id,
       inventory_id: item.inventory_id,
-      product_id: item.product_id,
-      product_name: item.products?.name || 'Unknown Product',
-      old_quantity: item.old_quantity,
+      product_id: item.inventory?.product_id || '',
+      product_name: item.inventory?.products?.name || 'Unknown Product',
+      old_quantity: item.previous_quantity, // Map from actual column
       new_quantity: item.new_quantity,
-      adjustment: item.adjustment,
+      adjustment: item.new_quantity - item.previous_quantity, // Calculate adjustment
       reason: item.reason,
-      notes: item.notes,
-      user_name: item.user_name,
-      action_type: item.action_type,
+      reference: null, // Not available in current schema
+      user_name: item.created_by ? 'Admin' : 'System',
+      action_type: item.change_type?.toLowerCase() || 'adjustment',
       created_at: item.created_at
     }));
 

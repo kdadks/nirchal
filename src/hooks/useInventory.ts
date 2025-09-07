@@ -247,12 +247,11 @@ export const useInventory = (): UseInventoryReturn => {
           .from('inventory_history')
           .insert({
             inventory_id: id,
-            old_quantity: currentItem.quantity,
+            previous_quantity: currentItem.quantity, // Use correct column name
             new_quantity: newQuantity,
-            adjustment: adjustmentQuantity,
+            change_type: adjustmentQuantity > 0 ? 'STOCK_IN' : 'STOCK_OUT', // Use change_type instead of action_type
             reason: reason,
-            reference: reference || null,
-            action_type: 'adjustment',
+            created_by: null, // Use created_by instead of user_name
             created_at: new Date().toISOString()
           });
 
@@ -292,28 +291,22 @@ export const useInventory = (): UseInventoryReturn => {
       }
 
       console.log('[useInventory] Fetching inventory history:', filters);
+      console.log('[useInventory] Looking for inventory_id:', filters?.inventoryId);
 
-      // Build query with filters
+      // Use the same approach as inventory table - simple direct query
       let query = supabase
         .from('inventory_history')
-        .select(`
-          *,
-          inventory!inner(
-            id,
-            product_id,
-            variant_id,
-            products!inner(name),
-            product_variants(size, color)
-          )
-        `)
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       // Apply filters
       if (filters?.inventoryId) {
+        console.log('[useInventory] Filtering by inventory_id:', filters.inventoryId);
         query = query.eq('inventory_id', filters.inventoryId);
       }
       if (filters?.actionType) {
-        query = query.eq('action_type', filters.actionType);
+        console.log('[useInventory] Filtering by change_type:', filters.actionType.toUpperCase());
+        query = query.eq('change_type', filters.actionType.toUpperCase());
       }
       if (filters?.startDate) {
         query = query.gte('created_at', filters.startDate);
@@ -330,14 +323,14 @@ export const useInventory = (): UseInventoryReturn => {
         query = query.range(filters.offset, (filters.offset + (filters.limit || 50)) - 1);
       }
 
+      console.log('[useInventory] Executing query...');
       const { data, error, count } = await query;
 
+      console.log('[useInventory] Query result:', { data: data?.length, error, count });
+      console.log('[useInventory] Raw data sample:', data?.[0]);
+
       if (error) {
-        // If history table doesn't exist, return empty results
-        if (error.code === '42P01') {
-          console.warn('[useInventory] Inventory history table does not exist');
-          return { records: [], total: 0 };
-        }
+        console.error('[useInventory] Query error details:', error);
         throw new Error(`Failed to fetch inventory history: ${error.message}`);
       }
 
@@ -345,22 +338,22 @@ export const useInventory = (): UseInventoryReturn => {
       const transformedRecords = (data || []).map((record: any) => ({
         id: record.id,
         inventory_id: record.inventory_id,
-        product_name: record.inventory?.products?.name || 'Unknown Product',
-        product_id: record.inventory?.product_id || '',
-        variant_id: record.inventory?.variant_id || null,
-        old_quantity: record.old_quantity,
+        product_name: 'Product ID: ' + record.inventory_id, // Temporary fallback
+        product_id: record.inventory_id?.toString() || '',
+        variant_id: null,
+        old_quantity: record.previous_quantity, // Map from actual column
         new_quantity: record.new_quantity,
-        adjustment: record.adjustment,
+        adjustment: record.new_quantity - record.previous_quantity, // Calculate adjustment
         reason: record.reason || 'No reason provided',
-        reference: record.reference || null,
-        user_id: record.user_id || null,
-        user_name: record.user_name || null,
+        reference: null, // Not available in current schema
+        user_id: record.created_by || null,
+        user_name: record.created_by ? 'Admin' : 'System', // Map created_by to user_name
         created_at: record.created_at,
-        action_type: record.action_type || 'adjustment'
+        action_type: record.change_type?.toLowerCase() || 'adjustment' // Map change_type to action_type
       }));
 
       console.log('[useInventory] Successfully fetched inventory history:', transformedRecords.length, 'records');
-      console.log('[useInventory] Sample record:', transformedRecords[0]);
+      console.log('[useInventory] Sample transformed record:', transformedRecords[0]);
 
       return {
         records: transformedRecords,

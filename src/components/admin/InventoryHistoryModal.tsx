@@ -74,12 +74,9 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({
 
   const actionTypeOptions = [
     { value: '', label: 'All Actions' },
-    { value: 'adjustment', label: 'Manual Adjustment' },
-    { value: 'sale', label: 'Sale' },
-    { value: 'purchase', label: 'Purchase' },
-    { value: 'return', label: 'Return' },
-    { value: 'damage', label: 'Damage/Loss' },
-    { value: 'correction', label: 'Correction' }
+    { value: 'stock_in', label: 'Stock In' },
+    { value: 'stock_out', label: 'Stock Out' },
+    { value: 'adjustment', label: 'Manual Adjustment' }
   ];
 
   const reasonOptions = [
@@ -242,14 +239,12 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({
 
   const getActionIcon = (actionType: string) => {
     switch (actionType) {
+      case 'stock_in':
+        return <TrendingUp className="h-4 w-4 text-green-500" />;
+      case 'stock_out':
+        return <TrendingDown className="h-4 w-4 text-red-500" />;
       case 'adjustment':
         return <Package className="h-4 w-4 text-blue-500" />;
-      case 'sale':
-        return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case 'purchase':
-        return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'return':
-        return <RefreshCw className="h-4 w-4 text-yellow-500" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
@@ -257,14 +252,12 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({
 
   const getActionColor = (actionType: string) => {
     switch (actionType) {
+      case 'stock_in':
+        return 'text-green-600 bg-green-50';
+      case 'stock_out':
+        return 'text-red-600 bg-red-50';
       case 'adjustment':
         return 'text-blue-600 bg-blue-50';
-      case 'sale':
-        return 'text-red-600 bg-red-50';
-      case 'purchase':
-        return 'text-green-600 bg-green-50';
-      case 'return':
-        return 'text-yellow-600 bg-yellow-50';
       default:
         return 'text-gray-600 bg-gray-50';
     }
@@ -438,9 +431,6 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({
                           Date & Time
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Product
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Action
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -462,16 +452,6 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({
                               <Clock className="h-4 w-4 text-gray-400 mr-2" />
                               {formatDate(record.created_at)}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {record.product_name}
-                            </div>
-                            {record.variant_id && (
-                              <div className="text-xs text-gray-500">
-                                Variant ID: {record.variant_id}
-                              </div>
-                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
