@@ -82,7 +82,7 @@ const EditProductPage: React.FC = () => {
     is_featured: product.is_featured,
     meta_title: product.meta_title || '',
     meta_description: product.meta_description || '',
-    images: product.images.map(image => ({
+    images: (product.images || []).map(image => ({
       id: image.id,
       image_url: image.image_url,
       alt_text: image.alt_text,
@@ -90,7 +90,7 @@ const EditProductPage: React.FC = () => {
       existing: true,
       toDelete: false
     })),
-    variants: product.variants.map(variant => {
+    variants: (product.variants || []).map(variant => {
       // Find inventory for this variant
       const inv = Array.isArray(product.inventory)
         ? product.inventory.find((i: any) => i.variant_id === variant.id)

@@ -4,6 +4,7 @@ import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { getProductStockInfo } from '../../utils/inventoryUtils';
 import QuickViewModal from './QuickViewModal';
 import type { Product } from '../../types';
 
@@ -22,6 +23,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [showQuickView, setShowQuickView] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Check if product has any stock available
+  const stockInfo = getProductStockInfo(product);
+  const hasStock = stockInfo.isInStock;
 
   // Intersection Observer for better lazy loading
   useEffect(() => {
@@ -145,9 +150,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
             
             {/* Stock Status Badge */}
-            {product.stockStatus === 'Out of Stock' && (
+            {!hasStock && (
               <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
                 Out of Stock
+              </div>
+            )}
+            
+            {/* Low Stock Badge */}
+            {hasStock && product.stockStatus === 'Low Stock' && (
+              <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                Low Stock
               </div>
             )}
             
@@ -219,12 +231,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleAddToCart();
+                  if (hasStock) {
+                    handleAddToCart();
+                  }
                 }}
-                disabled={product.stockStatus === 'Out of Stock'}
-                className="w-full py-3 md:py-2 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!hasStock}
+                className="w-full py-3 md:py-2 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-400"
               >
-                {product.stockStatus === 'Out of Stock' ? 'Out of Stock' : 'Add to Cart'}
+                {!hasStock ? 'Out of Stock' : 'Add to Cart'}
               </button>
             </div>
           </div>
