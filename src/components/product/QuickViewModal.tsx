@@ -38,6 +38,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [userInteractedWithColor, setUserInteractedWithColor] = useState(false);
 
   // Get all swatch image URLs
   const swatchImageUrls = product.variants 
@@ -64,28 +65,19 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
         setSelectedSize('');
       }
       setSelectedColor(product.colors[0] || 'Default');
-      // Also try to switch image to the swatch for the default color
-      const defaultColor = (product.colors && product.colors[0]) || undefined;
-      if (defaultColor) {
-        const colorVariant = product.variants?.find(v => v.color === defaultColor);
-        const swatchUrl = colorVariant?.swatchImage;
-        const swatchId = colorVariant?.swatchImageId;
-        if (swatchUrl || swatchId) {
-          let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
-          if (idx === -1 && swatchId) {
-            const idNoDash = swatchId.replace(/-/g, '');
-            idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
-          }
-          if (idx >= 0) setCurrentImageIndex(idx);
-        }
-      }
+      
+      // Start with primary image (index 0) instead of swatch image
+      setCurrentImageIndex(0);
+      // Reset user interaction flag when modal opens
+      setUserInteractedWithColor(false);
     }
   }, [isOpen, product.sizes, product.colors]);
 
-  // When color changes, switch image to swatch if available
+  // When color changes, switch image to swatch if available (only if user clicked a color)
   React.useEffect(() => {
     if (!isOpen) return;
     if (!selectedColor) return;
+    if (!userInteractedWithColor) return; // Only switch if user clicked a color
     const colorVariant = product.variants?.find(v => v.color === selectedColor);
     const swatchUrl = colorVariant?.swatchImage;
     const swatchId = colorVariant?.swatchImageId;
@@ -96,7 +88,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
     }
     if (idx >= 0) setCurrentImageIndex(idx);
-  }, [isOpen, selectedColor, product.variants, product.images]);
+  }, [isOpen, selectedColor, product.variants, product.images, userInteractedWithColor]);
 
   if (!isOpen) return null;
 
@@ -279,6 +271,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                       
                       const handleSwatchClick = () => {
                         setSelectedColor(color);
+                        setUserInteractedWithColor(true); // Mark that user clicked a color
                         // If swatch has an image, try to find it in main product images
                         if (hasSwatchImage && swatchImageUrl) {
                           // First try to find exact URL match
