@@ -197,7 +197,14 @@ export const usePublicProducts = (featured?: boolean) => {
         let images: string[] = [];
         
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
-          images = product.product_images.map((img: any) => {
+          // Sort images so primary image comes first
+          const sortedImages = [...product.product_images].sort((a: any, b: any) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return 0;
+          });
+          
+          images = sortedImages.map((img: any) => {
             if (img.image_url) {
               return getStorageImageUrl(img.image_url);
             }

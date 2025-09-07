@@ -274,6 +274,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <CustomerAuthModal 
         open={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
+        preventRedirect={location.pathname === '/checkout'}
       />
     </div>
   );

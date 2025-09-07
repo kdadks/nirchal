@@ -67,18 +67,12 @@ const ProductDetailPage: React.FC = () => {
       setSelectedColor(product.colors[0]!);
     }
 
-    // Set default image to first swatch image if available
-    if (product.variants && product.variants.length > 0) {
-      const firstVariantWithSwatch = product.variants.find(v => v.swatchImage);
-      if (firstVariantWithSwatch && firstVariantWithSwatch.swatchImage) {
-        // Find the index of the first swatch image in the main product images
-        const swatchImageIndex = product.images.findIndex(img => img === firstVariantWithSwatch.swatchImage);
-        if (swatchImageIndex !== -1) {
-          setSelectedImage(swatchImageIndex);
-        }
-      }
+    // Always set to primary image (index 0) when product first loads
+    // Primary image should be at index 0 due to sorting in usePublicProducts
+    if (product.images && product.images.length > 0) {
+      setSelectedImage(0);
     }
-  }, [product, selectedSize, selectedColor]);
+  }, [product]);
 
   // When color changes (including default), switch main image to that color's swatch if present
   useEffect(() => {
@@ -932,7 +926,7 @@ const ProductDetailPage: React.FC = () => {
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-amber-100">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Description</h3>
                 <div 
-                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none text-sm"
+                  className="text-gray-700 text-sm leading-snug [&>p]:mb-1 [&>p:last-child]:mb-0 [&>h1]:mb-1 [&>h2]:mb-1 [&>h3]:mb-1 [&>h4]:mb-1 [&>h5]:mb-1 [&>h6]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1 [&>li]:mb-0 [&>br]:hidden"
                   dangerouslySetInnerHTML={{
                     __html: product.description || "Experience the perfect blend of traditional craftsmanship and contemporary design with this exquisite piece. Made from premium quality fabrics with intricate detailing that showcases the rich heritage of Indian ethnic wear."
                   }}
