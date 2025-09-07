@@ -628,21 +628,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Inventory</h3>
             <div className="space-y-4">
-              {formData.variants.length === 0 ? (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Quantity</label>
-                  <input
-                    type="number"
-                    value={formData.inventory.quantity}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      inventory: { ...prev.inventory, quantity: Number(e.target.value) }
-                    }))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                    min="0"
-                  />
-                </div>
-              ) : (
+              {formData.variants.length > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h4 className="text-sm font-medium text-blue-900 mb-2">Total Inventory Summary</h4>
                   <div className="text-sm text-blue-700">
@@ -660,7 +646,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                 </div>
               )}
 
-              {/* Product-level quantity - always show for editing */}
+              {/* Product-level quantity */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Product Quantity {formData.variants.length > 0 ? '(for products without variants)' : ''}

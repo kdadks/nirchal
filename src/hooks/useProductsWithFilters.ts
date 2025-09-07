@@ -376,7 +376,14 @@ export const useProductsWithFilters = (
         let images: string[] = [];
         
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
-          images = product.product_images
+          // Sort images by is_primary field (primary images first)
+          const sortedImages = [...product.product_images].sort((a: any, b: any) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return 0;
+          });
+          
+          images = sortedImages
             .map((img: any) => {
               const imageUrl = img.image_url;
               return imageUrl ? getStorageImageUrl(imageUrl) : null;
@@ -392,7 +399,14 @@ export const useProductsWithFilters = (
               .order('is_primary', { ascending: false });
               
             if (productImages && productImages.length > 0) {
-              images = productImages
+              // Sort images by is_primary field (primary images first)
+              const sortedImages = [...productImages].sort((a: any, b: any) => {
+                if (a.is_primary && !b.is_primary) return -1;
+                if (!a.is_primary && b.is_primary) return 1;
+                return 0;
+              });
+              
+              images = sortedImages
                 .map((img: any) => {
                   const imageUrl = img.image_url;
                   return imageUrl ? getStorageImageUrl(imageUrl) : null;
