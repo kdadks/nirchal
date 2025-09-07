@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { X, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
 import toast from 'react-hot-toast';
@@ -57,6 +57,14 @@ interface OrderDetails {
   updated_at: string;
   notes?: string;
   admin_notes?: string;
+  logistics_partner_id?: string;
+  tracking_number?: string;
+  logistics_partners?: {
+    id: string;
+    name: string;
+    tracking_url_template?: string;
+    website?: string;
+  };
 }
 
 interface OrderDetailsModalProps {
@@ -74,6 +82,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
+  // Helper function to generate tracking URL
+  const getTrackingUrl = (order: OrderDetails): string | null => {
+    if (!order.tracking_number || !order.logistics_partners?.tracking_url_template) {
+      return null;
+    }
+    
+    return order.logistics_partners.tracking_url_template.replace(
+      '{tracking_number}', 
+      order.tracking_number
+    );
+  };
+
   useEffect(() => {
     if (isOpen && orderId) {
       loadOrderDetails();
@@ -88,7 +108,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       // Load order details
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          logistics_partners(
+            id,
+            name,
+            tracking_url_template,
+            website
+          )
+        `)
         .eq('id', orderId)
         .single();
 
@@ -458,23 +486,61 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </div>
 
               {/* Tracking Information */}
-              {(orderDetails.shipped_at || orderDetails.delivered_at) && (
+              {(orderDetails.shipped_at || orderDetails.delivered_at || orderDetails.tracking_number) && (
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Tracking Information</h3>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="space-y-2">
-                      {orderDetails.shipped_at && (
-                        <div className="flex justify-between">
-                          <span>Shipped At</span>
-                          <span>{formatDate(orderDetails.shipped_at)}</span>
+                    <div className="space-y-3">
+                      {/* Logistics Partner */}
+                      {orderDetails.logistics_partners && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Courier Partner</span>
+                          <span className="font-medium">{orderDetails.logistics_partners.name}</span>
                         </div>
                       )}
-                      {orderDetails.delivered_at && (
-                        <div className="flex justify-between">
-                          <span>Delivered At</span>
-                          <span>{formatDate(orderDetails.delivered_at)}</span>
+
+                      {/* Tracking Number */}
+                      {orderDetails.tracking_number && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Tracking Number</span>
+                          <span className="font-mono text-sm font-medium bg-white px-2 py-1 rounded border">
+                            {orderDetails.tracking_number}
+                          </span>
                         </div>
                       )}
+
+                      {/* Tracking URL */}
+                      {orderDetails.tracking_number && getTrackingUrl(orderDetails) && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Track Package</span>
+                          <a
+                            href={getTrackingUrl(orderDetails)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                          >
+                            <Truck size={16} />
+                            Track Order
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Timeline */}
+                      <div className="border-t pt-3 space-y-2">
+                        {orderDetails.shipped_at && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Shipped At</span>
+                            <span className="font-medium">{formatDate(orderDetails.shipped_at)}</span>
+                          </div>
+                        )}
+                        {orderDetails.delivered_at && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Delivered At</span>
+                            <span className="font-medium">{formatDate(orderDetails.delivered_at)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
