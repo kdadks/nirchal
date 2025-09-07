@@ -19,7 +19,8 @@ import {
   User,
   RefreshCw,
   Truck,
-  Shield
+  Shield,
+  Boxes
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -51,6 +52,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       path: '/admin/products',
       icon: <Package className="admin-nav-icon" />,
       badge: counts.products?.toString() || '0'
+    },
+    {
+      name: 'Inventory',
+      path: '/admin/inventory',
+      icon: <Boxes className="admin-nav-icon" />,
+      badge: null
     },
     {
       name: 'Categories',
@@ -106,6 +113,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const getCurrentPageContext = () => {
     const path = location.pathname;
     if (path.includes('/products')) return 'products';
+    if (path.includes('/inventory')) return 'inventory';
     if (path.includes('/categories')) return 'categories';
     if (path.includes('/vendors')) return 'vendors';
     if (path.includes('/logistics-partners')) return 'logistics';

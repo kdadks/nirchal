@@ -340,37 +340,60 @@ export const useProducts = () => {
 		if (!supabase) return;
 		setLoading(true);
 		try {
-			// First fetch products with basic joins including swatch images
+			// Simplified query - fetch just basic product data first
 			const { data: productsData, error: productsError } = await supabase
 				.from('products')
 				.select(`
 					*,
-					category:categories(*),
-					images:product_images(*),
-					variants:product_variants(*, swatch_image:product_images!swatch_image_id(*))
+					category:categories(id, name)
 				`)
 				.order('created_at', { ascending: false });
 
-			console.log('[Supabase products] productsData:', productsData);
-			console.log('[Supabase products] productsError:', productsError);
+			console.log('[Products] Fetched', productsData?.length || 0, 'products');
 
-			if (productsError && !productsData) throw productsError;
+			if (productsError) {
+				console.error('[Products] Error:', productsError);
+				throw productsError;
+			}
 
-			// Fetch inventory separately
-			console.log('[Debug] About to fetch inventory...');
-			
-			// Check current user and session
-			const { data: session } = await supabase.auth.getSession();
-			console.log('[Auth Check] Current session:', session?.session?.user?.id);
-			console.log('[Auth Check] User role:', session?.session?.user?.role);
-			console.log('[Auth Check] User email:', session?.session?.user?.email);
-			
-			const { data: inventoryData, error: inventoryError } = await supabase
-				.from('inventory')
-				.select('*');
+			// Fetch additional data in parallel for better performance
+			const [imagesData, variantsData, inventoryData] = await Promise.all([
+				// Product images
+				supabase
+					.from('product_images')
+					.select('*')
+					.then(({ data, error }) => {
+						if (error) console.warn('[Products] Images fetch failed:', error);
+						return data || [];
+					}),
+				
+				// Product variants with swatch images
+				supabase
+					.from('product_variants')
+					.select(`
+						*,
+						swatch_image:product_images!swatch_image_id(*)
+					`)
+					.then(({ data, error }) => {
+						if (error) console.warn('[Products] Variants fetch failed:', error);
+						return data || [];
+					}),
+				
+				// Inventory data
+				supabase
+					.from('inventory')
+					.select('*')
+					.then(({ data, error }) => {
+						if (error) console.warn('[Products] Inventory fetch failed:', error);
+						return data || [];
+					})
+			]);
 
-			console.log('[Supabase inventory] inventoryData:', inventoryData);
-			console.log('[Supabase inventory] inventoryError:', inventoryError);
+			console.log('[Products] Additional data fetched:', {
+				images: imagesData.length,
+				variants: variantsData.length,
+				inventory: inventoryData.length
+			});
 			
 			// If we get an empty array, try to understand why
 			if (inventoryData && inventoryData.length === 0) {
@@ -415,18 +438,17 @@ export const useProducts = () => {
 				console.log('[RPC Error]', rpcError);
 			}
 
-			if (inventoryError) {
-				console.error('[Inventory Error]', inventoryError);
-			}
-
-			// Manually join inventory to products
+			// Efficiently map all data together
 			const productsWithInventory = (productsData || []).map(product => {
 				const productInventory = (inventoryData || []).filter(inv => inv.product_id === product.id);
+				const productImages = (imagesData || []).filter(img => img.product_id === product.id);
+				const productVariants = (variantsData || []).filter(variant => variant.product_id === product.id);
+				
 				console.log(`[Manual Join] Product ${product.name} (${product.id}) matched inventory:`, productInventory);
 				
 				// Debug: Check for orphaned inventory records (inventory without corresponding variants)
 				if (productInventory.length > 0) {
-					const variantIds = (product.variants || []).map((v: any) => v.id);
+					const variantIds = productVariants.map((v: any) => v.id);
 					console.log(`[Debug] Product ${product.name} variant IDs:`, variantIds);
 					console.log(`[Debug] Product ${product.name} inventory details:`, productInventory.map(inv => ({
 						id: inv.id,
@@ -455,6 +477,8 @@ export const useProducts = () => {
 				
 				return {
 					...product,
+					images: productImages,
+					variants: productVariants,
 					inventory: productInventory
 				};
 			});
