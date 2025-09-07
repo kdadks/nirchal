@@ -47,6 +47,7 @@ const ProductDetailPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedRating, setSelectedRating] = useState(5);
+  const [hasUserInteractedWithColor, setHasUserInteractedWithColor] = useState(false);
 
   const product = products.find(p => p.slug === slug);
   const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
@@ -59,6 +60,10 @@ const ProductDetailPage: React.FC = () => {
   // Default selections when product is loaded
   useEffect(() => {
     if (!product) return;
+    
+    // Reset user interaction flag for new product
+    setHasUserInteractedWithColor(false);
+    
     // Preselect first available size only if sizes exist and are not empty
     if (!selectedSize && product.sizes && product.sizes.length > 0 && product.sizes.some(size => size && size.trim() !== '')) {
       setSelectedSize(product.sizes[0]!);
@@ -74,9 +79,9 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [product]);
 
-  // When color changes (including default), switch main image to that color's swatch if present
+  // When color changes (only after user interaction), switch main image to that color's swatch if present
   useEffect(() => {
-    if (!product || !selectedColor) return;
+    if (!product || !selectedColor || !hasUserInteractedWithColor) return;
     const colorVariant = product.variants?.find(v => v.color === selectedColor);
     if (!colorVariant) return;
     const swatchUrl = colorVariant.swatchImage;
@@ -92,7 +97,7 @@ const ProductDetailPage: React.FC = () => {
     if (idx >= 0) {
       setSelectedImage(idx);
     }
-  }, [product, selectedColor]);
+  }, [product, selectedColor, hasUserInteractedWithColor]);
 
   // Handle keyboard events for image modal
   useEffect(() => {
@@ -705,6 +710,7 @@ const ProductDetailPage: React.FC = () => {
                       const handleSwatchClick = () => {
                         if (!isAvailable) return;
                         
+                        setHasUserInteractedWithColor(true);
                         setSelectedColor(color!);
                         // If swatch has an image, try to find it in main product images
                         if (hasSwatchImage && colorVariant.swatchImage) {
@@ -924,7 +930,7 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Description with Rich Text Support */}
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-amber-100">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Description</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900" style={{ marginBottom: '15px' }}>Description</h3>
                 <div 
                   className="text-gray-700 text-sm leading-snug [&>p]:mb-1 [&>p:last-child]:mb-0 [&>h1]:mb-1 [&>h2]:mb-1 [&>h3]:mb-1 [&>h4]:mb-1 [&>h5]:mb-1 [&>h6]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1 [&>li]:mb-0 [&>br]:hidden"
                   dangerouslySetInnerHTML={{
