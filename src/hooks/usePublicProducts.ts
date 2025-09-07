@@ -197,10 +197,18 @@ export const usePublicProducts = (featured?: boolean) => {
         let images: string[] = [];
         
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
-          // Sort images so primary image comes first
+          // Sort images so primary image comes first, with fallback sorting
           const sortedImages = [...product.product_images].sort((a: any, b: any) => {
+            // Primary images come first
             if (a.is_primary && !b.is_primary) return -1;
             if (!a.is_primary && b.is_primary) return 1;
+            
+            // If neither or both are primary, sort by created date (oldest first) as fallback
+            if (a.created_at && b.created_at) {
+              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            }
+            
+            // Final fallback: maintain original order
             return 0;
           });
           
