@@ -143,8 +143,8 @@ const CartPage: React.FC = () => {
                   <span>₹{total.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-base text-gray-600">
-                  <span>Shipping</span>
-                  <span className="text-green-600 font-medium">FREE</span>
+                  <span>Delivery</span>
+                  <span className="text-sm text-gray-500 italic">Calculated at checkout</span>
                 </div>
                 <div className="border-t border-gray-200 pt-4">
                   <div className="flex justify-between text-xl font-bold text-gray-900">
