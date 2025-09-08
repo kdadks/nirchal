@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Package, User, MapPin, Edit2, Lock, Truck } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
@@ -351,8 +352,16 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleBillingStateChange = (value: string) => {
+    setFormData(prev => ({ ...prev, billing_state: value, billing_city: '' }));
+  };
+
   const handleBillingCityChange = (city: string) => {
     setFormData(prev => ({ ...prev, billing_city: city }));
+  };
+
+  const handleShippingStateChange = (value: string) => {
+    setFormData(prev => ({ ...prev, shipping_state: value, shipping_city: '' }));
   };
 
   const handleShippingCityChange = (city: string) => {
@@ -368,42 +377,45 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+  const modal = (
+    <div className="admin-modal-overlay">
+      <div className="admin-modal modal-xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <Package className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              Order Details - {orderDetails?.order_number}
-            </h2>
-            {isReadOnly && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-md">
-                <Lock className="h-4 w-4 text-gray-600" />
-                <span className="text-sm text-gray-600">Read Only</span>
-              </div>
-            )}
+        <div className="admin-modal-header">
+          <div className="admin-modal-title">
+            <div className="flex items-center gap-3">
+              <Package className="h-6 w-6 text-blue-600" />
+              <span>Order Details - {orderDetails?.order_number}</span>
+              {isReadOnly && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-md">
+                  <Lock className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm text-gray-600">Read Only</span>
+                </div>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="admin-modal-close"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {loading ? (
-          <div className="p-6 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading order details...</p>
+          <div className="admin-modal-body">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading order details...</p>
+            </div>
           </div>
         ) : orderDetails ? (
-          <div className="p-6 space-y-6">
-            {/* Order Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <p className="text-sm text-gray-600">Status</p>
+          <div className="admin-modal-body">
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600">Status</p>
                 <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full mt-1 ${
                   orderDetails.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                   orderDetails.status === 'processing' ? 'bg-blue-100 text-blue-800' :
@@ -521,6 +533,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                           value={formData.billing_city || ''}
                           onChange={handleBillingCityChange}
                           selectedState={formData.billing_state || ''}
+                          highZIndex={true}
                         />
                       )}
                     </div>
@@ -537,7 +550,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                         <StateDropdown
                           name="billing_state"
                           value={formData.billing_state || ''}
-                          onChange={(value) => handleInputChange('billing_state', value)}
+                          onChange={handleBillingStateChange}
                         />
                       )}
                     </div>
@@ -625,6 +638,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                           value={formData.shipping_city || ''}
                           onChange={handleShippingCityChange}
                           selectedState={formData.shipping_state || ''}
+                          highZIndex={true}
                         />
                       )}
                     </div>
@@ -641,7 +655,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                         <StateDropdown
                           name="shipping_state"
                           value={formData.shipping_state || ''}
-                          onChange={(value) => handleInputChange('shipping_state', value)}
+                          onChange={handleShippingStateChange}
                         />
                       )}
                     </div>
@@ -835,15 +849,18 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
             </div>
+            </div>
           </div>
         ) : (
-          <div className="p-6 text-center">
-            <p className="text-red-600">Failed to load order details</p>
+          <div className="admin-modal-body">
+            <div className="text-center">
+              <p className="text-red-600">Failed to load order details</p>
+            </div>
           </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+        <div className="admin-modal-footer">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -863,6 +880,8 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 };
 
 export default OrderEditModal;

@@ -11,6 +11,7 @@ interface CityDropdownProps {
   required?: boolean;
   className?: string;
   placeholder?: string;
+  highZIndex?: boolean; // For use in modals that need higher z-index
 }
 
 const CityDropdown: React.FC<CityDropdownProps> = ({
@@ -20,7 +21,8 @@ const CityDropdown: React.FC<CityDropdownProps> = ({
   selectedState,
   required = false,
   className = "w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm font-medium touch-manipulation",
-  placeholder = "Select City"
+  placeholder = "Select City",
+  highZIndex = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [filteredCities, setFilteredCities] = useState<string[]>([]);
@@ -221,7 +223,7 @@ const CityDropdown: React.FC<CityDropdownProps> = ({
       {isOpen && selectedState && filteredCities.length > 0 && createPortal(
         <div 
           data-city-dropdown-portal
-          className="fixed z-[9999] bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 sm:max-h-60 overflow-hidden"
+          className={`fixed bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 sm:max-h-60 overflow-hidden ${highZIndex ? 'z-[9999999]' : 'z-[9999]'}`}
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,

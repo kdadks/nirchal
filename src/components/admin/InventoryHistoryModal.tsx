@@ -268,32 +268,24 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+    <div className="admin-modal-overlay">
+      <div className="admin-modal modal-xl">
+        <div className="admin-modal-header">
+          <h3 className="admin-modal-title">Inventory History</h3>
+          {productName && (
+            <p className="admin-modal-subtitle">Showing history for: {productName}</p>
+          )}
+          <button
+            onClick={onClose}
+            className="admin-modal-close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Inventory History</h3>
-                {productName && (
-                  <p className="text-sm text-gray-600">Showing history for: {productName}</p>
-                )}
-              </div>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Controls */}
-            <div className="mb-4 flex flex-wrap gap-2 justify-between">
+        <div className="admin-modal-body">
+          {/* Controls */}
+          <div className="mb-4 flex flex-wrap gap-2 justify-between">
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -524,16 +516,15 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-            <button
-              onClick={onClose}
-              className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-            >
-              Close
-            </button>
-          </div>
+        </div>
+        
+        <div className="admin-modal-footer">
+          <button
+            onClick={onClose}
+            className="admin-btn admin-btn-secondary"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
