@@ -137,13 +137,26 @@ const CheckoutPage: React.FC = () => {
             if (address.phone && !existing.phone) {
               existing.phone = address.phone;
             }
+            if (address.first_name && !existing.first_name) {
+              existing.first_name = address.first_name;
+            }
+            if (address.last_name && !existing.last_name) {
+              existing.last_name = address.last_name;
+            }
           } else {
             addressMap.set(key, { ...address });
           }
         });
         
-        // Convert map back to array
+        // Convert map back to array - limit to only 1 delivery address to prevent confusion
         addressMap.forEach(address => processedAddresses.push(address));
+        
+        // Sort addresses: default first, then by ID (latest first)
+        processedAddresses.sort((a, b) => {
+          if (a.is_default && !b.is_default) return -1;
+          if (!a.is_default && b.is_default) return 1;
+          return b.id.localeCompare(a.id); // Sort by ID as fallback
+        });
         
         setCustomerAddresses(processedAddresses);
 
@@ -153,7 +166,7 @@ const CheckoutPage: React.FC = () => {
         }
         
         // Auto-select default address if available
-        const defaultAddress = processedAddresses.find(addr => addr.is_default);
+        const defaultAddress = processedAddresses.find(addr => addr.is_default) || processedAddresses[0];
         if (defaultAddress) {
           setForm(prev => ({
             ...prev,
@@ -166,24 +179,35 @@ const CheckoutPage: React.FC = () => {
           }));
         }
 
-        // Auto-select billing address if available and not same as delivery
+        // Check if customer has a billing address and auto-select billing checkbox accordingly
+        const hasBillingAddress = processedAddresses.some(addr => addr.is_billing);
         const billingAddress = processedAddresses.find(addr => addr.is_billing);
-        if (billingAddress && (!defaultAddress || billingAddress.id !== defaultAddress.id)) {
-          setForm(prev => ({
-            ...prev,
-            billingIsSameAsDelivery: false,
-            selectedBillingAddressId: billingAddress.id,
-            billingFirstName: billingAddress.first_name,
-            billingLastName: billingAddress.last_name,
-            billingAddress: billingAddress.address_line_1,
-            billingAddressLine2: billingAddress.address_line_2 || '',
-            billingCity: billingAddress.city,
-            billingState: billingAddress.state,
-            billingPincode: billingAddress.postal_code,
-            billingPhone: billingAddress.phone || '',
-          }));
-        } else if (billingAddress && defaultAddress && billingAddress.id === defaultAddress.id) {
-          // Same address is both default and billing
+        
+        if (hasBillingAddress && billingAddress) {
+          // If billing address is the same as default/delivery address, check the "same as delivery" box
+          if (defaultAddress && billingAddress.id === defaultAddress.id) {
+            setForm(prev => ({
+              ...prev,
+              billingIsSameAsDelivery: true,
+            }));
+          } else {
+            // Different billing address - uncheck "same as delivery" and populate billing fields
+            setForm(prev => ({
+              ...prev,
+              billingIsSameAsDelivery: false,
+              selectedBillingAddressId: billingAddress.id,
+              billingFirstName: billingAddress.first_name || '',
+              billingLastName: billingAddress.last_name || '',
+              billingAddress: billingAddress.address_line_1,
+              billingAddressLine2: billingAddress.address_line_2 || '',
+              billingCity: billingAddress.city,
+              billingState: billingAddress.state,
+              billingPincode: billingAddress.postal_code,
+              billingPhone: billingAddress.phone || '',
+            }));
+          }
+        } else {
+          // No billing address saved - default to "same as delivery"
           setForm(prev => ({
             ...prev,
             billingIsSameAsDelivery: true,
@@ -348,7 +372,7 @@ const CheckoutPage: React.FC = () => {
       }
 
       // 3) Create order with items
-      const deliveryCost = total >= 2999 ? 0 : 99;
+      const deliveryCost = total >= 2999 ? 0 : 150;
       const finalTotal = total + deliveryCost;
       
       const billingAddress = sanitizeOrderAddress({
@@ -837,8 +861,25 @@ const CheckoutPage: React.FC = () => {
   const handleDeleteAddress = async (addressId: string) => {
     if (!customer) return;
     
+    // Prevent event propagation to avoid triggering form submission
+    event?.preventDefault();
+    event?.stopPropagation();
+    
     try {
-      // Get the address details to check if it's the default address
+      // Check if this is the only address - don't allow deletion if customer only has one
+      const { count: totalAddresses } = await supabase
+        .from('customer_addresses')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_id', customer.id);
+
+      if (totalAddresses === 1) {
+        toast.error('⚠️ Cannot delete your only address. Please add another address first.', {
+          duration: 5000,
+        });
+        return;
+      }
+
+      // Get the address details
       const { data: addressToDelete } = await supabase
         .from('customer_addresses')
         .select('*')
@@ -853,83 +894,82 @@ const CheckoutPage: React.FC = () => {
         return;
       }
 
-      // Check if this is the default address and if it's the only address
-      if (addressToDelete.is_default) {
-        // Count total addresses for this customer
-        const { count: totalAddresses } = await supabase
-          .from('customer_addresses')
-          .select('*', { count: 'exact', head: true })
-          .eq('customer_id', customer.id);
-
-        if (totalAddresses === 1) {
-          toast.error('⚠️ Cannot delete the only address. Please add another address first and make it default before deleting this one.', {
-            duration: 5000,
-          });
-          return;
-        }
-
-        // Check if there's another default address (should not happen due to constraint, but safety check)
-        const { count: defaultCount } = await supabase
-          .from('customer_addresses')
-          .select('*', { count: 'exact', head: true })
-          .eq('customer_id', customer.id)
-          .eq('is_default', true)
-          .neq('id', addressId);
-
-        if (defaultCount === 0) {
-          toast.error('🏠 Cannot delete the default address. Please make another address default first.', {
-            duration: 4000,
-          });
-          return;
-        }
+      // If it's the default address and there are multiple addresses, prevent deletion
+      if (addressToDelete.is_default && totalAddresses && totalAddresses > 1) {
+        toast.error('🏠 Cannot delete the default address. Please make another address default first.', {
+          duration: 4000,
+        });
+        return;
       }
 
-      // Check if this address is associated with any orders
-      const { data: orders, error: orderError } = await supabase
-        .from('orders')
-        .select('id, billing_address_line_1, billing_city, billing_postal_code, shipping_address_line_1, shipping_city, shipping_postal_code')
-        .eq('customer_id', customer.id);
-
-      if (orderError) throw orderError;
-
-      // Check if this address is used in any orders
-      const isUsedInOrders = orders?.some(order => {
-        const billingMatch = order.billing_address_line_1 === addressToDelete.address_line_1 &&
-          order.billing_city === addressToDelete.city &&
-          order.billing_postal_code === addressToDelete.postal_code;
-        
-        const shippingMatch = order.shipping_address_line_1 === addressToDelete.address_line_1 &&
-          order.shipping_city === addressToDelete.city &&
-          order.shipping_postal_code === addressToDelete.postal_code;
-
-        return billingMatch || shippingMatch;
+      // Show confirmation toast instead of browser dialog
+      toast((t) => (
+        <div className="flex flex-col gap-2">
+          <div className="font-medium">Delete Address?</div>
+          <div className="text-sm text-gray-600">
+            Are you sure you want to delete this address?
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                performDeletion(addressId);
+              }}
+              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: Infinity, // Keep open until user acts
+        position: 'top-center',
       });
 
-      let confirmMessage = 'Are you sure you want to delete this address?';
-      if (isUsedInOrders) {
-        confirmMessage = 'This address is associated with your past orders but the order information is safely stored. Are you sure you want to delete this address from your saved addresses?';
-      }
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      toast.error('❌ Failed to delete address', {
+        duration: 4000,
+      });
+    }
+  };
 
-      const confirmDelete = window.confirm(confirmMessage);
-      if (!confirmDelete) return;
-
+  // Separate function to perform the actual deletion
+  const performDeletion = async (addressId: string) => {
+    try {
       // Delete the address
       const { error } = await supabase
         .from('customer_addresses')
         .delete()
         .eq('id', addressId)
-        .eq('customer_id', customer.id);
+        .eq('customer_id', customer?.id);
 
       if (error) throw error;
 
-      // Reload addresses
+      // Update local state - remove the deleted address
       setCustomerAddresses(prev => prev.filter(addr => addr.id !== addressId));
       
-      // Clear selection if deleted address was selected
+      // Clear form selections if deleted address was selected
       setForm(prev => ({
         ...prev,
-        ...(prev.selectedDeliveryAddressId === addressId ? { selectedDeliveryAddressId: '' } : {}),
-        ...(prev.selectedBillingAddressId === addressId ? { selectedBillingAddressId: '' } : {})
+        ...(prev.selectedDeliveryAddressId === addressId ? { 
+          selectedDeliveryAddressId: '',
+          deliveryAddress: '',
+          deliveryAddressLine2: '',
+          deliveryCity: '',
+          deliveryState: '',
+          deliveryPincode: ''
+        } : {}),
+        ...(prev.selectedBillingAddressId === addressId ? { 
+          selectedBillingAddressId: '',
+          billingIsSameAsDelivery: true // Reset to same as delivery
+        } : {})
       }));
 
       toast.success('✅ Address deleted successfully', {
@@ -1024,7 +1064,7 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
-  const deliveryCost = total >= 2999 ? 0 : 99;
+  const deliveryCost = total >= 2999 ? 0 : 150;
   const finalTotal = total + deliveryCost;
 
   return (
@@ -1112,60 +1152,68 @@ const CheckoutPage: React.FC = () => {
                   </div>
                   
                   <div className="p-6">
-                    {/* Address Cards for Logged-in Users */}
+                    {/* Address Cards for Logged-in Users - Show only primary address */}
                     {customer && customerAddresses.length > 0 && (
                       <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-3">
                           Select Delivery Address
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                          {customerAddresses.map((address) => (
-                            <div
-                              key={address.id}
-                              onClick={() => handleDeliveryAddressSelect(address.id)}
-                              className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                                form.selectedDeliveryAddressId === address.id
-                                  ? 'border-amber-500 bg-amber-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              <div className="text-sm">
-                                <div className="font-medium text-gray-900 mb-1">
-                                  {address.address_line_1}
-                                  {address.address_line_2 && (
-                                    <div className="font-normal text-gray-700">
-                                      {address.address_line_2}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-gray-600 mb-1">
-                                  {address.city}, {address.state} {address.postal_code}
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex gap-1">
-                                    {/* Tags removed for logged-in users */}
+                        
+                        {/* Show only the default/first address as a single card */}
+                        {(() => {
+                          const primaryAddress = customerAddresses.find(addr => addr.is_default) || customerAddresses[0];
+                          return primaryAddress ? (
+                            <div className="mb-4">
+                              <div
+                                key={primaryAddress.id}
+                                onClick={() => handleDeliveryAddressSelect(primaryAddress.id)}
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 max-w-md ${
+                                  form.selectedDeliveryAddressId === primaryAddress.id
+                                    ? 'border-amber-500 bg-amber-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <div className="text-sm">
+                                  <div className="font-medium text-gray-900 mb-1">
+                                    {primaryAddress.address_line_1}
+                                    {primaryAddress.address_line_2 && (
+                                      <div className="font-normal text-gray-700">
+                                        {primaryAddress.address_line_2}
+                                      </div>
+                                    )}
                                   </div>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteAddress(address.id);
-                                    }}
-                                    className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
-                                  >
-                                    Delete
-                                  </button>
+                                  <div className="text-gray-600 mb-1">
+                                    {primaryAddress.city}, {primaryAddress.state} {primaryAddress.postal_code}
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-xs text-green-600">
+                                      ✓ Primary Address
+                                    </div>
+                                    {customerAddresses.length > 1 && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteAddress(primaryAddress.id);
+                                        }}
+                                        className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          ) : null;
+                        })()}
+                        
                         <div className="text-center">
                           <button
                             type="button"
                             onClick={() => setForm(prev => ({ ...prev, selectedDeliveryAddressId: '' }))}
                             className="text-sm text-amber-600 hover:text-amber-700 font-medium"
                           >
-                            + Enter new address
+                            + Use different address
                           </button>
                         </div>
                       </div>
