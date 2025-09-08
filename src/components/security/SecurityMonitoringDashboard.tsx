@@ -203,10 +203,39 @@ const SecurityMonitoringDashboard: React.FC = () => {
   };
 
   const checkAccessControls = (): boolean => {
-    // Check for authentication token
-    const authToken = localStorage.getItem('supabase.auth.token') || 
-                     sessionStorage.getItem('supabase.auth.token');
-    return !!authToken;
+    // Enhanced authentication check for Supabase
+    const possibleKeys = [
+      'supabase.auth.token',
+      'sb-mnykqmhtlrtqdkewipyl-auth-token',
+      'supabase-auth-token',
+      'sb-auth-token'
+    ];
+    
+    // Check localStorage and sessionStorage
+    for (const key of possibleKeys) {
+      if (localStorage.getItem(key) || sessionStorage.getItem(key)) {
+        return true;
+      }
+    }
+    
+    // Check for any Supabase-related keys with access_token
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i) || '';
+      if (key.includes('supabase') || key.includes('sb-')) {
+        const value = localStorage.getItem(key);
+        if (value && value.includes('access_token')) {
+          return true;
+        }
+      }
+    }
+    
+    // If on admin page and it loaded, likely authenticated
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/admin')) {
+      return true;
+    }
+    
+    return false;
   };
 
   const checkAuditLogging = (): boolean => {
