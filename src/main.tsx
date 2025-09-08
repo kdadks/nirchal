@@ -9,6 +9,9 @@ import App from './App';
 import './index.css';
 import './styles/animations.css';
 
+// Load Razorpay script early for security compliance
+import './utils/razorpayLoader';
+
 // Create root with strict error handling
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
