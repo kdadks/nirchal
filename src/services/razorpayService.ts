@@ -258,7 +258,7 @@ class RazorpayService {
       timeout: settings.timeout,
       modal: {
         ondismiss: function() {
-          console.log('Razorpay checkout dismissed');
+          // Payment dismissed by user - no logging needed in production
         }
       }
     };

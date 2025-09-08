@@ -135,12 +135,12 @@ export const useRazorpay = (): UseRazorpayReturn => {
                 color: '#f59e0b'
               },
               timeout: 900,
-              handler: function(response: any) {
-                console.log('Mock payment successful:', response);
+              handler: function(_response: any) {
+
               },
               modal: {
                 ondismiss: function() {
-                  console.log('Mock payment dismissed');
+
                 }
               }
             }
@@ -158,8 +158,7 @@ export const useRazorpay = (): UseRazorpayReturn => {
         });
       }
 
-      console.log('Razorpay order creation response status:', response.status);
-      console.log('Razorpay order creation response headers:', response.headers);
+
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -172,7 +171,7 @@ export const useRazorpay = (): UseRazorpayReturn => {
       }
 
       const responseText = await response.text();
-      console.log('Razorpay order creation response text:', responseText);
+
 
       if (!responseText) {
         throw new Error('Empty response from Razorpay order creation endpoint');
