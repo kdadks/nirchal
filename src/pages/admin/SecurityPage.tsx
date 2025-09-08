@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Activity, Lock, Eye, AlertTriangle } from 'lucide-react';
 import PCIDSSCompliance from '../../components/security/PCIDSSCompliance';
 import SecurityMonitoringDashboard from '../../components/security/SecurityMonitoringDashboard';
+import SecurityDebugPanel from '../../components/security/SecurityDebugPanel';
 
 const SecurityPage: React.FC = () => {
   const [complianceScore, setComplianceScore] = useState<number>(0);
@@ -115,6 +116,11 @@ const SecurityPage: React.FC = () => {
             <SecurityMonitoringDashboard />
           </div>
         </div>
+      </div>
+
+      {/* Security Debug Panel */}
+      <div className="mb-8">
+        <SecurityDebugPanel />
       </div>
 
       {/* Security Best Practices */}
