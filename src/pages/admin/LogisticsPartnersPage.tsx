@@ -97,19 +97,18 @@ const LogisticsPartnersPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      console.log('Form submission - editingPartner:', editingPartner);
-      console.log('Form submission - formData:', formData);
+      // Form submission processing
       
       if (editingPartner) {
-        console.log('Updating partner with ID:', editingPartner.id);
+        // Updating existing partner
         await updateLogisticsPartner(editingPartner.id, formData);
-        console.log('Update completed successfully');
+
       } else {
-        console.log('Creating new partner');
+        // Creating new partner
         await createLogisticsPartner(formData);
         // Refresh logistics partners count after creating new partner
         await refreshSpecificCount('logisticsPartners');
-        console.log('Creation completed successfully');
+
       }
       resetForm();
     } catch (error) {

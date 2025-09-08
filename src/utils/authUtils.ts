@@ -20,7 +20,7 @@ export const handleJWTError = async (
   }
   
   try {
-    console.log('[AuthUtils] JWT expired, attempting token refresh...');
+
     const { error: refreshError } = await supabase.auth.refreshSession();
     
     if (refreshError) {
@@ -29,7 +29,7 @@ export const handleJWTError = async (
       return false;
     }
     
-    console.log('[AuthUtils] Token refresh successful, retrying operation...');
+
     await retryCallback();
     return true;
   } catch (refreshError) {

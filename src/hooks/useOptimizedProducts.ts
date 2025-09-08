@@ -33,8 +33,8 @@ export const useOptimizedProducts = (): OptimizedProductsHook => {
       setLoading(true);
       setError(null);
       
-      console.log('[OptimizedProducts] Starting fetch...');
-      const startTime = performance.now();
+
+
 
       // Fetch all data in parallel for maximum speed
       const [
@@ -111,9 +111,8 @@ export const useOptimizedProducts = (): OptimizedProductsHook => {
         inventory: inventoryByProduct.get(product.id) || []
       }));
 
-      const endTime = performance.now();
-      console.log(`[OptimizedProducts] Fetch completed in ${(endTime - startTime).toFixed(2)}ms`);
-      console.log(`[OptimizedProducts] Loaded ${enrichedProducts.length} products`);
+
+      // Products loaded successfully
 
       setProducts(enrichedProducts);
     } catch (e) {

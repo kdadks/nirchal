@@ -5,25 +5,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-console.log('Environment check:', {
-  hasSupabaseUrl: !!supabaseUrl,
-  hasServiceKey: !!supabaseServiceKey
-});
-
 let supabase: any = null;
 if (supabaseUrl && supabaseServiceKey) {
   supabase = createClient(supabaseUrl, supabaseServiceKey);
-} else {
-  console.warn('Supabase not configured - running in mock mode');
 }
 
 export const handler: Handler = async (event, context) => {
-  console.log('Admin operations called:', {
-    method: event.httpMethod,
-    path: event.path,
-    query: event.queryStringParameters,
-    hasBody: !!event.body
-  });
 
   // Set CORS headers
   const headers = {
@@ -46,10 +33,10 @@ export const handler: Handler = async (event, context) => {
     const action = event.queryStringParameters?.action || 
                   (event.body ? JSON.parse(event.body).action : null);
 
-    console.log('Action requested:', action);
+    
 
     if (!action) {
-      console.log('No action provided');
+      
       return {
         statusCode: 400,
         headers,
@@ -89,7 +76,7 @@ export const handler: Handler = async (event, context) => {
         };
     }
   } catch (error) {
-    console.error('Admin operations error:', error);
+    
     return {
       statusCode: 500,
       headers,
@@ -103,7 +90,7 @@ export const handler: Handler = async (event, context) => {
 
 async function getInventory(event: any, headers: any) {
   try {
-    console.log('Getting inventory data from database...');
+    
     
     if (!supabase) {
       throw new Error('Supabase is not configured');
@@ -128,7 +115,7 @@ async function getInventory(event: any, headers: any) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Database error:', error);
+      
       throw new Error(`Database query failed: ${error.message}`);
     }
 
@@ -147,7 +134,7 @@ async function getInventory(event: any, headers: any) {
       updated_at: item.updated_at
     }));
 
-    console.log('Successfully fetched inventory data:', inventory.length, 'items');
+    
 
     return {
       statusCode: 200,
@@ -158,7 +145,7 @@ async function getInventory(event: any, headers: any) {
       })
     };
   } catch (error) {
-    console.error('Error fetching inventory:', error);
+    
     return {
       statusCode: 500,
       headers,
@@ -183,7 +170,7 @@ async function updateInventory(event: any, headers: any) {
     const { data } = JSON.parse(event.body);
     
     // Mock update - in real implementation, this would update the database
-    console.log('Updating inventory item:', data);
+    
 
     return {
       statusCode: 200,
@@ -194,7 +181,7 @@ async function updateInventory(event: any, headers: any) {
       })
     };
   } catch (error) {
-    console.error('Error updating inventory:', error);
+    
     return {
       statusCode: 500,
       headers,
@@ -223,7 +210,7 @@ async function adjustInventory(event: any, headers: any) {
     const { data } = JSON.parse(event.body);
     const { item_id, quantity, reason, notes } = data;
     
-    console.log('Adjusting inventory:', { item_id, quantity, reason, notes });
+    
 
     // Start a transaction-like operation
     // First, get the current inventory item
@@ -234,7 +221,7 @@ async function adjustInventory(event: any, headers: any) {
       .single();
 
     if (fetchError) {
-      console.error('Error fetching current inventory:', fetchError);
+      
       throw new Error(`Failed to fetch inventory item: ${fetchError.message}`);
     }
 
@@ -256,7 +243,7 @@ async function adjustInventory(event: any, headers: any) {
       .eq('id', item_id);
 
     if (updateError) {
-      console.error('Error updating inventory:', updateError);
+      
       throw new Error(`Failed to update inventory: ${updateError.message}`);
     }
 
@@ -275,14 +262,14 @@ async function adjustInventory(event: any, headers: any) {
         });
 
       if (historyError) {
-        console.warn('Could not create history record:', historyError);
+        
         // Don't fail the operation if history logging fails
       }
     } catch (historyErr) {
-      console.warn('History table might not exist:', historyErr);
+      
     }
 
-    console.log('Successfully adjusted inventory:', { item_id, oldQuantity, newQuantity, adjustment });
+    
 
     return {
       statusCode: 200,
@@ -299,7 +286,7 @@ async function adjustInventory(event: any, headers: any) {
       })
     };
   } catch (error) {
-    console.error('Error adjusting inventory:', error);
+    
     return {
       statusCode: 500,
       headers,
@@ -319,7 +306,7 @@ async function getInventoryHistory(event: any, headers: any) {
 
     const params = event.queryStringParameters || {};
     
-    console.log('Getting inventory history with params:', params);
+    
 
     // Build the query
     let query = supabase
@@ -363,10 +350,10 @@ async function getInventoryHistory(event: any, headers: any) {
       .select('*', { count: 'exact', head: true });
 
     if (error) {
-      console.error('Database error:', error);
+      
       // If the table doesn't exist, return empty data
       if (error.code === '42P01') {
-        console.log('Inventory history table does not exist, returning empty data');
+        
         return {
           statusCode: 200,
           headers,
@@ -384,7 +371,7 @@ async function getInventoryHistory(event: any, headers: any) {
     const { data: historyData, error: queryError } = await query;
 
     if (queryError) {
-      console.error('History query error:', queryError);
+      
       throw new Error(`Failed to fetch history: ${queryError.message}`);
     }
 
@@ -404,7 +391,7 @@ async function getInventoryHistory(event: any, headers: any) {
       created_at: item.created_at
     }));
 
-    console.log('Successfully fetched inventory history:', history.length, 'records');
+    
 
     return {
       statusCode: 200,
@@ -416,7 +403,7 @@ async function getInventoryHistory(event: any, headers: any) {
       })
     };
   } catch (error) {
-    console.error('Error fetching inventory history:', error);
+    
     return {
       statusCode: 500,
       headers,

@@ -314,20 +314,15 @@ const CheckoutPage: React.FC = () => {
         shouldSendWelcomeEmail = customerRes?.needsWelcomeEmail || false;
         tempPassword = customerRes?.tempPassword || null;
         
-        console.log('Checkout customer creation result:', {
-          customerId: customerRes?.id,
-          tempPassword,
-          existingCustomer: customerRes?.existingCustomer,
-          shouldSendWelcomeEmail
-        });
+
         
         // Store temp password info if this is a new customer with temp password
         if (tempPassword && !customerRes?.existingCustomer) {
-          console.log('Storing temp password in sessionStorage:', tempPassword);
+
           sessionStorage.setItem('new_customer_temp_password', tempPassword);
           sessionStorage.setItem('new_customer_email', form.email.trim());
         } else {
-          console.log('No temp password to store:', { tempPassword, existingCustomer: customerRes?.existingCustomer });
+
         }
       }
 
@@ -490,7 +485,7 @@ const CheckoutPage: React.FC = () => {
                       amount: finalTotal,
                       payment_id: response.razorpay_payment_id
                     });
-                    console.log('Payment success email sent');
+
                   } catch (emailError) {
                     console.error('Failed to send payment success email:', emailError);
                   }
@@ -557,7 +552,7 @@ const CheckoutPage: React.FC = () => {
                     amount: finalTotal,
                     error_reason: errorMessage
                   });
-                  console.log('Payment failure email sent');
+
                 } catch (emailError) {
                   console.error('Failed to send payment failure email:', emailError);
                 }
@@ -570,7 +565,7 @@ const CheckoutPage: React.FC = () => {
             },
             modal: {
               ondismiss: async () => {
-                console.log('Razorpay checkout dismissed - payment cancelled by user');
+
                 
                 // Send payment failure email for cancelled payments
                 try {
@@ -581,7 +576,7 @@ const CheckoutPage: React.FC = () => {
                     amount: finalTotal,
                     error_reason: 'Payment cancelled by user'
                   });
-                  console.log('Payment cancellation email sent');
+
                 } catch (emailError) {
                   console.error('Failed to send payment cancellation email:', emailError);
                 }
@@ -609,7 +604,7 @@ const CheckoutPage: React.FC = () => {
               amount: finalTotal,
               error_reason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed'
             });
-            console.log('Payment initialization failure email sent');
+
           } catch (emailError) {
             console.error('Failed to send payment initialization failure email:', emailError);
           }
@@ -666,7 +661,7 @@ const CheckoutPage: React.FC = () => {
           email: form.email,
           temp_password: tempPassword || undefined // Pass the temp password if available
         });
-        console.log('Welcome email sent successfully', tempPassword ? 'with temp password' : 'for existing customer');
+
         
         // Mark welcome email as sent in database
         if (customerId) {
@@ -696,7 +691,7 @@ const CheckoutPage: React.FC = () => {
             price: (item.price * item.quantity).toFixed(2)
           }))
         });
-        console.log('Order received email sent successfully');
+
       } catch (emailError) {
         console.error('Failed to send order received email:', emailError);
       }
@@ -713,7 +708,7 @@ const CheckoutPage: React.FC = () => {
           items_count: items.length,
           payment_method: form.paymentMethod
         });
-        console.log('Order notification sent to support team successfully');
+
       } catch (emailError) {
         console.error('Failed to send order notification to support:', emailError);
       }
@@ -721,11 +716,11 @@ const CheckoutPage: React.FC = () => {
     
     if (tempPassword && shouldSendWelcomeEmail) {
       // New customer with temp password: Send order received email after 30 seconds delay
-      console.log('Scheduling order received email after 30 second delay (new customer with temp password)');
+
       setTimeout(sendOrderReceived, 30000);
     } else {
       // All other cases: Send order received email immediately
-      console.log('Sending order received email immediately');
+
       await sendOrderReceived();
     }
 
@@ -733,32 +728,26 @@ const CheckoutPage: React.FC = () => {
     await sendOrderNotification();
     
     // Save basics for confirmation screen
-    console.log('Saving order details to sessionStorage:', {
-      orderNumber: order?.order_number,
-      email: form?.email?.trim()
-    });
+
     
     if (order?.order_number) {
       sessionStorage.setItem('last_order_number', order.order_number);
-      console.log('Saved order number to sessionStorage:', order.order_number);
+
     } else {
       console.error('No order number to save!', order);
     }
     
     if (form?.email) {
       sessionStorage.setItem('last_order_email', form.email.trim());
-      console.log('Saved email to sessionStorage:', form.email.trim());
+
     }
     
     // Verify the values were saved
-    console.log('Verification - sessionStorage now contains:', {
-      last_order_number: sessionStorage.getItem('last_order_number'),
-      last_order_email: sessionStorage.getItem('last_order_email')
-    });
+
 
     // Navigate to order confirmation page
     // Using window.location.href for reliable navigation in production
-    console.log('Navigating to order confirmation page');
+
     window.location.href = '/order-confirmation';
     
     // Clear cart AFTER navigation to avoid redirect race condition
@@ -1057,7 +1046,7 @@ const CheckoutPage: React.FC = () => {
 
         if (error) throw error;
         
-        console.log(`Cleaned up ${addressesToDelete.length} duplicate addresses`);
+
       }
     } catch (error) {
       console.error('Error cleaning up duplicate addresses:', error);

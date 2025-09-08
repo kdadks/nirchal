@@ -18,7 +18,7 @@ class EmailService {
   async verifyConnection(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      console.log('SMTP connection verified successfully');
+
       return true;
     } catch (error) {
       console.error('SMTP connection failed:', error);
@@ -50,8 +50,8 @@ class EmailService {
         attachments: options.attachments,
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', result.messageId);
+      await this.transporter.sendMail(mailOptions);
+
       return true;
     } catch (error) {
       console.error('Failed to send email:', error);

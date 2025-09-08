@@ -88,7 +88,7 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       needsWelcomeEmail: data.needs_welcome_email
     };
   } catch (rpcError) {
-    console.log('RPC function failed, using fallback with temp password generation:', rpcError);
+    // RPC function failed, using fallback method
     
     // Enhanced fallback: Check if customer exists first
     const { data: existingCustomer, error: checkError } = await supabase
@@ -176,7 +176,7 @@ export async function markWelcomeEmailSent(supabase: SupabaseClient, customerId:
     }
     
     // Fallback to direct update
-    console.log('RPC mark_welcome_email_sent failed, using fallback');
+    // RPC failed, using fallback method
     const { error: updateError } = await supabase
       .from('customers')
       .update({
@@ -355,7 +355,7 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
       // continue; order exists
     } else {
       // Successfully created order items, now update inventory
-      await updateInventoryForOrder(supabase, input.items, order.order_number);
+      await updateInventoryForOrder(supabase, input.items);
     }
   }
 
@@ -363,8 +363,8 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
 }
 
 // Function to update inventory when an order is placed
-async function updateInventoryForOrder(supabase: SupabaseClient, items: OrderItemInput[], orderNumber: string) {
-  console.log(`[updateInventoryForOrder] Processing inventory updates for order ${orderNumber}`);
+async function updateInventoryForOrder(supabase: SupabaseClient, items: OrderItemInput[]) {
+
   
   for (const item of items) {
     try {
@@ -429,7 +429,7 @@ async function updateInventoryForOrder(supabase: SupabaseClient, items: OrderIte
         console.error(`[updateInventoryForOrder] Error creating inventory history for ${item.product_name}:`, historyError);
         // Don't fail the order if history creation fails
       } else {
-        console.log(`[updateInventoryForOrder] Updated inventory for ${item.product_name}: ${oldQuantity} → ${newQuantity} (sold ${item.quantity})`);
+        // History creation failed but order should continue
       }
 
     } catch (error) {

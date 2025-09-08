@@ -36,8 +36,7 @@ const SecurityMonitoringDashboard: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
-    
+    // Initialize monitoring in all environments for admin users
     initializeMonitoring();
     
     let refreshInterval: NodeJS.Timeout;
@@ -127,19 +126,7 @@ const SecurityMonitoringDashboard: React.FC = () => {
 
   const updateMetrics = async () => {
     try {
-      // For production environment, assume full compliance
-      if (process.env.NODE_ENV === 'production') {
-        setMetrics({
-          totalChecks: 8,
-          passedChecks: 8,
-          failedChecks: 0,
-          compliancePercentage: 100,
-          lastUpdated: new Date().toISOString()
-        });
-        return;
-      }
-
-      // For development environment, perform actual security checks
+      // Perform security checks in all environments for accurate monitoring
       const checks = [
         checkHTTPS(),
         checkSessionSecurity(),
@@ -261,11 +248,7 @@ const SecurityMonitoringDashboard: React.FC = () => {
     }
   };
 
-  // Only show in development mode
-  if (process.env.NODE_ENV !== 'development') {
-    return null;
-  }
-
+  // Show in all environments for security monitoring
   return (
     <div className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-md max-h-96 overflow-y-auto">
       <div className="flex items-center justify-between mb-3">

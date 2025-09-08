@@ -76,8 +76,6 @@ export const useInventory = (): UseInventoryReturn => {
         throw new Error('Supabase client not initialized');
       }
 
-      console.log('[useInventory] Fetching inventory from database...');
-
       // Fetch inventory with product information using the same pattern as products
       const { data, error } = await supabase
         .from('inventory')
@@ -98,8 +96,6 @@ export const useInventory = (): UseInventoryReturn => {
           )
         `)
         .order('created_at', { ascending: false });
-
-      console.log('[useInventory] Database response:', { data, error });
 
       if (error) {
         console.error('[useInventory] Database error:', error);
@@ -148,16 +144,13 @@ export const useInventory = (): UseInventoryReturn => {
           // Product has variants - only show variant stock (variant_id !== null)
           const variantItems = items.filter(item => item.variant_id !== null);
           filteredInventoryData.push(...variantItems);
-          console.log(`[useInventory] Product ${items[0].product_name} has variants - showing ${variantItems.length} variant records`);
         } else {
           // Product has no variants - only show default stock (variant_id === null)
           const defaultItems = items.filter(item => item.variant_id === null);
           filteredInventoryData.push(...defaultItems);
-          console.log(`[useInventory] Product ${items[0].product_name} has no variants - showing ${defaultItems.length} default records`);
         }
       });
 
-      console.log('[useInventory] Successfully fetched and filtered inventory:', filteredInventoryData.length, 'items');
       setInventory(filteredInventoryData);
     } catch (error) {
       console.error('[useInventory] Error fetching inventory:', error);
@@ -178,8 +171,6 @@ export const useInventory = (): UseInventoryReturn => {
         throw new Error('Supabase client not initialized');
       }
 
-      console.log('[useInventory] Updating inventory:', { id, updates });
-
       // Update inventory in database
       const { error } = await supabase
         .from('inventory')
@@ -199,7 +190,6 @@ export const useInventory = (): UseInventoryReturn => {
       );
 
       toast.success('Inventory updated successfully');
-      console.log('[useInventory] Inventory updated successfully');
     } catch (error) {
       console.error('[useInventory] Error updating inventory:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update inventory');
@@ -207,13 +197,11 @@ export const useInventory = (): UseInventoryReturn => {
     }
   }, [supabase]);
 
-  const adjustInventory = useCallback(async (id: string, adjustmentQuantity: number, reason: string, reference?: string) => {
+  const adjustInventory = useCallback(async (id: string, adjustmentQuantity: number, reason: string) => {
     try {
       if (!supabase) {
         throw new Error('Supabase client not initialized');
       }
-
-      console.log('[useInventory] Adjusting inventory:', { id, adjustmentQuantity, reason, reference });
 
       // Get current inventory item
       const { data: currentItem, error: fetchError } = await supabase

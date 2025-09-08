@@ -49,8 +49,7 @@ export class TransactionalEmailService {
   // Send welcome email when user signs up
   async sendWelcomeEmail(customer: CustomerData): Promise<boolean> {
     try {
-      console.log('TransactionalEmailService: Preparing welcome email for:', customer.email);
-      console.log('TransactionalEmailService: Base URL:', this.baseUrl);
+
       
       const html = outlookCompatibleWelcomeEmail(
         `${customer.first_name} ${customer.last_name}`,
@@ -65,12 +64,7 @@ export class TransactionalEmailService {
         html
       };
       
-      console.log('TransactionalEmailService: Sending welcome email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        hasHtml: !!emailPayload.html,
-        htmlLength: emailPayload.html.length
-      });
+
       
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -78,7 +72,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Welcome email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -146,14 +140,7 @@ export class TransactionalEmailService {
   // Send order confirmation email
   async sendOrderConfirmationEmail(order: OrderData): Promise<boolean> {
     try {
-      console.log('TransactionalEmailService: Preparing order confirmation email for:', order.customer_email);
-      console.log('TransactionalEmailService: Order data:', {
-        id: order.id,
-        order_number: order.order_number,
-        customer_name: order.customer_name,
-        total_amount: order.total_amount,
-        status: order.status
-      });
+
       
       const orderNumber = order.order_number || `ORD${order.id}`;
       const html = outlookCompatibleOrderConfirmationEmail(
@@ -169,12 +156,7 @@ export class TransactionalEmailService {
         html
       };
       
-      console.log('TransactionalEmailService: Sending order confirmation email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        hasHtml: !!emailPayload.html,
-        htmlLength: emailPayload.html.length
-      });
+
 
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -182,7 +164,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Order confirmation email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -217,12 +199,7 @@ export class TransactionalEmailService {
         html: html
       };
       
-      console.log('TransactionalEmailService: Sending order received email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        hasHtml: !!emailPayload.html,
-        htmlLength: emailPayload.html.length
-      });
+
 
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -230,7 +207,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Order received email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -276,7 +253,7 @@ export class TransactionalEmailService {
   // Send shipping notification email with tracking details
   async sendShippingEmail(order: OrderData): Promise<boolean> {
     try {
-      console.log('TransactionalEmailService: Preparing shipping email for:', order.customer_email);
+
       
       if (!order.tracking_number) {
         console.error('TransactionalEmailService: Cannot send shipping email - no tracking number provided');
@@ -307,14 +284,7 @@ export class TransactionalEmailService {
         html
       };
 
-      console.log('TransactionalEmailService: Sending shipping email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        trackingNumber: order.tracking_number,
-        logisticsPartner,
-        trackingUrl,
-        hasHtml: !!emailPayload.html
-      });
+
 
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -322,7 +292,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Shipping email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -345,7 +315,7 @@ export class TransactionalEmailService {
     payment_id: string;
   }): Promise<boolean> {
     try {
-      console.log('TransactionalEmailService: Preparing payment success email for:', paymentData.customer_email);
+
       
       const html = outlookCompatiblePaymentSuccessEmail(
         paymentData.customer_name,
@@ -361,11 +331,7 @@ export class TransactionalEmailService {
         html
       };
       
-      console.log('TransactionalEmailService: Sending payment success email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        hasHtml: !!emailPayload.html
-      });
+
 
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -373,7 +339,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Payment success email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -396,7 +362,7 @@ export class TransactionalEmailService {
     error_reason: string;
   }): Promise<boolean> {
     try {
-      console.log('TransactionalEmailService: Preparing payment failure email for:', paymentData.customer_email);
+
       
       const html = outlookCompatiblePaymentFailedEmail(
         paymentData.customer_name,
@@ -412,11 +378,7 @@ export class TransactionalEmailService {
         html
       };
       
-      console.log('TransactionalEmailService: Sending payment failure email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        hasHtml: !!emailPayload.html
-      });
+
 
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -424,7 +386,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Payment failure email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -448,7 +410,7 @@ export class TransactionalEmailService {
     payment_method: string;
   }): Promise<boolean> {
     try {
-      console.log('TransactionalEmailService: Preparing order notification email for support');
+
       
       const html = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -509,11 +471,7 @@ export class TransactionalEmailService {
         html
       };
       
-      console.log('TransactionalEmailService: Sending order notification email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        hasHtml: !!emailPayload.html
-      });
+
 
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -521,7 +479,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Order notification email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -543,7 +501,7 @@ export class TransactionalEmailService {
     signup_date: string;
   }): Promise<boolean> {
     try {
-      console.log('TransactionalEmailService: Preparing signup notification email for support');
+
       
       const html = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -598,11 +556,7 @@ export class TransactionalEmailService {
         html
       };
       
-      console.log('TransactionalEmailService: Sending signup notification email with payload:', {
-        to: emailPayload.to,
-        subject: emailPayload.subject,
-        hasHtml: !!emailPayload.html
-      });
+
 
       const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
@@ -610,7 +564,7 @@ export class TransactionalEmailService {
         body: JSON.stringify(emailPayload)
       });
 
-      console.log('TransactionalEmailService: Signup notification email response status:', response.status);
+
       
       if (!response.ok) {
         const errorText = await response.text();
