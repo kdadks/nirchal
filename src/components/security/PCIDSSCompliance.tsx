@@ -373,86 +373,125 @@ const PCIDSSCompliance: React.FC = () => {
     return 'text-red-600';
   };
 
-  const getScoreBg = (score: number) => {
-    if (score >= 90) return 'bg-green-100 border-green-300';
-    if (score >= 70) return 'bg-yellow-100 border-yellow-300';
-    return 'bg-red-100 border-red-300';
-  };
-
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div className={`bg-white rounded-lg shadow-lg border-2 p-4 w-80 ${getScoreBg(complianceScore)}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-blue-600" />
-            <span className="font-medium text-gray-900">PCI DSS Compliance</span>
+    <div className="w-full">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Shield className="w-8 h-8 text-blue-600" />
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">PCI DSS Compliance Status</h3>
+              <p className="text-sm text-gray-600">Real-time compliance monitoring and validation</p>
+            </div>
           </div>
-          <div className={`text-lg font-bold ${getScoreColor(complianceScore)}`}>
-            {complianceScore}%
+          <div className="text-right">
+            <div className={`text-3xl font-bold ${getScoreColor(complianceScore)} mb-1`}>
+              {complianceScore}%
+            </div>
+            <div className="flex items-center gap-1 text-sm">
+              <Eye className="w-4 h-4 text-blue-500" />
+              <span className={isMonitoring ? 'text-green-600' : 'text-red-600'}>
+                {isMonitoring ? 'Monitoring Active' : 'Monitoring Inactive'}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Monitoring Status */}
-        <div className="flex items-center gap-2 mb-3 text-sm">
-          <Eye className="w-4 h-4 text-blue-500" />
-          <span className="text-gray-600">
-            Monitoring: <span className={isMonitoring ? 'text-green-600' : 'text-red-600'}>
-              {isMonitoring ? 'Active' : 'Inactive'}
-            </span>
-          </span>
+        {/* Progress Bar */}
+        <div className="w-full bg-white rounded-full h-4 border border-gray-200">
+          <div 
+            className={`h-4 rounded-full transition-all duration-500 ${
+              complianceScore >= 90 ? 'bg-green-500' :
+              complianceScore >= 70 ? 'bg-yellow-500' : 'bg-red-500'
+            }`}
+            style={{ width: `${complianceScore}%` }}
+          ></div>
         </div>
+        
+        <div className="flex justify-between text-sm text-gray-600 mt-2">
+          <span>PCI DSS Requirements</span>
+          <span>{Object.values(complianceStatus).filter(Boolean).length} of {Object.keys(complianceStatus).length} checks passed</span>
+        </div>
+      </div>
 
-        {/* Compliance Checks */}
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">HTTPS Enforced</span>
+      {/* Compliance Checks Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">HTTPS Enforced</span>
             {getStatusIcon(complianceStatus.httpsEnforced)}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">Security Headers</span>
+          <div className="text-xs text-gray-500">Requirement 1: Firewall Configuration</div>
+        </div>
+        
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Security Headers</span>
             {getStatusIcon(complianceStatus.secureHeaders)}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">Data Protection</span>
+          <div className="text-xs text-gray-500">Requirement 2: Default Passwords</div>
+        </div>
+        
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Data Protection</span>
             {getStatusIcon(complianceStatus.dataProtection)}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">Payment Tokenization</span>
+          <div className="text-xs text-gray-500">Requirement 3: Cardholder Data</div>
+        </div>
+        
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Payment Tokenization</span>
             {getStatusIcon(complianceStatus.paymentTokenization)}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">Access Controls</span>
+          <div className="text-xs text-gray-500">Requirement 4: Data Encryption</div>
+        </div>
+        
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Access Controls</span>
             {getStatusIcon(complianceStatus.accessControls)}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">Session Security</span>
+          <div className="text-xs text-gray-500">Requirement 7: Need-to-Know Access</div>
+        </div>
+        
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Session Security</span>
             {getStatusIcon(complianceStatus.sessionSecurity)}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">Audit Logging</span>
+          <div className="text-xs text-gray-500">Requirement 8: Unique User IDs</div>
+        </div>
+        
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Audit Logging</span>
             {getStatusIcon(complianceStatus.auditLogging)}
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700">Vulnerability Protection</span>
+          <div className="text-xs text-gray-500">Requirement 10: Network Monitoring</div>
+        </div>
+        
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Vulnerability Protection</span>
             {getStatusIcon(complianceStatus.vulnerabilityScanning)}
           </div>
+          <div className="text-xs text-gray-500">Requirement 11: Security Testing</div>
         </div>
+      </div>
 
-        {/* Footer */}
-        <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
-          <div className="flex items-center gap-1">
-            <Lock className="w-3 h-3" />
-            <span>Secure Payment Processing</span>
+      {/* Footer Information */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 text-gray-600">
+            <Lock className="w-4 h-4" />
+            <span>Secure Payment Processing Active</span>
           </div>
-          <span>Last check: {new Date().toLocaleTimeString()}</span>
+          <div className="text-gray-500">
+            Last check: {new Date().toLocaleTimeString()}
+          </div>
         </div>
       </div>
     </div>

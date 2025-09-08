@@ -7,19 +7,15 @@ const SecurityPage: React.FC = () => {
   const [complianceScore, setComplianceScore] = useState<number>(0);
 
   useEffect(() => {
-    // Listen for compliance score updates
+    // Listen for compliance score updates from the actual compliance components
     const handleScoreUpdate = (event: CustomEvent) => {
       setComplianceScore(event.detail.score);
     };
 
     window.addEventListener('pci-compliance-score-update', handleScoreUpdate as EventListener);
     
-    // Set initial score based on environment
-    if (process.env.NODE_ENV === 'production') {
-      setComplianceScore(100); // Production: 100% compliance
-    } else {
-      setComplianceScore(75); // Development: Show actual compliance issues
-    }
+    // Initialize with a default score - will be updated by actual compliance checks
+    setComplianceScore(0);
 
     return () => {
       window.removeEventListener('pci-compliance-score-update', handleScoreUpdate as EventListener);
