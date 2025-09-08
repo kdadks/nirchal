@@ -167,7 +167,7 @@ const OrdersPage: React.FC = () => {
             status: 'confirmed',
             items: [] // Items will be fetched in the email service if needed
           });
-          console.log('Order confirmation email sent successfully');
+
         } else if (newStatus === 'shipped' && orderData.tracking_number) {
           // Send specialized shipping email with tracking details
           await transactionalEmailService.sendShippingEmail({
@@ -183,7 +183,7 @@ const OrdersPage: React.FC = () => {
               tracking_url_template: orderData.logistics_partners[0].tracking_url_template
             } : undefined
           });
-          console.log('Shipping email sent successfully');
+
         } else {
           // Send regular order status update email for other status changes
           await transactionalEmailService.sendOrderStatusUpdateEmail({
@@ -195,7 +195,7 @@ const OrdersPage: React.FC = () => {
             status: newStatus,
             tracking_number: orderData.tracking_number
           });
-          console.log('Order status update email sent successfully');
+
         }
       } catch (emailError) {
         console.error('Failed to send email:', emailError);

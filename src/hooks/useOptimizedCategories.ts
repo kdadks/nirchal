@@ -30,9 +30,6 @@ export const useOptimizedCategories = (): OptimizedCategoriesHook => {
       setLoading(true);
       setError(null);
       
-      console.log('[OptimizedCategories] Starting fetch...');
-      const startTime = performance.now();
-
       // Simple, fast query
       const { data, error: categoriesError } = await supabase
         .from('categories')
@@ -40,10 +37,6 @@ export const useOptimizedCategories = (): OptimizedCategoriesHook => {
         .order('name');
 
       if (categoriesError) throw categoriesError;
-
-      const endTime = performance.now();
-      console.log(`[OptimizedCategories] Fetch completed in ${(endTime - startTime).toFixed(2)}ms`);
-      console.log(`[OptimizedCategories] Loaded ${data?.length || 0} categories`);
 
       setCategories(data || []);
     } catch (e) {

@@ -35,8 +35,6 @@ export const useOptimizedInventory = (): OptimizedInventoryHook => {
       setLoading(true);
       setError(null);
       
-      console.log('[OptimizedInventory] Starting fetch...');
-      const startTime = performance.now();
 
       // Fetch all data in parallel
       const [
@@ -84,10 +82,6 @@ export const useOptimizedInventory = (): OptimizedInventoryHook => {
           variant_color: variant?.color || null
         };
       });
-
-      const endTime = performance.now();
-      console.log(`[OptimizedInventory] Fetch completed in ${(endTime - startTime).toFixed(2)}ms`);
-      console.log(`[OptimizedInventory] Loaded ${enrichedInventory.length} inventory items`);
 
       setInventory(enrichedInventory);
     } catch (e) {
