@@ -242,13 +242,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2"
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-md"
             >
               <Menu className="h-5 w-5" />
             </button>
 
-            {/* Search Bar - Dynamic placeholder */}
-            <div className="hidden md:flex items-center relative">
+            {/* Search Bar - Responsive */}
+            <div className="hidden sm:flex items-center relative flex-1 max-w-md">
               <Search className="absolute left-3 h-4 w-4 text-gray-400" />
               <input
                 type="text"
@@ -261,14 +261,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                              currentPage === 'orders' ? 'orders...' : 
                              currentPage === 'users' ? 'users...' : 
                              'items...'}`}
-                className="admin-search pl-10"
+                className="admin-search pl-10 w-full"
               />
             </div>
+            
+            {/* Mobile search button */}
+            <button className="sm:hidden p-2 hover:bg-gray-100 rounded-md">
+              <Search className="h-5 w-5" />
+            </button>
           </div>
 
           <div className="admin-header-right">
             {/* Dynamic Action Buttons */}
-            <div style={{ display: 'flex', gap: '8px', marginRight: '16px' }}>
+            <div className="flex gap-2">
               <button 
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -276,17 +281,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 title="Refresh Data"
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden md:inline ml-1">Refresh</span>
               </button>
             </div>
 
             {/* Notifications */}
-            <button className="p-2 relative">
+            <button className="p-2 relative hover:bg-gray-100 rounded-md">
               <Bell className="h-5 w-5 text-gray-600" />
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
             </button>
 
             {/* User menu */}
-            <div className="flex items-center space-x-2 text-sm admin-text-secondary">
+            <div className="hidden md:flex items-center space-x-2 text-sm admin-text-secondary">
+              <User className="h-4 w-4" />
               <span>Admin</span>
             </div>
           </div>

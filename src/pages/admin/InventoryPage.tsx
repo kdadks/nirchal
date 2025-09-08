@@ -372,11 +372,11 @@ const InventoryPage: React.FC = () => {
         </div>
 
         {/* Inventory Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="responsive-table-wrapper">
+          <table className="admin-table admin-inventory-table min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="admin-table-col-0 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <input
                     type="checkbox"
                     checked={selectedItems.length === currentPageItems.length && currentPageItems.length > 0}
@@ -384,22 +384,22 @@ const InventoryPage: React.FC = () => {
                     className="rounded border-gray-300"
                   />
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="admin-table-col-1 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Product
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="admin-table-col-2 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Variant Name
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="admin-table-col-3 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Current Stock
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="admin-table-col-4 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="admin-table-col-5 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hide-mobile">
                   Last Updated
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="admin-table-col-6 px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -418,7 +418,7 @@ const InventoryPage: React.FC = () => {
 
                 return (
                   <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-3 whitespace-nowrap">
+                    <td className="admin-table-col-0 px-3 py-3 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedItems.includes(item.id)}
@@ -426,42 +426,43 @@ const InventoryPage: React.FC = () => {
                         className="rounded border-gray-300"
                       />
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{item.product_name}</div>
-                        {item.product_sku && (
-                          <div className="text-xs text-gray-500">SKU: {item.product_sku}</div>
-                        )}
+                    <td className="admin-table-col-1 px-3 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate text-left">{item.product_name}</div>
+                        <div className="text-xs text-gray-500 truncate text-left">
+                          SKU: {item.variant_sku || item.product_sku || 'N/A'}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{variantName}</div>
-                      {item.variant_sku && (
-                        <div className="text-xs text-gray-500">SKU: {item.variant_sku}</div>
-                      )}
+                    <td className="admin-table-col-2 px-3 py-3">
+                      <div className="min-w-0 ml-4">
+                        <div className="text-sm font-medium text-gray-900 truncate">{variantName}</div>
+                      </div>
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap">
+                    <td className="admin-table-col-3 px-3 py-3 whitespace-nowrap">
                       <div className="text-sm">
                         <div className="font-medium text-gray-900">{item.quantity}</div>
                         <div className="text-xs text-gray-500">Threshold: {item.low_stock_threshold}</div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded ${status.className} uppercase`}>
+                    <td className="admin-table-col-4 px-3 py-3 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded ${status.className} uppercase`}>
                         {status.label}
                       </span>
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500">
+                    <td className="admin-table-col-5 px-3 py-3 whitespace-nowrap text-sm text-gray-500 hide-mobile">
                       {new Date(item.updated_at).toLocaleDateString()}
                     </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button
-                        onClick={() => handleShowHistory(item.id, item.product_name)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View History"
-                      >
-                        <History className="h-4 w-4" />
-                      </button>
+                    <td className="admin-table-col-6 px-3 py-3 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={() => handleShowHistory(item.id, item.product_name)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="View History"
+                        >
+                          <History className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
