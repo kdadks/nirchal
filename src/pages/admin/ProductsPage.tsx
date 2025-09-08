@@ -242,17 +242,17 @@ const ProductsPage: React.FC = () => {
         )}
 
         {/* Table */}
-        <div className="overflow-hidden">
+        <div className="responsive-table-wrapper">
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               <p className="mt-2 text-sm text-gray-500">Loading products...</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="admin-table admin-products-table min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="relative px-4 py-2 text-left">
+                  <th scope="col" className="admin-table-col-0 px-4 py-2 text-left">
                     <input
                       type="checkbox"
                       checked={paginatedProducts?.length > 0 && selectedProducts.length === paginatedProducts.length}
@@ -260,23 +260,23 @@ const ProductsPage: React.FC = () => {
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                   </th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="admin-table-col-1 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Image
                   </th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="admin-table-col-2 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Product
                   </th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="admin-table-col-3 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Category
                   </th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="admin-table-col-4 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Inventory
                   </th>
-                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="admin-table-col-5 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th scope="col" className="relative px-4 py-2">
-                    <span className="sr-only">Actions</span>
+                  <th scope="col" className="admin-table-col-6 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -295,7 +295,7 @@ const ProductsPage: React.FC = () => {
                   
                   return (
                     <tr key={product.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      <td className="admin-table-col-0 px-4 py-2 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={selectedProducts.includes(product.id.toString())}
@@ -303,44 +303,47 @@ const ProductsPage: React.FC = () => {
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      <td className="admin-table-col-1 px-4 py-2 whitespace-nowrap text-center">
                         {publicUrl ? (
                           <img 
                             src={publicUrl} 
                             alt={img?.alt_text || product.name} 
-                            className="h-8 w-8 rounded-md object-cover"
+                            className="h-8 w-8 rounded-md object-cover mx-auto"
                           />
                         ) : (
-                          <div className="h-8 w-8 rounded-md bg-gray-100 flex items-center justify-center">
+                          <div className="h-8 w-8 rounded-md bg-gray-100 flex items-center justify-center mx-auto">
                             <Package className="h-4 w-4 text-gray-400" />
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div>
+                      <td className="admin-table-col-2 px-4 py-2">
+                        <div className="flex items-center min-w-0">
+                          <div className="min-w-0 flex-1">
                             <button
                               onClick={() => navigate(`/admin/products/edit/${product.id}`)}
-                              className="text-sm font-medium text-gray-900 hover:text-blue-600"
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600 truncate block max-w-full"
+                              title={product.name}
                             >
                               {product.name}
                             </button>
                             {product.sku && (
-                              <div className="text-xs text-gray-400">SKU: {product.sku}</div>
+                              <div className="text-xs text-gray-400 truncate max-w-full" title={`SKU: ${product.sku}`}>
+                                SKU: {product.sku}
+                              </div>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                      <td className="admin-table-col-3 px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                         {product.category ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 truncate max-w-full">
                             {Array.isArray(product.category) ? product.category[0]?.name : product.category.name}
                           </span>
                         ) : (
                           <span className="text-gray-400">No category</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      <td className="admin-table-col-4 px-4 py-2 whitespace-nowrap">
                         <div className="text-sm">
                           <div className={`font-medium ${
                             totalStock > 10 
@@ -358,8 +361,8 @@ const ProductsPage: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
-                        <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 ${
+                      <td className="admin-table-col-5 px-4 py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase ${
                           product.is_active 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
@@ -367,8 +370,8 @@ const ProductsPage: React.FC = () => {
                           {product.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
+                      <td className="admin-table-col-6 px-4 py-2 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center justify-center space-x-2">
                           <button
                             onClick={() => navigate(`/admin/products/edit/${product.id}`)}
                             className="text-blue-600 hover:text-blue-800"
