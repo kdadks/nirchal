@@ -55,7 +55,7 @@ export const useCategories = () => {
               return {
                 id: String(cat.id),
                 name: String(cat.name),
-                image: imageUrl || '',
+                image_url: imageUrl || '', // Use correct property name
                 description: cat.description,
                 featured: cat.featured || false,
                 slug: cat.slug
@@ -88,7 +88,7 @@ export const useCategories = () => {
         return {
           id: String(cat.id),
           name: String(cat.name),
-          image: imageUrl || '', // Return empty string if no image found, let CategoryCard handle fallback
+          image_url: imageUrl || '', // Use correct property name
           description: cat.description,
           featured: cat.featured || false,
           slug: cat.slug

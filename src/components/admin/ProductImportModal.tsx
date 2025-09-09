@@ -327,9 +327,9 @@ const useProductImport = () => {
       
       const csvCategories = new Map<string, { name: string; image?: string }>();
       csvData.forEach(row => {
-        const categoryName = (row.category_name || row['Product Type'] || '').trim();
+        const categoryName = (row.category_name || row['Product Type'] || row.Type || row.type || '').trim();
         if (categoryName && categoryName.toLowerCase() !== 'uncategorized') {
-          const categoryImage = row.category_image || row['Category Image'] || '';
+          const categoryImage = row.category_image || row['Category Image'] || row['Type Image'] || '';
           if (!csvCategories.has(categoryName.toLowerCase())) {
             csvCategories.set(categoryName.toLowerCase(), { 
               name: categoryName, 
@@ -374,7 +374,7 @@ const useProductImport = () => {
               name: categoryInfo.name,
               description: `Category created during product import`,
               slug: generateSlug(categoryInfo.name),
-              image: categoryImageUrl, // Use uploaded image URL or empty string
+              image_url: categoryImageUrl, // Use correct column name: image_url
               is_active: true 
             })
             .select('id')
@@ -485,7 +485,7 @@ const useProductImport = () => {
               price: basePrice,
               sale_price: salePrice,
               sku: productSku,
-              category_id: categoriesMap.get((mainRow.category_name || mainRow['Product Type'] || '').toLowerCase()) || defaultCategoryId,
+              category_id: categoriesMap.get((mainRow.category_name || mainRow['Product Type'] || mainRow.Type || mainRow.type || '').toLowerCase()) || defaultCategoryId,
               vendor_id: vendorsMap.get((mainRow.vendor_name || mainRow.Vendor || '').toLowerCase()) || null,
               is_active: (mainRow.status || mainRow.Status || 'active').toLowerCase() === 'active',
               is_featured: false, // Default to false, can be updated later
@@ -959,7 +959,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
     if (field === 'body (html)') return 'description';
     if (field === 'variant price') return 'price';
     if (field === 'variant sku') return 'sku';
-    if (field === 'product type') return 'category_name';
+    if (field === 'product type' || field === 'type') return 'category_name';
     if (field === 'vendor') return 'vendor_name';
     if (field === 'variant weight') return 'weight';
     if (field === 'status') return 'status';

@@ -47,7 +47,7 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
-  image: string;
+  image_url: string; // Updated to match database schema
   description?: string;
   featured?: boolean;
   slug?: string;
