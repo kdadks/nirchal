@@ -240,10 +240,9 @@ const useProductImport = () => {
       // Generate a unique filename in categories folder
       const fileName = `categories/${sanitizedCategoryName}-${timestamp}.${extension}`;
 
-      // Upload to Supabase storage (using same bucket as products for now)
-      // Note: If you have a separate 'category-images' bucket, change 'product-images' to 'category-images'
+      // Upload to Supabase storage (using category-images bucket to match the rest of the app)
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
+        .from('category-images')
         .upload(fileName, imageBlob, {
           contentType: contentType,
           upsert: false
@@ -253,14 +252,14 @@ const useProductImport = () => {
         console.error('Failed to upload category image to storage:', {
           fileName,
           error: uploadError,
-          bucket: 'product-images',
+          bucket: 'category-images',
           folder: 'categories'
         });
         
         // If upload fails, try without folder structure
         const simpleName = `category-${sanitizedCategoryName}-${timestamp}.${extension}`;
         const { error: retryError } = await supabase.storage
-          .from('product-images')
+          .from('category-images')
           .upload(simpleName, imageBlob, {
             contentType: contentType,
             upsert: false
@@ -273,7 +272,7 @@ const useProductImport = () => {
         
         // Get the public URL for retry upload
         const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
+          .from('category-images')
           .getPublicUrl(simpleName);
 
         return publicUrl;
@@ -281,7 +280,7 @@ const useProductImport = () => {
 
       // Get the public URL for successful upload
       const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
+        .from('category-images')
         .getPublicUrl(fileName);
 
       return publicUrl;
@@ -480,17 +479,25 @@ const useProductImport = () => {
                 variantRows[0]['Option3 Value']
               ));
             
-            // For products with variants, use the base price from the product, not variants
+            // For products with variants, use the base price from "Cost per Item"
             // For products without variants, use the variant price (which is the product price)
             let basePrice = 0;
             let salePrice = null;
             
+            // Try to get base price from "Cost per Item" first, then fallbacks
+            const costPerItem = parseFloat(mainRow['Cost per Item'] || mainRow.price || '0');
+            
             if (hasVariantData) {
-              // Use the lowest variant price as base price, or the first variant's price
-              const variantPrices = variantRows
-                .map(row => parseFloat(row['Variant Price'] || row.price || '0'))
-                .filter(price => price > 0);
-              basePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+              // Use "Cost per Item" as base price for multi-variant products
+              basePrice = costPerItem > 0 ? costPerItem : 0;
+              
+              // If no "Cost per Item", fall back to minimum variant price
+              if (basePrice === 0) {
+                const variantPrices = variantRows
+                  .map(row => parseFloat(row['Variant Price'] || row.price_adjustment || '0'))
+                  .filter(price => price > 0);
+                basePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+              }
               
               // Check for sale prices
               const salePrices = variantRows
@@ -500,8 +507,8 @@ const useProductImport = () => {
                 salePrice = Math.min(...salePrices);
               }
             } else {
-              // Single variant product - use its price directly
-              basePrice = parseFloat(mainRow.price || mainRow['Variant Price'] || '0');
+              // Single variant product - use "Cost per Item" or price field
+              basePrice = costPerItem > 0 ? costPerItem : parseFloat(mainRow['Variant Price'] || mainRow.price_adjustment || '0');
               salePrice = parseFloat(mainRow.sale_price || mainRow['Variant Compare At Price'] || '0') || null;
             }
             
@@ -718,7 +725,8 @@ const useProductImport = () => {
                   }
                   
                   // Handle variant pricing - calculate price adjustment from base price
-                  const variantPrice = parseFloat(variantRow['Variant Price'] || '0');
+                  // Use "Variant Price" field which maps to price_adjustment
+                  const variantPrice = parseFloat(variantRow['Variant Price'] || variantRow.price_adjustment || '0');
                   const basePrice = productData.price;
                   const priceAdjustment = variantPrice > 0 ? variantPrice - basePrice : 0;
                   
@@ -976,6 +984,20 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { importProducts } = useProductImport();
+
+  // Progress handler with useCallback for better performance
+  const handleProgress = React.useCallback((progress: number, status: string) => {
+    console.log(`[Import Progress] ${progress}% - ${status}`);
+    setImportProgress(Math.round(progress));
+    setImportStatus(status);
+  }, []);
+
+  // Force progress bar to show for debugging
+  React.useEffect(() => {
+    if (isImporting) {
+      console.log('[Progress Bar] Import started, isImporting=true');
+    }
+  }, [isImporting]);
 
   // Smart field mapping suggestions
   const getFieldSuggestion = (csvField: string): string => {
@@ -1243,14 +1265,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
 
           const options: ImportOptions = {
             ...importOptions,
-            onProgress: (progress: number, status: string) => {
-              console.log(`[Import Progress] ${progress}% - ${status}`);
-              // Use setTimeout to ensure state updates are properly scheduled
-              setTimeout(() => {
-                setImportProgress(Math.round(progress));
-                setImportStatus(status);
-              }, 0);
-            }
+            onProgress: handleProgress
           };
 
           const result = await importProducts(csvData, options);
@@ -1577,9 +1592,9 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                 </div>
               </div>
 
-              {/* Progress */}
-              {isImporting && (
-                <div key={`progress-${importProgress}-${Date.now()}`} className="admin-card bg-blue-50 border-blue-200">
+              {/* Progress - Force show with better debugging */}
+              {(isImporting || importProgress > 0) && (
+                <div key={`progress-${importProgress}-${Date.now()}`} className="admin-card bg-blue-50 border-blue-200 border-2">
                   <div className="admin-card-content">
                     <div className="flex items-center mb-3">
                       <Loader2 className="h-5 w-5 text-blue-600 animate-spin mr-3" />
@@ -1587,24 +1602,22 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                         {importStatus || 'Processing...'}
                       </span>
                     </div>
-                    <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden shadow-inner">
+                    <div className="w-full bg-blue-200 rounded-full h-4 overflow-hidden shadow-inner">
                       <div 
-                        className="bg-gradient-to-r from-blue-600 to-blue-500 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                        className="bg-gradient-to-r from-blue-600 to-blue-500 h-4 rounded-full transition-all duration-300 ease-out shadow-sm"
                         style={{ 
-                          width: `${Math.max(1, Math.min(100, importProgress || 0))}%`,
-                          minWidth: importProgress > 0 ? '8px' : '0px'
+                          width: `${Math.max(5, Math.min(100, importProgress || 0))}%`,
+                          minWidth: '20px'
                         }}
                       ></div>
                     </div>
-                    <div className="text-xs text-blue-700 mt-2 font-medium">
+                    <div className="text-sm text-blue-700 mt-2 font-medium">
                       {Math.round(importProgress || 0)}% complete
                     </div>
-                    {/* Debug info in development */}
-                    {import.meta.env.DEV && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Debug: isImporting={String(isImporting)}, progress={importProgress}
-                      </div>
-                    )}
+                    {/* Always show debug info to help troubleshoot */}
+                    <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-100 rounded">
+                      Debug: isImporting={String(isImporting)}, progress={importProgress}, status="{importStatus}"
+                    </div>
                   </div>
                 </div>
               )}
