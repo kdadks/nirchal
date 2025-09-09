@@ -1580,3 +1580,308 @@ export const useDashboardAnalytics = () => {
 		refresh: fetchDashboardData
 	};
 };
+
+// Product Import Functionality
+interface ImportOptions {
+	batchSize: number;
+	skipDuplicates: boolean;
+	updateExisting: boolean;
+	validateOnly: boolean;
+	onProgress?: (progress: number, status: string) => void;
+}
+
+interface ImportResult {
+	success: number;
+	failed: number;
+	errors: Array<{
+		row: number;
+		product: string;
+		error: string;
+	}>;
+	warnings: Array<{
+		row: number;
+		product: string;
+		warning: string;
+	}>;
+}
+
+export const importProducts = async (
+	csvData: any[], 
+	options: ImportOptions
+): Promise<ImportResult> => {
+	const { batchSize, skipDuplicates, updateExisting, validateOnly, onProgress } = options;
+	const result: ImportResult = {
+		success: 0,
+		failed: 0,
+		errors: [],
+		warnings: []
+	};
+
+	try {
+		// Validate CSV structure
+		onProgress?.(5, 'Validating CSV structure...');
+		const requiredFields = ['name', 'category_name', 'price'];
+		const firstRow = csvData[0];
+		
+		for (const field of requiredFields) {
+			if (!firstRow.hasOwnProperty(field)) {
+				throw new Error(`Missing required field: ${field}`);
+			}
+		}
+
+		// Get categories and vendors for reference
+		onProgress?.(10, 'Loading reference data...');
+		
+		if (!supabaseAdmin) {
+			throw new Error('Supabase admin client not initialized - missing service role key');
+		}
+		
+		const [categoriesResult, vendorsResult] = await Promise.all([
+			supabaseAdmin.from('categories').select('id, name'),
+			supabaseAdmin.from('vendors').select('id, name')
+		]);
+
+		if (categoriesResult.error) throw categoriesResult.error;
+		if (vendorsResult.error) throw vendorsResult.error;
+
+		const categoriesMap = new Map(
+			categoriesResult.data.map((cat: any) => [cat.name.toLowerCase(), cat.id])
+		);
+		const vendorsMap = new Map(
+			vendorsResult.data.map((vendor: any) => [vendor.name.toLowerCase(), vendor.id])
+		);
+
+		// Process products in batches
+		const totalProducts = csvData.length;
+		const batches = [];
+		
+		for (let i = 0; i < totalProducts; i += batchSize) {
+			batches.push(csvData.slice(i, i + batchSize));
+		}
+
+		let processedCount = 0;
+
+		for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+			const batch = batches[batchIndex];
+			const batchProgress = 15 + (batchIndex / batches.length) * 80;
+			
+			onProgress?.(batchProgress, `Processing batch ${batchIndex + 1}/${batches.length}...`);
+
+			for (const row of batch) {
+				const rowNumber = processedCount + 1;
+				
+				try {
+					// Generate slug from name
+					const slug = generateSlug(row.name || '');
+					if (!slug) {
+						throw new Error('Product name is required');
+					}
+
+					// Validate required fields
+					if (!row.name?.trim()) {
+						throw new Error('Product name is required');
+					}
+					if (!row.category_name?.trim()) {
+						throw new Error('Category name is required');
+					}
+					if (!row.price || isNaN(parseFloat(row.price))) {
+						throw new Error('Valid price is required');
+					}
+
+					// Check for duplicates
+					if (skipDuplicates) {
+						const existingProduct = await supabaseAdmin
+							.from('products')
+							.select('id, name')
+							.or(`sku.eq.${row.sku || ''},slug.eq.${slug}`)
+							.single();
+
+						if (existingProduct.data && !updateExisting) {
+							result.warnings.push({
+								row: rowNumber,
+								product: row.name,
+								warning: 'Product already exists (skipped)'
+							});
+							continue;
+						}
+					}
+
+					// Find category ID
+					const categoryId = categoriesMap.get(row.category_name.toLowerCase());
+					if (!categoryId) {
+						throw new Error(`Category "${row.category_name}" not found`);
+					}
+
+					// Find vendor ID (optional)
+					let vendorId = null;
+					if (row.vendor_name?.trim()) {
+						vendorId = vendorsMap.get(row.vendor_name.toLowerCase());
+						if (!vendorId) {
+							result.warnings.push({
+								row: rowNumber,
+								product: row.name,
+								warning: `Vendor "${row.vendor_name}" not found, creating without vendor`
+							});
+						}
+					}
+
+					if (validateOnly) {
+						// Just validate, don't actually import
+						result.success++;
+						continue;
+					}
+
+					// Prepare product data
+					const productData = {
+						name: row.name.trim(),
+						slug: slug,
+						description: row.description || null,
+						category_id: categoryId,
+						vendor_id: vendorId,
+						price: parseFloat(row.price),
+						sale_price: row.sale_price ? parseFloat(row.sale_price) : null,
+						sku: row.sku || null,
+						is_active: row.is_active?.toLowerCase() === 'true',
+						is_featured: row.is_featured?.toLowerCase() === 'true',
+						meta_title: row.meta_title || null,
+						meta_description: row.meta_description || null,
+						created_by: 'import',
+						updated_by: 'import'
+					};
+
+					// Insert product
+					const { data: newProduct, error: productError } = await supabaseAdmin
+						.from('products')
+						.insert(productData)
+						.select()
+						.single();
+
+					if (productError) throw productError;
+
+					// Process variants if they exist
+					if (row.variant_sizes || row.variant_colors) {
+						const variantSizes = row.variant_sizes ? row.variant_sizes.split('|') : [''];
+						const variantColors = row.variant_colors ? row.variant_colors.split('|') : [''];
+						const variantSkus = row.variant_skus ? row.variant_skus.split('|') : [];
+						const variantColorHex = row.variant_color_hex ? row.variant_color_hex.split('|') : [];
+						const variantPriceAdjustments = row.variant_price_adjustments ? row.variant_price_adjustments.split('|') : [];
+						const quantities = row.quantities ? row.quantities.split('|') : [];
+						const lowStockThresholds = row.low_stock_thresholds ? row.low_stock_thresholds.split('|') : [];
+
+						const variants: Array<{
+							size: string | null;
+							color: string | null;
+							color_hex: string | null;
+							sku: string | null;
+							quantity: number;
+							low_stock_threshold: number;
+							price_adjustment: number;
+						}> = [];
+						const maxVariants = Math.max(variantSizes.length, variantColors.length, 1);
+
+						for (let i = 0; i < maxVariants; i++) {
+							if (variantSizes[i] || variantColors[i]) {
+								variants.push({
+									size: variantSizes[i] || null,
+									color: variantColors[i] || null,
+									sku: variantSkus[i] || null,
+									color_hex: variantColorHex[i] || null,
+									price_adjustment: variantPriceAdjustments[i] ? parseFloat(variantPriceAdjustments[i]) : 0,
+									quantity: quantities[i] ? parseInt(quantities[i]) : 0,
+									low_stock_threshold: lowStockThresholds[i] ? parseInt(lowStockThresholds[i]) : 10
+								});
+							}
+						}
+
+						// Insert variants
+						if (variants.length > 0) {
+							const variantsToInsert = variants.map(variant => ({
+								product_id: newProduct.id,
+								sku: variant.sku,
+								size: variant.size,
+								color: variant.color,
+								color_hex: variant.color_hex,
+								price_adjustment: variant.price_adjustment,
+								swatch_image_id: null
+							}));
+
+							const { data: insertedVariants, error: variantError } = await supabaseAdmin
+								.from('product_variants')
+								.insert(variantsToInsert)
+								.select();
+
+							if (variantError) throw variantError;
+
+							// Insert inventory for each variant
+							const inventoryToInsert = insertedVariants.map((variant: any, index: any) => ({
+								product_id: newProduct.id,
+								variant_id: variant.id,
+								quantity: variants[index].quantity,
+								low_stock_threshold: variants[index].low_stock_threshold
+							}));
+
+							const { error: inventoryError } = await supabaseAdmin
+								.from('inventory')
+								.insert(inventoryToInsert);
+
+							if (inventoryError) throw inventoryError;
+						} else {
+							// Product without variants - create base inventory
+							const { error: inventoryError } = await supabaseAdmin
+								.from('inventory')
+								.insert({
+									product_id: newProduct.id,
+									variant_id: null,
+									quantity: row.quantities ? parseInt(row.quantities) : 0,
+									low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 10
+								});
+
+							if (inventoryError) throw inventoryError;
+						}
+					} else {
+						// Product without variants - create base inventory
+						const { error: inventoryError } = await supabaseAdmin
+							.from('inventory')
+							.insert({
+								product_id: newProduct.id,
+								variant_id: null,
+								quantity: row.quantities ? parseInt(row.quantities) : 0,
+								low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 10
+							});
+
+						if (inventoryError) throw inventoryError;
+					}
+
+					result.success++;
+
+				} catch (error) {
+					result.failed++;
+					result.errors.push({
+						row: rowNumber,
+						product: row.name || 'Unknown',
+						error: error instanceof Error ? error.message : 'Unknown error'
+					});
+				}
+
+				processedCount++;
+			}
+		}
+
+		onProgress?.(100, 'Import completed');
+		return result;
+
+	} catch (error) {
+		throw new Error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+	}
+};
+
+// Helper function to generate URL-friendly slug
+const generateSlug = (text: string): string => {
+	return text
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9 -]/g, '') // Remove special characters
+		.replace(/\s+/g, '-') // Replace spaces with hyphens
+		.replace(/-+/g, '-') // Replace multiple hyphens with single
+		.replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+};

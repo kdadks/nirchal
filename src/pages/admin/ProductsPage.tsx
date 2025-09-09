@@ -4,17 +4,20 @@ import { useProducts, useCategories, useVendors } from '../../hooks/useAdmin';
 import { usePagination } from '../../hooks/usePagination';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
-import { Package, Filter, Trash2, AlertTriangle, Upload, Download, Edit } from 'lucide-react';
+import ProductImportModal from '../../components/admin/ProductImportModal';
+import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
+import { Package, Filter, Trash2, Upload, Download, Edit } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, loading, deleteProduct, deleteProducts } = useProducts();
+  const { products, loading, deleteProduct, deleteProducts, refresh } = useProducts();
   const { categories } = useCategories();
   const { vendors } = useVendors();
   const { searchTerm } = useAdminSearch();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: string; ids?: string[] }>({ type: 'single' });
   const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState({
@@ -136,11 +139,6 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  const cancelDelete = () => {
-    setShowDeleteConfirm(false);
-    setDeleteTarget({ type: 'single' });
-  };
-
   return (
     <div>
       {/* Header with Title and Actions */}
@@ -173,6 +171,13 @@ const ProductsPage: React.FC = () => {
                 {showFilters ? 'Hide Filters' : 'Filters'}
               </button>
               <button
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Import
+              </button>
+              <button
+                onClick={() => setShowImportModal(true)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <Upload className="h-4 w-4 mr-1" />
@@ -412,51 +417,52 @@ const ProductsPage: React.FC = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal">
-            <div className="admin-modal-header">
-              <h3 className="admin-modal-title">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                Confirm Deletion
-              </h3>
-            </div>
-            <div className="admin-modal-content">
-              <p className="admin-text-secondary">
-                {deleteTarget.type === 'single' 
-                  ? 'Are you sure you want to delete this product? This action cannot be undone.'
-                  : `Are you sure you want to delete ${deleteTarget.ids?.length} selected products? This action cannot be undone.`
-                }
-              </p>
-              <p className="admin-text-sm admin-text-muted" style={{ marginTop: '8px' }}>
-                This will permanently delete:
-              </p>
-              <ul className="admin-text-sm admin-text-muted" style={{ marginTop: '4px', paddingLeft: '16px' }}>
-                <li>Product information and description</li>
-                <li>All product images</li>
-                <li>Product variants and inventory</li>
-                <li>Product history and analytics</li>
-              </ul>
-            </div>
-            <div className="admin-modal-actions">
-              <button
-                onClick={cancelDelete}
-                className="admin-btn admin-btn-secondary"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="admin-btn admin-btn-danger"
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeleteTarget({ type: 'single' });
+        }}
+        onConfirm={confirmDelete}
+        title={deleteTarget.type === 'single' ? 'Delete Product' : 'Delete Products'}
+        description={
+          deleteTarget.type === 'single' 
+            ? 'Are you sure you want to delete this product? This action cannot be undone.'
+            : `Are you sure you want to delete ${deleteTarget.ids?.length} selected products? This action cannot be undone.`
+        }
+        itemType="product"
+        items={
+          deleteTarget.type === 'bulk' && deleteTarget.ids
+            ? deleteTarget.ids.map(id => {
+                const product = products?.find(p => p.id === id);
+                return { id, name: product?.name || 'Unknown Product' };
+              })
+            : []
+        }
+        singleItemName={
+          deleteTarget.type === 'single' && deleteTarget.id
+            ? products?.find(p => p.id === deleteTarget.id)?.name
+            : undefined
+        }
+        consequences={[
+          'Product information and description',
+          'All product images',
+          'Product variants and inventory',
+          'Product history and analytics'
+        ]}
+        isDeleting={isDeleting}
+        variant="danger"
+      />
+
+      {/* Import Modal */}
+      <ProductImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={() => {
+          setShowImportModal(false);
+          refresh();
+        }}
+      />
     </div>
   );
 };
