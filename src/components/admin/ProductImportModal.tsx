@@ -240,8 +240,23 @@ const useProductImport = () => {
       // Generate a unique filename in categories folder
       const fileName = `categories/${sanitizedCategoryName}-${timestamp}.${extension}`;
 
-      // Upload to Supabase storage (using category-images bucket to match the rest of the app)
-      const { error: uploadError } = await supabase.storage
+      // Upload to Supabase storage (category-images bucket)
+      console.log('Attempting to upload category image:', {
+        fileName,
+        bucket: 'category-images',
+        contentType,
+        imageBlobSize: imageBlob.size,
+        imageBlobType: imageBlob.type
+      });
+
+      // First, let's verify if the bucket exists by listing it
+      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
+      console.log('Available storage buckets:', {
+        buckets: buckets?.map(b => ({ id: b.id, name: b.name, public: b.public })),
+        error: bucketListError
+      });
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('category-images')
         .upload(fileName, imageBlob, {
           contentType: contentType,
@@ -249,16 +264,19 @@ const useProductImport = () => {
         });
 
       if (uploadError) {
-        console.error('Failed to upload category image to storage:', {
+        console.error('Failed to upload category image to category-images bucket:', {
           fileName,
           error: uploadError,
+          errorMessage: uploadError.message,
           bucket: 'category-images',
           folder: 'categories'
         });
         
-        // If upload fails, try without folder structure
+        // Let's check if it's a folder permission issue - try without folder
         const simpleName = `category-${sanitizedCategoryName}-${timestamp}.${extension}`;
-        const { error: retryError } = await supabase.storage
+        console.log('Retrying with simple filename (no folder):', simpleName);
+        
+        const { data: retryData, error: retryError } = await supabase.storage
           .from('category-images')
           .upload(simpleName, imageBlob, {
             contentType: contentType,
@@ -266,23 +284,33 @@ const useProductImport = () => {
           });
           
         if (retryError) {
-          console.error('Category image upload retry also failed:', retryError);
+          console.error('Category image upload retry also failed:', {
+            simpleName,
+            error: retryError,
+            errorMessage: retryError.message
+          });
           return null;
         }
+        
+        console.log('Category image retry upload successful:', retryData);
         
         // Get the public URL for retry upload
         const { data: { publicUrl } } = supabase.storage
           .from('category-images')
           .getPublicUrl(simpleName);
 
+        console.log('Generated public URL for retry upload:', publicUrl);
         return publicUrl;
       }
+
+      console.log('Category image upload successful:', uploadData);
 
       // Get the public URL for successful upload
       const { data: { publicUrl } } = supabase.storage
         .from('category-images')
         .getPublicUrl(fileName);
 
+      console.log('Generated public URL:', publicUrl);
       return publicUrl;
     } catch (error) {
       console.error('Error downloading/uploading category image:', error);
@@ -425,25 +453,41 @@ const useProductImport = () => {
       const defaultCategoryName = 'uncategorized';
       
       if (!categoriesMap.has(defaultCategoryName)) {
-        // Create default category if it doesn't exist
-        const { data: newCategory, error: categoryError } = await supabase
+        // Check if uncategorized already exists in database before creating
+        const { data: existingCategory, error: checkError } = await supabase
           .from('categories')
-          .insert({ 
-            name: 'Uncategorized',
-            description: 'Default category for imported products',
-            slug: 'uncategorized',
-            is_active: true 
-          })
           .select('id')
+          .eq('slug', 'uncategorized')
           .single();
           
-        if (categoryError) {
-          console.error('Failed to create default category:', categoryError);
-          throw new Error('Failed to create default category for import');
+        if (existingCategory) {
+          // Use existing uncategorized category
+          defaultCategoryId = existingCategory.id;
+          categoriesMap.set(defaultCategoryName, defaultCategoryId);
+        } else if (checkError?.code === 'PGRST116') {
+          // Category doesn't exist, create it
+          const { data: newCategory, error: categoryError } = await supabase
+            .from('categories')
+            .insert({ 
+              name: 'Uncategorized',
+              description: 'Default category for imported products',
+              slug: 'uncategorized',
+              is_active: true 
+            })
+            .select('id')
+            .single();
+            
+          if (categoryError) {
+            console.error('Failed to create default category:', categoryError);
+            throw new Error('Failed to create default category for import');
+          }
+          
+          defaultCategoryId = newCategory.id;
+          categoriesMap.set(defaultCategoryName, defaultCategoryId);
+        } else {
+          console.error('Error checking for uncategorized category:', checkError);
+          throw new Error('Failed to check for default category');
         }
-        
-        defaultCategoryId = newCategory.id;
-        categoriesMap.set(defaultCategoryName, defaultCategoryId);
       } else {
         defaultCategoryId = categoriesMap.get(defaultCategoryName)!;
       }
@@ -456,7 +500,8 @@ const useProductImport = () => {
         const batch = productArray.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
         const batchProgress = 25 + ((batchIndex / totalBatches) * 65);
         
-        onProgress?.(Math.round(batchProgress), `Processing batch ${batchIndex + 1} of ${totalBatches} (processing images...)...`);
+        console.log(`[Progress] Batch ${batchIndex + 1}/${totalBatches}, Progress: ${Math.round(batchProgress)}%`);
+        onProgress?.(Math.round(batchProgress), `Processing batch ${batchIndex + 1} of ${totalBatches}...`);
 
         for (const variantRows of batch) {
           try {
@@ -724,11 +769,9 @@ const useProductImport = () => {
                     color = ''; // Don't set "Default" - leave empty for size-only variants
                   }
                   
-                  // Handle variant pricing - calculate price adjustment from base price
-                  // Use "Variant Price" field which maps to price_adjustment
-                  const variantPrice = parseFloat(variantRow['Variant Price'] || variantRow.price_adjustment || '0');
-                  const basePrice = productData.price;
-                  const priceAdjustment = variantPrice > 0 ? variantPrice - basePrice : 0;
+                  // Handle variant pricing - use raw "Variant Price" value as price_adjustment
+                  // No calculation needed - store the actual variant price as adjustment
+                  const rawVariantPrice = parseFloat(variantRow['Variant Price'] || variantRow.price_adjustment || '0');
                   
                   // Create unique variant key
                   const variantKey = `${size}-${color}`;
@@ -740,7 +783,7 @@ const useProductImport = () => {
                       color: color || null,
                       color_hex: variantRow.color_hex || '',
                       sku: variantRow['Variant SKU'] || variantRow.sku || `${productData.sku}-${size || 'nosize'}-${color || 'nocolor'}`.replace(/[^a-zA-Z0-9-]/g, ''),
-                      price_adjustment: priceAdjustment,
+                      price_adjustment: rawVariantPrice, // Use raw variant price without calculation
                     };
                     
                     uniqueVariants.set(variantKey, {
