@@ -4,8 +4,9 @@ import { useCategories, useProducts } from '../../hooks/useAdmin';
 import { usePagination } from '../../hooks/usePagination';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
+import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
 import type { CategoryFormData } from '../../types/admin';
-import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, AlertTriangle, Edit } from 'lucide-react';
+import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const initialForm: CategoryFormData = {
@@ -599,42 +600,42 @@ const CategoriesPage: React.FC = () => {
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal">
-            <div className="admin-modal-header">
-              <h3 className="admin-modal-title">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                Confirm Deletion
-              </h3>
-            </div>
-            <div className="admin-modal-content">
-              <p className="admin-text-secondary">
-                {deleteTarget.type === 'single' 
-                  ? 'Are you sure you want to delete this category? This action cannot be undone.'
-                  : `Are you sure you want to delete ${deleteTarget.ids?.length} categories? This action cannot be undone.`
-                }
-              </p>
-            </div>
-            <div className="admin-modal-actions">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="admin-btn admin-btn-secondary"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="admin-btn admin-btn-danger"
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeleteTarget({ type: 'single' });
+        }}
+        onConfirm={confirmDelete}
+        title={deleteTarget.type === 'single' ? 'Delete Category' : 'Delete Categories'}
+        description={
+          deleteTarget.type === 'single' 
+            ? 'Are you sure you want to delete this category? This action cannot be undone.'
+            : `Are you sure you want to delete ${deleteTarget.ids?.length} selected categories? This action cannot be undone.`
+        }
+        itemType="category"
+        items={
+          deleteTarget.type === 'bulk' && deleteTarget.ids
+            ? deleteTarget.ids.map(id => {
+                const category = categories.find(c => c.id === id);
+                return { id, name: category?.name || 'Unknown Category' };
+              })
+            : []
+        }
+        singleItemName={
+          deleteTarget.type === 'single' && deleteTarget.id
+            ? categories.find(c => c.id === deleteTarget.id)?.name
+            : undefined
+        }
+        consequences={[
+          'Category information and description',
+          'Category image',
+          'All subcategories',
+          'Product associations'
+        ]}
+        isDeleting={isDeleting}
+        variant="danger"
+      />
     </div>
   );
 };
