@@ -237,9 +237,11 @@ const useProductImport = () => {
       const extension = originalName.includes('.') ? originalName.split('.').pop() : 'jpg';
       const sanitizedCategoryName = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
       const timestamp = Date.now();
+      // Generate a unique filename in categories folder
       const fileName = `categories/${sanitizedCategoryName}-${timestamp}.${extension}`;
 
-      // Upload to Supabase storage
+      // Upload to Supabase storage (using same bucket as products for now)
+      // Note: If you have a separate 'category-images' bucket, change 'product-images' to 'category-images'
       const { error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(fileName, imageBlob, {
@@ -248,11 +250,36 @@ const useProductImport = () => {
         });
 
       if (uploadError) {
-        console.error('Failed to upload category image to storage:', uploadError);
-        return null;
+        console.error('Failed to upload category image to storage:', {
+          fileName,
+          error: uploadError,
+          bucket: 'product-images',
+          folder: 'categories'
+        });
+        
+        // If upload fails, try without folder structure
+        const simpleName = `category-${sanitizedCategoryName}-${timestamp}.${extension}`;
+        const { error: retryError } = await supabase.storage
+          .from('product-images')
+          .upload(simpleName, imageBlob, {
+            contentType: contentType,
+            upsert: false
+          });
+          
+        if (retryError) {
+          console.error('Category image upload retry also failed:', retryError);
+          return null;
+        }
+        
+        // Get the public URL for retry upload
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(simpleName);
+
+        return publicUrl;
       }
 
-      // Get the public URL
+      // Get the public URL for successful upload
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(fileName);
@@ -957,7 +984,8 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
     // Shopify field mappings
     if (field === 'title') return 'name';
     if (field === 'body (html)') return 'description';
-    if (field === 'variant price') return 'price';
+    if (field === 'cost per item') return 'price';
+    if (field === 'variant price') return 'price_adjustment';
     if (field === 'variant sku') return 'sku';
     if (field === 'product type' || field === 'type') return 'category_name';
     if (field === 'vendor') return 'vendor_name';
@@ -1154,6 +1182,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
     setIsImporting(true);
     setImportProgress(0);
     setImportStatus('Preparing import...');
+    console.log('[Import] Starting import process, isImporting set to true');
 
     try {
       // Parse the entire CSV file
@@ -1215,8 +1244,12 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
           const options: ImportOptions = {
             ...importOptions,
             onProgress: (progress: number, status: string) => {
-              setImportProgress(progress);
-              setImportStatus(status);
+              console.log(`[Import Progress] ${progress}% - ${status}`);
+              // Use setTimeout to ensure state updates are properly scheduled
+              setTimeout(() => {
+                setImportProgress(Math.round(progress));
+                setImportStatus(status);
+              }, 0);
             }
           };
 
@@ -1243,7 +1276,8 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
       toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setImportStatus('Import failed');
     } finally {
-      setIsImporting(false);
+      console.log('[Import] Finishing import process, setting isImporting to false');
+      setTimeout(() => setIsImporting(false), 100); // Small delay to ensure progress is visible
     }
   };
 
@@ -1545,22 +1579,32 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
 
               {/* Progress */}
               {isImporting && (
-                <div key={`progress-${importProgress}`} className="admin-card">
+                <div key={`progress-${importProgress}-${Date.now()}`} className="admin-card bg-blue-50 border-blue-200">
                   <div className="admin-card-content">
-                    <div className="flex items-center mb-2">
-                      <Loader2 className="h-4 w-4 text-blue-600 animate-spin mr-2" />
-                      <span className="text-sm font-medium text-blue-900">{importStatus}</span>
+                    <div className="flex items-center mb-3">
+                      <Loader2 className="h-5 w-5 text-blue-600 animate-spin mr-3" />
+                      <span className="text-sm font-medium text-blue-900">
+                        {importStatus || 'Processing...'}
+                      </span>
                     </div>
-                    <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden shadow-inner">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                        className="bg-gradient-to-r from-blue-600 to-blue-500 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
                         style={{ 
-                          width: `${Math.max(0, Math.min(100, importProgress))}%`,
-                          transform: `translateX(0)`
+                          width: `${Math.max(1, Math.min(100, importProgress || 0))}%`,
+                          minWidth: importProgress > 0 ? '8px' : '0px'
                         }}
                       ></div>
                     </div>
-                    <div className="text-xs text-blue-700 mt-1">{Math.round(importProgress)}% complete</div>
+                    <div className="text-xs text-blue-700 mt-2 font-medium">
+                      {Math.round(importProgress || 0)}% complete
+                    </div>
+                    {/* Debug info in development */}
+                    {import.meta.env.DEV && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Debug: isImporting={String(isImporting)}, progress={importProgress}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
