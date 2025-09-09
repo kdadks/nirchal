@@ -621,15 +621,15 @@ const useProductImport = () => {
                   if (option1Name.toLowerCase().includes('size') || 
                       option1Name.toLowerCase().includes('dimension')) {
                     size = variantRow['Option1 Value'] || '';
-                    hasSize = true;
+                    hasSize = !!size;
                   } else if (option1Name.toLowerCase().includes('color') || 
                              option1Name.toLowerCase().includes('colour')) {
                     color = variantRow['Option1 Value'] || '';
-                    hasColor = true;
+                    hasColor = !!color;
                   } else if (variantRow['Option1 Value']) {
                     // Try to guess based on value patterns
                     const value = variantRow['Option1 Value'].toLowerCase();
-                    if (value.includes('size') || /^(xs|s|m|l|xl|xxl|\d+)$/i.test(value)) {
+                    if (value.includes('size') || /^(xs|s|m|l|xl|xxl|\d+|\d+cm|\d+mm|\d+inch)$/i.test(value)) {
                       size = variantRow['Option1 Value'];
                       hasSize = true;
                     } else {
@@ -642,11 +642,11 @@ const useProductImport = () => {
                   if (option2Name.toLowerCase().includes('color') || 
                       option2Name.toLowerCase().includes('colour')) {
                     color = variantRow['Option2 Value'] || '';
-                    hasColor = true;
+                    hasColor = !!color;
                   } else if (option2Name.toLowerCase().includes('size') || 
                              option2Name.toLowerCase().includes('dimension')) {
                     size = variantRow['Option2 Value'] || '';
-                    hasSize = true;
+                    hasSize = !!size;
                   } else if (variantRow['Option2 Value'] && !hasColor && !hasSize) {
                     // If Option1 was size, Option2 is likely color
                     if (hasSize) {
@@ -658,7 +658,7 @@ const useProductImport = () => {
                     } else {
                       // Guess based on value
                       const value = variantRow['Option2 Value'].toLowerCase();
-                      if (value.includes('size') || /^(xs|s|m|l|xl|xxl|\d+)$/i.test(value)) {
+                      if (value.includes('size') || /^(xs|s|m|l|xl|xxl|\d+|\d+cm|\d+mm|\d+inch)$/i.test(value)) {
                         size = variantRow['Option2 Value'];
                         hasSize = true;
                       } else {
@@ -679,13 +679,15 @@ const useProductImport = () => {
                     }
                   }
                   
-                  // Set defaults only if we don't have values
+                  // Only set defaults if we have actual variant options
+                  // Don't create size variants if no size is actually specified
                   if (!hasSize && !hasColor) {
-                    size = 'Default';
+                    // No variants detected, skip this variant creation
+                    continue;
                   } else if (!hasSize && hasColor) {
-                    size = 'One Size'; // Better than "Default" for color-only variants
+                    size = ''; // Don't set "One Size" - leave empty for color-only variants
                   } else if (hasSize && !hasColor) {
-                    color = 'Default'; // For size-only variants
+                    color = ''; // Don't set "Default" - leave empty for size-only variants
                   }
                   
                   // Handle variant pricing - calculate price adjustment from base price
@@ -699,10 +701,10 @@ const useProductImport = () => {
                   if (!uniqueVariants.has(variantKey)) {
                     const variantData = {
                       product_id: productId,
-                      size: size,
-                      color: color,
+                      size: size || null,
+                      color: color || null,
                       color_hex: variantRow.color_hex || '',
-                      sku: variantRow['Variant SKU'] || variantRow.sku || `${productData.sku}-${size}-${color}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                      sku: variantRow['Variant SKU'] || variantRow.sku || `${productData.sku}-${size || 'nosize'}-${color || 'nocolor'}`.replace(/[^a-zA-Z0-9-]/g, ''),
                       price_adjustment: priceAdjustment,
                     };
                     
@@ -714,38 +716,41 @@ const useProductImport = () => {
                   }
                 }
 
-                // Insert unique variants
-                for (const variantInfo of uniqueVariants.values()) {
-                  const { quantity, low_stock_threshold, ...variantData } = variantInfo;
-                  
-                  const { data: newVariant, error: variantError } = await supabase
-                    .from('product_variants')
-                    .insert(variantData)
-                    .select()
-                    .single();
+                // Insert unique variants only if we have valid variants
+                if (uniqueVariants.size > 0) {
+                  for (const variantInfo of uniqueVariants.values()) {
+                    const { quantity, low_stock_threshold, ...variantData } = variantInfo;
+                    
+                    const { data: newVariant, error: variantError } = await supabase
+                      .from('product_variants')
+                      .insert(variantData)
+                      .select()
+                      .single();
 
-                  if (variantError) {
-                    console.error('Variant insert error:', variantError);
-                    result.warnings.push({
-                      row: variantRows[0]._index || 0,
-                      field: 'variant',
-                      value: variantData.sku,
-                      message: `Failed to create variant: ${variantError.message}`
-                    });
-                  } else {
-                    createdVariants.push({
-                      ...newVariant,
-                      quantity,
-                      low_stock_threshold
-                    });
+                    if (variantError) {
+                      console.error('Variant insert error:', variantError);
+                      result.warnings.push({
+                        row: variantRows[0]._index || 0,
+                        field: 'variant',
+                        value: variantData.sku,
+                        message: `Failed to create variant: ${variantError.message}`
+                      });
+                    } else {
+                      createdVariants.push({
+                        ...newVariant,
+                        quantity,
+                        low_stock_threshold
+                      });
+                    }
                   }
                 }
               } else {
-                // Create a default variant for products without explicit variants
+                // Only create a default variant if there are no actual variants detected
+                // but we still have product data that needs a variant
                 const defaultVariantData = {
                   product_id: productId,
-                  size: 'Default',
-                  color: '',
+                  size: null, // No size for default variants
+                  color: null, // No color for default variants
                   color_hex: '',
                   sku: productData.sku || `${productId}-default`,
                   price_adjustment: 0, // No price adjustment for default variants
@@ -1540,19 +1545,22 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
 
               {/* Progress */}
               {isImporting && (
-                <div className="admin-card">
+                <div key={`progress-${importProgress}`} className="admin-card">
                   <div className="admin-card-content">
                     <div className="flex items-center mb-2">
                       <Loader2 className="h-4 w-4 text-blue-600 animate-spin mr-2" />
                       <span className="text-sm font-medium text-blue-900">{importStatus}</span>
                     </div>
-                    <div className="w-full bg-blue-200 rounded-full h-2">
+                    <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${importProgress}%` }}
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
+                        style={{ 
+                          width: `${Math.max(0, Math.min(100, importProgress))}%`,
+                          transform: `translateX(0)`
+                        }}
                       ></div>
                     </div>
-                    <div className="text-xs text-blue-700 mt-1">{importProgress}% complete</div>
+                    <div className="text-xs text-blue-700 mt-1">{Math.round(importProgress)}% complete</div>
                   </div>
                 </div>
               )}
