@@ -175,32 +175,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
               </div>
             </div>
 
-            {/* Items to delete */}
-            {(items.length > 0 || singleItemName) && (
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h5 className="font-medium text-gray-900 mb-2">
-                  {isMultiple ? 'Items to be deleted:' : 'Item to be deleted:'}
-                </h5>
-                {singleItemName ? (
-                  <div className="inline-flex items-center gap-2 px-3 py-2 bg-white rounded-lg border text-sm font-medium text-gray-700">
-                    {singleItemName}
-                  </div>
-                ) : (
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {items.slice(0, 5).map((item) => (
-                      <div key={item.id} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border text-sm">
-                        {item.name}
-                      </div>
-                    ))}
-                    {items.length > 5 && (
-                      <div className="text-sm text-gray-500 px-3 py-1">
-                        ... and {items.length - 5} more items
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+
 
             {/* Consequences */}
             {consequences.length > 0 && (
