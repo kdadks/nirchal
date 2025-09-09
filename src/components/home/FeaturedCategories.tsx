@@ -42,7 +42,7 @@ const FeaturedCategories: React.FC = () => {
                 
                 {/* Image */}
                 <img 
-                  src={category.image || 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=400&h=320&fit=crop&q=80'}
+                  src={category.image_url || 'https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=400&h=320&fit=crop&q=80'}
                   alt={category.name}
                   className="w-full h-80 object-cover transition-transform duration-700 group-hover:scale-110"
                 />
