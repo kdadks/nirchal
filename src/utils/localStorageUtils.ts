@@ -110,7 +110,7 @@ export const saveImageToPublicFolder = async (
   blob: Blob, 
   fileName: string, 
   folder: 'products' | 'categories'
-): Promise<{ success: boolean; filePath?: string; error?: string }> => {
+): Promise<{ success: boolean; filePath?: string; githubUrl?: string; error?: string }> => {
   try {
     // Convert blob to base64
     const base64Data = await new Promise<string>((resolve, reject) => {
@@ -142,13 +142,14 @@ export const saveImageToPublicFolder = async (
 
     console.log(`[Local Storage] Successfully processed: ${result.publicUrl}`);
     
-    // For Netlify compatibility: If we have a dataUrl, use that instead of the publicUrl
-    // since we can't write actual files to the public folder in serverless environment
-    const filePath = result.dataUrl || result.publicUrl;
+    // Return the GitHub URL for the uploaded image
+    // This allows the image to be accessed via GitHub's raw file URL
+    const filePath = result.githubUrl || result.publicUrl;
     
     return {
       success: true,
-      filePath: filePath
+      filePath: filePath,
+      githubUrl: result.githubUrl
     };
     
   } catch (error) {

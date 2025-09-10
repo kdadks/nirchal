@@ -8,6 +8,12 @@ interface UploadImageRequest {
   contentType: string;
 }
 
+// GitHub API configuration
+const GITHUB_API_BASE = 'https://api.github.com';
+const REPO_OWNER = 'kdadks';
+const REPO_NAME = 'nirchal';
+const BRANCH = 'main';
+
 // Helper function to validate file type
 function isValidImageType(contentType: string): boolean {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -18,6 +24,80 @@ function isValidImageType(contentType: string): boolean {
 function sanitizeFileName(fileName: string): string {
   // Remove any path separators and dangerous characters
   return fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+}
+
+// Helper function to upload file to GitHub repository
+async function uploadToGitHub(
+  filePath: string,
+  content: string,
+  message: string,
+  token: string
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    // First, try to get the existing file to get its SHA (if it exists)
+    let sha: string | undefined;
+    try {
+      const getResponse = await fetch(
+        `${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}?ref=${BRANCH}`,
+        {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Netlify-Function'
+          }
+        }
+      );
+      
+      if (getResponse.ok) {
+        const fileData = await getResponse.json();
+        sha = fileData.sha;
+      }
+    } catch (e) {
+      // File doesn't exist, which is fine for new uploads
+    }
+
+    // Create or update the file
+    const createData: any = {
+      message,
+      content,
+      branch: BRANCH
+    };
+
+    if (sha) {
+      createData.sha = sha;
+    }
+
+    const createResponse = await fetch(
+      `${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'Netlify-Function'
+        },
+        body: JSON.stringify(createData)
+      }
+    );
+
+    if (!createResponse.ok) {
+      const errorData = await createResponse.text();
+      throw new Error(`GitHub API error: ${createResponse.status} - ${errorData}`);
+    }
+
+    const result = await createResponse.json();
+    
+    return {
+      success: true,
+      url: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${BRANCH}/${filePath}`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown GitHub API error'
+    };
+  }
 }
 
 export default async (request: Request, context: Context) => {
@@ -56,6 +136,18 @@ export default async (request: Request, context: Context) => {
       );
     }
 
+    // Check for GitHub token
+    const githubToken = process.env.GITHUB_TOKEN;
+    if (!githubToken) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'GitHub token not configured. Please set GITHUB_TOKEN environment variable.' 
+        }),
+        { status: 500, headers }
+      );
+    }
+
     // Validate folder type
     if (folder !== 'products' && folder !== 'categories') {
       return new Response(
@@ -91,11 +183,6 @@ export default async (request: Request, context: Context) => {
     const baseFileName = sanitizedFileName.replace(/\.[^/.]+$/, '') || 'image';
     const uniqueFileName = `${baseFileName}-${timestamp}${fileExtension}`;
 
-    // For Netlify deployment: Since we can't write to public folder during runtime,
-    // we'll return the image as a data URL that can be stored directly in the database
-    // In a production setup, this would integrate with external storage (S3, Cloudinary, etc.)
-    console.log(`[Upload Image] Processing image for Netlify environment: ${uniqueFileName}`);
-    
     // Convert base64 to buffer for validation
     const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
@@ -112,21 +199,42 @@ export default async (request: Request, context: Context) => {
       );
     }
 
-    // Since we can't write to public folder in Netlify serverless environment,
-    // return the data URL for database storage (for development/testing)
-    // In production, this should be replaced with external storage service
-    const dataUrl = imageData.startsWith('data:') ? imageData : `data:${contentType};base64,${base64Data}`;
-    const publicUrl = `/images/${folder}/${uniqueFileName}`;
+    // Upload to GitHub repository
+    const filePath = `public/images/${folder}/${uniqueFileName}`;
+    const commitMessage = `Add product image: ${uniqueFileName}`;
+    
+    console.log(`[Upload Image] Uploading to GitHub: ${filePath}`);
+    
+    const uploadResult = await uploadToGitHub(
+      filePath,
+      base64Data,
+      commitMessage,
+      githubToken
+    );
 
-    console.log(`[Upload Image] Returning data URL for: ${publicUrl}`);
+    if (!uploadResult.success) {
+      console.error('[Upload Image] GitHub upload failed:', uploadResult.error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Failed to upload to GitHub: ${uploadResult.error}`
+        }),
+        { status: 500, headers }
+      );
+    }
+
+    const publicUrl = `/images/${folder}/${uniqueFileName}`;
+    const githubUrl = uploadResult.url;
+
+    console.log(`[Upload Image] Successfully uploaded to GitHub: ${githubUrl}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         fileName: uniqueFileName,
         publicUrl: publicUrl,
-        dataUrl: dataUrl, // Include data URL for immediate use
-        message: 'Image processed successfully (stored as data URL for Netlify compatibility)'
+        githubUrl: githubUrl,
+        message: 'Image uploaded successfully to GitHub repository'
       }),
       { status: 200, headers }
     );
