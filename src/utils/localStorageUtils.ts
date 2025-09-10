@@ -15,7 +15,13 @@ export const generateProductImageFileName = (
   imageIndex?: number
 ): string => {
   const timestamp = Date.now();
-  const extension = originalFileName.split('.').pop() || 'jpg';
+  
+  // Remove query parameters and extract clean filename
+  const cleanFileName = originalFileName.split('?')[0];
+  const filenameParts = cleanFileName.split('/');
+  const actualFilename = filenameParts[filenameParts.length - 1];
+  
+  const extension = actualFilename.split('.').pop() || 'jpg';
   const sanitizedProductName = productName.toLowerCase().replace(/[^a-z0-9]/g, '-');
   const index = imageIndex !== undefined ? `-${imageIndex}` : '';
   

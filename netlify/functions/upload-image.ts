@@ -22,8 +22,15 @@ function isValidImageType(contentType: string): boolean {
 
 // Helper function to sanitize filename
 function sanitizeFileName(fileName: string): string {
-  // Remove any path separators and dangerous characters
-  return fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  // Remove query parameters first
+  const cleanName = fileName.split('?')[0];
+  
+  // Extract the actual filename if it's a URL
+  const nameParts = cleanName.split('/');
+  const actualFileName = nameParts[nameParts.length - 1];
+  
+  // Remove any path separators and dangerous characters, keep dots and hyphens
+  return actualFileName.replace(/[^a-zA-Z0-9.-]/g, '-').replace(/--+/g, '-');
 }
 
 // Helper function to upload file to GitHub repository
@@ -90,7 +97,7 @@ async function uploadToGitHub(
     
     return {
       success: true,
-      url: `https://github.com/${REPO_OWNER}/${REPO_NAME}/blob/${BRANCH}/${filePath}`
+      url: `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${filePath}`
     };
   } catch (error) {
     return {
@@ -179,8 +186,12 @@ export default async (request: Request, context: Context) => {
       ? '.' + sanitizedFileName.split('.').pop() 
       : '.jpg';
     
-    // Get base filename without extension
-    const baseFileName = sanitizedFileName.replace(/\.[^/.]+$/, '') || 'image';
+    // Get base filename without extension and remove any existing timestamps
+    let baseFileName = sanitizedFileName.replace(/\.[^/.]+$/, '') || 'image';
+    
+    // Remove any existing timestamp patterns (numbers at the end)
+    baseFileName = baseFileName.replace(/-\d{13,}.*$/, '');
+    
     const uniqueFileName = `${baseFileName}-${timestamp}${fileExtension}`;
 
     // Convert base64 to buffer for validation
