@@ -65,7 +65,9 @@ const Footer: React.FC = () => {
         } else {
           const links: SocialMediaLinks = {};
           settings?.forEach(setting => {
-            let url = setting.value?.trim();
+            // Type guard to ensure setting.value is a string
+            const value = typeof setting.value === 'string' ? setting.value : '';
+            let url = value?.trim();
             if (url) {
               // Ensure URLs start with https:// if they don't have protocol
               if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -102,7 +104,14 @@ const Footer: React.FC = () => {
             { id: 5, name: 'Accessories', slug: 'accessories', is_active: true }
           ]);
         } else {
-          setCategories(categoriesData || []);
+          // Type assertion for categories data
+          const typedCategories = (categoriesData || []).map((cat: any) => ({
+            id: cat.id as number,
+            name: cat.name as string,
+            slug: cat.slug as string,
+            is_active: cat.is_active as boolean
+          }));
+          setCategories(typedCategories);
         }
       } catch (error) {
         console.error('Error in fetchFooterData:', error);

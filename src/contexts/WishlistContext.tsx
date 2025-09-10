@@ -45,7 +45,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('Error loading wishlist:', error);
         setWishlist([]);
       } else {
-        setWishlist((data || []).map(item => item.product_id));
+        setWishlist((data || []).map(item => (item as any).product_id as string));
       }
     } catch (error) {
       console.error('Error loading wishlist:', error);

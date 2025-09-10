@@ -121,6 +121,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         .single();
 
       if (orderError) throw orderError;
+      if (!order) throw new Error('Order not found');
+
+      // Handle the logistics_partners relation safely
+      const logistics_partners = order.logistics_partners && 
+        typeof order.logistics_partners === 'object' && 
+        !Array.isArray(order.logistics_partners) && 
+        'id' in order.logistics_partners 
+          ? order.logistics_partners 
+          : undefined;
+
+      // Type assertion to ensure proper typing
+      const typedOrder = {
+        ...order,
+        logistics_partners
+      } as unknown as OrderDetails;
 
       // Load order items with product images and variant swatch images
       const { data: items, error: itemsError } = await supabase
@@ -204,7 +219,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         };
       });
 
-      setOrderDetails(order);
+      setOrderDetails(typedOrder);
       setOrderItems(processedItems);
     } catch (error) {
       console.error('Error loading order details:', error);
