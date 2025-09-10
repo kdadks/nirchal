@@ -174,7 +174,7 @@ const AnalyticsPage: React.FC = () => {
       const customers = customersData.data || [];
 
       // Calculate totals
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const totalRevenue = orders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
       const totalOrders = orders.length;
       const totalProducts = productsData.count || 0;
       const totalCustomers = customers.length;
@@ -182,23 +182,23 @@ const AnalyticsPage: React.FC = () => {
 
       // Calculate growth rates
       const currentMonthOrders = orders.filter(order => 
-        new Date(order.created_at) >= currentMonth
+        new Date((order as any).created_at) >= currentMonth
       );
       const lastMonthOrders = orders.filter(order => {
-        const orderDate = new Date(order.created_at);
+        const orderDate = new Date((order as any).created_at);
         return orderDate >= lastMonth && orderDate < currentMonth;
       });
 
       const currentMonthCustomers = customers.filter(customer => 
-        new Date(customer.created_at) >= currentMonth
+        new Date((customer as any).created_at) >= currentMonth
       );
       const lastMonthCustomers = customers.filter(customer => {
-        const customerDate = new Date(customer.created_at);
+        const customerDate = new Date((customer as any).created_at);
         return customerDate >= lastMonth && customerDate < currentMonth;
       });
 
-      const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-      const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
 
       const revenueGrowth = calculateGrowth(currentMonthRevenue, lastMonthRevenue);
       const orderGrowth = calculateGrowth(currentMonthOrders.length, lastMonthOrders.length);
@@ -213,11 +213,11 @@ const AnalyticsPage: React.FC = () => {
         const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
         
         const monthOrders = orders.filter(order => {
-          const orderDate = new Date(order.created_at);
+          const orderDate = new Date((order as any).created_at);
           return orderDate >= monthStart && orderDate < monthEnd;
         });
         
-        const monthRevenue = monthOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+        const monthRevenue = monthOrders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
         
         monthlyRevenue.push({
           month: monthNames[monthStart.getMonth()],

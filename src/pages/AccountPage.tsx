@@ -117,14 +117,14 @@ const AccountPage: React.FC = () => {
           console.error('Error loading orders:', ordersResult.error);
           toast.error('Failed to load orders');
         } else {
-          setOrders(ordersResult.data || []);
+          setOrders((ordersResult.data as any) || []);
         }
         
         if (addressesResult.error) {
           console.error('Error loading addresses:', addressesResult.error);
           toast.error('Failed to load addresses');
         } else {
-          setAddresses(addressesResult.data || []);
+          setAddresses((addressesResult.data as any) || []);
         }
       } catch (error) {
         console.error('Error loading account data:', error);
@@ -249,7 +249,7 @@ const AccountPage: React.FC = () => {
             console.error('Error reloading addresses:', error);
             toast.error('Failed to reload addresses');
           } else {
-            setAddresses(data || []);
+            setAddresses((data as any) || []);
           }
         });
     }
