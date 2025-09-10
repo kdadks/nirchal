@@ -3,6 +3,32 @@
  */
 
 /**
+ * Extract filename from a Supabase storage URL or return the path if it's already a filename
+ * @param imageUrl - Full URL or filename
+ * @returns Just the filename part for storage operations
+ */
+export const extractStorageFileName = (imageUrl: string): string | null => {
+  if (!imageUrl) return null;
+  
+  // If it's already just a filename (no http), return as is
+  if (!imageUrl.startsWith('http')) {
+    return imageUrl;
+  }
+  
+  // Extract filename from full Supabase storage URL
+  // Example: https://tazrvokohjfzicdzzxia.supabase.co/storage/v1/object/public/product-images/filename.jpg
+  const urlParts = imageUrl.split('/');
+  const filename = urlParts[urlParts.length - 1];
+  
+  // Additional validation - make sure it looks like a valid filename
+  if (filename && filename.includes('.')) {
+    return filename;
+  }
+  
+  return null;
+};
+
+/**
  * Generate a public URL for an image stored in the category-images bucket
  * @param imagePath - The path/filename of the image in the storage bucket
  * @returns Full public URL to access the image
