@@ -1031,18 +1031,7 @@ export const useProducts = () => {
 	const deleteProduct = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			// 1. Get product data for main images and all associated images for storage cleanup
-			const { data: product, error: productFetchError } = await supabase
-				.from('products')
-				.select('id, images')
-				.eq('id', id)
-				.single();
-			
-			if (productFetchError) {
-				throw productFetchError;
-			}
-			
-			// 2. Get product_images separately 
+			// 1. Get product_images for storage cleanup
 			const { data: productImages, error: imagesFetchError } = await supabase
 				.from('product_images')
 				.select('image_url')
@@ -1052,7 +1041,7 @@ export const useProducts = () => {
 				console.warn('Could not fetch product images for cleanup:', imagesFetchError);
 			}
 			
-			// 3. Get variant swatch images separately
+			// 2. Get variant swatch images separately
 			const { data: variantImages, error: variantImagesFetchError } = await supabase
 				.from('product_variants')
 				.select(`
@@ -1065,13 +1054,8 @@ export const useProducts = () => {
 				console.warn('Could not fetch variant swatch images for cleanup:', variantImagesFetchError);
 			}
 			
-			// 4. Collect all image URLs for storage cleanup
+			// 3. Collect all image URLs for storage cleanup
 			const imageUrlsToDelete: string[] = [];
-			
-			// Add main product images (from products.images field)
-			if (product?.images && Array.isArray(product.images)) {
-				imageUrlsToDelete.push(...product.images);
-			}
 			
 			// Add product_images table images
 			if (productImages && Array.isArray(productImages)) {
@@ -1087,7 +1071,7 @@ export const useProducts = () => {
 				});
 			}
 			
-			// 5. Delete all images from storage IMMEDIATELY (before any database deletions)
+			// 4. Delete all images from storage IMMEDIATELY (before any database deletions)
 			if (imageUrlsToDelete.length > 0) {
 				const imageFilenames = imageUrlsToDelete
 					.map(url => extractStorageFileName(url))
@@ -1095,19 +1079,28 @@ export const useProducts = () => {
 				
 				if (imageFilenames.length > 0) {
 					console.log('Deleting product images from storage:', imageFilenames);
+					console.log('Storage client authenticated?', !!supabase.auth.getUser());
+					
 					const { error: storageDeleteError } = await supabase.storage
 						.from('product-images')
 						.remove(imageFilenames);
 					
 					if (storageDeleteError) {
 						console.warn('Product images storage deletion error (non-critical):', storageDeleteError);
+						console.warn('Storage error details:', {
+							message: storageDeleteError.message,
+							statusCode: (storageDeleteError as any)?.statusCode,
+							error: (storageDeleteError as any)?.error
+						});
 					} else {
 						console.log(`✅ Deleted ${imageFilenames.length} product images from storage`);
 					}
 				}
+			} else {
+				console.log('No images to delete from storage');
 			}
 			
-			// 6. Get product variants for inventory cleanup
+			// 5. Get product variants for inventory cleanup
 			const { data: productVariants, error: variantsFetchError } = await supabase
 				.from('product_variants')
 				.select('id')
@@ -1115,7 +1108,7 @@ export const useProducts = () => {
 			
 			if (variantsFetchError) throw variantsFetchError;
 			
-			// 7. Get inventory records for history cleanup
+			// 6. Get inventory records for history cleanup
 			const variantIds = productVariants?.map(v => v.id) || [];
 			let inventoryIds: any[] = [];
 			
@@ -1137,7 +1130,7 @@ export const useProducts = () => {
 			if (productInvError) throw productInvError;
 			inventoryIds = [...inventoryIds, ...(productInventory?.map(inv => inv.id) || [])];
 			
-			// 8. Delete inventory history records (get fresh list to ensure we catch all)
+			// 7. Delete inventory history records (get fresh list to ensure we catch all)
 			const { data: allInventoryForProduct, error: allInvError } = await supabase
 				.from('inventory')
 				.select('id')
@@ -1170,7 +1163,7 @@ export const useProducts = () => {
 				}
 			}
 			
-			// 9. Delete inventory records (both variant and product inventory)
+			// 8. Delete inventory records (both variant and product inventory)
 			try {
 				const { error: inventoryDeleteError } = await supabase
 					.from('inventory')
@@ -1352,7 +1345,7 @@ export const useProducts = () => {
 				throw invError;
 			}
 			
-			// 10. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
+			// 9. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
 			try {
 				const { error: orderItemsUpdateError } = await supabase
 					.from('order_items')
@@ -1367,7 +1360,7 @@ export const useProducts = () => {
 				console.warn('[deleteProduct] Order items update skipped (table not accessible)');
 			}
 			
-			// 11. Delete product analytics records - OPTIONAL  
+			// 10. Delete product analytics records - OPTIONAL  
 			try {
 				const { error: analyticsDeleteError } = await supabase
 					.from('product_analytics')
@@ -1382,7 +1375,7 @@ export const useProducts = () => {
 				console.warn('[deleteProduct] Analytics deletion skipped (table not accessible)');
 			}
 			
-			// 12. Delete the product using a stored procedure to handle audit log conflicts
+			// 11. Delete the product using a stored procedure to handle audit log conflicts
 			console.log('[deleteProduct] About to delete product:', id);
 			
 			// First, try to delete using RPC (stored procedure) if available
@@ -1434,6 +1427,26 @@ export const useProducts = () => {
 			await fetchProducts();
 		} catch (e) {
 			console.error('Error deleting product:', e);
+			// Enhanced error logging for debugging
+			if (e && typeof e === 'object') {
+				try {
+					console.error('Error details (stringified):', JSON.stringify(e, null, 2));
+				} catch (jsonErr) {
+					console.error('Error details (raw object):', e);
+					if ((e as any).constructor) {
+						console.error('Error constructor:', (e as any).constructor.name);
+					}
+					if ((e as any).message) {
+						console.error('Error message:', (e as any).message);
+					}
+					if ((e as any).code) {
+						console.error('Error code:', (e as any).code);
+					}
+					if ((e as any).details) {
+						console.error('Error details:', (e as any).details);
+					}
+				}
+			}
 			throw e instanceof Error ? e : new Error('Error deleting product');
 		}
 	};
@@ -1452,6 +1465,14 @@ export const useProducts = () => {
 					results.push({ id, success: true });
 				} catch (error) {
 					console.error(`Failed to delete product ${id}:`, error);
+					// Enhanced error logging for debugging
+					if (error && typeof error === 'object') {
+						try {
+							console.error(`Product ${id} error details (stringified):`, JSON.stringify(error, null, 2));
+						} catch (jsonErr) {
+							console.error(`Product ${id} error details (raw):`, error);
+						}
+					}
 					results.push({ id, success: false, error });
 				}
 			}
