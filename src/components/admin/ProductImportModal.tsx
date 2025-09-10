@@ -1292,27 +1292,33 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
           </h3>
           <div className="admin-modal-subtitle">
             <div className="flex items-center space-x-4">
-              {(['upload', 'import', 'results'] as ImportStep[]).map((step, index) => (
-                <div key={step} className="flex items-center">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                    currentStep === step 
-                      ? 'bg-blue-600 text-white' 
-                      : index < (['upload', 'import', 'results'] as ImportStep[]).indexOf(currentStep)
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}>
-                    {index + 1}
+              {(['upload', 'import', 'results'] as ImportStep[]).map((step, index) => {
+                const currentStepIndex = (['upload', 'import', 'results'] as ImportStep[]).indexOf(currentStep);
+                const isCurrentStep = currentStep === step;
+                const isPreviousStep = index < currentStepIndex;
+                
+                return (
+                  <div key={step} className="flex items-center">
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                      isCurrentStep 
+                        ? 'bg-blue-600 text-white' 
+                        : isPreviousStep
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <span className={`ml-2 text-sm font-medium ${
+                      isCurrentStep ? 'text-blue-600' : isPreviousStep ? 'text-green-600' : 'text-gray-500'
+                    }`}>
+                      {step.charAt(0).toUpperCase() + step.slice(1)}
+                    </span>
+                    {index < 2 && (
+                      <div className="ml-4 w-8 h-0.5 bg-gray-300"></div>
+                    )}
                   </div>
-                  <span className={`ml-2 text-sm font-medium ${
-                    currentStep === step ? 'text-blue-600' : 'text-gray-500'
-                  }`}>
-                    {step.charAt(0).toUpperCase() + step.slice(1)}
-                  </span>
-                  {index < 2 && (
-                    <div className="ml-4 w-8 h-0.5 bg-gray-300"></div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           <button
@@ -1487,7 +1493,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                   <div className="admin-card-content text-center py-6">
                     <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-3" />
                     <div className="text-2xl font-bold text-green-900 mb-1">
-                      {importResult.success}
+                      {importResult.success || 0}
                     </div>
                     <div className="text-sm font-medium text-green-700">
                       Products Imported
@@ -1495,12 +1501,12 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                   </div>
                 </div>
 
-                {importResult.failed > 0 && (
+                {(importResult.failed || 0) > 0 && (
                   <div className="admin-card border-2 border-red-200 bg-red-50">
                     <div className="admin-card-content text-center py-6">
                       <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-3" />
                       <div className="text-2xl font-bold text-red-900 mb-1">
-                        {importResult.failed}
+                        {importResult.failed || 0}
                       </div>
                       <div className="text-sm font-medium text-red-700">
                         Failed Imports
@@ -1513,11 +1519,17 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                   <div className="admin-card-content text-center py-6">
                     <div className="h-8 w-8 mx-auto mb-3 bg-blue-600 rounded-full flex items-center justify-center">
                       <span className="text-white font-bold text-sm">
-                        {Math.round((importResult.success / (importResult.success + importResult.failed)) * 100)}%
+                        {(() => {
+                          const success = importResult.success || 0;
+                          const failed = importResult.failed || 0;
+                          const total = success + failed;
+                          const percentage = total > 0 ? Math.round((success / total) * 100) : 0;
+                          return `${percentage}%`;
+                        })()}
                       </span>
                     </div>
                     <div className="text-2xl font-bold text-blue-900 mb-1">
-                      {importResult.success + importResult.failed}
+                      {(importResult.success || 0) + (importResult.failed || 0)}
                     </div>
                     <div className="text-sm font-medium text-blue-700">
                       Total Processed
@@ -1527,22 +1539,22 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
               </div>
 
               {/* Detailed Results */}
-              {(importResult.errors.length > 0 || importResult.warnings.length > 0) && (
+              {((importResult.errors?.length || 0) > 0 || (importResult.warnings?.length || 0) > 0) && (
                 <div className="space-y-4">
                   <h5 className="text-lg font-medium text-gray-900">Detailed Results</h5>
                   
                   {/* Errors */}
-                  {importResult.errors.length > 0 && (
+                  {(importResult.errors?.length || 0) > 0 && (
                     <div className="admin-card border-l-4 border-red-500">
                       <div className="admin-card-header bg-red-50">
                         <h6 className="admin-card-title text-red-900 flex items-center">
                           <AlertTriangle className="h-5 w-5 mr-2" />
-                          Errors ({importResult.errors.length})
+                          Errors ({importResult.errors?.length || 0})
                         </h6>
                       </div>
                       <div className="admin-card-content max-h-48 overflow-y-auto">
                         <div className="space-y-3">
-                          {importResult.errors.map((error, index) => (
+                          {(importResult.errors || []).map((error, index) => (
                             <div key={index} className="border-l-2 border-red-300 pl-3 py-2 bg-red-50 rounded-r">
                               <div className="text-sm">
                                 <span className="font-semibold text-red-900">Row {error.row}:</span>
@@ -1564,17 +1576,17 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                   )}
 
                   {/* Warnings */}
-                  {importResult.warnings.length > 0 && (
+                  {(importResult.warnings?.length || 0) > 0 && (
                     <div className="admin-card border-l-4 border-yellow-500">
                       <div className="admin-card-header bg-yellow-50">
                         <h6 className="admin-card-title text-yellow-900 flex items-center">
                           <AlertTriangle className="h-5 w-5 mr-2" />
-                          Warnings ({importResult.warnings.length})
+                          Warnings ({importResult.warnings?.length || 0})
                         </h6>
                       </div>
                       <div className="admin-card-content max-h-48 overflow-y-auto">
                         <div className="space-y-3">
-                          {importResult.warnings.map((warning, index) => (
+                          {(importResult.warnings || []).map((warning, index) => (
                             <div key={index} className="border-l-2 border-yellow-300 pl-3 py-2 bg-yellow-50 rounded-r">
                               <div className="text-sm">
                                 <span className="font-semibold text-yellow-900">Row {warning.row}:</span>
@@ -1598,7 +1610,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
               )}
 
               {/* Success Message for Clean Import */}
-              {importResult.errors.length === 0 && importResult.warnings.length === 0 && importResult.success > 0 && (
+              {(importResult.errors?.length || 0) === 0 && (importResult.warnings?.length || 0) === 0 && (importResult.success || 0) > 0 && (
                 <div className="admin-card border-2 border-green-200 bg-green-50">
                   <div className="admin-card-content text-center py-6">
                     <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
@@ -1606,7 +1618,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                       Perfect Import!
                     </h5>
                     <p className="text-green-700">
-                      All {importResult.success} products were imported successfully without any errors or warnings.
+                      All {importResult.success || 0} products were imported successfully without any errors or warnings.
                     </p>
                   </div>
                 </div>
