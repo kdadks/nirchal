@@ -140,11 +140,15 @@ export const saveImageToPublicFolder = async (
       throw new Error(result.error || 'Upload failed');
     }
 
-    console.log(`[Local Storage] Successfully saved: ${result.publicUrl}`);
+    console.log(`[Local Storage] Successfully processed: ${result.publicUrl}`);
+    
+    // For Netlify compatibility: If we have a dataUrl, use that instead of the publicUrl
+    // since we can't write actual files to the public folder in serverless environment
+    const filePath = result.dataUrl || result.publicUrl;
     
     return {
       success: true,
-      filePath: result.publicUrl
+      filePath: filePath
     };
     
   } catch (error) {
