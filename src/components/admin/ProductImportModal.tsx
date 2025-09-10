@@ -469,8 +469,21 @@ const useProductImport = () => {
           onProgress?.(Math.round(productProgress), progressMessage);
           
           try {
-            // Get the main product data from the first row
-            const mainRow = variantRows[0];
+            // Find the main product data from the row with the most complete information
+            // In Shopify CSV exports, usually the first row has full product details
+            // while subsequent rows only have variant-specific data
+            const mainRow = variantRows.find(row => 
+              row.Title && row.Title.trim() !== ''
+            ) || variantRows[0]; // Fallback to first row if no row has Title
+            
+            console.log('Selected main row for product:', {
+              handle: mainRow.Handle,
+              hasTitle: !!mainRow.Title,
+              hasBody: !!(mainRow['Body (HTML)'] || mainRow.description),
+              hasVendor: !!mainRow.Vendor,
+              totalVariantRows: variantRows.length,
+              variantRowsWithTitle: variantRows.filter(row => row.Title && row.Title.trim() !== '').length
+            });
             
             // Generate a unique SKU if none provided
             let productSku = mainRow.sku || mainRow['Variant SKU'] || '';
