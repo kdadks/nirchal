@@ -5,7 +5,7 @@ Write-Host "🚀 Starting production deployment..." -ForegroundColor Green
 
 # Build the project
 Write-Host "📦 Building project..." -ForegroundColor Yellow
-npm run build
+& npm run build
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Build failed! Deployment aborted." -ForegroundColor Red
@@ -25,44 +25,27 @@ if (Test-Path "./deployment-package") {
 # Create deployment package directory
 New-Item -ItemType Directory -Path "./deployment-package" -Force | Out-Null
 
-# Copy files excluding images and other unwanted files
-$excludePatterns = @(
-    "public\images\products\*",
-    "public\images\categories\*", 
-    "public\images\README.md",
-    ".git\*",
-    "node_modules\*",
-    "*.log",
-    ".env*",
-    "deployment-package\*"
-)
+# Use robocopy to copy files excluding certain patterns
+Write-Host "📂 Copying files (excluding images)..." -ForegroundColor Yellow
 
-# Get all files and folders, excluding the patterns
-Get-ChildItem -Path "." -Recurse | Where-Object {
-    $item = $_
-    $shouldExclude = $false
-    
-    foreach ($pattern in $excludePatterns) {
-        if ($item.FullName -like "*$pattern*") {
-            $shouldExclude = $true
-            break
-        }
-    }
-    
-    return !$shouldExclude
-} | ForEach-Object {
-    $relativePath = $_.FullName.Substring((Get-Location).Path.Length + 1)
-    $destinationPath = Join-Path "./deployment-package" $relativePath
-    $destinationDir = Split-Path $destinationPath -Parent
-    
-    if (!(Test-Path $destinationDir)) {
-        New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
-    }
-    
-    if ($_.PSIsContainer -eq $false) {
-        Copy-Item $_.FullName $destinationPath -Force
-    }
-}
+# Create exclusion file for robocopy
+$excludeFile = "./exclude.txt"
+@(
+    "products"
+    "categories" 
+    ".git"
+    "node_modules"
+    "*.log"
+    ".env"
+    "deployment-package"
+    "exclude.txt"
+) | Out-File -FilePath $excludeFile -Encoding ASCII
+
+# Use robocopy to copy files
+& robocopy . "./deployment-package" /MIR /XD public\images\products public\images\categories .git node_modules deployment-package /XF *.log .env* exclude.txt /NP /NDL /NFL > $null
+
+# Clean up exclusion file
+Remove-Item $excludeFile -Force -ErrorAction SilentlyContinue
 
 Write-Host "✅ Deployment package created in ./deployment-package/" -ForegroundColor Green
 Write-Host "🎉 Ready to deploy to production!" -ForegroundColor Green
@@ -75,10 +58,13 @@ Write-Host "2. Upload deployment-package/ contents to your production server" -F
 Write-Host "3. Or use your preferred deployment method with the package" -ForegroundColor White
 
 # Show excluded files count
-$productImages = Get-ChildItem "public\images\products" -ErrorAction SilentlyContinue | Measure-Object
-$categoryImages = Get-ChildItem "public\images\categories" -ErrorAction SilentlyContinue | Measure-Object
+$productImages = Get-ChildItem "public\images\products" -ErrorAction SilentlyContinue
+$categoryImages = Get-ChildItem "public\images\categories" -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "📊 Exclusion Summary:" -ForegroundColor Cyan
 Write-Host "   Product images excluded: $($productImages.Count)" -ForegroundColor White
 Write-Host "   Category images excluded: $($categoryImages.Count)" -ForegroundColor White
+
+Write-Host ""
+Write-Host "💡 Tip: You can also manually copy ./deployment-package/ contents to your server" -ForegroundColor Yellow
