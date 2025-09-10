@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Upload, Download, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Upload, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { saveImageToPublicFolder, generateProductImageFileName, generateCategoryImageFileName } from '../../utils/localStorageUtils';
@@ -1015,15 +1015,11 @@ const useProductImport = () => {
   return { importProducts, importing };
 };
 
-type ImportStep = 'upload' | 'mapping' | 'import' | 'results';
+type ImportStep = 'upload' | 'import' | 'results';
 
 interface CSVPreview {
   headers: string[];
   rows: string[][];
-}
-
-interface FieldMapping {
-  [csvField: string]: string;
 }
 
 interface ProductImportModalProps {
@@ -1040,7 +1036,6 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
   const [currentStep, setCurrentStep] = useState<ImportStep>('upload');
   const [importFile, setImportFile] = useState<File | null>(null);
   const [csvPreview, setCsvPreview] = useState<CSVPreview | null>(null);
-  const [fieldMapping, setFieldMapping] = useState<FieldMapping>({});
   const [importOptions, setImportOptions] = useState<ImportOptions>({
     batchSize: 10,
     skipDuplicates: true,
@@ -1068,50 +1063,6 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
       console.log('[Progress Bar] Import started, isImporting=true');
     }
   }, [isImporting]);
-
-  // Smart field mapping suggestions
-  const getFieldSuggestion = (csvField: string): string => {
-    const field = csvField.toLowerCase();
-    
-    // Shopify field mappings
-    if (field === 'title') return 'name';
-    if (field === 'body (html)') return 'description';
-    if (field === 'cost per item') return 'price';
-    if (field === 'variant price') return 'price_adjustment';
-    if (field === 'variant sku') return 'sku';
-    if (field === 'product type' || field === 'type') return 'category_name';
-    if (field === 'vendor') return 'vendor_name';
-    if (field === 'variant weight') return 'weight';
-    if (field === 'status') return 'status';
-    if (field === 'seo title') return 'meta_title';
-    if (field === 'seo description') return 'meta_description';
-    if (field === 'handle') return 'slug';
-    if (field === 'tags') return 'tags';
-    if (field === 'image src') return 'featured_image';
-    if (field === 'variant inventory qty') return 'stock_quantity';
-    if (field === 'option1 value') return 'variant_sizes';
-    if (field === 'option2 value') return 'variant_colors';
-    
-    // Generic field mappings
-    if (field.includes('name') || field.includes('title')) return 'name';
-    if (field.includes('description') || field.includes('body')) return 'description';
-    if (field.includes('price')) return 'price';
-    if (field.includes('sku')) return 'sku';
-    if (field.includes('category')) {
-      if (field.includes('image') || field.includes('photo')) return 'category_image';
-      return 'category_name';
-    }
-    if (field.includes('vendor') || field.includes('brand')) return 'vendor_name';
-    if (field.includes('weight')) return 'weight';
-    if (field.includes('status')) return 'status';
-    if (field.includes('image') || field.includes('photo')) return 'featured_image';
-    if (field.includes('stock') || field.includes('quantity')) return 'stock_quantity';
-    if (field.includes('size')) return 'variant_sizes';
-    if (field.includes('color')) return 'variant_colors';
-    if (field.includes('tag')) return 'tags';
-    
-    return '';
-  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -1224,17 +1175,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
         const preview: CSVPreview = { headers, rows: previewRows };
         setCsvPreview(preview);
         
-        // Auto-suggest field mappings
-        const suggestions: FieldMapping = {};
-        headers.forEach(header => {
-          const suggestion = getFieldSuggestion(header);
-          if (suggestion) {
-            suggestions[header] = suggestion;
-          }
-        });
-        setFieldMapping(suggestions);
-        
-        setCurrentStep('mapping');
+        setCurrentStep('import');
         toast.success(`CSV file loaded successfully. Found ${headers.length} columns and ${rows.length} data rows.`);
       } catch (error) {
         console.error('CSV parsing error:', error);
@@ -1250,24 +1191,9 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
     reader.readAsText(file, 'UTF-8');
   };
 
-  const downloadSampleCSV = () => {
-    // Download the actual Shopify CSV file from public directory
-    const link = document.createElement('a');
-    link.href = '/shopify_products_export.csv';
-    link.download = 'shopify_products_export.csv';
-    link.click();
-  };
-
   const validateAndImportProducts = async () => {
     if (!importFile || !csvPreview) {
       toast.error('No file selected');
-      return;
-    }
-
-    // Validate required field mappings
-    const hasRequiredFields = Object.values(fieldMapping).some(value => value === 'name' || value === 'price');
-    if (!hasRequiredFields) {
-      toast.error('Please map at least Product Name and Price fields');
       return;
     }
 
@@ -1311,26 +1237,14 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
             // Add row index for error reporting
             row._index = i + 1;
             
-            // Transform fields according to mapping
-            const transformedRow: any = {};
-            Object.entries(fieldMapping).forEach(([csvField, dbField]) => {
-              if (dbField && row[csvField] !== undefined) {
-                transformedRow[dbField] = row[csvField];
-              }
-            });
-            
-            // Preserve original fields for fallback
-            Object.assign(transformedRow, row);
-            
-            if (Object.keys(transformedRow).length > 1) { // Skip empty rows
-              csvData.push(transformedRow);
+            if (Object.keys(row).length > 1) { // Skip empty rows
+              csvData.push(row);
             }
           }
 
           console.log('Parsed CSV data:', {
             totalRows: csvData.length,
-            firstRow: csvData[0],
-            fieldMapping
+            firstRow: csvData[0]
           });
 
           const options: ImportOptions = {
@@ -1378,12 +1292,12 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
           </h3>
           <div className="admin-modal-subtitle">
             <div className="flex items-center space-x-4">
-              {(['upload', 'mapping', 'import', 'results'] as ImportStep[]).map((step, index) => (
+              {(['upload', 'import', 'results'] as ImportStep[]).map((step, index) => (
                 <div key={step} className="flex items-center">
                   <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
                     currentStep === step 
                       ? 'bg-blue-600 text-white' 
-                      : index < (['upload', 'mapping', 'import', 'results'] as ImportStep[]).indexOf(currentStep)
+                      : index < (['upload', 'import', 'results'] as ImportStep[]).indexOf(currentStep)
                       ? 'bg-green-500 text-white'
                       : 'bg-gray-200 text-gray-600'
                   }`}>
@@ -1394,7 +1308,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                   }`}>
                     {step.charAt(0).toUpperCase() + step.slice(1)}
                   </span>
-                  {index < 3 && (
+                  {index < 2 && (
                     <div className="ml-4 w-8 h-0.5 bg-gray-300"></div>
                   )}
                 </div>
@@ -1445,159 +1359,6 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                     CSV files only, up to 10MB
                   </p>
                 </div>
-              </div>
-
-              {/* Sample CSV Download */}
-              <div className="flex justify-center">
-                <button
-                  onClick={downloadSampleCSV}
-                  className="admin-btn admin-btn-secondary"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Sample CSV Template
-                </button>
-              </div>
-            </div>
-          )}
-
-          {currentStep === 'mapping' && csvPreview && (
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Map CSV Fields</h4>
-                <p className="text-sm text-gray-600 mb-6">
-                  Map your CSV columns to our database fields. We've suggested mappings based on your column names.
-                </p>
-              </div>
-
-              {/* CSV Preview */}
-              <div className="admin-card">
-                <div className="admin-card-header">
-                  <h5 className="admin-card-title">CSV Preview (First 5 rows)</h5>
-                </div>
-                <div className="admin-card-content">
-                  <div className="overflow-x-auto max-h-96">
-                    <table className="admin-table">
-                      <thead className="sticky top-0 bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-8">
-                            #
-                          </th>
-                          {csvPreview.headers.map((header, index) => (
-                            <th key={index} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-32">
-                              <div className="truncate" title={header}>
-                                {header.length > 20 ? header.substring(0, 20) + '...' : header}
-                              </div>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {csvPreview.rows.map((row, rowIndex) => (
-                          <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-3 py-2 text-xs text-gray-500 font-mono">
-                              {rowIndex + 1}
-                            </td>
-                            {row.map((cell, cellIndex) => (
-                              <td key={cellIndex} className="px-3 py-2 text-xs text-gray-900 max-w-32">
-                                <div className="truncate" title={cell}>
-                                  {cell && cell.length > 0 ? (
-                                    cell.length > 40 ? cell.substring(0, 40) + '...' : cell
-                                  ) : (
-                                    <span className="text-gray-400 italic">empty</span>
-                                  )}
-                                </div>
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="mt-3 text-xs text-gray-500">
-                    Showing first {csvPreview.rows.length} rows. Hover over cells to see full content.
-                  </div>
-                </div>
-              </div>
-
-              {/* Field Mapping */}
-              <div className="space-y-4">
-                <h5 className="text-sm font-medium text-gray-900">Field Mapping</h5>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {csvPreview.headers.map((header, index) => (
-                    <div key={index} className="flex items-center space-x-3">
-                      <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-700">
-                          CSV Column: <span className="font-bold">{header}</span>
-                        </label>
-                      </div>
-                      <div className="flex-1">
-                        <select
-                          value={fieldMapping[header] || ''}
-                          onChange={(e) => setFieldMapping(prev => ({
-                            ...prev,
-                            [header]: e.target.value
-                          }))}
-                          className="admin-input admin-input-sm"
-                        >
-                          <option value="">-- Skip this field --</option>
-                          <optgroup label="Required Fields">
-                            <option value="name">Product Name (required)</option>
-                            <option value="price">Price (required)</option>
-                          </optgroup>
-                          <optgroup label="Basic Fields">
-                            <option value="description">Description</option>
-                            <option value="sku">SKU</option>
-                            <option value="category_name">Category Name</option>
-                            <option value="category_image">Category Image URL</option>
-                            <option value="vendor_name">Vendor Name</option>
-                            <option value="weight">Weight</option>
-                            <option value="status">Status</option>
-                          </optgroup>
-                          <optgroup label="Variants">
-                            <option value="variant_sizes">Variant Sizes (pipe-separated)</option>
-                            <option value="variant_colors">Variant Colors (pipe-separated)</option>
-                            <option value="variant_color_hex">Variant Color Hex Codes (pipe-separated)</option>
-                            <option value="variant_skus">Variant SKUs (pipe-separated)</option>
-                            <option value="variant_prices">Variant Prices (pipe-separated)</option>
-                            <option value="variant_stock_quantities">Variant Stock Quantities (pipe-separated)</option>
-                          </optgroup>
-                          <optgroup label="Images">
-                            <option value="image_urls">Image URLs (pipe-separated)</option>
-                            <option value="featured_image">Featured Image URL</option>
-                          </optgroup>
-                          <optgroup label="SEO">
-                            <option value="meta_title">Meta Title</option>
-                            <option value="meta_description">Meta Description</option>
-                            <option value="slug">URL Slug</option>
-                          </optgroup>
-                          <optgroup label="Additional">
-                            <option value="tags">Tags (pipe-separated)</option>
-                            <option value="stock_quantity">Stock Quantity</option>
-                            <option value="low_stock_threshold">Low Stock Threshold</option>
-                            <option value="cost_price">Cost Price</option>
-                          </optgroup>
-                        </select>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <div className="flex justify-between pt-4">
-                <button
-                  onClick={() => setCurrentStep('upload')}
-                  className="admin-btn admin-btn-secondary"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={() => setCurrentStep('import')}
-                  disabled={!Object.values(fieldMapping).some(value => value === 'name' || value === 'price')}
-                  className="admin-btn admin-btn-primary"
-                >
-                  Continue to Import
-                </button>
               </div>
             </div>
           )}
@@ -1695,7 +1456,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
               {/* Navigation */}
               <div className="flex justify-between pt-4">
                 <button
-                  onClick={() => setCurrentStep('mapping')}
+                  onClick={() => setCurrentStep('upload')}
                   disabled={isImporting}
                   className="admin-btn admin-btn-secondary"
                 >
@@ -1706,6 +1467,7 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
                   disabled={isImporting}
                   className="admin-btn admin-btn-primary"
                 >
+                  {isImporting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {isImporting ? 'Processing...' : importOptions.validateOnly ? 'Validate Products' : 'Start Import'}
                 </button>
               </div>
@@ -1714,87 +1476,149 @@ const ProductImportModal: React.FC<ProductImportModalProps> = ({
 
           {currentStep === 'results' && importResult && (
             <div className="space-y-6">
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Import Results</h4>
+              <div className="text-center">
+                <h4 className="text-xl font-semibold text-gray-900 mb-2">Import Complete!</h4>
+                <p className="text-sm text-gray-600">Here's a summary of your import operation</p>
               </div>
 
-              {/* Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="admin-card" style={{borderColor: '#10b981', backgroundColor: '#f0fdf4'}}>
-                  <div className="admin-card-content">
-                    <div className="flex items-center">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span className="ml-2 text-sm font-medium text-green-900">
-                        {importResult.success} products imported successfully
-                      </span>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="admin-card border-2 border-green-200 bg-green-50">
+                  <div className="admin-card-content text-center py-6">
+                    <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-3" />
+                    <div className="text-2xl font-bold text-green-900 mb-1">
+                      {importResult.success}
+                    </div>
+                    <div className="text-sm font-medium text-green-700">
+                      Products Imported
                     </div>
                   </div>
                 </div>
 
                 {importResult.failed > 0 && (
-                  <div className="admin-card" style={{borderColor: '#ef4444', backgroundColor: '#fef2f2'}}>
-                    <div className="admin-card-content">
-                      <div className="flex items-center">
-                        <AlertTriangle className="h-5 w-5 text-red-600" />
-                        <span className="ml-2 text-sm font-medium text-red-900">
-                          {importResult.failed} products failed to import
-                        </span>
+                  <div className="admin-card border-2 border-red-200 bg-red-50">
+                    <div className="admin-card-content text-center py-6">
+                      <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-3" />
+                      <div className="text-2xl font-bold text-red-900 mb-1">
+                        {importResult.failed}
+                      </div>
+                      <div className="text-sm font-medium text-red-700">
+                        Failed Imports
                       </div>
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Errors */}
-              {importResult.errors.length > 0 && (
-                <div className="admin-card">
-                  <div className="admin-card-header">
-                    <h5 className="admin-card-title">Errors</h5>
-                  </div>
-                  <div className="admin-card-content" style={{maxHeight: '240px', overflowY: 'auto'}}>
-                    <div className="space-y-2">
-                      {importResult.errors.map((error, index) => (
-                        <div key={index} className="text-sm">
-                          <span className="font-medium text-red-900">Row {error.row}:</span>
-                          <span className="text-red-700 ml-1">
-                            {error.field} ({error.value}) - {error.message}
-                          </span>
-                        </div>
-                      ))}
+                <div className="admin-card border-2 border-blue-200 bg-blue-50">
+                  <div className="admin-card-content text-center py-6">
+                    <div className="h-8 w-8 mx-auto mb-3 bg-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">
+                        {Math.round((importResult.success / (importResult.success + importResult.failed)) * 100)}%
+                      </span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-900 mb-1">
+                      {importResult.success + importResult.failed}
+                    </div>
+                    <div className="text-sm font-medium text-blue-700">
+                      Total Processed
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Detailed Results */}
+              {(importResult.errors.length > 0 || importResult.warnings.length > 0) && (
+                <div className="space-y-4">
+                  <h5 className="text-lg font-medium text-gray-900">Detailed Results</h5>
+                  
+                  {/* Errors */}
+                  {importResult.errors.length > 0 && (
+                    <div className="admin-card border-l-4 border-red-500">
+                      <div className="admin-card-header bg-red-50">
+                        <h6 className="admin-card-title text-red-900 flex items-center">
+                          <AlertTriangle className="h-5 w-5 mr-2" />
+                          Errors ({importResult.errors.length})
+                        </h6>
+                      </div>
+                      <div className="admin-card-content max-h-48 overflow-y-auto">
+                        <div className="space-y-3">
+                          {importResult.errors.map((error, index) => (
+                            <div key={index} className="border-l-2 border-red-300 pl-3 py-2 bg-red-50 rounded-r">
+                              <div className="text-sm">
+                                <span className="font-semibold text-red-900">Row {error.row}:</span>
+                                <div className="text-red-700 mt-1">
+                                  <span className="font-medium">{error.field}</span> 
+                                  {error.value && (
+                                    <span className="text-red-600"> (value: "{error.value}")</span>
+                                  )}
+                                </div>
+                                <div className="text-red-800 text-xs mt-1 italic">
+                                  {error.message}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {importResult.warnings.length > 0 && (
+                    <div className="admin-card border-l-4 border-yellow-500">
+                      <div className="admin-card-header bg-yellow-50">
+                        <h6 className="admin-card-title text-yellow-900 flex items-center">
+                          <AlertTriangle className="h-5 w-5 mr-2" />
+                          Warnings ({importResult.warnings.length})
+                        </h6>
+                      </div>
+                      <div className="admin-card-content max-h-48 overflow-y-auto">
+                        <div className="space-y-3">
+                          {importResult.warnings.map((warning, index) => (
+                            <div key={index} className="border-l-2 border-yellow-300 pl-3 py-2 bg-yellow-50 rounded-r">
+                              <div className="text-sm">
+                                <span className="font-semibold text-yellow-900">Row {warning.row}:</span>
+                                <div className="text-yellow-700 mt-1">
+                                  <span className="font-medium">{warning.field}</span>
+                                  {warning.value && (
+                                    <span className="text-yellow-600"> (value: "{warning.value}")</span>
+                                  )}
+                                </div>
+                                <div className="text-yellow-800 text-xs mt-1 italic">
+                                  {warning.message}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
-              {/* Warnings */}
-              {importResult.warnings.length > 0 && (
-                <div className="admin-card">
-                  <div className="admin-card-header">
-                    <h5 className="admin-card-title">Warnings</h5>
-                  </div>
-                  <div className="admin-card-content" style={{maxHeight: '240px', overflowY: 'auto'}}>
-                    <div className="space-y-2">
-                      {importResult.warnings.map((warning, index) => (
-                        <div key={index} className="text-sm">
-                          <span className="font-medium text-yellow-900">Row {warning.row}:</span>
-                          <span className="text-yellow-700 ml-1">
-                            {warning.field} ({warning.value}) - {warning.message}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+              {/* Success Message for Clean Import */}
+              {importResult.errors.length === 0 && importResult.warnings.length === 0 && importResult.success > 0 && (
+                <div className="admin-card border-2 border-green-200 bg-green-50">
+                  <div className="admin-card-content text-center py-6">
+                    <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
+                    <h5 className="text-lg font-semibold text-green-900 mb-2">
+                      Perfect Import!
+                    </h5>
+                    <p className="text-green-700">
+                      All {importResult.success} products were imported successfully without any errors or warnings.
+                    </p>
                   </div>
                 </div>
               )}
 
               {/* Navigation */}
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-between pt-6 border-t">
                 <button
                   onClick={() => {
                     setCurrentStep('upload');
                     setImportFile(null);
                     setCsvPreview(null);
-                    setFieldMapping({});
                     setImportResult(null);
                     setImportProgress(0);
                     setImportStatus('');
