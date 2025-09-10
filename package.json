@@ -17,7 +17,9 @@
     "security-analysis": "node security-deep-analysis.js",
     "test-fix": "node test-fix.js",
     "init-settings": "node scripts/init-settings.js",
-    "migrate-settings": "node scripts/migrate-settings.js"
+    "migrate-settings": "node scripts/migrate-settings.js",
+    "deploy": "powershell -ExecutionPolicy Bypass -File deploy.ps1",
+    "deploy:bash": "bash deploy.sh"
   },
   "dependencies": {
     "@netlify/functions": "^4.2.2",
