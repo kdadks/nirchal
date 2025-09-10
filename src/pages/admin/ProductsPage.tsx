@@ -172,12 +172,6 @@ const ProductsPage: React.FC = () => {
                 {showFilters ? 'Hide Filters' : 'Filters'}
               </button>
               <button
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <Upload className="h-4 w-4 mr-1" />
-                Import
-              </button>
-              <button
                 onClick={() => setShowImportModal(true)}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
