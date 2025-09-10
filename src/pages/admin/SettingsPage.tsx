@@ -15,9 +15,11 @@ import {
   Linkedin,
   MessageCircle,
   Mail,
-  CheckCircle
+  CheckCircle,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import { ImageCleanupPanel } from '../../components/admin/ImageCleanupPanel';
 
 interface TabState {
   [key: string]: Record<string, any>;
@@ -54,6 +56,7 @@ const SettingsPage: React.FC = React.memo(() => {
     { id: 'email', label: 'Email Settings', icon: <Mail className="w-4 h-4" /> },
     { id: 'billing', label: 'Billing', icon: <Receipt className="w-4 h-4" /> },
     { id: 'seo', label: 'SEO Settings', icon: <Search className="w-4 h-4" /> },
+    { id: 'system', label: 'System', icon: <SettingsIcon className="w-4 h-4" /> },
   ];
 
   // Initialize tab settings from database
@@ -909,6 +912,18 @@ const SettingsPage: React.FC = React.memo(() => {
     </div>
   );
 
+  const renderSystemSettings = () => (
+    <div className="space-y-8">
+      {/* Image Cleanup */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Image Management</h3>
+        <div className="space-y-6">
+          <ImageCleanupPanel />
+        </div>
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'shop':
@@ -921,6 +936,8 @@ const SettingsPage: React.FC = React.memo(() => {
         return renderBillingSettings();
       case 'seo':
         return renderSEOSettings();
+      case 'system':
+        return renderSystemSettings();
       default:
         return null;
     }
