@@ -97,8 +97,9 @@ export default async (request: Request, context: Context) => {
     const baseFileName = path.basename(sanitizedFileName, fileExtension);
     const uniqueFileName = `${baseFileName}-${timestamp}${fileExtension}`;
 
-    // Determine the target directory
-    const publicDir = path.join(process.cwd(), 'public');
+    // Determine the target directory - use the public folder in the repository
+    // In Netlify build, this will be relative to the build root
+    const publicDir = path.resolve('./public');
     const imagesDir = path.join(publicDir, 'images');
     const targetDir = path.join(imagesDir, folder);
     const targetPath = path.join(targetDir, uniqueFileName);
@@ -122,13 +123,13 @@ export default async (request: Request, context: Context) => {
       );
     }
 
-    // Write the file
+    // Write the file to the public directory
     await fs.writeFile(targetPath, imageBuffer);
 
     // Generate the public URL
     const publicUrl = `/images/${folder}/${uniqueFileName}`;
 
-    console.log(`[Upload Image] Successfully saved: ${publicUrl}`);
+    console.log(`[Upload Image] Successfully saved to public folder: ${publicUrl}`);
 
     return new Response(
       JSON.stringify({
