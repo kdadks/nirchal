@@ -1031,20 +1031,58 @@ export const useProducts = () => {
 	const deleteProduct = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			// 1. Get product images for storage cleanup
-			const { data: productImages, error: imagesFetchError } = await supabase
-				.from('product_images')
-				.select('image_url')
-				.eq('product_id', id);
+			// 1. Get product data and all associated images for storage cleanup
+			const { data: product, error: productFetchError } = await supabase
+				.from('products')
+				.select(`
+					id,
+					images,
+					product_images (
+						id,
+						image_url
+					),
+					product_variants (
+						id,
+						swatch_image_id,
+						swatch_image:product_images!swatch_image_id (
+							id,
+							image_url
+						)
+					)
+				`)
+				.eq('id', id)
+				.single();
 			
-			if (imagesFetchError) {
-				throw imagesFetchError;
+			if (productFetchError) {
+				throw productFetchError;
 			}
 			
-			// 2. Delete product images from storage IMMEDIATELY (before any database deletions)
-			if (productImages && productImages.length > 0) {
-				const imageFilenames = productImages
-					.map(img => extractStorageFileName(img.image_url))
+			// 2. Collect all image URLs for storage cleanup
+			const imageUrlsToDelete: string[] = [];
+			
+			// Add main product images (from products.images field)
+			if (product?.images && Array.isArray(product.images)) {
+				imageUrlsToDelete.push(...product.images);
+			}
+			
+			// Add product_images table images
+			if (product?.product_images && Array.isArray(product.product_images)) {
+				imageUrlsToDelete.push(...product.product_images.map((img: any) => img.image_url));
+			}
+			
+			// Add variant swatch images
+			if (product?.product_variants && Array.isArray(product.product_variants)) {
+				product.product_variants.forEach((variant: any) => {
+					if (variant.swatch_image?.image_url) {
+						imageUrlsToDelete.push(variant.swatch_image.image_url);
+					}
+				});
+			}
+			
+			// 3. Delete all images from storage IMMEDIATELY (before any database deletions)
+			if (imageUrlsToDelete.length > 0) {
+				const imageFilenames = imageUrlsToDelete
+					.map(url => extractStorageFileName(url))
 					.filter(filename => filename !== null) as string[];
 				
 				if (imageFilenames.length > 0) {
@@ -1061,7 +1099,7 @@ export const useProducts = () => {
 				}
 			}
 			
-			// 3. Get product variants for inventory cleanup
+			// 4. Get product variants for inventory cleanup
 			const { data: productVariants, error: variantsFetchError } = await supabase
 				.from('product_variants')
 				.select('id')
@@ -1069,7 +1107,7 @@ export const useProducts = () => {
 			
 			if (variantsFetchError) throw variantsFetchError;
 			
-			// 4. Get inventory records for history cleanup
+			// 5. Get inventory records for history cleanup
 			const variantIds = productVariants?.map(v => v.id) || [];
 			let inventoryIds: any[] = [];
 			
@@ -1091,7 +1129,7 @@ export const useProducts = () => {
 			if (productInvError) throw productInvError;
 			inventoryIds = [...inventoryIds, ...(productInventory?.map(inv => inv.id) || [])];
 			
-			// 5. Delete inventory history records (get fresh list to ensure we catch all)
+			// 6. Delete inventory history records (get fresh list to ensure we catch all)
 			const { data: allInventoryForProduct, error: allInvError } = await supabase
 				.from('inventory')
 				.select('id')
@@ -1124,7 +1162,7 @@ export const useProducts = () => {
 				}
 			}
 			
-			// 6. Delete inventory records (both variant and product inventory)
+			// 7. Delete inventory records (both variant and product inventory)
 			try {
 				const { error: inventoryDeleteError } = await supabase
 					.from('inventory')
@@ -1306,7 +1344,7 @@ export const useProducts = () => {
 				throw invError;
 			}
 			
-			// 7. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
+			// 8. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
 			try {
 				const { error: orderItemsUpdateError } = await supabase
 					.from('order_items')
@@ -1321,7 +1359,7 @@ export const useProducts = () => {
 				console.warn('[deleteProduct] Order items update skipped (table not accessible)');
 			}
 			
-			// 8. Delete product analytics records - OPTIONAL  
+			// 9. Delete product analytics records - OPTIONAL  
 			try {
 				const { error: analyticsDeleteError } = await supabase
 					.from('product_analytics')
@@ -1336,7 +1374,7 @@ export const useProducts = () => {
 				console.warn('[deleteProduct] Analytics deletion skipped (table not accessible)');
 			}
 			
-			// 9. Delete the product using a stored procedure to handle audit log conflicts
+			// 10. Delete the product using a stored procedure to handle audit log conflicts
 			console.log('[deleteProduct] About to delete product:', id);
 			
 			// First, try to delete using RPC (stored procedure) if available
