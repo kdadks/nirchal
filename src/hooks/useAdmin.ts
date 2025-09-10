@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabaseAdmin } from '../config/supabase';
-import { extractStorageFileName } from '../utils/storageUtils';
+import { extractFileName, deleteImageFromPublicFolder, saveImageToPublicFolder, generateProductImageFileName } from '../utils/localStorageUtils';
 import type {
 	Product,
 	Category,
@@ -106,21 +106,19 @@ export const useCategories = () => {
 				throw categoryFetchError;
 			}
 			
-			// 2. Delete category image from storage if it exists
+			// 2. Delete category image from local storage if it exists
 			if (category?.image_url) {
 				// Extract filename from URL - only delete files we uploaded (not external URLs)
-				const fileName = extractStorageFileName(category.image_url);
+				const fileName = extractFileName(category.image_url);
 				
 				if (fileName) {
-					console.log('Deleting category image from storage:', fileName);
-					const { error: storageDeleteError } = await supabase.storage
-						.from('category-images')
-						.remove([fileName]);
+					console.log('Deleting category image from local storage:', fileName);
+					const deleteResult = await deleteImageFromPublicFolder(fileName, 'categories');
 					
-					if (storageDeleteError) {
-						console.warn('Category image storage deletion error (non-critical):', storageDeleteError);
+					if (!deleteResult.success) {
+						console.warn('Category image deletion error (non-critical):', deleteResult.error);
 					} else {
-						console.log('✅ Category image deleted from storage');
+						console.log('✅ Category image deleted from local storage');
 					}
 				}
 			}
@@ -573,14 +571,16 @@ export const useProducts = () => {
 				await Promise.all(images.map(async (image: any, index: number) => {
 					if (image.file) {
 						console.log(`[createProduct] Processing image ${index + 1}:`, image.file.name);
-						const fileName = `${Date.now()}-${image.file.name}`;
-						const { error: uploadError } = await supabase.storage
-							.from('product-images')
-							.upload(fileName, image.file);
+						
+						// Generate unique filename for local storage
+						const fileName = generateProductImageFileName((productData as any).name || 'product', image.file.name, index);
+						
+						// Save image to local public folder
+						const uploadResult = await saveImageToPublicFolder(image.file, fileName, 'products');
 
-						if (uploadError) {
-							console.error(`[createProduct] Upload error for image ${index + 1}:`, uploadError);
-							throw uploadError;
+						if (!uploadResult.success) {
+							console.error(`[createProduct] Upload error for image ${index + 1}:`, uploadResult.error);
+							throw new Error(uploadResult.error || 'Image upload failed');
 						}
 
 						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Type:', typeof newProduct.id);
@@ -588,7 +588,7 @@ export const useProducts = () => {
 							.from('product_images')
 							.insert([{
 								product_id: newProduct.id,
-								image_url: fileName,
+								image_url: fileName, // Store just the filename, not the full path
 								alt_text: image.alt_text,
 								is_primary: image.is_primary
 							}]);
@@ -646,7 +646,7 @@ export const useProducts = () => {
 						product_id: newProduct.id,
 						variant_id: variant.id,
 						quantity: variants[i].quantity ?? 0,
-						low_stock_threshold: variants[i].low_stock_threshold ?? (inventory?.low_stock_threshold ?? 10)
+						low_stock_threshold: variants[i].low_stock_threshold ?? (inventory?.low_stock_threshold ?? 2)
 					}));
 					
 					console.log('[createProduct] About to insert inventory. Checking auth status...');
@@ -759,15 +759,13 @@ export const useProducts = () => {
 			// 2. Delete images marked for deletion
 			for (const img of imagesToDelete) {
 				if (img.image_url) {
-					// Extract filename and remove from storage
-					const filename = extractStorageFileName(img.image_url);
+					// Extract filename and remove from local storage
+					const filename = extractFileName(img.image_url);
 					if (filename) {
-						console.log('Deleting image from storage during update:', filename);
-						const { error: storageError } = await supabase.storage
-							.from('product-images')
-							.remove([filename]);
-						if (storageError) {
-							console.warn('Storage deletion error during update:', storageError);
+						console.log('Deleting image from local storage during update:', filename);
+						const deleteResult = await deleteImageFromPublicFolder(filename, 'products');
+						if (!deleteResult.success) {
+							console.warn('Local storage deletion error during update:', deleteResult.error);
 						}
 					}
 					// Remove from DB
@@ -791,16 +789,21 @@ export const useProducts = () => {
 			if (images) {
 				for (const img of images) {
 					if (img.file && !img.existing) {
-						const fileName = `${Date.now()}-${img.file.name}`;
-						const { error: uploadError } = await supabase.storage
-							.from('product-images')
-							.upload(fileName, img.file);
-						if (uploadError) throw uploadError;
+						// Generate unique filename for local storage
+						const fileName = generateProductImageFileName((updateData as any).name || 'product', img.file.name);
+						
+						// Save image to local public folder
+						const uploadResult = await saveImageToPublicFolder(img.file, fileName, 'products');
+						
+						if (!uploadResult.success) {
+							throw new Error(uploadResult.error || 'Image upload failed');
+						}
+						
 						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: id,
-								image_url: fileName,
+								image_url: fileName, // Store just the filename, not the full path
 								alt_text: img.alt_text,
 								is_primary: img.is_primary
 							}]);
@@ -959,7 +962,7 @@ export const useProducts = () => {
 												.from('inventory')
 												.update({
 													quantity: newQty,
-													low_stock_threshold: v.low_stock_threshold ?? 10
+													low_stock_threshold: v.low_stock_threshold ?? 2
 												})
 												.eq('id', inv.id);
 											if (updateInvError) throw updateInvError;
@@ -972,7 +975,7 @@ export const useProducts = () => {
 													product_id: id,
 													variant_id: variantId,
 													quantity: v.quantity ?? 0,
-													low_stock_threshold: v.low_stock_threshold ?? 10
+													low_stock_threshold: v.low_stock_threshold ?? 2
 												})
 												.select()
 												.single();
@@ -1071,30 +1074,26 @@ export const useProducts = () => {
 				});
 			}
 			
-			// 4. Delete all images from storage IMMEDIATELY (before any database deletions)
+			// 4. Delete all images from local storage IMMEDIATELY (before any database deletions)
 			if (imageUrlsToDelete.length > 0) {
 				const imageFilenames = imageUrlsToDelete
-					.map(url => extractStorageFileName(url))
+					.map(url => extractFileName(url))
 					.filter(filename => filename !== null) as string[];
 				
 				if (imageFilenames.length > 0) {
-					console.log('Deleting product images from storage:', imageFilenames);
-					console.log('Storage client authenticated?', !!supabase.auth.getUser());
+					console.log('Deleting product images from local storage:', imageFilenames);
 					
-					const { error: storageDeleteError } = await supabase.storage
-						.from('product-images')
-						.remove(imageFilenames);
-					
-					if (storageDeleteError) {
-						console.warn('Product images storage deletion error (non-critical):', storageDeleteError);
-						console.warn('Storage error details:', {
-							message: storageDeleteError.message,
-							statusCode: (storageDeleteError as any)?.statusCode,
-							error: (storageDeleteError as any)?.error
-						});
-					} else {
-						console.log(`✅ Deleted ${imageFilenames.length} product images from storage`);
+					// Delete each image individually to handle errors gracefully
+					for (const filename of imageFilenames) {
+						const deleteResult = await deleteImageFromPublicFolder(filename, 'products');
+						if (!deleteResult.success) {
+							console.warn(`Failed to delete image ${filename}:`, deleteResult.error);
+						} else {
+							console.log(`✅ Deleted image: ${filename}`);
+						}
 					}
+					
+					console.log(`✅ Processed ${imageFilenames.length} product images for deletion`);
 				}
 			} else {
 				console.log('No images to delete from storage');
@@ -1902,7 +1901,7 @@ export const importProducts = async (
 									color_hex: variantColorHex[i] || null,
 									price_adjustment: variantPriceAdjustments[i] ? parseFloat(variantPriceAdjustments[i]) : 0,
 									quantity: quantities[i] ? parseInt(quantities[i]) : 0,
-									low_stock_threshold: lowStockThresholds[i] ? parseInt(lowStockThresholds[i]) : 10
+									low_stock_threshold: lowStockThresholds[i] ? parseInt(lowStockThresholds[i]) : 2
 								});
 							}
 						}
@@ -1947,7 +1946,7 @@ export const importProducts = async (
 									product_id: newProduct.id,
 									variant_id: null,
 									quantity: row.quantities ? parseInt(row.quantities) : 0,
-									low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 10
+									low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 2
 								});
 
 							if (inventoryError) throw inventoryError;
@@ -1960,7 +1959,7 @@ export const importProducts = async (
 								product_id: newProduct.id,
 								variant_id: null,
 								quantity: row.quantities ? parseInt(row.quantities) : 0,
-								low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 10
+								low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 2
 							});
 
 						if (inventoryError) throw inventoryError;

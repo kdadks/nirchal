@@ -128,7 +128,7 @@ const EditProductPage: React.FC = () => {
         variant_type: variant.size ? 'size' : variant.color ? 'color' : undefined,
         price_adjustment: variant.price_adjustment,
         quantity: inv ? inv.quantity : 0,
-        low_stock_threshold: inv ? inv.low_stock_threshold : 10,
+        low_stock_threshold: inv ? inv.low_stock_threshold : 2,
         swatch_image_id: variant.swatch_image_id,
         swatch_image: swatchImageUrl
       };
@@ -147,7 +147,7 @@ const EditProductPage: React.FC = () => {
       }
       
       // Default when no product-level inventory found
-      return { quantity: 0, low_stock_threshold: 10 };
+      return { quantity: 0, low_stock_threshold: 2 };
     })()
   };
 

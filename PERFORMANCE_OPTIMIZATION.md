@@ -24,10 +24,10 @@
 - **After**: Simple, direct query
 - **Performance**: Near-instant loading
 
-### 4. Optimized Product Updates (`useOptimizedProductUpdate.ts`)
-- **Before**: Serial operations (images, variants, inventory)
-- **After**: Parallel operations where possible
-- **Performance**: 50-70% faster saves
+### 4. Local Storage Migration
+- **Before**: Supabase storage buckets with RLS complexity
+- **After**: Local file storage with Netlify functions
+- **Performance**: Simplified architecture, no bucket dependencies
 - **Benefits**: Better error handling, transaction-like behavior
 
 ## How to Test Performance:
@@ -52,12 +52,15 @@ import { useOptimizedInventory } from '../hooks/useOptimizedInventory';
 const { inventory, loading, error } = useOptimizedInventory();
 ```
 
-### To use optimized product updates:
+### Local Storage Usage:
 ```typescript
-import { useOptimizedProductUpdate } from '../hooks/useOptimizedProductUpdate';
+import { saveImageToPublicFolder, deleteImageFromPublicFolder } from '../utils/localStorageUtils';
 
-const { updateProductOptimized } = useOptimizedProductUpdate();
-await updateProductOptimized(productId, updateData);
+// Upload image to local storage
+const fileName = await saveImageToPublicFolder(file, 'products');
+
+// Delete image from local storage  
+await deleteImageFromPublicFolder(fileName, 'products');
 ```
 
 ## Expected Performance Improvements:
@@ -79,5 +82,7 @@ await updateProductOptimized(productId, updateData);
 - `src/hooks/useOptimizedProducts.ts`
 - `src/hooks/useOptimizedInventory.ts`
 - `src/hooks/useOptimizedCategories.ts`
-- `src/hooks/useOptimizedProductUpdate.ts`
+- `src/utils/localStorageUtils.ts`
+- `netlify/functions/upload-image.ts`
+- `netlify/functions/delete-image.ts`
 - `src/components/admin/OptimizedAdminTest.tsx`

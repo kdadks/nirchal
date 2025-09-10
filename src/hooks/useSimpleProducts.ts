@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../config/supabase';
+import { getStorageImageUrl } from '../utils/storageUtils';
 import type { Product } from '../types';
 
 // Simplified version of usePublicProducts without complex joins
@@ -41,7 +42,7 @@ export const useSimpleProducts = () => {
         images: product.image_url ? 
           (product.image_url.startsWith('http') 
             ? [product.image_url]
-            : [`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${product.image_url}`]
+            : [getStorageImageUrl(product.image_url)]
           ) : [],
         category: String(product.category_id || product.category || 'general'),
         subcategory: undefined,

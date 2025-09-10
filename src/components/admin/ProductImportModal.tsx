@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Upload, Download, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import { saveImageToPublicFolder, generateProductImageFileName, generateCategoryImageFileName } from '../../utils/localStorageUtils';
 
 // Import types and helper functions
 interface ImportOptions {
@@ -40,18 +41,43 @@ const generateSlug = (text: string): string => {
     .replace(/^-+|-+$/g, '');
 };
 
+// Helper function to extract option value based on type (color or size)
+const getOptionValue = (row: any, type: 'color' | 'size'): string | null => {
+  const option1Name = (row['Option1 Name'] || '').toLowerCase().trim();
+  const option2Name = (row['Option2 Name'] || '').toLowerCase().trim();
+  const option1Value = (row['Option1 Value'] || '').trim();
+  const option2Value = (row['Option2 Value'] || '').trim();
+  
+  if (type === 'color') {
+    if (option1Name.includes('color') || option1Name.includes('colour')) {
+      return option1Value || null;
+    }
+    if (option2Name.includes('color') || option2Name.includes('colour')) {
+      return option2Value || null;
+    }
+  } else if (type === 'size') {
+    if (option1Name.includes('size')) {
+      return option1Value || null;
+    }
+    if (option2Name.includes('size')) {
+      return option2Value || null;
+    }
+  }
+  
+  return null;
+};
+
 // Product import function that uses auth context
 const useProductImport = () => {
   const { supabase, user } = useAuth();
   const [importing, setImporting] = useState(false);
 
-  // Function to download image from URL and upload to Supabase storage using server-side proxy
+  // Function to download image from URL and upload to local storage using server-side proxy
   const downloadAndUploadImage = async (imageUrl: string, productName: string, imageIndex: number): Promise<string | null> => {
     try {
       console.log(`🔄 Downloading image from: ${imageUrl}`);
       
       let imageBlob: Blob;
-      let contentType = 'image/jpeg';
 
       // Try to use server-side function first (for production)
       try {
@@ -76,7 +102,6 @@ const useProductImport = () => {
             }
             const byteArray = new Uint8Array(byteNumbers);
             imageBlob = new Blob([byteArray], { type: result.contentType });
-            contentType = result.contentType;
           } else {
             throw new Error('Server function failed: ' + result.error);
           }
@@ -121,8 +146,6 @@ const useProductImport = () => {
           if (imageBlob.size > 10 * 1024 * 1024) {
             throw new Error(`Image too large: ${Math.round(imageBlob.size / 1024 / 1024)}MB (max 10MB)`);
           }
-          
-          contentType = directResponse.headers.get('content-type') || 'image/jpeg';
         } catch (directError) {
           console.error('❌ Both server and direct download failed:', { 
             imageUrl,
@@ -133,32 +156,22 @@ const useProductImport = () => {
         }
       }
       
-      // Generate a unique filename
-      const urlParts = imageUrl.split('/');
-      const originalName = urlParts[urlParts.length - 1];
-      const extension = originalName.includes('.') ? originalName.split('.').pop() : 'jpg';
-      const sanitizedProductName = productName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const timestamp = Date.now();
-      const fileName = `${sanitizedProductName}-${timestamp}-${imageIndex}.${extension}`;
+      // Generate a unique filename for local storage
+      const fileName = generateProductImageFileName(productName, imageUrl, imageIndex);
 
-      // Upload to Supabase storage
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, imageBlob, {
-          contentType: contentType,
-          upsert: false
-        });
+      // Save to local public folder
+      const uploadResult = await saveImageToPublicFolder(imageBlob, fileName, 'products');
 
-      if (uploadError) {
-        console.error('❌ Failed to upload image to Supabase storage:', {
+      if (!uploadResult.success) {
+        console.error('❌ Failed to save image to local storage:', {
           fileName,
           imageUrl,
-          error: uploadError,
-          errorMessage: uploadError.message
+          error: uploadResult.error
         });
         return null;
       }
 
+      console.log('✅ Successfully saved image to local storage:', uploadResult.filePath);
       return fileName;
     } catch (error) {
       console.error('❌ Error downloading/uploading image:', {
@@ -178,7 +191,6 @@ const useProductImport = () => {
       console.log(`Downloading category image from: ${imageUrl}`);
       
       let imageBlob: Blob;
-      let contentType = 'image/jpeg';
 
       // Try to use server-side function first (for production)
       try {
@@ -203,7 +215,6 @@ const useProductImport = () => {
             }
             const byteArray = new Uint8Array(byteNumbers);
             imageBlob = new Blob([byteArray], { type: result.contentType });
-            contentType = result.contentType;
           } else {
             throw new Error('Server function failed: ' + result.error);
           }
@@ -224,94 +235,29 @@ const useProductImport = () => {
           }
           
           imageBlob = await directResponse.blob();
-          contentType = directResponse.headers.get('content-type') || 'image/jpeg';
         } catch (directError) {
           console.error('❌ Both server and direct download failed for category image:', { serverError, directError });
           return null;
         }
       }
       
-      // Generate a unique filename for category
-      const urlParts = imageUrl.split('/');
-      const originalName = urlParts[urlParts.length - 1];
-      const extension = originalName.includes('.') ? originalName.split('.').pop() : 'jpg';
-      const sanitizedCategoryName = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const timestamp = Date.now();
-      // Generate a unique filename in categories folder
-      const fileName = `categories/${sanitizedCategoryName}-${timestamp}.${extension}`;
+      // Generate a unique filename for local storage
+      const fileName = generateCategoryImageFileName(categoryName, imageUrl);
 
-      // Upload to Supabase storage (category-images bucket)
-      console.log('Attempting to upload category image:', {
-        fileName,
-        bucket: 'category-images',
-        contentType,
-        imageBlobSize: imageBlob.size,
-        imageBlobType: imageBlob.type
-      });
+      // Save to local public folder
+      const uploadResult = await saveImageToPublicFolder(imageBlob, fileName, 'categories');
 
-      // First, let's verify if the bucket exists by listing it
-      const { data: buckets, error: bucketListError } = await supabase.storage.listBuckets();
-      console.log('Available storage buckets:', {
-        buckets: buckets?.map(b => ({ id: b.id, name: b.name, public: b.public })),
-        error: bucketListError
-      });
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('category-images')
-        .upload(fileName, imageBlob, {
-          contentType: contentType,
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Failed to upload category image to category-images bucket:', {
+      if (!uploadResult.success) {
+        console.error('❌ Failed to save category image to local storage:', {
           fileName,
-          error: uploadError,
-          errorMessage: uploadError.message,
-          bucket: 'category-images',
-          folder: 'categories'
+          imageUrl,
+          error: uploadResult.error
         });
-        
-        // Let's check if it's a folder permission issue - try without folder
-        const simpleName = `category-${sanitizedCategoryName}-${timestamp}.${extension}`;
-        console.log('Retrying with simple filename (no folder):', simpleName);
-        
-        const { data: retryData, error: retryError } = await supabase.storage
-          .from('category-images')
-          .upload(simpleName, imageBlob, {
-            contentType: contentType,
-            upsert: false
-          });
-          
-        if (retryError) {
-          console.error('Category image upload retry also failed:', {
-            simpleName,
-            error: retryError,
-            errorMessage: retryError.message
-          });
-          return null;
-        }
-        
-        console.log('Category image retry upload successful:', retryData);
-        
-        // Get the public URL for retry upload
-        const { data: { publicUrl } } = supabase.storage
-          .from('category-images')
-          .getPublicUrl(simpleName);
-
-        console.log('Generated public URL for retry upload:', publicUrl);
-        return publicUrl;
+        return null;
       }
 
-      console.log('Category image upload successful:', uploadData);
-
-      // Get the public URL for successful upload
-      const { data: { publicUrl } } = supabase.storage
-        .from('category-images')
-        .getPublicUrl(fileName);
-
-      console.log('Generated public URL:', publicUrl);
-      return publicUrl;
+      console.log('✅ Successfully saved category image to local storage:', uploadResult.filePath);
+      return fileName; // Return just the filename, not the full path
     } catch (error) {
       console.error('Error downloading/uploading category image:', error);
       return null;
@@ -361,24 +307,22 @@ const useProductImport = () => {
       // Get categories and vendors for reference
       onProgress?.(15, 'Loading reference data...');
       
-      const [categoriesResult, vendorsResult] = await Promise.all([
-        supabase.from('categories').select('id, name'),
-        supabase.from('vendors').select('id, name')
-      ]);
+      const { data: categoriesData, error: categoriesError } = await supabase.from('categories').select('id, name');
+      const { data: vendorsData, error: vendorsError } = await supabase.from('vendors').select('id, name');
 
-      if (categoriesResult.error) throw categoriesResult.error;
-      if (vendorsResult.error) throw vendorsResult.error;
+      if (categoriesError) throw categoriesError;
+      if (vendorsError) throw vendorsError;
 
       const categoriesMap = new Map(
-        categoriesResult.data.map((cat: any) => [cat.name.toLowerCase(), cat.id])
+        categoriesData?.map((cat: any) => [cat.name.toLowerCase(), cat.id]) || []
       );
       const vendorsMap = new Map(
-        vendorsResult.data.map((vendor: any) => [vendor.name.toLowerCase(), vendor.id])
+        vendorsData?.map((vendor: any) => [vendor.name.toLowerCase(), vendor.id]) || []
       );
 
       console.log('Existing categories in database:', {
-        total: categoriesResult.data.length,
-        categories: categoriesResult.data.map((cat: any) => ({ name: cat.name, id: cat.id })),
+        total: categoriesData?.length || 0,
+        categories: categoriesData?.map((cat: any) => ({ name: cat.name, id: cat.id })) || [],
         hasUncategorized: categoriesMap.has('uncategorized')
       });
 
@@ -700,273 +644,214 @@ const useProductImport = () => {
               
               // Collect all unique variants from all rows
               const uniqueVariants = new Map();
-              const hasVariantData = variantRows.some(row => 
-                row['Option1 Value'] || row['Option2 Value'] || row['Option3 Value']
-              );
-
-              // First, check if we have Shopify metafields for colors and sizes
-              let allColors: string[] = [];
-              let allSizes: string[] = [];
               
-              // Look for metafield columns in the main row
-              const mainRow = variantRows[0];
-              const colorMetafieldCol = Object.keys(mainRow).find(key => 
-                key.toLowerCase().includes('color') && key.includes('metafields')
-              );
-              const sizeMetafieldCol = Object.keys(mainRow).find(key => 
-                key.toLowerCase().includes('size') && key.includes('metafields')
-              );
-              
-              console.log('Checking for metafields:', {
-                productName: mainRow.Title || mainRow.name,
-                colorMetafieldCol,
-                sizeMetafieldCol,
-                availableColumns: Object.keys(mainRow).filter(key => key.includes('metafields'))
-              });
-              
-              // Extract colors and sizes from metafields
-              if (colorMetafieldCol && mainRow[colorMetafieldCol]) {
-                // Parse comma or pipe separated colors
-                allColors = mainRow[colorMetafieldCol]
-                  .split(/[,|]/)
-                  .map((c: string) => c.trim())
-                  .filter((c: string) => c.length > 0);
-              }
-              
-              if (sizeMetafieldCol && mainRow[sizeMetafieldCol]) {
-                // Parse comma or pipe separated sizes
-                allSizes = mainRow[sizeMetafieldCol]
-                  .split(/[,|]/)
-                  .map((s: string) => s.trim())
-                  .filter((s: string) => s.length > 0);
-              }
-              
-              console.log('Extracted metafield variants:', {
-                colors: allColors,
-                sizes: allSizes,
-                totalCombinations: allColors.length * allSizes.length
-              });
-              
-              // If we have metafield colors and sizes, create all combinations
-              if (allColors.length > 0 && allSizes.length > 0) {
-                console.log(`Creating ${allColors.length} × ${allSizes.length} = ${allColors.length * allSizes.length} variant combinations`);
+              // Check if we have valid Option1/Option2 Names and Values for variant processing
+              const hasValidOptionData = variantRows.some(row => {
+                const option1Name = (row['Option1 Name'] || '').trim();
+                const option2Name = (row['Option2 Name'] || '').trim();
+                const option1Value = (row['Option1 Value'] || '').trim();
+                const option2Value = (row['Option2 Value'] || '').trim();
                 
-                for (const color of allColors) {
-                  for (const size of allSizes) {
-                    const variantKey = `${size}-${color}`;
+                return (option1Name && option1Value) || (option2Name && option2Value);
+              });
+
+              console.log('Checking for Option-based variants:', {
+                productName: variantRows[0].Title || variantRows[0].name,
+                hasValidOptionData,
+                sampleRow: {
+                  option1Name: variantRows[0]['Option1 Name'],
+                  option1Value: variantRows[0]['Option1 Value'],
+                  option2Name: variantRows[0]['Option2 Name'],
+                  option2Value: variantRows[0]['Option2 Value']
+                }
+              });
+              
+              if (hasValidOptionData) {
+                // Process variants based on Option1/Option2 Names and Values
+                console.log('Processing variants from Option1/Option2 Names and Values');
+                
+                // Collect all unique colors and sizes across all variant rows
+                const allColors = new Set<string>();
+                const allSizes = new Set<string>();
+                let hasColorOption = false;
+                let hasSizeOption = false;
+                
+                // First pass: identify what options represent colors vs sizes
+                for (const variantRow of variantRows) {
+                  const option1Name = (variantRow['Option1 Name'] || '').toLowerCase().trim();
+                  const option2Name = (variantRow['Option2 Name'] || '').toLowerCase().trim();
+                  const option1Value = (variantRow['Option1 Value'] || '').trim();
+                  const option2Value = (variantRow['Option2 Value'] || '').trim();
+                  
+                  // Check Option1
+                  if (option1Name.includes('color') || option1Name.includes('colour')) {
+                    if (option1Value) {
+                      allColors.add(option1Value);
+                      hasColorOption = true;
+                    }
+                  } else if (option1Name.includes('size')) {
+                    if (option1Value) {
+                      allSizes.add(option1Value.toUpperCase()); // Make sizes uppercase
+                      hasSizeOption = true;
+                    }
+                  }
+                  
+                  // Check Option2
+                  if (option2Name.includes('color') || option2Name.includes('colour')) {
+                    if (option2Value) {
+                      allColors.add(option2Value);
+                      hasColorOption = true;
+                    }
+                  } else if (option2Name.includes('size')) {
+                    if (option2Value) {
+                      allSizes.add(option2Value.toUpperCase()); // Make sizes uppercase
+                      hasSizeOption = true;
+                    }
+                  }
+                }
+
+                const colorArray = Array.from(allColors);
+                const sizeArray = Array.from(allSizes);
+                
+                console.log('Identified variants:', {
+                  colors: colorArray,
+                  sizes: sizeArray,
+                  hasColorOption,
+                  hasSizeOption,
+                  expectedVariantCount: hasColorOption && hasSizeOption ? colorArray.length * sizeArray.length : Math.max(colorArray.length, sizeArray.length)
+                });
+
+                // Create variant combinations based on what we found
+                if (hasColorOption && hasSizeOption) {
+                  // Both colors and sizes - create all combinations (color as base, size as child)
+                  console.log(`Creating ${colorArray.length} × ${sizeArray.length} = ${colorArray.length * sizeArray.length} variants`);
+                  
+                  for (const color of colorArray) {
+                    for (const size of sizeArray) {
+                      const variantKey = `${color}-${size}`;
+                      
+                      if (!uniqueVariants.has(variantKey)) {
+                        // Find the specific row that matches this color-size combination
+                        const matchingRow = variantRows.find(row => {
+                          const rowColor = getOptionValue(row, 'color');
+                          const rowSize = getOptionValue(row, 'size');
+                          return rowColor === color && rowSize?.toUpperCase() === size;
+                        }) || variantRows[0]; // Fallback to first row if no exact match
+                        
+                        const rawVariantPrice = parseFloat(matchingRow['Variant Price'] || matchingRow.price_adjustment || '0');
+                        
+                        const variantData = {
+                          product_id: productId,
+                          size: size,
+                          color: color,
+                          color_hex: matchingRow.color_hex || '',
+                          sku: matchingRow['Variant SKU'] || matchingRow.sku || `${productData.sku}-${color}-${size}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                          price_adjustment: rawVariantPrice,
+                        };
+                        
+                        uniqueVariants.set(variantKey, {
+                          ...variantData,
+                          quantity: parseInt(matchingRow['Variant Inventory Qty'] || matchingRow.stock_quantity || '0'),
+                          low_stock_threshold: parseInt(matchingRow.low_stock_threshold || '2')
+                        });
+                      }
+                    }
+                  }
+                } else if (hasColorOption && !hasSizeOption) {
+                  // Only colors, no sizes
+                  console.log(`Creating ${colorArray.length} color-only variants`);
+                  
+                  for (const color of colorArray) {
+                    const variantKey = `${color}-nosize`;
                     
                     if (!uniqueVariants.has(variantKey)) {
-                      const rawVariantPrice = parseFloat(mainRow['Variant Price'] || mainRow.price_adjustment || '0');
+                      // Find the specific row that matches this color
+                      const matchingRow = variantRows.find(row => {
+                        const rowColor = getOptionValue(row, 'color');
+                        return rowColor === color;
+                      }) || variantRows[0]; // Fallback to first row if no exact match
+                      
+                      const rawVariantPrice = parseFloat(matchingRow['Variant Price'] || matchingRow.price_adjustment || '0');
                       
                       const variantData = {
                         product_id: productId,
-                        size: size || null,
-                        color: color || null,
-                        color_hex: mainRow.color_hex || '',
-                        sku: mainRow['Variant SKU'] || mainRow.sku || `${productData.sku}-${size || 'nosize'}-${color || 'nocolor'}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                        size: null,
+                        color: color,
+                        color_hex: matchingRow.color_hex || '',
+                        sku: matchingRow['Variant SKU'] || matchingRow.sku || `${productData.sku}-${color}`.replace(/[^a-zA-Z0-9-]/g, ''),
                         price_adjustment: rawVariantPrice,
                       };
                       
                       uniqueVariants.set(variantKey, {
                         ...variantData,
-                        quantity: parseInt(mainRow['Variant Inventory Qty'] || mainRow.stock_quantity || '0'),
-                        low_stock_threshold: parseInt(mainRow.low_stock_threshold || '5')
+                        quantity: parseInt(matchingRow['Variant Inventory Qty'] || matchingRow.stock_quantity || '0'),
+                        low_stock_threshold: parseInt(matchingRow.low_stock_threshold || '2')
+                      });
+                    }
+                  }
+                } else if (!hasColorOption && hasSizeOption) {
+                  // Only sizes, no colors
+                  console.log(`Creating ${sizeArray.length} size-only variants`);
+                  
+                  for (const size of sizeArray) {
+                    const variantKey = `nocolor-${size}`;
+                    
+                    if (!uniqueVariants.has(variantKey)) {
+                      // Find the specific row that matches this size
+                      const matchingRow = variantRows.find(row => {
+                        const rowSize = getOptionValue(row, 'size');
+                        return rowSize?.toUpperCase() === size;
+                      }) || variantRows[0]; // Fallback to first row if no exact match
+                      
+                      const rawVariantPrice = parseFloat(matchingRow['Variant Price'] || matchingRow.price_adjustment || '0');
+                      
+                      const variantData = {
+                        product_id: productId,
+                        size: size,
+                        color: null,
+                        color_hex: matchingRow.color_hex || '',
+                        sku: matchingRow['Variant SKU'] || matchingRow.sku || `${productData.sku}-${size}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                        price_adjustment: rawVariantPrice,
+                      };
+                      
+                      uniqueVariants.set(variantKey, {
+                        ...variantData,
+                        quantity: parseInt(matchingRow['Variant Inventory Qty'] || matchingRow.stock_quantity || '0'),
+                        low_stock_threshold: parseInt(matchingRow.low_stock_threshold || '2')
                       });
                     }
                   }
                 }
-              } else if (allColors.length > 0 && allSizes.length === 0) {
-                // Only colors, no sizes
-                console.log(`Creating ${allColors.length} color-only variants`);
-                
-                for (const color of allColors) {
-                  const variantKey = `nosize-${color}`;
-                  
-                  if (!uniqueVariants.has(variantKey)) {
-                    const rawVariantPrice = parseFloat(mainRow['Variant Price'] || mainRow.price_adjustment || '0');
-                    
-                    const variantData = {
-                      product_id: productId,
-                      size: null,
-                      color: color || null,
-                      color_hex: mainRow.color_hex || '',
-                      sku: mainRow['Variant SKU'] || mainRow.sku || `${productData.sku}-${color || 'nocolor'}`.replace(/[^a-zA-Z0-9-]/g, ''),
-                      price_adjustment: rawVariantPrice,
-                    };
-                    
-                    uniqueVariants.set(variantKey, {
-                      ...variantData,
-                      quantity: parseInt(mainRow['Variant Inventory Qty'] || mainRow.stock_quantity || '0'),
-                      low_stock_threshold: parseInt(mainRow.low_stock_threshold || '5')
-                    });
-                  }
-                }
-              } else if (allSizes.length > 0 && allColors.length === 0) {
-                // Only sizes, no colors
-                console.log(`Creating ${allSizes.length} size-only variants`);
-                
-                for (const size of allSizes) {
-                  const variantKey = `${size}-nocolor`;
-                  
-                  if (!uniqueVariants.has(variantKey)) {
-                    const rawVariantPrice = parseFloat(mainRow['Variant Price'] || mainRow.price_adjustment || '0');
-                    
-                    const variantData = {
-                      product_id: productId,
-                      size: size || null,
-                      color: null,
-                      color_hex: mainRow.color_hex || '',
-                      sku: mainRow['Variant SKU'] || mainRow.sku || `${productData.sku}-${size || 'nosize'}`.replace(/[^a-zA-Z0-9-]/g, ''),
-                      price_adjustment: rawVariantPrice,
-                    };
-                    
-                    uniqueVariants.set(variantKey, {
-                      ...variantData,
-                      quantity: parseInt(mainRow['Variant Inventory Qty'] || mainRow.stock_quantity || '0'),
-                      low_stock_threshold: parseInt(mainRow.low_stock_threshold || '5')
-                    });
-                  }
-                }
+              } else {
+                // No valid Option data found - this is a product without variants
+                console.log('No valid Option1/Option2 Names and Values found - treating as single product without variants');
               }
 
-              if (hasVariantData) {
-                // Always process variants when we have Option1/Option2/Option3 Values
-                console.log('Processing variants from Option1/Option2/Option3 Values');
-                for (const variantRow of variantRows) {
-                  // Smart mapping: detect if Option1/Option2 are size/color based on names
-                  const option1Name = variantRow['Option1 Name'] || '';
-                  const option2Name = variantRow['Option2 Name'] || '';
-                  const option3Name = variantRow['Option3 Name'] || '';
+              // Insert unique variants only if we have valid variants
+              if (uniqueVariants.size > 0) {
+                for (const variantInfo of uniqueVariants.values()) {
+                  const { quantity, low_stock_threshold, ...variantData } = variantInfo;
                   
-                  let size = '';
-                  let color = '';
-                  let hasSize = false;
-                  let hasColor = false;
-                  
-                  // Check Option1
-                  if (option1Name.toLowerCase().includes('size') || 
-                      option1Name.toLowerCase().includes('dimension')) {
-                    size = variantRow['Option1 Value'] || '';
-                    hasSize = !!size;
-                  } else if (option1Name.toLowerCase().includes('color') || 
-                             option1Name.toLowerCase().includes('colour')) {
-                    color = variantRow['Option1 Value'] || '';
-                    hasColor = !!color;
-                  } else if (variantRow['Option1 Value']) {
-                    // Try to guess based on value patterns
-                    const value = variantRow['Option1 Value'].toLowerCase();
-                    if (value.includes('size') || /^(xs|s|m|l|xl|xxl|\d+|\d+cm|\d+mm|\d+inch)$/i.test(value)) {
-                      size = variantRow['Option1 Value'];
-                      hasSize = true;
-                    } else {
-                      color = variantRow['Option1 Value'];
-                      hasColor = true;
-                    }
-                  }
-                  
-                  // Check Option2
-                  if (option2Name.toLowerCase().includes('color') || 
-                      option2Name.toLowerCase().includes('colour')) {
-                    color = variantRow['Option2 Value'] || '';
-                    hasColor = !!color;
-                  } else if (option2Name.toLowerCase().includes('size') || 
-                             option2Name.toLowerCase().includes('dimension')) {
-                    size = variantRow['Option2 Value'] || '';
-                    hasSize = !!size;
-                  } else if (variantRow['Option2 Value'] && !hasColor && !hasSize) {
-                    // If Option1 was size, Option2 is likely color
-                    if (hasSize) {
-                      color = variantRow['Option2 Value'];
-                      hasColor = true;
-                    } else if (hasColor) {
-                      size = variantRow['Option2 Value'];
-                      hasSize = true;
-                    } else {
-                      // Guess based on value
-                      const value = variantRow['Option2 Value'].toLowerCase();
-                      if (value.includes('size') || /^(xs|s|m|l|xl|xxl|\d+|\d+cm|\d+mm|\d+inch)$/i.test(value)) {
-                        size = variantRow['Option2 Value'];
-                        hasSize = true;
-                      } else {
-                        color = variantRow['Option2 Value'];
-                        hasColor = true;
-                      }
-                    }
-                  }
-                  
-                  // Check Option3 if present
-                  if (option3Name && variantRow['Option3 Value']) {
-                    if (option3Name.toLowerCase().includes('color') && !hasColor) {
-                      color = variantRow['Option3 Value'];
-                      hasColor = true;
-                    } else if (option3Name.toLowerCase().includes('size') && !hasSize) {
-                      size = variantRow['Option3 Value'];
-                      hasSize = true;
-                    }
-                  }
-                  
-                  // Only set defaults if we have actual variant options
-                  // Don't create size variants if no size is actually specified
-                  if (!hasSize && !hasColor) {
-                    // No variants detected, skip this variant creation
-                    continue;
-                  } else if (!hasSize && hasColor) {
-                    size = ''; // Don't set "One Size" - leave empty for color-only variants
-                  } else if (hasSize && !hasColor) {
-                    color = ''; // Don't set "Default" - leave empty for size-only variants
-                  }
-                  
-                  // Handle variant pricing - use raw "Variant Price" value as price_adjustment
-                  // No calculation needed - store the actual variant price as adjustment
-                  const rawVariantPrice = parseFloat(variantRow['Variant Price'] || variantRow.price_adjustment || '0');
-                  
-                  // Create unique variant key
-                  const variantKey = `${size}-${color}`;
-                  
-                  if (!uniqueVariants.has(variantKey)) {
-                    const variantData = {
-                      product_id: productId,
-                      size: size || null,
-                      color: color || null,
-                      color_hex: variantRow.color_hex || '',
-                      sku: variantRow['Variant SKU'] || variantRow.sku || `${productData.sku}-${size || 'nosize'}-${color || 'nocolor'}`.replace(/[^a-zA-Z0-9-]/g, ''),
-                      price_adjustment: rawVariantPrice, // Use raw variant price without calculation
-                    };
-                    
-                    uniqueVariants.set(variantKey, {
-                      ...variantData,
-                      quantity: parseInt(variantRow['Variant Inventory Qty'] || variantRow.stock_quantity || '0'),
-                      low_stock_threshold: parseInt(variantRow.low_stock_threshold || '5')
+                  const { data: newVariant, error: variantError } = await supabase
+                    .from('product_variants')
+                    .insert(variantData)
+                    .select()
+                    .single();
+
+                  if (variantError) {
+                    console.error('Variant insert error:', variantError);
+                    result.warnings.push({
+                      row: variantRows[0]._index || 0,
+                      field: 'variant',
+                      value: variantData.sku,
+                      message: `Failed to create variant: ${variantError.message}`
                     });
-                  }
-                }
-
-                // Insert unique variants only if we have valid variants
-                if (uniqueVariants.size > 0) {
-                  for (const variantInfo of uniqueVariants.values()) {
-                    const { quantity, low_stock_threshold, ...variantData } = variantInfo;
-                    
-                    const { data: newVariant, error: variantError } = await supabase
-                      .from('product_variants')
-                      .insert(variantData)
-                      .select()
-                      .single();
-
-                    if (variantError) {
-                      console.error('Variant insert error:', variantError);
-                      result.warnings.push({
-                        row: variantRows[0]._index || 0,
-                        field: 'variant',
-                        value: variantData.sku,
-                        message: `Failed to create variant: ${variantError.message}`
-                      });
-                    } else {
-                      createdVariants.push({
-                        ...newVariant,
-                        quantity,
-                        low_stock_threshold
-                      });
-                    }
+                  } else {
+                    createdVariants.push({
+                      ...newVariant,
+                      quantity,
+                      low_stock_threshold
+                    });
                   }
                 }
               } else {
@@ -1034,7 +919,7 @@ const useProductImport = () => {
                     const imageProgress = productProgress + ((processedImages / uniqueImages.size) * 2); // Small boost for image progress
                     onProgress?.(Math.round(imageProgress), `Downloading image ${processedImages + 1}/${uniqueImages.size} for ${productData.name}`);
                     
-                    // Download and upload image to Supabase storage
+                    // Download and upload image to local storage
                     const uploadedFileName = await downloadAndUploadImage(originalUrl, productData.name, imageInfo.display_order);
                     
                     if (uploadedFileName) {
