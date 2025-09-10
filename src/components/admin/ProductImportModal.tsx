@@ -57,10 +57,10 @@ const getOptionValue = (row: any, type: 'color' | 'size'): string | null => {
     }
   } else if (type === 'size') {
     if (option1Name.includes('size')) {
-      return option1Value || null;
+      return option1Value ? option1Value.toUpperCase() : null;
     }
     if (option2Name.includes('size')) {
-      return option2Value || null;
+      return option2Value ? option2Value.toUpperCase() : null;
     }
   }
   
@@ -658,6 +658,7 @@ const useProductImport = () => {
               console.log('Checking for Option-based variants:', {
                 productName: variantRows[0].Title || variantRows[0].name,
                 hasValidOptionData,
+                totalRows: variantRows.length,
                 sampleRow: {
                   option1Name: variantRows[0]['Option1 Name'],
                   option1Value: variantRows[0]['Option1 Value'],
@@ -670,158 +671,49 @@ const useProductImport = () => {
                 // Process variants based on Option1/Option2 Names and Values
                 console.log('Processing variants from Option1/Option2 Names and Values');
                 
-                // Collect all unique colors and sizes across all variant rows
-                const allColors = new Set<string>();
-                const allSizes = new Set<string>();
-                let hasColorOption = false;
-                let hasSizeOption = false;
-                
-                // First pass: identify what options represent colors vs sizes
+                // Directly process each row as a variant (Shopify CSV approach)
+                // Each row represents a specific variant combination
                 for (const variantRow of variantRows) {
-                  const option1Name = (variantRow['Option1 Name'] || '').toLowerCase().trim();
-                  const option2Name = (variantRow['Option2 Name'] || '').toLowerCase().trim();
-                  const option1Value = (variantRow['Option1 Value'] || '').trim();
-                  const option2Value = (variantRow['Option2 Value'] || '').trim();
+                  const color = getOptionValue(variantRow, 'color');
+                  const size = getOptionValue(variantRow, 'size');
                   
-                  // Check Option1
-                  if (option1Name.includes('color') || option1Name.includes('colour')) {
-                    if (option1Value) {
-                      allColors.add(option1Value);
-                      hasColorOption = true;
-                    }
-                  } else if (option1Name.includes('size')) {
-                    if (option1Value) {
-                      allSizes.add(option1Value.toUpperCase()); // Make sizes uppercase
-                      hasSizeOption = true;
-                    }
+                  // Skip rows without any valid options
+                  if (!color && !size) {
+                    continue;
                   }
                   
-                  // Check Option2
-                  if (option2Name.includes('color') || option2Name.includes('colour')) {
-                    if (option2Value) {
-                      allColors.add(option2Value);
-                      hasColorOption = true;
-                    }
-                  } else if (option2Name.includes('size')) {
-                    if (option2Value) {
-                      allSizes.add(option2Value.toUpperCase()); // Make sizes uppercase
-                      hasSizeOption = true;
-                    }
+                  // Create a unique key for this variant combination
+                  const variantKey = `${color || 'nocolor'}-${size || 'nosize'}`;
+                  
+                  // Only create if this combination doesn't already exist
+                  if (!uniqueVariants.has(variantKey)) {
+                    const rawVariantPrice = parseFloat(variantRow['Variant Price'] || variantRow.price_adjustment || '0');
+                    
+                    const variantData = {
+                      product_id: productId,
+                      size: size,
+                      color: color,
+                      color_hex: variantRow.color_hex || '',
+                      sku: variantRow['Variant SKU'] || variantRow.sku || `${productData.sku}-${variantKey}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                      price_adjustment: rawVariantPrice,
+                    };
+                    
+                    uniqueVariants.set(variantKey, {
+                      ...variantData,
+                      quantity: parseInt(variantRow['Variant Inventory Qty'] || variantRow.stock_quantity || '0'),
+                      low_stock_threshold: parseInt(variantRow.low_stock_threshold || '2')
+                    });
+                    
+                    console.log(`Created variant: ${variantKey}`, {
+                      color,
+                      size,
+                      sku: variantData.sku,
+                      price_adjustment: rawVariantPrice
+                    });
                   }
                 }
-
-                const colorArray = Array.from(allColors);
-                const sizeArray = Array.from(allSizes);
                 
-                console.log('Identified variants:', {
-                  colors: colorArray,
-                  sizes: sizeArray,
-                  hasColorOption,
-                  hasSizeOption,
-                  expectedVariantCount: hasColorOption && hasSizeOption ? colorArray.length * sizeArray.length : Math.max(colorArray.length, sizeArray.length)
-                });
-
-                // Create variant combinations based on what we found
-                if (hasColorOption && hasSizeOption) {
-                  // Both colors and sizes - create all combinations (color as base, size as child)
-                  console.log(`Creating ${colorArray.length} × ${sizeArray.length} = ${colorArray.length * sizeArray.length} variants`);
-                  
-                  for (const color of colorArray) {
-                    for (const size of sizeArray) {
-                      const variantKey = `${color}-${size}`;
-                      
-                      if (!uniqueVariants.has(variantKey)) {
-                        // Find the specific row that matches this color-size combination
-                        const matchingRow = variantRows.find(row => {
-                          const rowColor = getOptionValue(row, 'color');
-                          const rowSize = getOptionValue(row, 'size');
-                          return rowColor === color && rowSize?.toUpperCase() === size;
-                        }) || variantRows[0]; // Fallback to first row if no exact match
-                        
-                        const rawVariantPrice = parseFloat(matchingRow['Variant Price'] || matchingRow.price_adjustment || '0');
-                        
-                        const variantData = {
-                          product_id: productId,
-                          size: size,
-                          color: color,
-                          color_hex: matchingRow.color_hex || '',
-                          sku: matchingRow['Variant SKU'] || matchingRow.sku || `${productData.sku}-${color}-${size}`.replace(/[^a-zA-Z0-9-]/g, ''),
-                          price_adjustment: rawVariantPrice,
-                        };
-                        
-                        uniqueVariants.set(variantKey, {
-                          ...variantData,
-                          quantity: parseInt(matchingRow['Variant Inventory Qty'] || matchingRow.stock_quantity || '0'),
-                          low_stock_threshold: parseInt(matchingRow.low_stock_threshold || '2')
-                        });
-                      }
-                    }
-                  }
-                } else if (hasColorOption && !hasSizeOption) {
-                  // Only colors, no sizes
-                  console.log(`Creating ${colorArray.length} color-only variants`);
-                  
-                  for (const color of colorArray) {
-                    const variantKey = `${color}-nosize`;
-                    
-                    if (!uniqueVariants.has(variantKey)) {
-                      // Find the specific row that matches this color
-                      const matchingRow = variantRows.find(row => {
-                        const rowColor = getOptionValue(row, 'color');
-                        return rowColor === color;
-                      }) || variantRows[0]; // Fallback to first row if no exact match
-                      
-                      const rawVariantPrice = parseFloat(matchingRow['Variant Price'] || matchingRow.price_adjustment || '0');
-                      
-                      const variantData = {
-                        product_id: productId,
-                        size: null,
-                        color: color,
-                        color_hex: matchingRow.color_hex || '',
-                        sku: matchingRow['Variant SKU'] || matchingRow.sku || `${productData.sku}-${color}`.replace(/[^a-zA-Z0-9-]/g, ''),
-                        price_adjustment: rawVariantPrice,
-                      };
-                      
-                      uniqueVariants.set(variantKey, {
-                        ...variantData,
-                        quantity: parseInt(matchingRow['Variant Inventory Qty'] || matchingRow.stock_quantity || '0'),
-                        low_stock_threshold: parseInt(matchingRow.low_stock_threshold || '2')
-                      });
-                    }
-                  }
-                } else if (!hasColorOption && hasSizeOption) {
-                  // Only sizes, no colors
-                  console.log(`Creating ${sizeArray.length} size-only variants`);
-                  
-                  for (const size of sizeArray) {
-                    const variantKey = `nocolor-${size}`;
-                    
-                    if (!uniqueVariants.has(variantKey)) {
-                      // Find the specific row that matches this size
-                      const matchingRow = variantRows.find(row => {
-                        const rowSize = getOptionValue(row, 'size');
-                        return rowSize?.toUpperCase() === size;
-                      }) || variantRows[0]; // Fallback to first row if no exact match
-                      
-                      const rawVariantPrice = parseFloat(matchingRow['Variant Price'] || matchingRow.price_adjustment || '0');
-                      
-                      const variantData = {
-                        product_id: productId,
-                        size: size,
-                        color: null,
-                        color_hex: matchingRow.color_hex || '',
-                        sku: matchingRow['Variant SKU'] || matchingRow.sku || `${productData.sku}-${size}`.replace(/[^a-zA-Z0-9-]/g, ''),
-                        price_adjustment: rawVariantPrice,
-                      };
-                      
-                      uniqueVariants.set(variantKey, {
-                        ...variantData,
-                        quantity: parseInt(matchingRow['Variant Inventory Qty'] || matchingRow.stock_quantity || '0'),
-                        low_stock_threshold: parseInt(matchingRow.low_stock_threshold || '2')
-                      });
-                    }
-                  }
-                }
+                console.log(`Total unique variants created: ${uniqueVariants.size} from ${variantRows.length} rows`);
               } else {
                 // No valid Option data found - this is a product without variants
                 console.log('No valid Option1/Option2 Names and Values found - treating as single product without variants');
