@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabaseAdmin } from '../config/supabase';
+import { extractStorageFileName } from '../utils/storageUtils';
 import type {
 	Product,
 	Category,
@@ -94,14 +95,48 @@ export const useCategories = () => {
 	const deleteCategory = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
+			// 1. Get category data including image URL for storage cleanup
+			const { data: category, error: categoryFetchError } = await supabase
+				.from('categories')
+				.select('image_url')
+				.eq('id', id)
+				.single();
+			
+			if (categoryFetchError) {
+				throw categoryFetchError;
+			}
+			
+			// 2. Delete category image from storage if it exists
+			if (category?.image_url) {
+				// Extract filename from URL - only delete files we uploaded (not external URLs)
+				const fileName = extractStorageFileName(category.image_url);
+				
+				if (fileName) {
+					console.log('Deleting category image from storage:', fileName);
+					const { error: storageDeleteError } = await supabase.storage
+						.from('category-images')
+						.remove([fileName]);
+					
+					if (storageDeleteError) {
+						console.warn('Category image storage deletion error (non-critical):', storageDeleteError);
+					} else {
+						console.log('✅ Category image deleted from storage');
+					}
+				}
+			}
+			
+			// 3. Delete category from database
 			const { error } = await supabase
 				.from('categories')
 				.delete()
 				.eq('id', id);
 
 			if (error) throw error;
+			
+			console.log('✅ Category deleted successfully');
 			await fetchCategories();
 		} catch (e) {
+			console.error('Error deleting category:', e);
 			throw e instanceof Error ? e : new Error('Error deleting category');
 		}
 	};
@@ -724,8 +759,17 @@ export const useProducts = () => {
 			// 2. Delete images marked for deletion
 			for (const img of imagesToDelete) {
 				if (img.image_url) {
-					// Remove from storage
-					await supabase.storage.from('product-images').remove([img.image_url]);
+					// Extract filename and remove from storage
+					const filename = extractStorageFileName(img.image_url);
+					if (filename) {
+						console.log('Deleting image from storage during update:', filename);
+						const { error: storageError } = await supabase.storage
+							.from('product-images')
+							.remove([filename]);
+						if (storageError) {
+							console.warn('Storage deletion error during update:', storageError);
+						}
+					}
 					// Remove from DB
 					await supabase.from('product_images').delete().eq('id', img.id);
 				}
@@ -999,17 +1043,20 @@ export const useProducts = () => {
 			
 			// 2. Delete product images from storage IMMEDIATELY (before any database deletions)
 			if (productImages && productImages.length > 0) {
-				const imageUrls = productImages
-					.map(img => img.image_url)
-					.filter(url => url && !url.startsWith('http')); // Only delete files we uploaded
+				const imageFilenames = productImages
+					.map(img => extractStorageFileName(img.image_url))
+					.filter(filename => filename !== null) as string[];
 				
-				if (imageUrls.length > 0) {
+				if (imageFilenames.length > 0) {
+					console.log('Deleting product images from storage:', imageFilenames);
 					const { error: storageDeleteError } = await supabase.storage
 						.from('product-images')
-						.remove(imageUrls);
+						.remove(imageFilenames);
 					
 					if (storageDeleteError) {
-						console.warn('Storage deletion error (non-critical):', storageDeleteError);
+						console.warn('Product images storage deletion error (non-critical):', storageDeleteError);
+					} else {
+						console.log(`✅ Deleted ${imageFilenames.length} product images from storage`);
 					}
 				}
 			}
