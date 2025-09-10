@@ -285,21 +285,27 @@ const useProductImport = () => {
       onProgress?.(5, 'Validating CSV structure...');
       
       // Group CSV rows by product handle (Shopify exports have variants as separate rows)
-      const productGroups = new Map<string, any[]>();
+      // Track original CSV row index to maintain import order
+      const productGroups = new Map<string, { rows: any[], minIndex: number }>();
       
       csvData.forEach((row, index) => {
         const handle = row.Handle || row.handle || row.sku || `product-${index}`;
         if (!productGroups.has(handle)) {
-          productGroups.set(handle, []);
+          productGroups.set(handle, { rows: [], minIndex: index });
         }
-        productGroups.get(handle)!.push(row);
+        const group = productGroups.get(handle)!;
+        group.rows.push({ ...row, _originalIndex: index });
+        // Update minIndex to track the earliest appearance of this product
+        if (index < group.minIndex) {
+          group.minIndex = index;
+        }
       });
 
       console.log('Product grouping results:', {
         totalRows: csvData.length,
         uniqueProducts: productGroups.size,
         firstFewHandles: Array.from(productGroups.keys()).slice(0, 5),
-        sampleGroupSizes: Array.from(productGroups.values()).slice(0, 5).map(group => group.length)
+        sampleGroupSizes: Array.from(productGroups.values()).slice(0, 5).map(group => group.rows.length)
       });
 
       onProgress?.(10, `Found ${productGroups.size} unique products with ${csvData.length} variants/rows`);
@@ -447,19 +453,24 @@ const useProductImport = () => {
         }
       }
 
-      // Process products in batches
-      const productArray = Array.from(productGroups.values());
-      const totalBatches = Math.ceil(productArray.length / batchSize);
+      // Process products in batches - sort by original CSV order but REVERSE it
+      // so first CSV row gets the newest timestamp and appears first on website
+      const productGroupsArray = Array.from(productGroups.values()).sort((a, b) => b.minIndex - a.minIndex);
+      const totalBatches = Math.ceil(productGroupsArray.length / batchSize);
 
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-        const batch = productArray.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
+        const batch = productGroupsArray.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
         const batchBaseProgress = 25 + ((batchIndex / totalBatches) * 65);
         
         console.log(`[Progress] Starting batch ${batchIndex + 1}/${totalBatches}, Base Progress: ${Math.round(batchBaseProgress)}%`);
         onProgress?.(Math.round(batchBaseProgress), `Processing batch ${batchIndex + 1} of ${totalBatches}...`);
 
         for (let productIndex = 0; productIndex < batch.length; productIndex++) {
-          const variantRows = batch[productIndex];
+          const productGroup = batch[productIndex];
+          const variantRows = productGroup.rows;
+          
+          // Calculate display order based on original CSV position
+          const displayOrder = productGroup.minIndex;
           
           // Update progress within the batch
           const productProgress = batchBaseProgress + ((productIndex / batch.length) * (65 / totalBatches));
@@ -547,7 +558,7 @@ const useProductImport = () => {
               is_featured: false, // Default to false, can be updated later
               slug: generateSlug(mainRow.name || mainRow.Title || mainRow.Handle || ''),
               meta_title: mainRow.meta_title || mainRow['SEO Title'] || '',
-              meta_description: mainRow.meta_description || mainRow['SEO Description'] || '',
+              meta_description: mainRow.meta_description || mainRow['SEO Description'] || `imported-order-${displayOrder.toString().padStart(8, '0')}`,
               created_by: user.id, // Current user's UUID
               updated_by: user.id  // Current user's UUID
             };
@@ -563,7 +574,7 @@ const useProductImport = () => {
 
                 if (existingProduct) {
                   result.warnings.push({
-                    row: variantRows[0]._index || 0,
+                    row: variantRows[0]._originalIndex || 0,
                     field: 'sku',
                     value: productData.sku,
                     message: 'Product with this SKU already exists - skipped'
@@ -625,7 +636,7 @@ const useProductImport = () => {
                     if (attemptCount >= maxAttempts) {
                       // Final attempt failed, skip this product
                       result.warnings.push({
-                        row: variantRows[0]._index || 0,
+                        row: variantRows[0]._originalIndex || 0,
                         field: 'sku',
                         value: productData.sku,
                         message: `SKU conflict could not be resolved after ${maxAttempts} attempts`
@@ -651,6 +662,9 @@ const useProductImport = () => {
               if (!productId) {
                 continue;
               }
+
+              // Add a small delay to ensure timestamp ordering (1ms should be enough)
+              await new Promise(resolve => setTimeout(resolve, 1));
 
               // Process variants if there are multiple rows or variant data
               const createdVariants = [];
