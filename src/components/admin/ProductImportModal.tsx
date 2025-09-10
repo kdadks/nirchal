@@ -829,9 +829,9 @@ const useProductImport = () => {
                 }
               }
 
-              if (hasVariantData && allColors.length === 0 && allSizes.length === 0) {
-                // Fallback to original row-by-row variant processing only if no metafields were found
-                console.log('No metafields found, falling back to row-by-row variant processing');
+              if (hasVariantData) {
+                // Always process variants when we have Option1/Option2/Option3 Values
+                console.log('Processing variants from Option1/Option2/Option3 Values');
                 for (const variantRow of variantRows) {
                   // Smart mapping: detect if Option1/Option2 are size/color based on names
                   const option1Name = variantRow['Option1 Name'] || '';
