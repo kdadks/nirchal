@@ -177,8 +177,20 @@ export default async (request: Request, context: Context) => {
       );
     }
 
-    // Sanitize filename and add timestamp for uniqueness
-    const sanitizedFileName = sanitizeFileName(fileName);
+    // Clean and sanitize filename
+    let cleanFileName = fileName;
+    
+    // Remove query parameters (like ?v=1752047898)
+    if (cleanFileName.includes('?')) {
+      cleanFileName = cleanFileName.split('?')[0];
+    }
+    
+    // Remove any path information
+    if (cleanFileName.includes('/')) {
+      cleanFileName = cleanFileName.split('/').pop() || cleanFileName;
+    }
+    
+    const sanitizedFileName = sanitizeFileName(cleanFileName);
     const timestamp = Date.now();
     
     // Extract file extension
