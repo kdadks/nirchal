@@ -95,7 +95,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
     variants: initialData?.variants || [],
     inventory: initialData?.inventory || {
       quantity: 0,
-      low_stock_threshold: 10
+      low_stock_threshold: 2
     }
   });
 
@@ -565,12 +565,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                       // New upload, use local preview
                       imgSrc = image.url;
                     } else if (image.image_url) {
-                      // Existing image, always construct public URL if not already full
+                      // Existing image, use local storage utility to get correct URL
                       if (image.image_url.startsWith('http')) {
                         imgSrc = image.image_url;
                       } else {
-                        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
-                        imgSrc = `${supabaseUrl}/storage/v1/object/public/product-images/${image.image_url}`;
+                        imgSrc = getStorageImageUrl(image.image_url);
                       }
                     }
                     return (

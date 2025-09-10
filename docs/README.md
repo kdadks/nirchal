@@ -96,8 +96,8 @@ src/
 
 1. Configure your Supabase project:
    - Enable Email Auth in Authentication settings
-   - Set up storage buckets for product images
    - Configure Row Level Security (RLS) policies
+   - Set up database tables and functions
 
 2. Install VS Code extensions:
    - ESLint
