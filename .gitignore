@@ -61,3 +61,12 @@ FloatingActionBar.tsx
 
 # Local Netlify folder
 .netlify
+
+# Product images uploaded by admin (ignore dynamic uploads)
+public/images/products/
+public/images/categories/
+
+# Keep static images like payment icons, hero images, etc.
+!public/images/payment/
+!public/heroimage1.png
+!public/favicon.svg
