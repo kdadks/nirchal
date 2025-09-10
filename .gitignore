@@ -61,3 +61,6 @@ FloatingActionBar.tsx
 
 # Local Netlify folder
 .netlify
+
+# Deployment package (created by deploy scripts)
+deployment-package/
