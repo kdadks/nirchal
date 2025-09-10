@@ -9,24 +9,28 @@ if (!supabaseUrl || !supabaseAnonKey) {
 	throw new Error('Missing Supabase environment variables');
 }
 
+// Singleton instances to prevent multiple GoTrueClient warnings
+let supabaseInstance: ReturnType<typeof createClient> | null = null;
+let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
+
 // Regular client for public operations
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = supabaseInstance || (supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'nirchal-auth'
   }
-});
+}));
 
 // Admin client for privileged operations (if service key is available)
 export const supabaseAdmin = supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey, {
+  ? (supabaseAdminInstance || (supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
         storageKey: 'nirchal-admin-auth'
       }
-    })
+    })))
   : null;
 
