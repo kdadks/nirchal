@@ -137,7 +137,7 @@ const AdminDashboard: React.FC = () => {
       if (ordersError) {
         throw ordersError;
       }
-      setRecentOrders(ordersData || []);
+      setRecentOrders((ordersData as any) || []);
 
       // Fetch top products with sale_price and variants
       const { data: productsData, error: productsError } = await supabase
@@ -161,7 +161,7 @@ const AdminDashboard: React.FC = () => {
       if (productsError) {
         throw productsError;
       }
-      setTopProducts(productsData || []);
+      setTopProducts((productsData as any) || []);
 
       // Calculate dashboard stats
       const today = new Date();
@@ -192,9 +192,9 @@ const AdminDashboard: React.FC = () => {
 
       if (allOrdersError) throw allOrdersError;
 
-      const totalRevenue = (allOrders || []).reduce((sum, order) => sum + (order.total_amount || 0), 0);
-      const todayRevenue = (todayOrders || []).reduce((sum, order) => sum + (order.total_amount || 0), 0);
-      const yesterdayRevenue = (yesterdayOrders || []).reduce((sum, order) => sum + (order.total_amount || 0), 0);
+      const totalRevenue = (allOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      const todayRevenue = (todayOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      const yesterdayRevenue = (yesterdayOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
 
       const ordersToday = (todayOrders || []).length;
       const ordersYesterday = (yesterdayOrders || []).length;

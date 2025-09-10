@@ -45,7 +45,7 @@ const UsersPage: React.FC = () => {
 
       if (error) throw error;
 
-      setCustomers(data || []);
+      setCustomers((data as any) || []);
     } catch (err) {
       console.error('Error fetching customers:', err);
       setError('Failed to fetch customers');
