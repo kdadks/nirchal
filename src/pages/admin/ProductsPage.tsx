@@ -6,6 +6,7 @@ import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
 import ProductImportModal from '../../components/admin/ProductImportModal';
 import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
+import { getStorageImageUrl } from '../../utils/storageUtils';
 import { Package, Filter, Trash2, Upload, Download, Edit } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
@@ -288,11 +289,10 @@ const ProductsPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedProducts?.map((product) => {
                   const img = product.images?.find(img => img.is_primary) || product.images?.[0];
-                  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
                   const publicUrl = img?.image_url?.startsWith('http')
                     ? img.image_url
                     : img?.image_url 
-                    ? `${supabaseUrl}/storage/v1/object/public/product-images/${img.image_url}`
+                    ? getStorageImageUrl(img.image_url)
                     : null;
                   
                   const totalStock = product.inventory?.reduce((sum, inv) => sum + (inv.quantity || 0), 0) || 0;

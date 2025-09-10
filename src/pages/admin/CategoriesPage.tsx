@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useCategories, useProducts } from '../../hooks/useAdmin';
 import { usePagination } from '../../hooks/usePagination';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
 import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
+import { saveImageToPublicFolder, generateCategoryImageFileName } from '../../utils/localStorageUtils';
 import type { CategoryFormData } from '../../types/admin';
 import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -19,7 +19,6 @@ const initialForm: CategoryFormData = {
 };
 
 const CategoriesPage: React.FC = () => {
-  const { supabase } = useAuth();
   const { categories, loading, error, createCategory, updateCategory, deleteCategory, refresh } = useCategories();
   const { products } = useProducts();
   const { searchTerm } = useAdminSearch();
@@ -173,7 +172,7 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !supabase) return;
+    if (!e.target.files || !e.target.files[0]) return;
 
     const file = e.target.files[0];
     
@@ -192,20 +191,20 @@ const CategoriesPage: React.FC = () => {
     try {
       setImageUploading(true);
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `category-${Date.now()}.${fileExt}`;
+      // Generate unique filename for local storage
+      const fileName = generateCategoryImageFileName(form.name || 'category', file.name);
 
-      const { error } = await supabase.storage
-        .from('category-images')
-        .upload(fileName, file);
+      // Save image to local public folder
+      const uploadResult = await saveImageToPublicFolder(file, fileName, 'categories');
 
-      if (error) throw error;
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || 'Image upload failed');
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('category-images')
-        .getPublicUrl(fileName);
-
-      setForm(prev => ({ ...prev, image_url: publicUrl }));
+      // Set the form to use just the filename (the display component will handle URL generation)
+      setForm(prev => ({ ...prev, image_url: fileName }));
+      
+      toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error('Failed to upload image');
