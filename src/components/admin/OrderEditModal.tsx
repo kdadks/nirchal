@@ -177,10 +177,10 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
         };
       });
 
-      const completeOrderData = {
+      const completeOrderData: OrderDetails = {
         ...orderData,
         order_items: processedItems || []
-      };
+      } as OrderDetails;
 
       console.log('Fetched order data:', completeOrderData);
       setOrderDetails(completeOrderData);
@@ -266,12 +266,12 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
             is_default: false,
           };
 
-          if (existingBilling) {
+          if (existingBilling && existingBilling.id) {
             // Update existing billing address
             const { error: billingError } = await supabase
               .from('customer_addresses')
               .update(billingAddressData)
-              .eq('id', existingBilling.id);
+              .eq('id', existingBilling.id as string);
 
             if (billingError) {
               console.error('Error updating billing address:', billingError);
@@ -314,12 +314,12 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
             is_default: false,
           };
 
-          if (existingShipping) {
+          if (existingShipping && existingShipping.id) {
             // Update existing shipping address
             const { error: shippingError } = await supabase
               .from('customer_addresses')
               .update(shippingAddressData)
-              .eq('id', existingShipping.id);
+              .eq('id', existingShipping.id as string);
 
             if (shippingError) {
               console.error('Error updating shipping address:', shippingError);
