@@ -159,19 +159,20 @@ const useProductImport = () => {
       // Generate a unique filename for local storage
       const fileName = generateProductImageFileName(productName, imageUrl, imageIndex);
 
-      // For development: Convert blob to data URL and use that directly
-      // In production, this should use proper external storage
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(imageBlob);
-      });
+      // Save to local public folder using the upload function
+      const uploadResult = await saveImageToPublicFolder(imageBlob, fileName, 'products');
 
-      console.log('✅ Successfully converted image to data URL for development use');
-      // Return the data URL instead of trying to save to file system
-      // The database will store this as the image_url
-      return dataUrl;
+      if (!uploadResult.success) {
+        console.error('❌ Failed to save image to local storage:', {
+          fileName,
+          imageUrl,
+          error: uploadResult.error
+        });
+        return null;
+      }
+
+      console.log('✅ Successfully saved image to local storage:', uploadResult.filePath);
+      return uploadResult.filePath || null;
     } catch (error) {
       console.error('❌ Error downloading/uploading image:', {
         imageUrl,
