@@ -37,7 +37,7 @@ export const usePublicCategories = () => {
         throw error;
       }
 
-      setCategories(data || []);
+      setCategories((data as any) || []);
     } catch (e) {
       console.error('[usePublicCategories] Error:', e);
       setError(e instanceof Error ? e.message : 'Error fetching categories');

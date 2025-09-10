@@ -71,8 +71,8 @@ export const useProductsWithFilters = (
           if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by slug:', categoryData);
           
           if (categoryData) {
-            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by slug:', categoryData.id);
-            query = query.eq('category_id', categoryData.id);
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by slug:', (categoryData as any).id);
+            query = query.eq('category_id', (categoryData as any).id);
           } else {
             // Fallback: try matching by name if slug doesn't work
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found by slug, try name');
@@ -85,8 +85,8 @@ export const useProductsWithFilters = (
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by name:', categoryByName);
             
             if (categoryByName) {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by name:', categoryByName.id);
-              query = query.eq('category_id', categoryByName.id);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by name:', (categoryByName as any).id);
+              query = query.eq('category_id', (categoryByName as any).id);
             } else {
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] No category for:', filters.category);
             }
@@ -213,8 +213,8 @@ export const useProductsWithFilters = (
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by slug:', categoryData);
             
             if (categoryData) {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by slug:', categoryData.id);
-              fallbackQuery = fallbackQuery.eq('category_id', categoryData.id);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by slug:', (categoryData as any).id);
+              fallbackQuery = fallbackQuery.eq('category_id', (categoryData as any).id);
             } else {
               // Fallback: try matching by name if slug doesn't work
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: category not by slug, try name');
@@ -227,8 +227,8 @@ export const useProductsWithFilters = (
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by name:', categoryByName);
               
               if (categoryByName) {
-                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by name:', categoryByName.id);
-                fallbackQuery = fallbackQuery.eq('category_id', categoryByName.id);
+                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by name:', (categoryByName as any).id);
+                fallbackQuery = fallbackQuery.eq('category_id', (categoryByName as any).id);
               } else {
                 if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: no category for', filters.category);
               }

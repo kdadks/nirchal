@@ -71,7 +71,7 @@ const OrdersPage: React.FC = () => {
 
       if (error) throw error;
 
-      setOrders(data || []);
+      setOrders((data as any) || []);
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError('Failed to fetch orders');
@@ -159,41 +159,41 @@ const OrdersPage: React.FC = () => {
         if (newStatus === 'processing') {
           // Send order confirmation email when admin processes the order
           await transactionalEmailService.sendOrderConfirmationEmail({
-            id: orderData.id,
-            order_number: orderData.order_number,
-            customer_name: `${orderData.billing_first_name} ${orderData.billing_last_name}`,
-            customer_email: orderData.billing_email,
-            total_amount: orderData.total_amount,
+            id: (orderData as any).id,
+            order_number: (orderData as any).order_number,
+            customer_name: `${(orderData as any).billing_first_name} ${(orderData as any).billing_last_name}`,
+            customer_email: (orderData as any).billing_email,
+            total_amount: (orderData as any).total_amount,
             status: 'confirmed',
             items: [] // Items will be fetched in the email service if needed
           });
 
-        } else if (newStatus === 'shipped' && orderData.tracking_number) {
+        } else if (newStatus === 'shipped' && (orderData as any).tracking_number) {
           // Send specialized shipping email with tracking details
           await transactionalEmailService.sendShippingEmail({
-            id: orderData.id,
-            order_number: orderData.order_number,
-            customer_name: `${orderData.billing_first_name} ${orderData.billing_last_name}`,
-            customer_email: orderData.billing_email,
-            total_amount: orderData.total_amount,
+            id: (orderData as any).id,
+            order_number: (orderData as any).order_number,
+            customer_name: `${(orderData as any).billing_first_name} ${(orderData as any).billing_last_name}`,
+            customer_email: (orderData as any).billing_email,
+            total_amount: (orderData as any).total_amount,
             status: newStatus,
-            tracking_number: orderData.tracking_number,
-            logistics_partner: orderData.logistics_partners?.[0] ? {
-              name: orderData.logistics_partners[0].name,
-              tracking_url_template: orderData.logistics_partners[0].tracking_url_template
+            tracking_number: (orderData as any).tracking_number,
+            logistics_partner: (orderData as any).logistics_partners?.[0] ? {
+              name: (orderData as any).logistics_partners[0].name,
+              tracking_url_template: (orderData as any).logistics_partners[0].tracking_url_template
             } : undefined
           });
 
         } else {
           // Send regular order status update email for other status changes
           await transactionalEmailService.sendOrderStatusUpdateEmail({
-            id: orderData.id,
-            order_number: orderData.order_number,
-            customer_name: `${orderData.billing_first_name} ${orderData.billing_last_name}`,
-            customer_email: orderData.billing_email,
-            total_amount: orderData.total_amount,
+            id: (orderData as any).id,
+            order_number: (orderData as any).order_number,
+            customer_name: `${(orderData as any).billing_first_name} ${(orderData as any).billing_last_name}`,
+            customer_email: (orderData as any).billing_email,
+            total_amount: (orderData as any).total_amount,
             status: newStatus,
-            tracking_number: orderData.tracking_number
+            tracking_number: (orderData as any).tracking_number
           });
 
         }
