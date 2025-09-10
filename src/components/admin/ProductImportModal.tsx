@@ -42,9 +42,9 @@ const generateSlug = (text: string): string => {
 };
 
 // Helper function to extract option value based on type (color or size)
-const getOptionValue = (row: any, type: 'color' | 'size'): string | null => {
-  const option1Name = (row['Option1 Name'] || '').toLowerCase().trim();
-  const option2Name = (row['Option2 Name'] || '').toLowerCase().trim();
+const getOptionValue = (row: any, type: 'color' | 'size', globalOption1Name = '', globalOption2Name = ''): string | null => {
+  const option1Name = (row['Option1 Name'] || globalOption1Name || '').toLowerCase().trim();
+  const option2Name = (row['Option2 Name'] || globalOption2Name || '').toLowerCase().trim();
   const option1Value = (row['Option1 Value'] || '').trim();
   const option2Value = (row['Option2 Value'] || '').trim();
   
@@ -659,25 +659,44 @@ const useProductImport = () => {
               const uniqueVariants = new Map();
               
               // Check if we have valid Option1/Option2 Names and Values for variant processing
+              // In Shopify CSV, Option Names are usually only in the first row, but Values are in all rows
+              let globalOption1Name = '';
+              let globalOption2Name = '';
+              
+              // Find Option Names from any row that has them (usually the first row)
+              for (const row of variantRows) {
+                if ((row['Option1 Name'] || '').trim()) {
+                  globalOption1Name = (row['Option1 Name'] || '').trim();
+                }
+                if ((row['Option2 Name'] || '').trim()) {
+                  globalOption2Name = (row['Option2 Name'] || '').trim();
+                }
+                if (globalOption1Name && globalOption2Name) {
+                  break; // Found both, no need to check more rows
+                }
+              }
+              
+              // Check if we have valid Option Values (even if Names are missing in some rows)
               const hasValidOptionData = variantRows.some(row => {
-                const option1Name = (row['Option1 Name'] || '').trim();
-                const option2Name = (row['Option2 Name'] || '').trim();
                 const option1Value = (row['Option1 Value'] || '').trim();
                 const option2Value = (row['Option2 Value'] || '').trim();
                 
-                return (option1Name && option1Value) || (option2Name && option2Value);
+                return option1Value || option2Value;
               });
 
               console.log('Checking for Option-based variants:', {
-                productName: variantRows[0].Title || variantRows[0].name,
+                productName: mainRow.Title || mainRow.name,
                 hasValidOptionData,
                 totalRows: variantRows.length,
-                sampleRow: {
-                  option1Name: variantRows[0]['Option1 Name'],
-                  option1Value: variantRows[0]['Option1 Value'],
-                  option2Name: variantRows[0]['Option2 Name'],
-                  option2Value: variantRows[0]['Option2 Value']
-                }
+                globalOption1Name,
+                globalOption2Name,
+                sampleRows: variantRows.slice(0, 3).map((row, idx) => ({
+                  rowIndex: idx,
+                  option1Name: row['Option1 Name'],
+                  option1Value: row['Option1 Value'],
+                  option2Name: row['Option2 Name'],
+                  option2Value: row['Option2 Value']
+                }))
               });
               
               if (hasValidOptionData) {
@@ -687,11 +706,22 @@ const useProductImport = () => {
                 // Directly process each row as a variant (Shopify CSV approach)
                 // Each row represents a specific variant combination
                 for (const variantRow of variantRows) {
-                  const color = getOptionValue(variantRow, 'color');
-                  const size = getOptionValue(variantRow, 'size');
+                  const color = getOptionValue(variantRow, 'color', globalOption1Name, globalOption2Name);
+                  const size = getOptionValue(variantRow, 'size', globalOption1Name, globalOption2Name);
+                  
+                  console.log(`Processing variant row:`, {
+                    rowData: {
+                      option1Name: variantRow['Option1 Name'] || globalOption1Name,
+                      option1Value: variantRow['Option1 Value'],
+                      option2Name: variantRow['Option2 Name'] || globalOption2Name,
+                      option2Value: variantRow['Option2 Value']
+                    },
+                    extractedValues: { color, size }
+                  });
                   
                   // Skip rows without any valid options
                   if (!color && !size) {
+                    console.log('Skipping row: no color or size found');
                     continue;
                   }
                   
@@ -723,6 +753,8 @@ const useProductImport = () => {
                       sku: variantData.sku,
                       price_adjustment: rawVariantPrice
                     });
+                  } else {
+                    console.log(`Skipping duplicate variant: ${variantKey}`);
                   }
                 }
                 
