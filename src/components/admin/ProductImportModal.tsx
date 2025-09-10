@@ -376,6 +376,12 @@ const useProductImport = () => {
         vendorsResult.data.map((vendor: any) => [vendor.name.toLowerCase(), vendor.id])
       );
 
+      console.log('Existing categories in database:', {
+        total: categoriesResult.data.length,
+        categories: categoriesResult.data.map((cat: any) => ({ name: cat.name, id: cat.id })),
+        hasUncategorized: categoriesMap.has('uncategorized')
+      });
+
       // Extract unique categories from CSV data and create missing ones
       onProgress?.(17, 'Processing categories from CSV...');
       
@@ -452,8 +458,12 @@ const useProductImport = () => {
       let defaultCategoryId: string;
       const defaultCategoryName = 'uncategorized';
       
-      if (!categoriesMap.has(defaultCategoryName)) {
-        // Check if uncategorized already exists in database before creating
+      // Check if uncategorized already exists in our categories map
+      if (categoriesMap.has(defaultCategoryName)) {
+        defaultCategoryId = categoriesMap.get(defaultCategoryName)!;
+        console.log('Using existing uncategorized category:', defaultCategoryId);
+      } else {
+        // Check if uncategorized exists in database but wasn't loaded
         const { data: existingCategory, error: checkError } = await supabase
           .from('categories')
           .select('id')
@@ -464,8 +474,10 @@ const useProductImport = () => {
           // Use existing uncategorized category
           defaultCategoryId = existingCategory.id;
           categoriesMap.set(defaultCategoryName, defaultCategoryId);
+          console.log('Found existing uncategorized category in database:', defaultCategoryId);
         } else if (checkError?.code === 'PGRST116') {
           // Category doesn't exist, create it
+          console.log('Creating new uncategorized category...');
           const { data: newCategory, error: categoryError } = await supabase
             .from('categories')
             .insert({ 
@@ -484,12 +496,11 @@ const useProductImport = () => {
           
           defaultCategoryId = newCategory.id;
           categoriesMap.set(defaultCategoryName, defaultCategoryId);
+          console.log('Created new uncategorized category:', defaultCategoryId);
         } else {
           console.error('Error checking for uncategorized category:', checkError);
           throw new Error('Failed to check for default category');
         }
-      } else {
-        defaultCategoryId = categoriesMap.get(defaultCategoryName)!;
       }
 
       // Process products in batches
@@ -498,12 +509,21 @@ const useProductImport = () => {
 
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
         const batch = productArray.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
-        const batchProgress = 25 + ((batchIndex / totalBatches) * 65);
+        const batchBaseProgress = 25 + ((batchIndex / totalBatches) * 65);
         
-        console.log(`[Progress] Batch ${batchIndex + 1}/${totalBatches}, Progress: ${Math.round(batchProgress)}%`);
-        onProgress?.(Math.round(batchProgress), `Processing batch ${batchIndex + 1} of ${totalBatches}...`);
+        console.log(`[Progress] Starting batch ${batchIndex + 1}/${totalBatches}, Base Progress: ${Math.round(batchBaseProgress)}%`);
+        onProgress?.(Math.round(batchBaseProgress), `Processing batch ${batchIndex + 1} of ${totalBatches}...`);
 
-        for (const variantRows of batch) {
+        for (let productIndex = 0; productIndex < batch.length; productIndex++) {
+          const variantRows = batch[productIndex];
+          
+          // Update progress within the batch
+          const productProgress = batchBaseProgress + ((productIndex / batch.length) * (65 / totalBatches));
+          const progressMessage = `Processing product ${productIndex + 1}/${batch.length} in batch ${batchIndex + 1}/${totalBatches}`;
+          
+          console.log(`[Progress] ${progressMessage}, Progress: ${Math.round(productProgress)}%`);
+          onProgress?.(Math.round(productProgress), progressMessage);
+          
           try {
             // Get the main product data from the first row
             const mainRow = variantRows[0];
@@ -684,7 +704,134 @@ const useProductImport = () => {
                 row['Option1 Value'] || row['Option2 Value'] || row['Option3 Value']
               );
 
-              if (hasVariantData) {
+              // First, check if we have Shopify metafields for colors and sizes
+              let allColors: string[] = [];
+              let allSizes: string[] = [];
+              
+              // Look for metafield columns in the main row
+              const mainRow = variantRows[0];
+              const colorMetafieldCol = Object.keys(mainRow).find(key => 
+                key.toLowerCase().includes('color') && key.includes('metafields')
+              );
+              const sizeMetafieldCol = Object.keys(mainRow).find(key => 
+                key.toLowerCase().includes('size') && key.includes('metafields')
+              );
+              
+              console.log('Checking for metafields:', {
+                productName: mainRow.Title || mainRow.name,
+                colorMetafieldCol,
+                sizeMetafieldCol,
+                availableColumns: Object.keys(mainRow).filter(key => key.includes('metafields'))
+              });
+              
+              // Extract colors and sizes from metafields
+              if (colorMetafieldCol && mainRow[colorMetafieldCol]) {
+                // Parse comma or pipe separated colors
+                allColors = mainRow[colorMetafieldCol]
+                  .split(/[,|]/)
+                  .map((c: string) => c.trim())
+                  .filter((c: string) => c.length > 0);
+              }
+              
+              if (sizeMetafieldCol && mainRow[sizeMetafieldCol]) {
+                // Parse comma or pipe separated sizes
+                allSizes = mainRow[sizeMetafieldCol]
+                  .split(/[,|]/)
+                  .map((s: string) => s.trim())
+                  .filter((s: string) => s.length > 0);
+              }
+              
+              console.log('Extracted metafield variants:', {
+                colors: allColors,
+                sizes: allSizes,
+                totalCombinations: allColors.length * allSizes.length
+              });
+              
+              // If we have metafield colors and sizes, create all combinations
+              if (allColors.length > 0 && allSizes.length > 0) {
+                console.log(`Creating ${allColors.length} × ${allSizes.length} = ${allColors.length * allSizes.length} variant combinations`);
+                
+                for (const color of allColors) {
+                  for (const size of allSizes) {
+                    const variantKey = `${size}-${color}`;
+                    
+                    if (!uniqueVariants.has(variantKey)) {
+                      const rawVariantPrice = parseFloat(mainRow['Variant Price'] || mainRow.price_adjustment || '0');
+                      
+                      const variantData = {
+                        product_id: productId,
+                        size: size || null,
+                        color: color || null,
+                        color_hex: mainRow.color_hex || '',
+                        sku: mainRow['Variant SKU'] || mainRow.sku || `${productData.sku}-${size || 'nosize'}-${color || 'nocolor'}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                        price_adjustment: rawVariantPrice,
+                      };
+                      
+                      uniqueVariants.set(variantKey, {
+                        ...variantData,
+                        quantity: parseInt(mainRow['Variant Inventory Qty'] || mainRow.stock_quantity || '0'),
+                        low_stock_threshold: parseInt(mainRow.low_stock_threshold || '5')
+                      });
+                    }
+                  }
+                }
+              } else if (allColors.length > 0 && allSizes.length === 0) {
+                // Only colors, no sizes
+                console.log(`Creating ${allColors.length} color-only variants`);
+                
+                for (const color of allColors) {
+                  const variantKey = `nosize-${color}`;
+                  
+                  if (!uniqueVariants.has(variantKey)) {
+                    const rawVariantPrice = parseFloat(mainRow['Variant Price'] || mainRow.price_adjustment || '0');
+                    
+                    const variantData = {
+                      product_id: productId,
+                      size: null,
+                      color: color || null,
+                      color_hex: mainRow.color_hex || '',
+                      sku: mainRow['Variant SKU'] || mainRow.sku || `${productData.sku}-${color || 'nocolor'}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                      price_adjustment: rawVariantPrice,
+                    };
+                    
+                    uniqueVariants.set(variantKey, {
+                      ...variantData,
+                      quantity: parseInt(mainRow['Variant Inventory Qty'] || mainRow.stock_quantity || '0'),
+                      low_stock_threshold: parseInt(mainRow.low_stock_threshold || '5')
+                    });
+                  }
+                }
+              } else if (allSizes.length > 0 && allColors.length === 0) {
+                // Only sizes, no colors
+                console.log(`Creating ${allSizes.length} size-only variants`);
+                
+                for (const size of allSizes) {
+                  const variantKey = `${size}-nocolor`;
+                  
+                  if (!uniqueVariants.has(variantKey)) {
+                    const rawVariantPrice = parseFloat(mainRow['Variant Price'] || mainRow.price_adjustment || '0');
+                    
+                    const variantData = {
+                      product_id: productId,
+                      size: size || null,
+                      color: null,
+                      color_hex: mainRow.color_hex || '',
+                      sku: mainRow['Variant SKU'] || mainRow.sku || `${productData.sku}-${size || 'nosize'}`.replace(/[^a-zA-Z0-9-]/g, ''),
+                      price_adjustment: rawVariantPrice,
+                    };
+                    
+                    uniqueVariants.set(variantKey, {
+                      ...variantData,
+                      quantity: parseInt(mainRow['Variant Inventory Qty'] || mainRow.stock_quantity || '0'),
+                      low_stock_threshold: parseInt(mainRow.low_stock_threshold || '5')
+                    });
+                  }
+                }
+              }
+
+              if (hasVariantData && allColors.length === 0 && allSizes.length === 0) {
+                // Fallback to original row-by-row variant processing only if no metafields were found
+                console.log('No metafields found, falling back to row-by-row variant processing');
                 for (const variantRow of variantRows) {
                   // Smart mapping: detect if Option1/Option2 are size/color based on names
                   const option1Name = variantRow['Option1 Name'] || '';
@@ -879,8 +1026,13 @@ const useProductImport = () => {
                 const imageInserts = [];
                 let processedImages = 0;
                 
+                console.log(`Processing ${uniqueImages.size} images for product: ${productData.name}`);
+                
                 for (const [originalUrl, imageInfo] of uniqueImages) {
                   try {
+                    // Update progress for image processing
+                    const imageProgress = productProgress + ((processedImages / uniqueImages.size) * 2); // Small boost for image progress
+                    onProgress?.(Math.round(imageProgress), `Downloading image ${processedImages + 1}/${uniqueImages.size} for ${productData.name}`);
                     
                     // Download and upload image to Supabase storage
                     const uploadedFileName = await downloadAndUploadImage(originalUrl, productData.name, imageInfo.display_order);
@@ -894,6 +1046,7 @@ const useProductImport = () => {
                         display_order: imageInfo.display_order
                       });
                       processedImages++;
+                      console.log(`✅ Successfully processed image ${processedImages}/${uniqueImages.size}: ${uploadedFileName}`);
                     } else {
                       // Failed to download/upload, add warning with more detail
                       console.warn(`⚠️ Image download failed for ${originalUrl} - Product: ${productData.name}`);
@@ -903,6 +1056,7 @@ const useProductImport = () => {
                         value: originalUrl,
                         message: `Failed to download/upload image: ${originalUrl} (Check console for detailed error)`
                       });
+                      processedImages++;
                     }
                     
                     // Add a small delay between image downloads to prevent overwhelming the browser/network
@@ -933,6 +1087,50 @@ const useProductImport = () => {
                       value: `${imageInserts.length} images`,
                       message: `Failed to save image records: ${imageError.message}`
                     });
+                  } else {
+                    // Assign swatch images to color variants
+                    if (createdVariants.length > 0 && imageInserts.length > 0) {
+                      console.log('Assigning swatch images to variants...');
+                      
+                      // Get the inserted images with their IDs
+                      const { data: insertedImages, error: fetchError } = await supabase
+                        .from('product_images')
+                        .select('id, image_url, is_primary, display_order')
+                        .eq('product_id', productId)
+                        .order('display_order');
+                      
+                      if (!fetchError && insertedImages && insertedImages.length > 0) {
+                        // Find primary image or first image as default swatch
+                        const primaryImage = insertedImages.find(img => img.is_primary) || insertedImages[0];
+                        
+                        // Update variants with swatch image references
+                        const variantUpdates = [];
+                        for (const variant of createdVariants) {
+                          if (variant.color) {
+                            // For color variants, assign the primary image as swatch
+                            variantUpdates.push({
+                              id: variant.id,
+                              swatch_image_id: primaryImage.id
+                            });
+                          }
+                        }
+                        
+                        if (variantUpdates.length > 0) {
+                          console.log(`Updating ${variantUpdates.length} variants with swatch images`);
+                          
+                          for (const update of variantUpdates) {
+                            const { error: swatchError } = await supabase
+                              .from('product_variants')
+                              .update({ swatch_image_id: update.swatch_image_id })
+                              .eq('id', update.id);
+                              
+                            if (swatchError) {
+                              console.warn('Failed to assign swatch image to variant:', swatchError);
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -962,6 +1160,8 @@ const useProductImport = () => {
             }
 
             result.success++;
+            console.log(`✅ Successfully processed product: ${productData.name}`);
+            
           } catch (error) {
             console.error('Product import error:', error);
             result.failed++;
@@ -973,6 +1173,11 @@ const useProductImport = () => {
             });
           }
         }
+        
+        // Update progress at end of batch
+        const endBatchProgress = 25 + (((batchIndex + 1) / totalBatches) * 65);
+        console.log(`[Progress] Completed batch ${batchIndex + 1}/${totalBatches}, Progress: ${Math.round(endBatchProgress)}%`);
+        onProgress?.(Math.round(endBatchProgress), `Completed batch ${batchIndex + 1} of ${totalBatches}`);
       }
 
       onProgress?.(100, validateOnly ? 'Validation completed' : 'Import completed');
