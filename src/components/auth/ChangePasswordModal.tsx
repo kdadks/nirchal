@@ -69,8 +69,11 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         return;
       }
 
-      if (!data.success) {
-        setError(data.message || 'Failed to change password');
+      // Type assertion for RPC response
+      const response = data as { success: boolean; message?: string } | null;
+      
+      if (!response?.success) {
+        setError(response?.message || 'Failed to change password');
         return;
       }
 
@@ -84,9 +87,12 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           .single();
 
         if (!customerError && customerData) {
+          // Type assertion for customer data
+          const customer = customerData as { first_name: string; last_name: string };
+          
           await transactionalEmailService.sendPasswordChangeConfirmation({
-            first_name: customerData.first_name,
-            last_name: customerData.last_name,
+            first_name: customer.first_name,
+            last_name: customer.last_name,
             email: email
           });
           console.log('Password change confirmation email sent successfully');
