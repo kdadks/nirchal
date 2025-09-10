@@ -110,19 +110,34 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: 'Login failed. Please try again.' };
       }
 
-      if (!data || !data.success || !data.customer) {
-        console.warn('Login RPC returned unsuccessful response:', data);
-        return { success: false, error: (data && (data as any).error) || 'Invalid email or password' };
+      // Type assertion for RPC response
+      const response = data as { 
+        success: boolean; 
+        error?: string; 
+        customer?: {
+          id: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+          phone?: string;
+          date_of_birth?: string;
+          gender?: string;
+        };
+      } | null;
+
+      if (!response || !response.success || !response.customer) {
+        console.warn('Login RPC returned unsuccessful response:', response);
+        return { success: false, error: response?.error || 'Invalid email or password' };
       }
 
       const customerData = {
-        id: data.customer.id,
-        email: data.customer.email,
-        first_name: data.customer.first_name,
-        last_name: data.customer.last_name,
-        phone: data.customer.phone || undefined,
-        date_of_birth: data.customer.date_of_birth || undefined,
-        gender: data.customer.gender || undefined
+        id: response.customer.id,
+        email: response.customer.email,
+        first_name: response.customer.first_name,
+        last_name: response.customer.last_name,
+        phone: response.customer.phone || undefined,
+        date_of_birth: response.customer.date_of_birth || undefined,
+        gender: response.customer.gender || undefined
       };
       
       setCustomer(customerData);
@@ -160,20 +175,35 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: error.message || 'Registration failed. Please try again.' };
       }
 
-      if (!data || !data.success || !data.customer) {
-        console.warn('Register RPC returned unsuccessful response:', data);
-        const message = (data && (data as any).error) || 'Registration failed. Please try again.';
+      // Type assertion for RPC response
+      const response = data as { 
+        success: boolean; 
+        error?: string; 
+        customer?: {
+          id: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+          phone?: string;
+          date_of_birth?: string;
+          gender?: string;
+        };
+      } | null;
+
+      if (!response || !response.success || !response.customer) {
+        console.warn('Register RPC returned unsuccessful response:', response);
+        const message = response?.error || 'Registration failed. Please try again.';
         return { success: false, error: message };
       }
 
       const customerData = {
-        id: data.customer.id,
-        email: data.customer.email,
-        first_name: data.customer.first_name,
-        last_name: data.customer.last_name,
-        phone: data.customer.phone || undefined,
-        date_of_birth: data.customer.date_of_birth || undefined,
-        gender: data.customer.gender || undefined
+        id: response.customer.id,
+        email: response.customer.email,
+        first_name: response.customer.first_name,
+        last_name: response.customer.last_name,
+        phone: response.customer.phone || undefined,
+        date_of_birth: response.customer.date_of_birth || undefined,
+        gender: response.customer.gender || undefined
       };
       
       setCustomer(customerData);
@@ -239,28 +269,39 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (error) {
           console.warn('Database password reset function not available:', error);
           // Fallback - just send email without database token
-        } else if (data?.success) {
-          // Send password reset email with database token
-          try {
-            await transactionalEmailService.sendPasswordResetEmail(
-              {
-                first_name: customerData.first_name,
-                last_name: customerData.last_name,
-                email: customerData.email
-              },
-              `${window.location.origin}/reset-password?token=${data.token || 'temp-token'}`
-            );
-            console.log('Password reset email sent successfully');
-          } catch (emailError) {
-            console.error('Failed to send password reset email:', emailError);
-          }
+        } else {
+          // Type assertion for RPC response
+          const response = data as { 
+            success?: boolean; 
+            token?: string; 
+          } | null;
+          
+          if (response?.success) {
+            // Send password reset email with database token
+            try {
+              // Type assertion for customer data
+              const customer = customerData as { first_name: string; last_name: string; email: string };
+              
+              await transactionalEmailService.sendPasswordResetEmail(
+                {
+                  first_name: customer.first_name,
+                  last_name: customer.last_name,
+                  email: customer.email
+                },
+                `${window.location.origin}/reset-password?token=${response.token || 'temp-token'}`
+              );
+              console.log('Password reset email sent successfully');
+            } catch (emailError) {
+              console.error('Failed to send password reset email:', emailError);
+            }
 
-          return { 
-            success: true, 
-            message: process.env.NODE_ENV === 'development' && data.token 
-              ? `Password reset email sent! Development token: ${data.token}`
-              : 'Password reset instructions have been sent to your email address.'
-          };
+            return { 
+              success: true, 
+              message: process.env.NODE_ENV === 'development' && response.token 
+                ? `Password reset email sent! Development token: ${response.token}`
+                : 'Password reset instructions have been sent to your email address.'
+            };
+          }
         }
       } catch (rpcError) {
         console.warn('Password reset RPC function not available, using fallback');
@@ -268,11 +309,14 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       // Fallback implementation - send email with temporary instructions
       try {
+        // Type assertion for customer data
+        const customer = customerData as { first_name: string; last_name: string; email: string };
+        
         await transactionalEmailService.sendPasswordResetEmail(
           {
-            first_name: customerData.first_name,
-            last_name: customerData.last_name,
-            email: customerData.email
+            first_name: customer.first_name,
+            last_name: customer.last_name,
+            email: customer.email
           },
           `${window.location.origin}/contact`
         );
@@ -303,10 +347,13 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: 'Failed to reset password. Please try again.' };
       }
 
-      if (data.success) {
-        return { success: true, message: data.message };
+      // Type assertion for RPC response
+      const response = data as { success: boolean; message?: string; error?: string } | null;
+
+      if (response?.success) {
+        return { success: true, message: response.message || 'Password reset successfully' };
       } else {
-        return { success: false, error: data.error };
+        return { success: false, error: response?.error || 'Failed to reset password' };
       }
     } catch (error) {
       console.error('Reset password with token error:', error);
@@ -330,14 +377,25 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       if (data) {
+        // Type assertion for customer data
+        const customerData = data as {
+          id: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+          phone?: string;
+          date_of_birth?: string;
+          gender?: string;
+        };
+        
         const updatedCustomer = {
-          id: data.id,
-          email: data.email,
-          first_name: data.first_name,
-          last_name: data.last_name,
-          phone: data.phone || undefined,
-          date_of_birth: data.date_of_birth || undefined,
-          gender: data.gender || undefined
+          id: customerData.id,
+          email: customerData.email,
+          first_name: customerData.first_name,
+          last_name: customerData.last_name,
+          phone: customerData.phone || undefined,
+          date_of_birth: customerData.date_of_birth || undefined,
+          gender: customerData.gender || undefined
         };
         
         setCustomer(updatedCustomer);

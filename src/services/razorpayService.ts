@@ -70,14 +70,14 @@ class RazorpayService {
       // Convert array to object
       const settingsMap: { [key: string]: any } = {};
       data?.forEach(setting => {
-        const key = setting.key.replace('razorpay_', '');
+        const key = (setting.key as string).replace('razorpay_', '');
         let value = setting.value;
         
         // Convert based on data type
         if (setting.data_type === 'boolean') {
           value = value === 'true';
         } else if (setting.data_type === 'number') {
-          value = parseInt(value, 10);
+          value = parseInt(value as string, 10);
         }
         
         settingsMap[key] = value;
