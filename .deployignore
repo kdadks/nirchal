@@ -1,0 +1,12 @@
+# Deployment Configuration
+
+# Files and directories to exclude during production deployment
+public/images/products/
+public/images/categories/
+public/images/README.md
+
+# Temporary files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
