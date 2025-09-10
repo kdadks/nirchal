@@ -1,7 +1,4 @@
 import { Context } from '@netlify/functions';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { randomUUID } from 'crypto';
 
 // Types for the request body
 interface UploadImageRequest {
@@ -9,15 +6,6 @@ interface UploadImageRequest {
   folder: 'products' | 'categories';
   imageData: string; // Base64 encoded image data
   contentType: string;
-}
-
-// Helper function to ensure directory exists
-async function ensureDirectoryExists(dirPath: string): Promise<void> {
-  try {
-    await fs.access(dirPath);
-  } catch {
-    await fs.mkdir(dirPath, { recursive: true });
-  }
 }
 
 // Helper function to validate file type
@@ -93,21 +81,22 @@ export default async (request: Request, context: Context) => {
     // Sanitize filename and add timestamp for uniqueness
     const sanitizedFileName = sanitizeFileName(fileName);
     const timestamp = Date.now();
-    const fileExtension = path.extname(sanitizedFileName) || '.jpg';
-    const baseFileName = path.basename(sanitizedFileName, fileExtension);
+    
+    // Extract file extension
+    const fileExtension = sanitizedFileName.includes('.') 
+      ? '.' + sanitizedFileName.split('.').pop() 
+      : '.jpg';
+    
+    // Get base filename without extension
+    const baseFileName = sanitizedFileName.replace(/\.[^/.]+$/, '') || 'image';
     const uniqueFileName = `${baseFileName}-${timestamp}${fileExtension}`;
 
-    // Determine the target directory - use the public folder in the repository
-    // In Netlify build, this will be relative to the build root
-    const publicDir = path.resolve('./public');
-    const imagesDir = path.join(publicDir, 'images');
-    const targetDir = path.join(imagesDir, folder);
-    const targetPath = path.join(targetDir, uniqueFileName);
-
-    // Ensure directories exist
-    await ensureDirectoryExists(targetDir);
-
-    // Convert base64 to buffer
+    // For Netlify deployment: Since we can't write to public folder during runtime,
+    // we'll return the image as a data URL that can be stored directly in the database
+    // In a production setup, this would integrate with external storage (S3, Cloudinary, etc.)
+    console.log(`[Upload Image] Processing image for Netlify environment: ${uniqueFileName}`);
+    
+    // Convert base64 to buffer for validation
     const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
     const imageBuffer = Buffer.from(base64Data, 'base64');
 
@@ -123,20 +112,21 @@ export default async (request: Request, context: Context) => {
       );
     }
 
-    // Write the file to the public directory
-    await fs.writeFile(targetPath, imageBuffer);
-
-    // Generate the public URL
+    // Since we can't write to public folder in Netlify serverless environment,
+    // return the data URL for database storage (for development/testing)
+    // In production, this should be replaced with external storage service
+    const dataUrl = imageData.startsWith('data:') ? imageData : `data:${contentType};base64,${base64Data}`;
     const publicUrl = `/images/${folder}/${uniqueFileName}`;
 
-    console.log(`[Upload Image] Successfully saved to public folder: ${publicUrl}`);
+    console.log(`[Upload Image] Returning data URL for: ${publicUrl}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         fileName: uniqueFileName,
         publicUrl: publicUrl,
-        message: 'Image uploaded successfully'
+        dataUrl: dataUrl, // Include data URL for immediate use
+        message: 'Image processed successfully (stored as data URL for Netlify compatibility)'
       }),
       { status: 200, headers }
     );
