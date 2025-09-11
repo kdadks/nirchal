@@ -373,7 +373,39 @@ export const useProducts = () => {
 		if (!supabase) return;
 		setLoading(true);
 		try {
-			// Simplified query - fetch just basic product data first
+			// Try JOIN query first (like frontend) for better reliability
+			console.log('[Products] Attempting JOIN query...');
+			const { data: joinedData, error: joinError } = await supabase
+				.from('products')
+				.select(`
+					*,
+					category:categories(id, name),
+					images:product_images(*),
+					variants:product_variants(*),
+					inventory(*)
+				`)
+				.order('created_at', { ascending: false });
+
+			if (!joinError && joinedData) {
+				console.log('[Products] JOIN query successful! Fetched', joinedData?.length || 0, 'products with joined data');
+				setProducts(joinedData as ProductWithDetails[] || []);
+				
+				// Debug: Check if any products have images with JOIN
+				const productsWithImages = joinedData.filter(p => p.images && p.images.length > 0);
+				console.log(`[Admin Debug - JOIN] ${productsWithImages.length}/${joinedData.length} products have images`);
+				if (productsWithImages.length > 0) {
+					console.log('[Admin Debug - JOIN] First product with images:', {
+						name: productsWithImages[0].name,
+						imageCount: productsWithImages[0].images.length,
+						firstImageUrl: productsWithImages[0].images[0]?.image_url
+					});
+				}
+				return;
+			}
+
+			console.warn('[Products] JOIN query failed, falling back to manual join:', joinError);
+			
+			// Fallback to manual join (original method)
 			const { data: productsData, error: productsError } = await supabase
 				.from('products')
 				.select(`
@@ -428,6 +460,29 @@ export const useProducts = () => {
 				inventory: inventoryData.length
 			});
 			
+			// Debug: Check image data structure
+			if (imagesData.length > 0) {
+				console.log('[Debug] Sample image data:', {
+					total: imagesData.length,
+					firstImage: imagesData[0],
+					productIdTypes: imagesData.slice(0, 3).map(img => ({
+						id: img.id,
+						product_id: img.product_id,
+						product_id_type: typeof img.product_id
+					}))
+				});
+			}
+			
+			// Debug: Check product data structure  
+			if (productsData && productsData.length > 0) {
+				console.log('[Debug] Sample product data:', {
+					total: productsData.length,
+					firstProductId: productsData[0].id,
+					productIdType: typeof productsData[0].id,
+					sampleIds: productsData.slice(0, 3).map(p => ({ name: p.name, id: p.id, id_type: typeof p.id }))
+				});
+			}
+			
 			// If we get an empty array, try to understand why
 			if (inventoryData && inventoryData.length === 0) {
 				console.log('[Debug] Inventory table returned empty. Checking if it\'s an RLS issue...');
@@ -476,6 +531,22 @@ export const useProducts = () => {
 				const productInventory = (inventoryData || []).filter(inv => inv.product_id === product.id);
 				const productImages = (imagesData || []).filter(img => img.product_id === product.id);
 				const productVariants = (variantsData || []).filter(variant => variant.product_id === product.id);
+				
+				// Debug: Log image matching for products with no images
+				if (productImages.length === 0) {
+					console.log(`[Debug] No images found for product ${product.name} (${product.id})`);
+					// Check if there are any images in imagesData with similar product_id
+					const similarImages = (imagesData || []).filter(img => 
+						img.product_id && img.product_id.toString().includes(product.id.toString().slice(-8))
+					);
+					if (similarImages.length > 0) {
+						console.log(`[Debug] Found ${similarImages.length} images with similar product_id:`, 
+							similarImages.map(img => ({ id: img.id, product_id: img.product_id, image_url: img.image_url }))
+						);
+					}
+				} else {
+					console.log(`[Debug] Product ${product.name} matched ${productImages.length} images`);
+				}
 				
 				console.log(`[Manual Join] Product ${product.name} (${product.id}) matched inventory:`, productInventory);
 				
