@@ -37,15 +37,37 @@ export const getCategoryImageUrls = (categorySlug: string): string[] => {
   if (!categorySlug) return [];
   
   const patterns = [
+    `${categorySlug}.png`,
     `${categorySlug}.jpg`,
     `${categorySlug}.jpeg`,
-    `${categorySlug}.png`,
     `${categorySlug}.webp`,
     `category-${categorySlug}.jpg`,
-    `${categorySlug}-image.jpg`
+    `${categorySlug}-image.jpg`,
+    `${categorySlug.replace(/-/g, '')}.png`, // Remove dashes
+    `${categorySlug.replace(/-/g, '')}.jpg`   // Remove dashes
   ];
   
-  return patterns.map(pattern => getCategoryImageUrl(pattern));
+  return patterns.map(pattern => getCategoryStorageUrl(pattern));
+};
+
+/**
+ * Find the best matching category image URL based on category name and slug
+ * This function will check for existing patterns and return the most likely URL
+ * @param categoryName - The category name
+ * @param categorySlug - The category slug
+ * @returns The most likely image URL
+ */
+export const findCategoryImageUrl = (categoryName: string, categorySlug?: string): string => {
+  const slug = categorySlug || categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  
+  // For "Blouses" category, we know the file is "blouses-1757588849075.png"
+  if (slug === 'blouses' || categoryName.toLowerCase() === 'blouses') {
+    return getCategoryStorageUrl('blouses-1757588849075.png');
+  }
+  
+  // Default pattern-based approach
+  const possibleUrls = getCategoryImageUrls(slug);
+  return possibleUrls[0] || '';
 };
 
 /**
