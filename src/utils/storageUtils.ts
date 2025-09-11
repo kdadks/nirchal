@@ -56,9 +56,14 @@ export const getCategoryImageUrls = (categorySlug: string): string[] => {
 export const getStorageImageUrl = (imagePath: string): string => {
   if (!imagePath || !imagePath.trim()) return '';
   
-  // If it's already a GitHub URL, return as is
+  // If it's already a GitHub raw URL, return as is
   if (imagePath.startsWith('https://raw.githubusercontent.com')) {
     return imagePath;
+  }
+  
+  // If it's a GitHub blob URL, convert to raw URL
+  if (imagePath.startsWith('https://github.com') && imagePath.includes('/blob/')) {
+    return imagePath.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
   }
   
   // If it's a full Supabase URL, convert to local
@@ -77,9 +82,14 @@ export const getStorageImageUrl = (imagePath: string): string => {
 export const getCategoryStorageUrl = (imagePath: string): string => {
   if (!imagePath || !imagePath.trim()) return '';
   
-  // If it's already a GitHub URL, return as is
+  // If it's already a GitHub raw URL, return as is
   if (imagePath.startsWith('https://raw.githubusercontent.com')) {
     return imagePath;
+  }
+  
+  // If it's a GitHub blob URL, convert to raw URL
+  if (imagePath.startsWith('https://github.com') && imagePath.includes('/blob/')) {
+    return imagePath.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
   }
   
   // If it's a full Supabase URL, convert to local
