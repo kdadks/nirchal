@@ -53,14 +53,17 @@ export const generateCategoryImageFileName = (
 export const getProductImageUrl = (fileName: string): string => {
   if (!fileName) return '';
   
-  // If already a full URL, return as is
-  if (fileName.startsWith('http') || fileName.startsWith('/')) {
+  // If already a full GitHub URL, return as is
+  if (fileName.startsWith('https://raw.githubusercontent.com')) {
     return fileName;
   }
   
+  // Extract filename if it's a path
+  const extractedFileName = extractFileName(fileName) || fileName;
+  
   // For production, images are stored on GitHub
   // Return the GitHub raw URL for the image
-  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/products/${fileName}`;
+  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/products/${extractedFileName}`;
 };
 
 /**
@@ -71,14 +74,17 @@ export const getProductImageUrl = (fileName: string): string => {
 export const getCategoryImageUrl = (fileName: string): string => {
   if (!fileName) return '';
   
-  // If already a full URL, return as is
-  if (fileName.startsWith('http') || fileName.startsWith('/')) {
+  // If already a full GitHub URL, return as is
+  if (fileName.startsWith('https://raw.githubusercontent.com')) {
     return fileName;
   }
   
+  // Extract filename if it's a path
+  const extractedFileName = extractFileName(fileName) || fileName;
+  
   // For production, images are stored on GitHub
   // Return the GitHub raw URL for the image
-  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/categories/${fileName}`;
+  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/categories/${extractedFileName}`;
 };
 
 /**
