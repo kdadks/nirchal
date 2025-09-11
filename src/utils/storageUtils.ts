@@ -56,6 +56,11 @@ export const getCategoryImageUrls = (categorySlug: string): string[] => {
 export const getStorageImageUrl = (imagePath: string): string => {
   if (!imagePath) return '';
   
+  // If it's already a GitHub URL, return as is
+  if (imagePath.startsWith('https://raw.githubusercontent.com')) {
+    return imagePath;
+  }
+  
   // If it's a full Supabase URL, convert to local
   if (imagePath.startsWith('http') && imagePath.includes('supabase')) {
     return convertSupabaseUrlToLocal(imagePath);
@@ -72,11 +77,17 @@ export const getStorageImageUrl = (imagePath: string): string => {
 export const getCategoryStorageUrl = (imagePath: string): string => {
   if (!imagePath) return '';
   
+  // If it's already a GitHub URL, return as is
+  if (imagePath.startsWith('https://raw.githubusercontent.com')) {
+    return imagePath;
+  }
+  
   // If it's a full Supabase URL, convert to local
   if (imagePath.startsWith('http') && imagePath.includes('supabase')) {
     return convertSupabaseUrlToLocal(imagePath);
   }
   
+  // For any other case (filename, local path, etc.), use the GitHub URL generation
   return getLocalCategoryImageUrl(imagePath);
 };
 
