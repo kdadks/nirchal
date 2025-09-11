@@ -11,14 +11,22 @@ export interface StockInfo {
  * Get stock information for a standalone product (no variants)
  */
 export const getProductStockInfo = (product: Product): StockInfo => {
-  const stockStatus = product.stockStatus;
-  const isOutOfStock = stockStatus === 'Out of Stock';
+  const quantity = product.stockQuantity || 0;
+  
+  let stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock';
+  if (quantity === 0) {
+    stockStatus = 'Out of Stock';
+  } else if (quantity <= 5) { // Consider low stock threshold
+    stockStatus = 'Low Stock';
+  } else {
+    stockStatus = 'In Stock';
+  }
   
   return {
-    isInStock: !isOutOfStock,
-    quantity: 0, // Will be calculated from inventory in the future
-    stockStatus: isOutOfStock ? 'Out of Stock' : stockStatus === 'Low Stock' ? 'Low Stock' : 'In Stock',
-    isAvailable: !isOutOfStock
+    isInStock: quantity > 0,
+    quantity,
+    stockStatus,
+    isAvailable: quantity > 0
   };
 };
 
