@@ -11,30 +11,16 @@ export interface StockInfo {
  * Get stock information for a standalone product (no variants)
  */
 export const getProductStockInfo = (product: Product): StockInfo => {
-  // Calculate quantity from inventory data for products without variants
-  let quantity = 0;
-  
-  // Check if product has inventory data and calculate standalone product quantity
-  if ((product as any).inventory && Array.isArray((product as any).inventory)) {
-    // For products without variants, sum up inventory where variant_id is null
-    const productInventory = (product as any).inventory.filter((inv: any) => inv.variant_id === null);
-    quantity = productInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
-  }
-  
-  let stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock';
-  if (quantity === 0) {
-    stockStatus = 'Out of Stock';
-  } else if (quantity <= 5) { // Consider low stock threshold
-    stockStatus = 'Low Stock';
-  } else {
-    stockStatus = 'In Stock';
-  }
+  // Use the pre-calculated stock status from the product data
+  const stockStatus = product.stockStatus === 'Pre-Order' ? 'Out of Stock' : product.stockStatus;
+  const quantity = product.stockQuantity || 0;
+  const isAvailable = stockStatus !== 'Out of Stock';
   
   return {
-    isInStock: quantity > 0,
+    isInStock: isAvailable,
     quantity,
     stockStatus,
-    isAvailable: quantity > 0
+    isAvailable
   };
 };
 
