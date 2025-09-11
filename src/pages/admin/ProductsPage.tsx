@@ -282,7 +282,6 @@ const ProductsPage: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedProducts?.map((product) => {
-                  console.log(`[Admin Debug] Product ${product.name}: images=${product.images?.length || 0}`);
                   const img = product.images?.find(img => img.is_primary) || product.images?.[0];
                   const publicUrl = img?.image_url?.startsWith('http')
                     ? img.image_url
