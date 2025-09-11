@@ -391,7 +391,24 @@ export const usePublicProducts = (featured?: boolean) => {
           category: String(product.category ?? ''),
           color: String(product.color ?? ''),
           inStock: Boolean(product.in_stock ?? true),
-          stockQuantity: Number(product.stock_quantity ?? 0),
+          stockQuantity: (() => {
+            // Calculate the actual stock quantity from inventory data
+            if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+              const relevantInventory = product.inventory.filter((inv: any) => {
+                if (hasVariants) {
+                  // For products with variants, only count variant-specific inventory
+                  return inv.variant_id !== null;
+                } else {
+                  // For products without variants, only count product-level inventory
+                  return inv.variant_id === null;
+                }
+              });
+              
+              return relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+            }
+            return 0;
+          })(),
           stockStatus: (() => {
             // Calculate stock status based on inventory data
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {
