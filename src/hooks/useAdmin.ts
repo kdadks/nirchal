@@ -374,7 +374,6 @@ export const useProducts = () => {
 		setLoading(true);
 		try {
 			// Try JOIN query first (like frontend) for better reliability
-			console.log('[Products] Attempting JOIN query...');
 			const { data: joinedData, error: joinError } = await supabase
 				.from('products')
 				.select(`
@@ -387,24 +386,10 @@ export const useProducts = () => {
 				.order('created_at', { ascending: false });
 
 			if (!joinError && joinedData) {
-				console.log('[Products] JOIN query successful! Fetched', joinedData?.length || 0, 'products with joined data');
 				setProducts(joinedData as ProductWithDetails[] || []);
-				
-				// Debug: Check if any products have images with JOIN
-				const productsWithImages = joinedData.filter(p => p.images && p.images.length > 0);
-				console.log(`[Admin Debug - JOIN] ${productsWithImages.length}/${joinedData.length} products have images`);
-				if (productsWithImages.length > 0) {
-					console.log('[Admin Debug - JOIN] First product with images:', {
-						name: productsWithImages[0].name,
-						imageCount: productsWithImages[0].images.length,
-						firstImageUrl: productsWithImages[0].images[0]?.image_url
-					});
-				}
 				return;
 			}
 
-			console.warn('[Products] JOIN query failed, falling back to manual join:', joinError);
-			
 			// Fallback to manual join (original method)
 			const { data: productsData, error: productsError } = await supabase
 				.from('products')
@@ -413,8 +398,6 @@ export const useProducts = () => {
 					category:categories(id, name)
 				`)
 				.order('created_at', { ascending: false });
-
-			console.log('[Products] Fetched', productsData?.length || 0, 'products');
 
 			if (productsError) {
 				console.error('[Products] Error:', productsError);
@@ -454,130 +437,11 @@ export const useProducts = () => {
 					})
 			]);
 
-			console.log('[Products] Additional data fetched:', {
-				images: imagesData.length,
-				variants: variantsData.length,
-				inventory: inventoryData.length
-			});
-			
-			// Debug: Check image data structure
-			if (imagesData.length > 0) {
-				console.log('[Debug] Sample image data:', {
-					total: imagesData.length,
-					firstImage: imagesData[0],
-					productIdTypes: imagesData.slice(0, 3).map(img => ({
-						id: img.id,
-						product_id: img.product_id,
-						product_id_type: typeof img.product_id
-					}))
-				});
-			}
-			
-			// Debug: Check product data structure  
-			if (productsData && productsData.length > 0) {
-				console.log('[Debug] Sample product data:', {
-					total: productsData.length,
-					firstProductId: productsData[0].id,
-					productIdType: typeof productsData[0].id,
-					sampleIds: productsData.slice(0, 3).map(p => ({ name: p.name, id: p.id, id_type: typeof p.id }))
-				});
-			}
-			
-			// If we get an empty array, try to understand why
-			if (inventoryData && inventoryData.length === 0) {
-				console.log('[Debug] Inventory table returned empty. Checking if it\'s an RLS issue...');
-				
-				// Try to get just one specific record that we know exists
-				const { data: specificInventory, error: specificError } = await supabase
-					.from('inventory')
-					.select('*')
-					.eq('product_id', '707d596f-902f-4b04-9dac-1e0aa844572a')
-					.limit(1);
-				console.log('[Debug] Specific inventory for product 707d596f:', specificInventory, specificError);
-				
-				// Try a simple count without data
-				const { count: totalCount, error: countErr } = await supabase
-					.from('inventory')
-					.select('*', { count: 'exact', head: true });
-				console.log('[Debug] Total inventory count:', totalCount, 'error:', countErr);
-			}
-
-			// Also try to get count
-			const { count, error: countError } = await supabase
-				.from('inventory')
-				.select('*', { count: 'exact', head: true });
-			
-			console.log('[Inventory Count]', count, 'error:', countError);
-
-			// Test if we can see any data with different conditions
-			const { data: allInventory, error: allError } = await supabase
-				.from('inventory')
-				.select('id, product_id, quantity')
-				.limit(10);
-			
-			console.log('[All Inventory Limited]', allInventory, allError);
-
-			// Try without RLS (this will fail if RLS is enabled but helps debug)
-			try {
-				const { data: rawInventory, error: rawError } = await supabase
-					.rpc('get_inventory_raw');
-				console.log('[Raw Inventory Check]', rawInventory, rawError);
-			} catch (rpcError) {
-				console.log('[RPC Error]', rpcError);
-			}
-
 			// Efficiently map all data together
 			const productsWithInventory = (productsData || []).map(product => {
 				const productInventory = (inventoryData || []).filter(inv => inv.product_id === product.id);
 				const productImages = (imagesData || []).filter(img => img.product_id === product.id);
 				const productVariants = (variantsData || []).filter(variant => variant.product_id === product.id);
-				
-				// Debug: Log image matching for products with no images
-				if (productImages.length === 0) {
-					console.log(`[Debug] No images found for product ${product.name} (${product.id})`);
-					// Check if there are any images in imagesData with similar product_id
-					const similarImages = (imagesData || []).filter(img => 
-						img.product_id && img.product_id.toString().includes(product.id.toString().slice(-8))
-					);
-					if (similarImages.length > 0) {
-						console.log(`[Debug] Found ${similarImages.length} images with similar product_id:`, 
-							similarImages.map(img => ({ id: img.id, product_id: img.product_id, image_url: img.image_url }))
-						);
-					}
-				} else {
-					console.log(`[Debug] Product ${product.name} matched ${productImages.length} images`);
-				}
-				
-				console.log(`[Manual Join] Product ${product.name} (${product.id}) matched inventory:`, productInventory);
-				
-				// Debug: Check for orphaned inventory records (inventory without corresponding variants)
-				if (productInventory.length > 0) {
-					const variantIds = productVariants.map((v: any) => v.id);
-					console.log(`[Debug] Product ${product.name} variant IDs:`, variantIds);
-					console.log(`[Debug] Product ${product.name} inventory details:`, productInventory.map(inv => ({
-						id: inv.id,
-						variant_id: inv.variant_id,
-						quantity: inv.quantity,
-						hasVariantId: !!inv.variant_id
-					})));
-					
-					const orphanedInventory = productInventory.filter(inv => 
-						inv.variant_id && !variantIds.includes(inv.variant_id)
-					);
-					
-					const inventoryWithoutVariant = productInventory.filter(inv => !inv.variant_id);
-					
-					if (orphanedInventory.length > 0) {
-						console.warn(`[Debug] ⚠️ Found ${orphanedInventory.length} orphaned inventory records for product ${product.name}:`, orphanedInventory);
-					}
-					
-					if (inventoryWithoutVariant.length > 0) {
-						console.log(`[Debug] Found ${inventoryWithoutVariant.length} inventory records without variant_id for product ${product.name}:`, inventoryWithoutVariant);
-					}
-					
-					const totalInventoryQuantity = productInventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-					console.log(`[Debug] Product ${product.name} total inventory: ${totalInventoryQuantity} from ${productInventory.length} records`);
-				}
 				
 				return {
 					...product,
@@ -587,24 +451,7 @@ export const useProducts = () => {
 				};
 			});
 
-			console.log('[Products Debug] productsWithInventory:', productsWithInventory);
-			if (productsWithInventory.length > 0) {
-				console.log('[Products Debug] First product inventory:', productsWithInventory[0]?.inventory);
-				console.log('[Products Debug] All product IDs:', productsWithInventory.map(p => p.id));
-			}
-
 			setProducts(productsWithInventory as ProductWithDetails[] || []);
-			
-			// Debug: Check if any products have images
-			const productsWithImages = productsWithInventory.filter(p => p.images && p.images.length > 0);
-			console.log(`[Admin Debug] ${productsWithImages.length}/${productsWithInventory.length} products have images`);
-			if (productsWithImages.length > 0) {
-				console.log('[Admin Debug] First product with images:', {
-					name: productsWithImages[0].name,
-					imageCount: productsWithImages[0].images.length,
-					firstImageUrl: productsWithImages[0].images[0]?.image_url
-				});
-			}
 		} catch (e) {
 			setError(e instanceof Error ? e.message : 'Error fetching products');
 		} finally {
