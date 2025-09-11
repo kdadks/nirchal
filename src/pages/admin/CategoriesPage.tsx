@@ -142,10 +142,13 @@ const CategoriesPage: React.FC = () => {
     }
 
     try {
+      console.log('🚀 [Category Save] Form data being saved:', form);
       if (isEditing && editingId) {
         await updateCategory(editingId, form);
+        console.log('✅ [Category Save] Updated category with ID:', editingId);
       } else {
         await createCategory(form);
+        console.log('✅ [Category Save] Created new category');
       }
       
       resetForm();
@@ -202,8 +205,10 @@ const CategoriesPage: React.FC = () => {
         throw new Error(uploadResult.error || 'Image upload failed');
       }
 
-      // Set the form to use just the filename (the display component will handle URL generation)
-      setForm(prev => ({ ...prev, image_url: fileName }));
+      // Set the form to use the full GitHub URL (not just filename)
+      const githubUrl = uploadResult.githubUrl || uploadResult.filePath || '';
+      console.log('🎯 [Category Upload] Setting image_url to:', githubUrl);
+      setForm(prev => ({ ...prev, image_url: githubUrl }));
       
       toast.success('Image uploaded successfully');
     } catch (error) {
