@@ -97,41 +97,27 @@ export const getProductImageUrl = (fileName: string): string => {
  * @returns Full URL to access the image from the public folder
  */
 export const getCategoryImageUrl = (fileName: string): string => {
-  console.log('🔍 [getCategoryImageUrl] Input fileName:', fileName);
-  
-  if (!fileName || !fileName.trim()) {
-    console.log('❌ [getCategoryImageUrl] Empty or null fileName, returning empty string');
-    return '';
-  }
+  if (!fileName || !fileName.trim()) return '';
   
   // If already a full GitHub raw URL, return as is
   if (fileName.startsWith('https://raw.githubusercontent.com')) {
-    console.log('✅ [getCategoryImageUrl] Already raw URL, returning as-is:', fileName);
     return fileName;
   }
   
   // If it's a GitHub blob URL, convert to raw URL
   if (fileName.startsWith('https://github.com') && fileName.includes('/blob/')) {
-    const rawUrl = fileName.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
-    console.log('🔄 [getCategoryImageUrl] Converted blob to raw URL:', fileName, '->', rawUrl);
-    return rawUrl;
+    return fileName.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
   }
   
   // Extract filename if it's a path
   const extractedFileName = extractFileName(fileName.trim()) || fileName.trim();
-  console.log('📝 [getCategoryImageUrl] Extracted filename:', extractedFileName);
   
   // Make sure we have a valid filename
-  if (!extractedFileName || !extractedFileName.trim()) {
-    console.log('❌ [getCategoryImageUrl] Invalid extracted filename, returning empty string');
-    return '';
-  }
+  if (!extractedFileName || !extractedFileName.trim()) return '';
   
   // For production, images are stored on GitHub
   // Return the GitHub raw URL for the image
-  const finalUrl = `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/categories/${extractedFileName}`;
-  console.log('🎯 [getCategoryImageUrl] Generated final URL:', finalUrl);
-  return finalUrl;
+  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/categories/${extractedFileName}`;
 };
 
 /**
