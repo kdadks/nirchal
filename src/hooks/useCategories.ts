@@ -50,20 +50,13 @@ export const useCategories = () => {
                 // If it's just a filename (legacy), convert to full GitHub URL
                 if (!cat.image_url.startsWith('http')) {
                   imageUrl = getCategoryStorageUrl(cat.image_url);
-                  console.debug(`[useCategories] category ${cat.name} converting legacy filename to URL: ${cat.image_url} -> ${imageUrl}`);
                 } else {
                   // It's already a full URL, use the storage URL function to ensure it's correct
                   imageUrl = getCategoryStorageUrl(cat.image_url);
-                  console.debug(`[useCategories] category ${cat.name} using full URL from DB: ${imageUrl}`);
                 }
               } else {
                 // If no image_url in database, try to find image by category name/slug pattern
                 imageUrl = findCategoryImageUrl(cat.name, cat.slug);
-                
-                if (import.meta.env.DEV) {
-                  console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url in DB`);
-                  console.debug(`[useCategories] using pattern-based image: ${imageUrl}`);
-                }
               }
 
               return {
@@ -96,23 +89,14 @@ export const useCategories = () => {
           // If it's just a filename (legacy), convert to full GitHub URL
           if (!cat.image_url.startsWith('http')) {
             imageUrl = getCategoryStorageUrl(cat.image_url);
-            console.debug(`[useCategories] category ${cat.name} converting legacy filename to URL: ${cat.image_url} -> ${imageUrl}`);
           } else {
             // It's already a full URL, use the storage URL function to ensure it's correct
             imageUrl = getCategoryStorageUrl(cat.image_url);
-            console.debug(`[useCategories] category ${cat.name} using full URL from DB: ${imageUrl}`);
           }
         } else {
-          // If no image_url in database, try to find image by category name/slug pattern
-          imageUrl = findCategoryImageUrl(cat.name, cat.slug);
-          
-          if (import.meta.env.DEV) {
-            console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url in DB`);
-            console.debug(`[useCategories] using pattern-based image: ${imageUrl}`);
-          }
-        }
-
-        return {
+                // If no image_url in database, try to find image by category name/slug pattern
+                imageUrl = findCategoryImageUrl(cat.name, cat.slug);
+              }        return {
           id: String(cat.id),
           name: String(cat.name),
           image_url: imageUrl || '', // Use correct property name
