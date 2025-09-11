@@ -4,7 +4,8 @@ import { usePagination } from '../../hooks/usePagination';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
 import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
-import { saveImageToPublicFolder, generateCategoryImageFileName, getCategoryImageUrl } from '../../utils/localStorageUtils';
+import { saveImageToPublicFolder, generateCategoryImageFileName } from '../../utils/localStorageUtils';
+import { getCategoryStorageUrl } from '../../utils/storageUtils';
 import type { CategoryFormData } from '../../types/admin';
 import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -370,7 +371,7 @@ const CategoriesPage: React.FC = () => {
                       <td className="px-4 py-2 whitespace-nowrap">
                         {category.image_url ? (
                           <img 
-                            src={getCategoryImageUrl(category.image_url)} 
+                            src={getCategoryStorageUrl(category.image_url)} 
                             alt={category.name} 
                             className="h-8 w-8 rounded-lg object-cover"
                           />
@@ -524,7 +525,7 @@ const CategoriesPage: React.FC = () => {
                 {form.image_url && (
                   <div style={{ marginBottom: '12px' }}>
                     <img 
-                      src={getCategoryImageUrl(form.image_url)} 
+                      src={getCategoryStorageUrl(form.image_url)} 
                       alt="Preview" 
                       style={{ 
                         width: '100px', 
