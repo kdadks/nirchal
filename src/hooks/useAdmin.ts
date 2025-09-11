@@ -523,6 +523,17 @@ export const useProducts = () => {
 			}
 
 			setProducts(productsWithInventory as ProductWithDetails[] || []);
+			
+			// Debug: Check if any products have images
+			const productsWithImages = productsWithInventory.filter(p => p.images && p.images.length > 0);
+			console.log(`[Admin Debug] ${productsWithImages.length}/${productsWithInventory.length} products have images`);
+			if (productsWithImages.length > 0) {
+				console.log('[Admin Debug] First product with images:', {
+					name: productsWithImages[0].name,
+					imageCount: productsWithImages[0].images.length,
+					firstImageUrl: productsWithImages[0].images[0]?.image_url
+				});
+			}
 		} catch (e) {
 			setError(e instanceof Error ? e.message : 'Error fetching products');
 		} finally {
