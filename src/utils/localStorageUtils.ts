@@ -1,5 +1,27 @@
 /**
- * Utility functions for handling local file storage (public folder)
+ * Utility functions for handling local file stexport const getProductImageUrl = (fileName: string): string => {
+  if (!fileName || !fileName.trim()) return '';
+  
+  // If already a full GitHub raw URL, return as is
+  if (fileName.startsWith('https://raw.githubusercontent.com')) {
+    return fileName;
+  }
+  
+  // If it's a GitHub blob URL, convert to raw URL
+  if (fileName.startsWith('https://github.com') && fileName.includes('/blob/')) {
+    return fileName.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
+  }
+  
+  // Extract filename if it's a path
+  const extractedFileName = extractFileName(fileName.trim()) || fileName.trim();
+  
+  // Make sure we have a valid filename
+  if (!extractedFileName || !extractedFileName.trim()) return '';
+  
+  // For production, images are stored on GitHub
+  // Return the GitHub raw URL for the image
+  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/products/${extractedFileName}`;
+};er)
  */
 
 /**
@@ -77,9 +99,14 @@ export const getProductImageUrl = (fileName: string): string => {
 export const getCategoryImageUrl = (fileName: string): string => {
   if (!fileName || !fileName.trim()) return '';
   
-  // If already a full GitHub URL, return as is
+  // If already a full GitHub raw URL, return as is
   if (fileName.startsWith('https://raw.githubusercontent.com')) {
     return fileName;
+  }
+  
+  // If it's a GitHub blob URL, convert to raw URL
+  if (fileName.startsWith('https://github.com') && fileName.includes('/blob/')) {
+    return fileName.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
   }
   
   // Extract filename if it's a path
