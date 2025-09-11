@@ -41,6 +41,8 @@ async function uploadToGitHub(
   token: string
 ): Promise<{ success: boolean; url?: string; error?: string }> {
   try {
+    console.log(`[GitHub Upload] Starting upload for: ${filePath}`);
+    
     // First, try to get the existing file to get its SHA (if it exists)
     let sha: string | undefined;
     try {
@@ -58,8 +60,12 @@ async function uploadToGitHub(
       if (getResponse.ok) {
         const fileData = await getResponse.json();
         sha = fileData.sha;
+        console.log(`[GitHub Upload] File exists, updating with SHA: ${sha}`);
+      } else {
+        console.log(`[GitHub Upload] File doesn't exist, creating new file (status: ${getResponse.status})`);
       }
     } catch (e) {
+      console.log(`[GitHub Upload] Error checking file existence:`, e);
       // File doesn't exist, which is fine for new uploads
     }
 
@@ -74,6 +80,7 @@ async function uploadToGitHub(
       createData.sha = sha;
     }
 
+    console.log(`[GitHub Upload] Making PUT request to GitHub API...`);
     const createResponse = await fetch(
       `${GITHUB_API_BASE}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filePath}`,
       {
@@ -88,12 +95,16 @@ async function uploadToGitHub(
       }
     );
 
+    console.log(`[GitHub Upload] GitHub API response status: ${createResponse.status}`);
+
     if (!createResponse.ok) {
       const errorData = await createResponse.text();
+      console.error(`[GitHub Upload] GitHub API error: ${createResponse.status} - ${errorData}`);
       throw new Error(`GitHub API error: ${createResponse.status} - ${errorData}`);
     }
 
     const result = await createResponse.json();
+    console.log(`[GitHub Upload] Upload successful, file URL: https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${filePath}`);
     
     return {
       success: true,
@@ -145,7 +156,9 @@ export default async (request: Request, context: Context) => {
 
     // Check for GitHub token
     const githubToken = process.env.GITHUB_TOKEN;
+    console.log('[Upload Debug] GitHub token available:', !!githubToken);
     if (!githubToken) {
+      console.error('[Upload Debug] GitHub token not found in environment');
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -224,9 +237,10 @@ export default async (request: Request, context: Context) => {
 
     // Upload to GitHub repository
     const filePath = `public/images/${folder}/${uniqueFileName}`;
-    const commitMessage = `Add product image: ${uniqueFileName}`;
+    const commitMessage = `Add ${folder} image: ${uniqueFileName}`;
     
     console.log(`[Upload Image] Uploading to GitHub: ${filePath}`);
+    console.log(`[Upload Image] File size: ${base64Data.length} characters`);
     
     const uploadResult = await uploadToGitHub(
       filePath,
@@ -234,6 +248,8 @@ export default async (request: Request, context: Context) => {
       commitMessage,
       githubToken
     );
+    
+    console.log(`[Upload Image] GitHub upload result:`, uploadResult);
 
     if (!uploadResult.success) {
       console.error('[Upload Image] GitHub upload failed:', uploadResult.error);

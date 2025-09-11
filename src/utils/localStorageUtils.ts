@@ -58,8 +58,9 @@ export const getProductImageUrl = (fileName: string): string => {
     return fileName;
   }
   
-  // Return the public path for the image
-  return `/images/products/${fileName}`;
+  // For production, images are stored on GitHub
+  // Return the GitHub raw URL for the image
+  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/products/${fileName}`;
 };
 
 /**
@@ -75,8 +76,9 @@ export const getCategoryImageUrl = (fileName: string): string => {
     return fileName;
   }
   
-  // Return the public path for the image
-  return `/images/categories/${fileName}`;
+  // For production, images are stored on GitHub
+  // Return the GitHub raw URL for the image
+  return `https://raw.githubusercontent.com/kdadks/nirchal/main/public/images/categories/${fileName}`;
 };
 
 /**
@@ -141,8 +143,12 @@ export const saveImageToPublicFolder = async (
     });
 
     const result = await response.json();
+    
+    console.log('[Upload Debug] Response status:', response.status);
+    console.log('[Upload Debug] Response data:', result);
 
     if (!response.ok || !result.success) {
+      console.error('[Upload Debug] Upload failed:', result.error);
       throw new Error(result.error || 'Upload failed');
     }
 
