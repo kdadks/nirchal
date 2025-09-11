@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
-import { getCategoryStorageUrl } from '../utils/storageUtils';
+import { getCategoryStorageUrl, findCategoryImageUrl } from '../utils/storageUtils';
 import type { Category } from '../types';
 
 export const useCategories = () => {
@@ -45,11 +45,18 @@ export const useCategories = () => {
             const transformedCategories: Category[] = (retryData || []).map((cat: any) => {
               let imageUrl = '';
               
+              // Use the image_url field from database if available
               if (cat.image_url && cat.image_url.trim()) {
                 imageUrl = getCategoryStorageUrl(cat.image_url);
-                if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
+                if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} using DB image_url: ${cat.image_url}, full URL: ${imageUrl}`);
               } else {
-                if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url`);
+                // If no image_url in database, try to find image by category name/slug pattern
+                imageUrl = findCategoryImageUrl(cat.name, cat.slug);
+                
+                if (import.meta.env.DEV) {
+                  console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url in DB`);
+                  console.debug(`[useCategories] using pattern-based image: ${imageUrl}`);
+                }
               }
 
               return {
@@ -77,12 +84,18 @@ export const useCategories = () => {
       const transformedCategories: Category[] = (data || []).map((cat: any) => {
         let imageUrl = '';
         
-        // Use the image_url field from database (same as products)
+        // Use the image_url field from database if available
         if (cat.image_url && cat.image_url.trim()) {
           imageUrl = getCategoryStorageUrl(cat.image_url);
-          if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
+          if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} using DB image_url: ${cat.image_url}, full URL: ${imageUrl}`);
         } else {
-          if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url`);
+          // If no image_url in database, try to find image by category name/slug pattern
+          imageUrl = findCategoryImageUrl(cat.name, cat.slug);
+          
+          if (import.meta.env.DEV) {
+            console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url in DB`);
+            console.debug(`[useCategories] using pattern-based image: ${imageUrl}`);
+          }
         }
 
         return {
