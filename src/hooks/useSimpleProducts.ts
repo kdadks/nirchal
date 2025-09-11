@@ -57,6 +57,7 @@ export const useSimpleProducts = () => {
         rating: 0,
         reviewCount: 0,
         stockStatus: 'In Stock' as const,
+        stockQuantity: 0, // Simple products don't have inventory data in this hook
         specifications: {},
         reviews: [],
         variants: []
