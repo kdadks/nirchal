@@ -51,7 +51,7 @@ export const generateCategoryImageFileName = (
  * @returns Full URL to access the image from the public folder
  */
 export const getProductImageUrl = (fileName: string): string => {
-  if (!fileName) return '';
+  if (!fileName || !fileName.trim()) return '';
   
   // If already a full GitHub URL, return as is
   if (fileName.startsWith('https://raw.githubusercontent.com')) {
@@ -59,7 +59,10 @@ export const getProductImageUrl = (fileName: string): string => {
   }
   
   // Extract filename if it's a path
-  const extractedFileName = extractFileName(fileName) || fileName;
+  const extractedFileName = extractFileName(fileName.trim()) || fileName.trim();
+  
+  // Make sure we have a valid filename
+  if (!extractedFileName || !extractedFileName.trim()) return '';
   
   // For production, images are stored on GitHub
   // Return the GitHub raw URL for the image
@@ -72,7 +75,7 @@ export const getProductImageUrl = (fileName: string): string => {
  * @returns Full URL to access the image from the public folder
  */
 export const getCategoryImageUrl = (fileName: string): string => {
-  if (!fileName) return '';
+  if (!fileName || !fileName.trim()) return '';
   
   // If already a full GitHub URL, return as is
   if (fileName.startsWith('https://raw.githubusercontent.com')) {
@@ -80,7 +83,10 @@ export const getCategoryImageUrl = (fileName: string): string => {
   }
   
   // Extract filename if it's a path
-  const extractedFileName = extractFileName(fileName) || fileName;
+  const extractedFileName = extractFileName(fileName.trim()) || fileName.trim();
+  
+  // Make sure we have a valid filename
+  if (!extractedFileName || !extractedFileName.trim()) return '';
   
   // For production, images are stored on GitHub
   // Return the GitHub raw URL for the image

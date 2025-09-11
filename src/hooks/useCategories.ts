@@ -45,7 +45,7 @@ export const useCategories = () => {
             const transformedCategories: Category[] = (retryData || []).map((cat: any) => {
               let imageUrl = '';
               
-              if (cat.image_url) {
+              if (cat.image_url && cat.image_url.trim()) {
                 imageUrl = getCategoryStorageUrl(cat.image_url);
                 if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
               } else {
@@ -78,7 +78,7 @@ export const useCategories = () => {
         let imageUrl = '';
         
         // Use the image_url field from database (same as products)
-        if (cat.image_url) {
+        if (cat.image_url && cat.image_url.trim()) {
           imageUrl = getCategoryStorageUrl(cat.image_url);
           if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
         } else {
