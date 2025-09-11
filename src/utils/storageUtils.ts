@@ -65,6 +65,22 @@ export const getStorageImageUrl = (imagePath: string): string => {
 };
 
 /**
+ * Generate a public URL for an image stored in the category folder
+ * @param imagePath - The path/filename of the image
+ * @returns Full public URL to access the image
+ */
+export const getCategoryStorageUrl = (imagePath: string): string => {
+  if (!imagePath) return '';
+  
+  // If it's a full Supabase URL, convert to local
+  if (imagePath.startsWith('http') && imagePath.includes('supabase')) {
+    return convertSupabaseUrlToLocal(imagePath);
+  }
+  
+  return getLocalCategoryImageUrl(imagePath);
+};
+
+/**
  * Generate multiple possible image URLs for a product based on common naming patterns
  * @param productId - The product ID
  * @param productName - The product name (optional, for category-based naming)
