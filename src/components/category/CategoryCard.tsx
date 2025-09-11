@@ -1,5 +1,4 @@
 import { ArrowRight } from 'lucide-react';
-import { getCategoryImageUrl } from '../../utils/localStorageUtils';
 
 interface Category {
   id: string;
@@ -26,7 +25,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category, onClick }) => {
       {/* Category Image */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={category.image_url ? getCategoryImageUrl(category.image_url) : fallbackImage}
+          src={category.image_url || fallbackImage}
           alt={category.name}
           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
           loading="lazy"

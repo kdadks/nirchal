@@ -153,10 +153,12 @@ export const saveImageToPublicFolder = async (
     }
 
     console.log(`[Local Storage] Successfully processed: ${result.publicUrl}`);
+    console.log(`[Local Storage] GitHub URL: ${result.githubUrl}`);
     
     // Return the GitHub URL for the uploaded image
     // This allows the image to be accessed via GitHub's raw file URL
     const filePath = result.githubUrl || result.publicUrl;
+    console.log(`[Local Storage] Using URL: ${filePath}`);
     
     return {
       success: true,
