@@ -54,7 +54,7 @@ export const getCategoryImageUrls = (categorySlug: string): string[] => {
  * @returns Full public URL to access the image
  */
 export const getStorageImageUrl = (imagePath: string): string => {
-  if (!imagePath) return '';
+  if (!imagePath || !imagePath.trim()) return '';
   
   // If it's already a GitHub URL, return as is
   if (imagePath.startsWith('https://raw.githubusercontent.com')) {
@@ -75,7 +75,7 @@ export const getStorageImageUrl = (imagePath: string): string => {
  * @returns Full public URL to access the image
  */
 export const getCategoryStorageUrl = (imagePath: string): string => {
-  if (!imagePath) return '';
+  if (!imagePath || !imagePath.trim()) return '';
   
   // If it's already a GitHub URL, return as is
   if (imagePath.startsWith('https://raw.githubusercontent.com')) {
