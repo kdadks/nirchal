@@ -626,6 +626,18 @@ export const useProductsWithFilters = (
           rating: Number(rating.toFixed(1)),
           reviewCount: reviews.length,
           stockStatus,
+          stockQuantity: (() => {
+            // Calculate standalone product quantity from inventory
+            if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+              if (!hasVariants) {
+                // For products without variants, sum up product-level inventory (variant_id === null)
+                const productInventory = product.inventory.filter((inv: any) => inv.variant_id === null);
+                return productInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              }
+            }
+            return 0;
+          })(),
           specifications: {},
           reviews: [],
           variants
