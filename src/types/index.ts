@@ -37,6 +37,7 @@ export interface Product {
   rating: number;
   reviewCount: number;
   stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' | 'Pre-Order';
+  stockQuantity?: number;
   specifications?: {
     [key: string]: string;
   };

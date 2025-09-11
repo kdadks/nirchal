@@ -121,6 +121,7 @@ export const usePublicProducts = (featured?: boolean) => {
               rating: 0, // No reviews available
               reviewCount: 0,
               stockStatus: 'In Stock' as const,
+              stockQuantity: 0, // No inventory data available in fallback
               specifications: {},
               reviews: [],
               variants: []
