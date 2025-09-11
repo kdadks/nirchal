@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
-import { getCategoryImageUrl } from '../utils/storageUtils';
+import { getCategoryStorageUrl } from '../utils/storageUtils';
 import type { Category } from '../types';
 
 export const useCategories = () => {
@@ -46,7 +46,7 @@ export const useCategories = () => {
               let imageUrl = '';
               
               if (cat.image_url) {
-                imageUrl = getCategoryImageUrl(cat.image_url);
+                imageUrl = getCategoryStorageUrl(cat.image_url);
                 if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
               } else {
                 if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url`);
@@ -79,7 +79,7 @@ export const useCategories = () => {
         
         // Use the image_url field from database (same as products)
         if (cat.image_url) {
-          imageUrl = getCategoryImageUrl(cat.image_url);
+          imageUrl = getCategoryStorageUrl(cat.image_url);
           if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} image_url: ${cat.image_url}, full URL: ${imageUrl}`);
         } else {
           if (import.meta.env.DEV) console.debug(`[useCategories] category ${cat.name} (${cat.slug}) has no image_url`);
