@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
@@ -149,7 +150,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose, pr
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white w-full max-w-md rounded-xl shadow-xl border border-gray-200 p-4 sm:p-6 mx-4 max-h-[90vh] overflow-y-auto">
@@ -335,7 +336,8 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose, pr
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
