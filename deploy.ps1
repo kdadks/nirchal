@@ -39,6 +39,27 @@ $excludeFile = "./exclude.txt"
     ".env"
     "deployment-package"
     "exclude.txt"
+    # Sensitive SQL and setup files
+    "*.sql"
+    "*rls*.js"
+    "*rls*.sql"
+    "test-*.js"
+    "diagnose*.js"
+    "analyze*.js"
+    "fix-*.js"
+    "debug-*.html"
+    "*-diagnostics.js"
+    "security-*.js"
+    "*-settings-manager.js"
+    "add-webhook-secret.js"
+    "*_SETUP.md"
+    "GITHUB_API_SETUP.md"
+    "STORAGE_BUCKET_SETUP.md"
+    "RLS_*.md"
+    "SCHEMA_*.sql"
+    "scripts\*.sql"
+    "scripts\*rls*.js"
+    "scripts\test-*.js"
 ) | Out-File -FilePath $excludeFile -Encoding ASCII
 
 # Use robocopy to copy files
@@ -46,6 +67,10 @@ $excludeFile = "./exclude.txt"
 
 # Clean up exclusion file
 Remove-Item $excludeFile -Force -ErrorAction SilentlyContinue
+
+# Clean package.json for production
+Write-Host "🧹 Cleaning package.json for production..." -ForegroundColor Yellow
+& node clean-package.js
 
 Write-Host "✅ Deployment package created in ./deployment-package/" -ForegroundColor Green
 Write-Host "🎉 Ready to deploy to production!" -ForegroundColor Green

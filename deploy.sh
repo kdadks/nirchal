@@ -33,7 +33,7 @@ echo "📤 Deploying to production (excluding images)..."
 # Option 2: If using Netlify CLI
 # netlify deploy --prod --exclude='public/images/products/**' --exclude='public/images/categories/**'
 
-# Option 3: Copy to staging folder excluding images
+# Option 3: Copy to staging folder excluding images and sensitive files
 echo "📁 Creating deployment package..."
 rsync -av \
   --exclude='public/images/products/' \
@@ -43,7 +43,31 @@ rsync -av \
   --exclude='node_modules/' \
   --exclude='*.log' \
   --exclude='.env' \
+  --exclude='*.sql' \
+  --exclude='*rls*.js' \
+  --exclude='*rls*.sql' \
+  --exclude='test-*.js' \
+  --exclude='diagnose*.js' \
+  --exclude='analyze*.js' \
+  --exclude='fix-*.js' \
+  --exclude='debug-*.html' \
+  --exclude='*-diagnostics.js' \
+  --exclude='security-*.js' \
+  --exclude='*-settings-manager.js' \
+  --exclude='add-webhook-secret.js' \
+  --exclude='*_SETUP.md' \
+  --exclude='GITHUB_API_SETUP.md' \
+  --exclude='STORAGE_BUCKET_SETUP.md' \
+  --exclude='RLS_*.md' \
+  --exclude='SCHEMA_*.sql' \
+  --exclude='scripts/*.sql' \
+  --exclude='scripts/*rls*.js' \
+  --exclude='scripts/test-*.js' \
   ./ ./deployment-package/
+
+# Clean package.json for production
+echo "🧹 Cleaning package.json for production..."
+node clean-package.js
 
 echo "✅ Deployment package created in ./deployment-package/"
 echo "🎉 Ready to deploy to production!"

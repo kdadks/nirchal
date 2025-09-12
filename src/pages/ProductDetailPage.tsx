@@ -68,8 +68,8 @@ const ProductDetailPage: React.FC = () => {
     if (!selectedSize && product.sizes && product.sizes.length > 0 && product.sizes.some(size => size && size.trim() !== '')) {
       setSelectedSize(product.sizes[0]!);
     }
-    if (!selectedColor && product.colors && product.colors.length > 0) {
-      setSelectedColor(product.colors[0]!);
+    if (!selectedColor && colors.length > 0) {
+      setSelectedColor(colors[0]!);
     }
 
     // Always set to primary image (index 0) when product first loads
@@ -225,9 +225,10 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const sizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
-  const colors = product.colors && product.colors.length > 0 
-    ? product.colors 
-    : product.color ? [product.color] : [];
+  // Only show colors if there are actual variants
+  const colors = product.variants && product.variants.length > 0 
+    ? (product.colors || [])
+    : [];
 
   // Get all swatch image URLs
   const swatchImageUrls = product.variants 

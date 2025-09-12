@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -64,7 +65,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       } else {
         setSelectedSize('');
       }
-      setSelectedColor(product.colors[0] || 'Default');
+      
+      // Only show colors if there are actual variants
+      const colors = product.variants && product.variants.length > 0 
+        ? (product.colors || [])
+        : [];
+      setSelectedColor(colors[0] || '');
       
       // Start with primary image (index 0) instead of swatch image
       setCurrentImageIndex(0);
@@ -150,9 +156,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col relative">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col relative"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Quick View</h2>
           <button
@@ -251,11 +260,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               {/* Options Section - Always Show */}
               <div className="space-y-4">
                 
-                {/* Color Selection with Swatches */}
+                {/* Color Selection with Swatches - Only show if variants exist */}
+                {product.variants && product.variants.length > 0 && (product.colors && product.colors.length > 0) && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Color</h4>
                   <div className="grid grid-cols-6 gap-3 max-w-sm">
-                    {(product.colors && product.colors.length > 0 ? product.colors : ['Default']).map((color) => {
+                    {product.colors.map((color) => {
                       // Find the variant for this color to check for swatch image
                       const colorVariant = product.variants?.find(v => v.color === color);
                       
@@ -373,6 +383,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                     })}
                   </div>
                 </div>
+                )}
 
                 {/* Size Selection - Only show if sizes are defined and not empty */}
                 {(() => {
@@ -438,7 +449,8 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
