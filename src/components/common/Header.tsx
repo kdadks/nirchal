@@ -3,12 +3,15 @@ import { Heart, ShoppingBag, Search, Menu, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import { useCategories } from '../../hooks/useCategories';
 import AuthModal from '../auth/AuthModal';
+import CustomerAuthModal from '../auth/CustomerAuthModal';
 
 const Header: React.FC = () => {
   const { totalItems } = useCart();
   const { user, signOut } = useAuth();
+  const { customer } = useCustomerAuth();
   const { categories } = useCategories();
   const isAuthenticated = !!user;
   const navigate = useNavigate();
@@ -16,6 +19,7 @@ const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [showCustomerAuthModal, setShowCustomerAuthModal] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,6 +29,14 @@ const Header: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Handle navigation to wishlist after customer authentication
+  useEffect(() => {
+    if (customer && showCustomerAuthModal) {
+      setShowCustomerAuthModal(false);
+      navigate('/wishlist');
+    }
+  }, [customer, showCustomerAuthModal, navigate]);
 
   return (
     <header 
@@ -63,25 +75,60 @@ const Header: React.FC = () => {
             </Link>
           </nav>
 
-          {/* Icons */}
+          {/* Search Input and Icons */}
           <div className="flex items-center space-x-4">
+            {/* Inline Search Input - Desktop Only */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const searchInput = e.currentTarget.querySelector('input') as HTMLInputElement;
+                if (searchInput && searchInput.value.trim()) {
+                  navigate(`/products?search=${encodeURIComponent(searchInput.value.trim())}`);
+                  searchInput.value = '';
+                }
+              }}
+              className="hidden md:flex items-center"
+            >
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  className="w-48 py-1.5 pl-8 pr-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <Search size={14} className="absolute left-2.5 top-2 text-gray-400 pointer-events-none" />
+              </div>
+            </form>
+
+            {/* Mobile Search Button */}
             <button 
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 text-gray-700 hover:text-primary-600 transition-colors cursor-pointer"
+              onClick={(e) => {
+                console.log('Mobile search button clicked!', e);
+                setSearchOpen(!searchOpen);
+              }}
+              className="md:hidden p-2 text-gray-700 hover:text-primary-600 transition-colors cursor-pointer"
               aria-label="Search"
+              style={{ backgroundColor: 'red', zIndex: 9999 }}
             >
               <Search size={20} />
             </button>
             
             {/* Removed separate desktop Account menu to avoid duplicate/overlapping targets */}
             
-            <Link 
-              to="/wishlist" 
+            <button 
+              onClick={(e) => {
+                console.log('Heart button clicked!', e);
+                if (customer) {
+                  navigate('/wishlist');
+                } else {
+                  setShowCustomerAuthModal(true);
+                }
+              }}
               className="p-2 text-gray-700 hover:text-primary-600 transition-colors cursor-pointer"
               aria-label="Wishlist"
+              style={{ backgroundColor: 'blue', zIndex: 9999 }}
             >
               <Heart size={20} />
-            </Link>
+            </button>
             
             <Link 
               to="/cart" 
@@ -112,11 +159,11 @@ const Header: React.FC = () => {
             <div className="max-w-2xl mx-auto">
               <form onSubmit={(e) => {
                 e.preventDefault();
-                const searchInput = e.currentTarget.querySelector('input');
-                if (searchInput) {
-                  window.location.href = `/products?search=${searchInput.value}`;
+                const searchInput = e.currentTarget.querySelector('input') as HTMLInputElement;
+                if (searchInput && searchInput.value.trim()) {
+                  navigate(`/products?search=${encodeURIComponent(searchInput.value.trim())}`);
+                  setSearchOpen(false);
                 }
-                setSearchOpen(false);
               }}>
                 <div className="relative">
                   <input 
@@ -139,7 +186,7 @@ const Header: React.FC = () => {
                       key={term}
                       type="button"
                       onClick={() => {
-                        window.location.href = `/products?search=${term}`;
+                        navigate(`/products?search=${encodeURIComponent(term)}`);
                         setSearchOpen(false);
                       }}
                       className="text-sm text-gray-600 hover:text-primary-600 bg-gray-100 px-3 py-1 rounded-full transition-colors"
@@ -223,6 +270,11 @@ const Header: React.FC = () => {
         )}
       </div>
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <CustomerAuthModal 
+        open={showCustomerAuthModal} 
+        onClose={() => setShowCustomerAuthModal(false)}
+        preventRedirect={true}
+      />
     </header>
   );
 };
