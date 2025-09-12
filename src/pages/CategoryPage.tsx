@@ -25,6 +25,7 @@ const CategoryPage = () => {
     products, 
     loading: productsLoading, 
     error: productsError, 
+    totalCount,
     totalPages 
   } = useProductsWithFilters({
     category: isShowingCategoryProducts ? categoryId : undefined,
@@ -116,7 +117,7 @@ const CategoryPage = () => {
               {/* View Toggle */}
               <div className="flex items-center justify-between mb-6">
                 <div className="text-sm text-gray-600">
-                  {products.length} products found
+                  {totalCount} products found
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -177,7 +178,7 @@ const CategoryPage = () => {
                         currentPage={currentPage}
                         totalPages={totalPages}
                         itemsPerPage={productsPerPage}
-                        totalItems={products.length}
+                        totalItems={totalCount}
                         onPageChange={setCurrentPage}
                         onItemsPerPageChange={() => {}}
                         showItemsPerPage={false}
