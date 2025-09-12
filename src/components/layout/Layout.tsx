@@ -4,6 +4,7 @@ import { ShoppingBag, Menu, X, Search, Heart, User, Crown, LogOut } from 'lucide
 import Footer from '../common/Footer';
 import AIChatbot from '../common/AIChatbot';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
+import SearchOverlay from '../common/SearchOverlay';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 
 interface LayoutProps {
@@ -17,6 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const isAdminRoute = location.pathname.startsWith('/admin');
 
   // Handle scroll effect for navbar
@@ -47,6 +49,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleAccountClick = () => {
     if (customer) {
       navigate('/myaccount');
+    } else {
+      setShowAuthModal(true);
+    }
+  };
+
+  const handleSearchClick = () => {
+    console.log('Search button clicked!');
+    setShowSearchOverlay(true);
+  };
+
+  const handleWishlistClick = async () => {
+    console.log('Wishlist button clicked!');
+    if (customer) {
+      navigate('/wishlist');
     } else {
       setShowAuthModal(true);
     }
@@ -117,13 +133,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center space-x-4">
               {/* Search */}
-              <button className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+              <button 
+                onClick={handleSearchClick}
+                className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+              >
                 <Search size={20} />
                 <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100 to-accent-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
               </button>
               
               {/* Wishlist */}
-              <button className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+              <button 
+                onClick={handleWishlistClick}
+                className="group relative p-3 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+              >
                 <Heart size={20} />
                 <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-100 to-accent-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10"></span>
               </button>
@@ -223,11 +245,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {/* Mobile Actions */}
                 <div className="border-t border-primary-100 pt-4 mt-6">
                   <div className="grid grid-cols-4 gap-3">
-                    <button className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+                    <button 
+                      onClick={() => {
+                        handleSearchClick();
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+                    >
                       <Search size={22} />
                       <span className="text-sm font-medium">Search</span>
                     </button>
-                    <button className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300">
+                    <button 
+                      onClick={() => {
+                        handleWishlistClick();
+                        setIsMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center space-y-2 p-4 text-neutral-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all duration-300"
+                    >
                       <Heart size={22} />
                       <span className="text-sm font-medium">Wishlist</span>
                     </button>
@@ -275,6 +309,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         open={showAuthModal} 
         onClose={() => setShowAuthModal(false)} 
         preventRedirect={location.pathname === '/checkout'}
+      />
+
+      {/* Search Overlay */}
+      <SearchOverlay 
+        isOpen={showSearchOverlay} 
+        onClose={() => setShowSearchOverlay(false)} 
       />
     </div>
   );
