@@ -187,14 +187,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
 
             {/* Action Buttons - Top Right */}
-            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               {/* Quick View Button - Hidden on mobile */}
               <button
                 onClick={handleQuickViewClick}
-                className="hidden md:flex w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full items-center justify-center hover:bg-white transition-colors duration-200"
+                className="hidden md:flex w-8 h-8 bg-white shadow-lg rounded-full items-center justify-center hover:bg-amber-50 hover:shadow-xl transition-all duration-200 z-10"
                 title="Quick View"
               >
-                <Eye className="w-4 h-4 text-gray-600 hover:text-amber-600" />
+                <Eye className="w-4 h-4 text-gray-700 hover:text-amber-600" />
               </button>
               
               {/* Wishlist Button - Larger on mobile for better touch target */}
