@@ -6,6 +6,7 @@ import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { getProductStockInfo } from '../../utils/inventoryUtils';
 import QuickViewModal from './QuickViewModal';
+import CustomerAuthModal from '../auth/CustomerAuthModal';
 import type { Product } from '../../types';
 
 interface ProductCardProps {
@@ -23,6 +24,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [imageSrc, setImageSrc] = React.useState(primaryImage);
   const [imageError, setImageError] = React.useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -116,10 +118,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleWishlistClick = (e: React.MouseEvent) => {
+  const handleWishlistClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToWishlist(product.id);
+    
+    const result = await addToWishlist(product.id);
+    if (!result.success && result.requiresAuth) {
+      setShowAuthModal(true);
+    } else if (!result.success) {
+      console.error('Failed to add to wishlist');
+    }
   };
 
   const handleQuickViewClick = (e: React.MouseEvent) => {
@@ -266,6 +274,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
         product={product}
         isOpen={showQuickView}
         onClose={() => setShowQuickView(false)}
+      />
+
+      {/* Customer Auth Modal */}
+      <CustomerAuthModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </>
   );
