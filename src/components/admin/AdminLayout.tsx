@@ -20,7 +20,8 @@ import {
   RefreshCw,
   Truck,
   Shield,
-  Boxes
+  Boxes,
+  Image
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -45,6 +46,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Dashboard',
       path: '/admin',
       icon: <LayoutDashboard className="admin-nav-icon" />,
+      badge: null
+    },
+    {
+      name: 'Hero Slides',
+      path: '/admin/hero-slides',
+      icon: <Image className="admin-nav-icon" />,
       badge: null
     },
     {

@@ -9,6 +9,7 @@ import VendorsPage from '../pages/admin/VendorsPage';
 import LogisticsPartnersPage from '../pages/admin/LogisticsPartnersPage';
 import CreateProductPage from '../pages/admin/CreateProductPage';
 import EditProductPage from '../pages/admin/EditProductPage';
+import HeroSlidesPage from '../pages/admin/HeroSlidesPage';
 import SettingsPage from '../pages/admin/SettingsPage';
 import SecurityPage from '../pages/admin/SecurityPage';
 import OrdersPage from '../pages/admin/OrdersPage';
@@ -33,6 +34,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/create" element={<CreateProductPage />} />
               <Route path="/products/edit/:id" element={<EditProductPage />} />
+              <Route path="/hero-slides" element={<HeroSlidesPage />} />
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/performance-test" element={<OptimizedAdminTest />} />
               <Route path="/orders" element={<OrdersPage />} />

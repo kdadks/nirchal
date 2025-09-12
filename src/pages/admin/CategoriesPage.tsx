@@ -17,6 +17,7 @@ const initialForm: CategoryFormData = {
   parent_id: null,
   image_url: null,
   is_active: true,
+  featured: false,
 };
 
 const CategoriesPage: React.FC = () => {
@@ -130,6 +131,28 @@ const CategoriesPage: React.FC = () => {
       console.error('Delete error:', error);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleToggleFeatured = async (categoryId: string, featured: boolean) => {
+    try {
+      const category = categories?.find(c => c.id === categoryId);
+      if (!category) return;
+
+      const updatedData = {
+        ...category,
+        featured,
+        // Ensure we don't send undefined values to the database
+        description: category.description || null,
+        parent_id: category.parent_id || null,
+        image_url: category.image_url || null
+      };
+
+      await updateCategory(categoryId, updatedData);
+      toast.success(`Category ${featured ? 'added to' : 'removed from'} featured list`);
+    } catch (error) {
+      console.error('Featured toggle error:', error);
+      toast.error('Failed to update featured status');
     }
   };
 
@@ -345,6 +368,9 @@ const CategoriesPage: React.FC = () => {
                     Products
                   </th>
                   <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Featured
+                  </th>
+                  <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th scope="col" className="relative px-4 py-2">
@@ -387,7 +413,11 @@ const CategoriesPage: React.FC = () => {
                           <div>
                             <button
                               onClick={() => {
-                                setForm(category);
+                                const categoryWithDefaults = {
+                                  ...category,
+                                  featured: category.featured ?? false
+                                };
+                                setForm(categoryWithDefaults);
                                 setIsEditing(true);
                                 setEditingId(category.id);
                                 setModalOpen(true);
@@ -410,6 +440,19 @@ const CategoriesPage: React.FC = () => {
                         )}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap">
+                        <button
+                          onClick={() => handleToggleFeatured(category.id, !(category.featured ?? false))}
+                          className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-16 min-w-16 transition-colors ${
+                            (category.featured ?? false)
+                              ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' 
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                          title={`Click to ${(category.featured ?? false) ? 'remove from' : 'add to'} featured categories`}
+                        >
+                          {(category.featured ?? false) ? 'Yes' : 'No'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
                         <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 ${
                           category.is_active 
                             ? 'bg-green-100 text-green-800' 
@@ -422,7 +465,11 @@ const CategoriesPage: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => {
-                              setForm(category);
+                              const categoryWithDefaults = {
+                                ...category,
+                                featured: category.featured ?? false
+                              };
+                              setForm(categoryWithDefaults);
                               setIsEditing(true);
                               setEditingId(category.id);
                               setModalOpen(true);
@@ -578,6 +625,18 @@ const CategoriesPage: React.FC = () => {
                   />
                   <span className="admin-label" style={{ margin: 0 }}>Active</span>
                 </label>
+              </div>
+
+              <div className="admin-form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.featured ?? false}
+                    onChange={(e) => setForm(prev => ({ ...prev, featured: e.target.checked }))}
+                  />
+                  <span className="admin-label" style={{ margin: 0 }}>Featured on Homepage</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">Featured categories will be displayed in the "Shop by Category" section on the homepage</p>
               </div>
 
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '24px' }}>

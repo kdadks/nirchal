@@ -1,4 +1,17 @@
 /* global File */
+export interface HeroSlide {
+  id: string; // UUID
+  title: string;
+  subtitle: string | null;
+  image_url: string;
+  cta_text: string;
+  cta_link: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Category {
   id: string; // UUID
   name: string;
@@ -7,6 +20,7 @@ export interface Category {
   parent_id: string | null; // UUID
   image_url: string | null;
   is_active: boolean;
+  featured: boolean;
   created_at: string;
   updated_at: string;
 }
