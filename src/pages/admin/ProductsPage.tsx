@@ -7,7 +7,7 @@ import Pagination from '../../components/common/Pagination';
 import ProductImportModal from '../../components/admin/ProductImportModal';
 import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
 import { getStorageImageUrl } from '../../utils/storageUtils';
-import { Package, Filter, Trash2, Upload, Download, Edit } from 'lucide-react';
+import { Package, Filter, Trash2, Upload, Download } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -399,14 +399,7 @@ const ProductsPage: React.FC = () => {
                         </button>
                       </td>
                       <td className="admin-table-col-7 px-4 py-2 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center justify-center space-x-2">
-                          <button
-                            onClick={() => navigate(`/admin/products/edit/${product.id}`)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="Edit product"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
+                        <div className="flex items-center justify-center">
                           <button
                             onClick={() => handleDeleteProduct(product.id.toString())}
                             className="text-red-600 hover:text-red-800"
