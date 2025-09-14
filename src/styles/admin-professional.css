@@ -288,7 +288,8 @@
   .admin-products-table .admin-table-col-3 { width: 120px; } /* Category */
   .admin-products-table .admin-table-col-4 { width: 140px; } /* Inventory - wider for "X in stock Y variants" */
   .admin-products-table .admin-table-col-5 { width: 80px; } /* Status */
-  .admin-products-table .admin-table-col-6 { width: 80px; } /* Actions */
+  .admin-products-table .admin-table-col-6 { width: 80px; } /* Featured */
+  .admin-products-table .admin-table-col-7 { width: 80px; } /* Actions */
   
   /* Inventory table mobile adjustments */
   .admin-inventory-table .admin-table-col-0 { width: 30px; }
@@ -319,6 +320,7 @@
   .admin-products-table .admin-table-col-4 { width: 120px; }
   .admin-products-table .admin-table-col-5 { width: 70px; }
   .admin-products-table .admin-table-col-6 { width: 70px; }
+  .admin-products-table .admin-table-col-7 { width: 70px; }
 }
 
 /* Products table specific column widths */
@@ -351,8 +353,13 @@
   width: 100px;
 }
 
-.admin-products-table .admin-table-col-6 { /* Actions */
-  width: 140px;
+.admin-products-table .admin-table-col-6 { /* Featured */
+  width: 80px;
+  text-align: center;
+}
+
+.admin-products-table .admin-table-col-7 { /* Actions */
+  width: 100px;
   text-align: center;
 }
 
