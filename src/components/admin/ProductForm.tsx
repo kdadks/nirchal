@@ -131,9 +131,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
           if (import.meta.env.DEV) console.debug('[ProductForm] build swatch URL for variant:', variant.id);
           const swatchImage = initialData.images.find(img => img.id === variant.swatch_image_id);
           if (swatchImage?.image_url) {
-            const swatchUrl = swatchImage.image_url.startsWith('http') 
-              ? swatchImage.image_url 
-              : getStorageImageUrl(swatchImage.image_url);
+            const swatchUrl = getStorageImageUrl(swatchImage.image_url);
             if (import.meta.env.DEV) console.debug('[ProductForm] swatch URL:', swatchUrl);
             return { ...variant, swatch_image: swatchUrl };
           }
@@ -566,11 +564,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                       imgSrc = image.url;
                     } else if (image.image_url) {
                       // Existing image, use local storage utility to get correct URL
-                      if (image.image_url.startsWith('http')) {
-                        imgSrc = image.image_url;
-                      } else {
-                        imgSrc = getStorageImageUrl(image.image_url);
-                      }
+                      imgSrc = getStorageImageUrl(image.image_url);
                     }
                     return (
                       <div key={image.id || index} className="relative group">
@@ -1947,10 +1941,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
               if (selectedImage) {
                 let imageUrl = selectedImage.image_url || selectedImage.url;
                 if (imageUrl) {
-                  // Convert filename to full Supabase storage URL if needed
-                  if (!imageUrl.startsWith('http')) {
-                    imageUrl = getStorageImageUrl(imageUrl);
-                  }
+                  // Convert to full GitHub storage URL
+                  imageUrl = getStorageImageUrl(imageUrl);
                   handleSwatchSelection(imageId, imageUrl);
                 }
               }
@@ -1959,9 +1951,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
               if (selectedImage) {
                 let imageUrl = selectedImage.image_url || selectedImage.url;
                 if (imageUrl) {
-                  if (!imageUrl.startsWith('http')) {
-                    imageUrl = getStorageImageUrl(imageUrl);
-                  }
+                  imageUrl = getStorageImageUrl(imageUrl);
                   handleSwatchSelection(imageId, imageUrl);
                 }
               }
