@@ -512,12 +512,14 @@ export const useProducts = () => {
 							throw new Error(uploadResult.error || 'Image upload failed');
 						}
 
-						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Type:', typeof newProduct.id);
+						// Use the full GitHub URL from upload result
+						const imageUrl = uploadResult.githubUrl || uploadResult.filePath || fileName;
+						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Image URL:', imageUrl);
 						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: newProduct.id,
-								image_url: fileName, // Store just the filename, not the full path
+								image_url: imageUrl, // Store full GitHub URL for consistency
 								alt_text: image.alt_text,
 								is_primary: image.is_primary
 							}]);
@@ -527,7 +529,7 @@ export const useProducts = () => {
 							console.error(`[createProduct] Failed insert data:`, {
 								product_id: newProduct.id,
 								product_id_type: typeof newProduct.id,
-								image_url: fileName,
+								image_url: imageUrl,
 								alt_text: image.alt_text,
 								is_primary: image.is_primary
 							});
@@ -728,11 +730,14 @@ export const useProducts = () => {
 							throw new Error(uploadResult.error || 'Image upload failed');
 						}
 						
+						// Use the full GitHub URL from upload result
+						const imageUrl = uploadResult.githubUrl || uploadResult.filePath || fileName;
+						
 						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: id,
-								image_url: fileName, // Store just the filename, not the full path
+								image_url: imageUrl, // Store full GitHub URL for consistency
 								alt_text: img.alt_text,
 								is_primary: img.is_primary
 							}]);
