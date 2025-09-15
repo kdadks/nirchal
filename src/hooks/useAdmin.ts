@@ -1010,15 +1010,15 @@ export const useProducts = () => {
 					.filter(filename => filename !== null) as string[];
 				
 				if (imageFilenames.length > 0) {
-					console.log('Deleting product images from local storage:', imageFilenames);
+					console.log('Deleting product images from GitHub storage:', imageFilenames);
 					
 					// Delete each image individually to handle errors gracefully
 					for (const filename of imageFilenames) {
 						const deleteResult = await deleteImageFromPublicFolder(filename, 'products');
 						if (!deleteResult.success) {
-							console.warn(`Failed to delete image ${filename}:`, deleteResult.error);
+							console.warn(`❌ Failed to delete image ${filename}:`, deleteResult.error);
 						} else {
-							console.log(`✅ Deleted image: ${filename}`);
+							console.log(`✅ Successfully processed image deletion: ${filename}`);
 						}
 					}
 					
@@ -1028,37 +1028,7 @@ export const useProducts = () => {
 				console.log('No images to delete from storage');
 			}
 			
-			// 5. Get product variants for inventory cleanup
-			const { data: productVariants, error: variantsFetchError } = await supabase
-				.from('product_variants')
-				.select('id')
-				.eq('product_id', id);
-			
-			if (variantsFetchError) throw variantsFetchError;
-			
-			// 6. Get inventory records for history cleanup
-			const variantIds = productVariants?.map(v => v.id) || [];
-			let inventoryIds: any[] = [];
-			
-			if (variantIds.length > 0) {
-				const { data: variantInventory, error: variantInvError } = await supabase
-					.from('inventory')
-					.select('id')
-					.in('variant_id', variantIds);
-				if (variantInvError) throw variantInvError;
-				inventoryIds = [...inventoryIds, ...(variantInventory?.map(inv => inv.id) || [])];
-			}
-			
-			// Also get main product inventory (without variant)
-			const { data: productInventory, error: productInvError } = await supabase
-				.from('inventory')
-				.select('id')
-				.eq('product_id', id)
-				.is('variant_id', null);
-			if (productInvError) throw productInvError;
-			inventoryIds = [...inventoryIds, ...(productInventory?.map(inv => inv.id) || [])];
-			
-			// 7. Delete inventory history records (get fresh list to ensure we catch all)
+			// 5. Delete inventory history records (get fresh list to ensure we catch all)
 			const { data: allInventoryForProduct, error: allInvError } = await supabase
 				.from('inventory')
 				.select('id')
@@ -1666,7 +1636,7 @@ export const importProducts = async (
 		const firstRow = csvData[0];
 		
 		for (const field of requiredFields) {
-			if (!firstRow.hasOwnProperty(field)) {
+			if (!Object.prototype.hasOwnProperty.call(firstRow, field)) {
 				throw new Error(`Missing required field: ${field}`);
 			}
 		}
