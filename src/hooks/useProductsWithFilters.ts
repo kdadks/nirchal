@@ -60,6 +60,7 @@ export const useProductsWithFilters = (
       // Apply category filter using category_id
       if (filters.category) {
   if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Applying category filter:', filters.category);
+        let categoryFound = false;
         try {
           // Get category ID from category slug (URL parameter uses slug)
           const { data: categoryData } = await supabase
@@ -73,6 +74,7 @@ export const useProductsWithFilters = (
           if (categoryData) {
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by slug:', (categoryData as any).id);
             query = query.eq('category_id', (categoryData as any).id);
+            categoryFound = true;
           } else {
             // Fallback: try matching by name if slug doesn't work
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found by slug, try name');
@@ -87,12 +89,27 @@ export const useProductsWithFilters = (
             if (categoryByName) {
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by name:', (categoryByName as any).id);
               query = query.eq('category_id', (categoryByName as any).id);
-            } else {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] No category for:', filters.category);
+              categoryFound = true;
             }
+          }
+          
+          // If category filter was specified but no category was found, return empty results
+          if (!categoryFound) {
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found, returning empty results for:', filters.category);
+            setProducts([]);
+            setTotalCount(0);
+            setTotalPages(0);
+            setLoading(false);
+            return;
           }
         } catch (err) {
           console.warn('[useProductsWithFilters] Could not apply category filter:', err);
+          // If there's an error finding the category, return empty results rather than all products
+          setProducts([]);
+          setTotalCount(0);
+          setTotalPages(0);
+          setLoading(false);
+          return;
         }
       }
 
@@ -202,6 +219,7 @@ export const useProductsWithFilters = (
         // Apply category filter in fallback too
         if (filters.category) {
           if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category filter:', filters.category);
+          let categoryFound = false;
           try {
             // Get category ID from category slug (URL parameter uses slug)
             const { data: categoryData } = await supabase
@@ -215,6 +233,7 @@ export const useProductsWithFilters = (
             if (categoryData) {
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by slug:', (categoryData as any).id);
               fallbackQuery = fallbackQuery.eq('category_id', (categoryData as any).id);
+              categoryFound = true;
             } else {
               // Fallback: try matching by name if slug doesn't work
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: category not by slug, try name');
@@ -229,12 +248,27 @@ export const useProductsWithFilters = (
               if (categoryByName) {
                 if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by name:', (categoryByName as any).id);
                 fallbackQuery = fallbackQuery.eq('category_id', (categoryByName as any).id);
-              } else {
-                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: no category for', filters.category);
+                categoryFound = true;
               }
+            }
+            
+            // If category filter was specified but no category was found in fallback, return empty results
+            if (!categoryFound) {
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: Category not found, returning empty results for:', filters.category);
+              setProducts([]);
+              setTotalCount(0);
+              setTotalPages(0);
+              setLoading(false);
+              return;
             }
           } catch (err) {
             console.warn('[useProductsWithFilters] Fallback category filter failed:', err);
+            // If there's an error finding the category in fallback, return empty results
+            setProducts([]);
+            setTotalCount(0);
+            setTotalPages(0);
+            setLoading(false);
+            return;
           }
         }
           
