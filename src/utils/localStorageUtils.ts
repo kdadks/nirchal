@@ -240,7 +240,13 @@ export const deleteImageFromPublicFolder = async (
     const result = await response.json();
 
     if (!response.ok || !result.success) {
-      throw new Error(result.error || 'Delete failed');
+      // Check if the error is "File not found" - this is acceptable for placeholders
+      const errorMessage = result.error || 'Delete failed';
+      if (errorMessage.includes('File not found') || errorMessage.includes('404')) {
+        console.log(`[Local Storage] File ${fileName} not found in GitHub (likely a placeholder) - treating as already deleted`);
+        return { success: true }; // Treat as successful since the file doesn't exist anyway
+      }
+      throw new Error(errorMessage);
     }
 
     console.log(`[Local Storage] Successfully deleted: ${result.deletedFile}`);
@@ -248,10 +254,18 @@ export const deleteImageFromPublicFolder = async (
     return { success: true };
     
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // If it's a "file not found" error, treat it as success (placeholder images)
+    if (errorMessage.includes('File not found') || errorMessage.includes('404')) {
+      console.log(`[Local Storage] File ${fileName} not found in GitHub (likely a placeholder) - treating as already deleted`);
+      return { success: true };
+    }
+    
     console.error('[Local Storage] Error deleting image:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage
     };
   }
 };

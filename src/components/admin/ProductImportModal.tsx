@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Upload, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { saveImageToPublicFolder, generateProductImageFileName, generateCategoryImageFileName } from '../../utils/localStorageUtils';
+import { saveImageToPublicFolder, generateProductImageFileName, generateCategoryImageFileName, getProductImageUrl, getCategoryImageUrl } from '../../utils/localStorageUtils';
 
 // Import types and helper functions
 interface ImportOptions {
@@ -366,7 +366,8 @@ const useProductImport = () => {
           let categoryImageUrl = '';
           if (categoryInfo.image && categoryInfo.image.trim()) {
             const uploadedImageUrl = await downloadAndUploadCategoryImage(categoryInfo.image, categoryInfo.name);
-            categoryImageUrl = uploadedImageUrl || '';
+            // Convert filename to full GitHub URL before storing in database
+            categoryImageUrl = uploadedImageUrl ? getCategoryImageUrl(uploadedImageUrl) : '';
             
             if (!uploadedImageUrl) {
               result.warnings.push({
@@ -874,9 +875,11 @@ const useProductImport = () => {
                     const uploadedFileName = await downloadAndUploadImage(originalUrl, productData.name, imageInfo.display_order);
                     
                     if (uploadedFileName) {
+                      // Convert filename to full GitHub URL before storing in database
+                      const fullImageUrl = getProductImageUrl(uploadedFileName);
                       imageInserts.push({
                         product_id: productId,
-                        image_url: uploadedFileName, // Store the uploaded filename, not the original URL
+                        image_url: fullImageUrl, // Store the full GitHub URL
                         alt_text: imageInfo.alt_text,
                         is_primary: imageInfo.is_primary,
                         display_order: imageInfo.display_order
