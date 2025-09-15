@@ -931,9 +931,9 @@ const ProductDetailPage: React.FC = () => {
 
               {/* Description with Rich Text Support */}
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-amber-100">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900" style={{ marginBottom: '15px' }}>Description</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Description</h3>
                 <div 
-                  className="text-gray-700 text-sm leading-snug [&>p]:mb-1 [&>p:last-child]:mb-0 [&>h1]:mb-1 [&>h2]:mb-1 [&>h3]:mb-1 [&>h4]:mb-1 [&>h5]:mb-1 [&>h6]:mb-1 [&>ul]:mb-1 [&>ol]:mb-1 [&>li]:mb-0 [&>br]:hidden"
+                  className="quill-content text-sm"
                   dangerouslySetInnerHTML={{
                     __html: product.description || "Experience the perfect blend of traditional craftsmanship and contemporary design with this exquisite piece. Made from premium quality fabrics with intricate detailing that showcases the rich heritage of Indian ethnic wear."
                   }}
