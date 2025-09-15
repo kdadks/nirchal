@@ -1,4 +1,3 @@
-/* global URL */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, Plus, Upload, Package, Trash2 } from 'lucide-react';
