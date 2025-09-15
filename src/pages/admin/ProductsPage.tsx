@@ -295,11 +295,7 @@ const ProductsPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedProducts?.map((product) => {
                   const img = product.images?.find(img => img.is_primary) || product.images?.[0];
-                  const publicUrl = img?.image_url?.startsWith('http')
-                    ? img.image_url
-                    : img?.image_url 
-                    ? getStorageImageUrl(img.image_url)
-                    : null;
+                  const publicUrl = img?.image_url ? getStorageImageUrl(img.image_url) : null;
                   
                   const totalStock = product.inventory?.reduce((sum, inv) => sum + (inv.quantity || 0), 0) || 0;
                   const variantCount = product.variants?.length || 0;
