@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 interface Category {
   id: string;
   name: string;
-  image?: string;
+  image_url?: string;
   description?: string;
   slug?: string;
 }
@@ -25,7 +25,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category, onClick }) => {
       {/* Category Image */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={category.image || fallbackImage}
+          src={category.image_url || fallbackImage}
           alt={category.name}
           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
           loading="lazy"

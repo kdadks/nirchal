@@ -11,6 +11,7 @@ export const categories: Category[] = [
     parent_id: null,
     image_url: 'https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     is_active: true,
+    featured: false,
     created_at: '',
     updated_at: ''
   },
@@ -22,6 +23,7 @@ export const categories: Category[] = [
     parent_id: null,
     image_url: 'https://images.pexels.com/photos/2836486/pexels-photo-2836486.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     is_active: true,
+    featured: false,
     created_at: '',
     updated_at: ''
   },
@@ -33,6 +35,7 @@ export const categories: Category[] = [
     parent_id: null,
     image_url: 'https://images.pexels.com/photos/4124201/pexels-photo-4124201.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     is_active: true,
+    featured: false,
     created_at: '',
     updated_at: ''
   },
@@ -44,6 +47,7 @@ export const categories: Category[] = [
     parent_id: null,
     image_url: 'https://images.pexels.com/photos/8396651/pexels-photo-8396651.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     is_active: true,
+    featured: false,
     created_at: '',
     updated_at: ''
   },
@@ -55,6 +59,7 @@ export const categories: Category[] = [
     parent_id: null,
     image_url: 'https://images.pexels.com/photos/2916814/pexels-photo-2916814.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
     is_active: true,
+    featured: false,
     created_at: '',
     updated_at: ''
   },
@@ -66,6 +71,7 @@ export const categories: Category[] = [
     parent_id: null,
     image_url: '',
     is_active: true,
+    featured: false,
     created_at: '',
     updated_at: ''
   }
@@ -301,7 +307,7 @@ export const heroSlides = [
     subtitle: 'Handwoven silk sarees with intricate designs',
     image: 'https://images.pexels.com/photos/8369048/pexels-photo-8369048.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&dpr=1',
     cta: 'Shop Sarees',
-    link: '/products?category=sarees'
+    link: '/category/sarees'
   },
   {
     id: 2,
@@ -309,7 +315,7 @@ export const heroSlides = [
     subtitle: 'Regal lehengas for weddings and celebrations',
     image: 'https://images.pexels.com/photos/2836486/pexels-photo-2836486.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&dpr=1',
     cta: 'Explore Lehengas',
-    link: '/products?category=lehengas'
+    link: '/category/lehengas'
   },
   {
     id: 3,
@@ -317,7 +323,7 @@ export const heroSlides = [
     subtitle: 'Contemporary gowns with traditional touch',
     image: 'https://images.pexels.com/photos/2916814/pexels-photo-2916814.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1280&dpr=1',
     cta: 'View Gowns',
-    link: '/products?category=gowns'
+    link: '/category/gowns'
   },
   {
     id: 4,

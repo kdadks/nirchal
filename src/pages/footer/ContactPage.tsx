@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { netlifyEmailService } from '../../services/netlifyEmailService';
 
@@ -52,34 +51,21 @@ const ContactPage: React.FC = () => {
         <meta name="description" content="Get in touch with Nirchal's customer service team for any questions or support." />
       </Helmet>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary-600 to-accent-600 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <MapPin className="w-16 h-16 mx-auto mb-4" />
-          <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-          <p className="text-xl text-primary-100 max-w-2xl mx-auto">
-            We're here to help! Reach out for support, feedback, or business inquiries.
-          </p>
-        </div>
-      </section>
-
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
           {/* Contact Info Cards */}
-          <section className="mb-12">
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Contact Information</h2>
+          <section className="mb-8 md:mb-12">
+            <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">Contact Information</h2>
                 <div className="space-y-3">
-                  <p className="text-gray-700"><b>Email:</b> info@nirchal.com</p>
-                  <p className="text-gray-700"><b>Phone:</b> +91 98765 43210</p>
-                  <p className="text-gray-700"><b>Address:</b> 123, Nirchal Store, Bengaluru, Karnataka, India</p>
-                  <p className="text-gray-700"><b>Business Hours:</b> Mon-Sat, 10am - 7pm</p>
+                  <p className="text-gray-700 text-sm md:text-base"><b>Email:</b> support@nirchal.com</p>
+                  <p className="text-gray-700 text-sm md:text-base"><b>Business Hours:</b> Mon-Sat, 10am - 7pm</p>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Quick Support</h2>
-                <ul className="list-disc pl-5 text-gray-700 space-y-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">Quick Support</h2>
+                <ul className="list-disc pl-5 text-gray-700 space-y-1 text-sm md:text-base">
                   <li>Prompt customer support</li>
                   <li>Custom order queries</li>
                   <li>Bulk/wholesale inquiries</li>
@@ -90,11 +76,11 @@ const ContactPage: React.FC = () => {
           </section>
 
           {/* Contact Form */}
-          <section className="mb-12">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Send us a Message</h2>
-              <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <section className="mb-8 md:mb-12">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-6">Send us a Message</h2>
+              <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6" autoComplete="off">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name *</label>
                     <input
@@ -104,7 +90,7 @@ const ContactPage: React.FC = () => {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                       placeholder="Your Name"
                     />
                   </div>
@@ -117,7 +103,7 @@ const ContactPage: React.FC = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                      className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                       placeholder="you@email.com"
                     />
                   </div>
@@ -130,7 +116,7 @@ const ContactPage: React.FC = () => {
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                     placeholder="Subject (optional)"
                   />
                 </div>
@@ -143,14 +129,14 @@ const ContactPage: React.FC = () => {
                     onChange={handleChange}
                     rows={5}
                     required
-                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-primary-500 focus:border-primary-500 px-4 py-3 text-base"
                     placeholder="Type your message here..."
                   ></textarea>
                 </div>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-3 px-4 rounded-lg font-semibold text-lg transition duration-200 shadow ${
+                  className={`w-full py-4 px-4 rounded-lg font-semibold text-lg transition duration-200 shadow ${
                     isSubmitting
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-primary-600 hover:bg-primary-700 text-white'
@@ -159,27 +145,6 @@ const ContactPage: React.FC = () => {
                   {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
-            </div>
-          </section>
-
-          {/* Google Map Embed */}
-          <section>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <MapPin className="w-7 h-7 text-primary-600" /> Our Store Location
-              </h2>
-              <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200" style={{height:'350px', maxWidth:'100%'}}>
-                <iframe
-                  title="Nirchal Store Location"
-                  src="https://www.google.com/maps?q=Nirchal%20Store%2C%20Bengaluru%2C%20Karnataka%2C%20India&output=embed"
-                  width="100%"
-                  height="350"
-                  style={{border:0}}
-                  allowFullScreen={true}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                ></iframe>
-              </div>
             </div>
           </section>
         </div>

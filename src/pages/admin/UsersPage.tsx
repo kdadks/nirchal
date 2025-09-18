@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserCheck, UserX, Mail, Phone, Calendar, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import toast from 'react-hot-toast';
@@ -22,6 +23,7 @@ const UsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const { searchTerm } = useAdminSearch();
 
   const fetchCustomers = async () => {
     try {
@@ -43,7 +45,7 @@ const UsersPage: React.FC = () => {
 
       if (error) throw error;
 
-      setCustomers(data || []);
+      setCustomers((data as any) || []);
     } catch (err) {
       console.error('Error fetching customers:', err);
       setError('Failed to fetch customers');
@@ -56,6 +58,20 @@ const UsersPage: React.FC = () => {
     fetchCustomers();
   }, []);
 
+  // Filter customers based on search term
+  const filteredCustomers = React.useMemo(() => {
+    if (!searchTerm) return customers;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return customers.filter(customer => {
+      const matchesName = `${customer.first_name} ${customer.last_name}`.toLowerCase().includes(searchLower);
+      const matchesEmail = customer.email.toLowerCase().includes(searchLower);
+      const matchesPhone = customer.phone?.toLowerCase().includes(searchLower);
+      
+      return matchesName || matchesEmail || matchesPhone;
+    });
+  }, [customers, searchTerm]);
+
   // Pagination
   const {
     currentPage,
@@ -66,7 +82,7 @@ const UsersPage: React.FC = () => {
     setCurrentPage,
     setItemsPerPage,
   } = usePagination({
-    data: customers,
+    data: filteredCustomers,
     defaultItemsPerPage: 25,
   });
 
@@ -253,7 +269,7 @@ const UsersPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col space-y-1">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase w-20 min-w-20 ${
                           customer.is_active 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
@@ -261,7 +277,7 @@ const UsersPage: React.FC = () => {
                           {customer.is_active ? 'Active' : 'Inactive'}
                         </span>
                         {customer.password_change_required && (
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase bg-yellow-100 text-yellow-800 w-20 min-w-20">
                             Temp Password
                           </span>
                         )}

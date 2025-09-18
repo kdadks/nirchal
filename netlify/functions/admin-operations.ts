@@ -1,0 +1,416 @@
+import { Handler } from '@netlify/functions';
+import { createClient } from '@supabase/supabase-js';
+
+// Environment variables - with better error handling
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+let supabase: any = null;
+if (supabaseUrl && supabaseServiceKey) {
+  supabase = createClient(supabaseUrl, supabaseServiceKey);
+}
+
+export const handler: Handler = async (event, context) => {
+
+  // Set CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
+  // Handle preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
+  }
+
+  try {
+    const action = event.queryStringParameters?.action || 
+                  (event.body ? JSON.parse(event.body).action : null);
+
+    
+
+    if (!action) {
+      
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Action parameter is required' })
+      };
+    }
+
+    switch (action) {
+      case 'get_inventory':
+        return await getInventory(event, headers);
+      
+      case 'update_inventory':
+        return await updateInventory(event, headers);
+      
+      case 'adjust_inventory':
+        return await adjustInventory(event, headers);
+      
+      case 'get_inventory_history':
+        return await getInventoryHistory(event, headers);
+      
+      case 'health_check':
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            message: 'Admin operations service is running'
+          })
+        };
+      
+      default:
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: `Unknown action: ${action}` })
+        };
+    }
+  } catch (error) {
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
+    };
+  }
+};
+
+async function getInventory(event: any, headers: any) {
+  try {
+    
+    
+    if (!supabase) {
+      throw new Error('Supabase is not configured');
+    }
+
+    // Fetch inventory with product information
+    const { data, error } = await supabase
+      .from('inventory')
+      .select(`
+        *,
+        products!inner(
+          id,
+          name,
+          price,
+          cost_price
+        ),
+        product_variants(
+          id,
+          price_adjustment
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      
+      throw new Error(`Database query failed: ${error.message}`);
+    }
+
+    // Transform the data to match the expected format
+    const inventory = data.map(item => ({
+      id: item.id,
+      product_id: item.product_id,
+      variant_id: item.variant_id,
+      quantity: item.quantity,
+      low_stock_threshold: item.low_stock_threshold,
+      product_name: item.products.name,
+      product_price: item.products.price,
+      cost_price: item.products.cost_price || item.products.price,
+      variant_price_adjustment: item.product_variants?.price_adjustment || null,
+      created_at: item.created_at,
+      updated_at: item.updated_at
+    }));
+
+    
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        inventory,
+        success: true 
+      })
+    };
+  } catch (error) {
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to fetch inventory',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
+    };
+  }
+}
+
+async function updateInventory(event: any, headers: any) {
+  try {
+    if (event.httpMethod !== 'POST') {
+      return {
+        statusCode: 405,
+        headers,
+        body: JSON.stringify({ error: 'Method not allowed' })
+      };
+    }
+
+    const { data } = JSON.parse(event.body);
+    
+    // Mock update - in real implementation, this would update the database
+    
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        success: true,
+        message: 'Inventory updated successfully'
+      })
+    };
+  } catch (error) {
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to update inventory',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
+    };
+  }
+}
+
+async function adjustInventory(event: any, headers: any) {
+  try {
+    if (event.httpMethod !== 'POST') {
+      return {
+        statusCode: 405,
+        headers,
+        body: JSON.stringify({ error: 'Method not allowed' })
+      };
+    }
+
+    if (!supabase) {
+      throw new Error('Supabase is not configured');
+    }
+
+    const { data } = JSON.parse(event.body);
+    const { item_id, quantity, reason, notes } = data;
+    
+    
+
+    // Start a transaction-like operation
+    // First, get the current inventory item
+    const { data: currentItem, error: fetchError } = await supabase
+      .from('inventory')
+      .select('*')
+      .eq('id', item_id)
+      .single();
+
+    if (fetchError) {
+      
+      throw new Error(`Failed to fetch inventory item: ${fetchError.message}`);
+    }
+
+    if (!currentItem) {
+      throw new Error('Inventory item not found');
+    }
+
+    const oldQuantity = currentItem.quantity;
+    const newQuantity = quantity;
+    const adjustment = newQuantity - oldQuantity;
+
+    // Update the inventory quantity
+    const { error: updateError } = await supabase
+      .from('inventory')
+      .update({ 
+        quantity: newQuantity,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', item_id);
+
+    if (updateError) {
+      
+      throw new Error(`Failed to update inventory: ${updateError.message}`);
+    }
+
+    // Create a history record (if inventory_history table exists)
+    try {
+      const { error: historyError } = await supabase
+        .from('inventory_history')
+        .insert({
+          inventory_id: item_id,
+          previous_quantity: oldQuantity, // Use correct column name
+          new_quantity: newQuantity,
+          change_type: adjustment > 0 ? 'STOCK_IN' : 'STOCK_OUT', // Use change_type
+          reason: reason,
+          created_by: null, // Use created_by instead of user_name
+          created_at: new Date().toISOString()
+        });
+
+      if (historyError) {
+        
+        // Don't fail the operation if history logging fails
+      }
+    } catch (historyErr) {
+      
+    }
+
+    
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        success: true,
+        message: 'Inventory adjusted successfully',
+        data: {
+          item_id,
+          old_quantity: oldQuantity,
+          new_quantity: newQuantity,
+          adjustment
+        }
+      })
+    };
+  } catch (error) {
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to adjust inventory',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
+    };
+  }
+}
+
+async function getInventoryHistory(event: any, headers: any) {
+  try {
+    if (!supabase) {
+      throw new Error('Supabase is not configured');
+    }
+
+    const params = event.queryStringParameters || {};
+    
+    
+
+    // Build the query
+    let query = supabase
+      .from('inventory_history')
+      .select(`
+        *,
+        inventory!inner(
+          id,
+          product_id,
+          products!inner(name)
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (params.inventory_id) {
+      query = query.eq('inventory_id', params.inventory_id);
+    }
+    
+    if (params.action_type) {
+      // Map action_type to change_type
+      query = query.eq('change_type', params.action_type.toUpperCase());
+    }
+    
+    if (params.start_date) {
+      query = query.gte('created_at', params.start_date);
+    }
+    
+    if (params.end_date) {
+      query = query.lte('created_at', params.end_date);
+    }
+
+    // Apply pagination
+    const limit = parseInt(params.limit) || 50;
+    const offset = parseInt(params.offset) || 0;
+    
+    query = query.range(offset, offset + limit - 1);
+
+    const { data, error, count } = await supabase
+      .from('inventory_history')
+      .select('*', { count: 'exact', head: true });
+
+    if (error) {
+      
+      // If the table doesn't exist, return empty data
+      if (error.code === '42P01') {
+        
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({ 
+            history: [],
+            total: 0,
+            success: true,
+            message: 'Inventory history table not yet created'
+          })
+        };
+      }
+      throw new Error(`Database query failed: ${error.message}`);
+    }
+
+    const { data: historyData, error: queryError } = await query;
+
+    if (queryError) {
+      
+      throw new Error(`Failed to fetch history: ${queryError.message}`);
+    }
+
+    // Transform the data to include product names
+    const history = (historyData || []).map(item => ({
+      id: item.id,
+      inventory_id: item.inventory_id,
+      product_id: item.inventory?.product_id || '',
+      product_name: item.inventory?.products?.name || 'Unknown Product',
+      old_quantity: item.previous_quantity, // Map from actual column
+      new_quantity: item.new_quantity,
+      adjustment: item.new_quantity - item.previous_quantity, // Calculate adjustment
+      reason: item.reason,
+      reference: null, // Not available in current schema
+      user_name: item.created_by ? 'Admin' : 'System',
+      action_type: item.change_type?.toLowerCase() || 'adjustment',
+      created_at: item.created_at
+    }));
+
+    
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        history,
+        total: count || 0,
+        success: true 
+      })
+    };
+  } catch (error) {
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Failed to fetch inventory history',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      })
+    };
+  }
+}

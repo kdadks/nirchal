@@ -203,6 +203,25 @@ export const outlookCompatibleOrderConfirmationEmail = (customerName: string, or
   });
 };
 
+export const outlookCompatibleOrderReceivedEmail = (customerName: string, orderNumber: string, orderTotal: string, websiteUrl: string) => {
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Order Received',
+    headerText: '📨 Order Received!',
+    subHeaderText: `Order ${orderNumber}`,
+    customerName,
+    content: [
+      `Thank you for placing your order with us! We have successfully received your order <strong>${orderNumber}</strong> and it is now being processed.`,
+      `<strong>Order Total:</strong> ₹${orderTotal}`,
+      '<strong>🔄 What happens next?</strong><br>• Our team will review and process your order<br>• You\'ll receive an order confirmation once processed<br>• We\'ll send tracking details when your order ships',
+      'Thank you for choosing us! We\'ll keep you updated on your order status.'
+    ],
+    ctaText: '📋 View Order Details',
+    ctaUrl: `${websiteUrl}/myaccount?tab=orders`,
+    footerText: 'Your Trusted Shopping Destination',
+    websiteUrl
+  });
+};
+
 export const outlookCompatiblePasswordResetEmail = (customerName: string, resetUrl: string, websiteUrl: string) => {
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Password Reset Request',
@@ -247,6 +266,43 @@ export const outlookCompatibleOrderStatusEmail = (customerName: string, orderNum
   });
 };
 
+export const outlookCompatibleShippingEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  trackingNumber: string,
+  trackingUrl: string | undefined,
+  logisticsPartner: string,
+  websiteUrl: string
+) => {
+  const content = [
+    `Great news! Your order <strong>${orderNumber}</strong> has been shipped and is on its way to you.`,
+    `<strong>📦 Shipping Details:</strong><br>📍 <strong>Tracking Number:</strong> ${trackingNumber}<br>🚚 <strong>Logistics Partner:</strong> ${logisticsPartner}`,
+  ];
+
+  if (trackingUrl) {
+    content.push(
+      '<strong>🔍 Track Your Package:</strong><br>You can track your package in real-time using the tracking number above or by clicking the button below.'
+    );
+  }
+
+  content.push(
+    '<strong>📅 Estimated Delivery:</strong> 3-7 business days from ship date',
+    '<strong>💡 Delivery Tips:</strong><br>• Ensure someone is available to receive the package<br>• Check your tracking regularly for updates<br>• Contact us if you have any delivery concerns'
+  );
+
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Order Shipped',
+    headerText: '🚚 Your Order is Shipped!',
+    subHeaderText: `Order ${orderNumber} - Tracking: ${trackingNumber}`,
+    customerName,
+    content,
+    ctaText: trackingUrl ? '📍 Track Your Package' : '📱 View Order Details',
+    ctaUrl: trackingUrl || `${websiteUrl}/myaccount`,
+    footerText: 'Fast & Reliable Delivery',
+    websiteUrl
+  });
+};
+
 export const outlookCompatiblePasswordChangeEmail = (customerName: string, websiteUrl: string) => {
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Password Changed Successfully',
@@ -262,6 +318,68 @@ export const outlookCompatiblePasswordChangeEmail = (customerName: string, websi
     ctaText: '🏠 Go to Dashboard',
     ctaUrl: `${websiteUrl}/myaccount`,
     footerText: 'Account Security Team',
+    websiteUrl
+  });
+};
+
+export const outlookCompatiblePaymentSuccessEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  amount: string, 
+  paymentId: string,
+  websiteUrl: string
+) => {
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Payment Successful',
+    headerText: '✅ Payment Confirmed',
+    subHeaderText: `Payment received for order ${orderNumber}`,
+    customerName,
+    content: [
+      `We're happy to confirm that your payment has been successfully processed!`,
+      `<strong>Order Number:</strong> ${orderNumber}`,
+      `<strong>Amount Paid:</strong> ₹${amount}`,
+      `<strong>Payment ID:</strong> ${paymentId}`,
+      `<strong>Payment Status:</strong> <span style="color: #10b981; font-weight: bold;">Successful</span>`,
+      '',
+      'Your order is now being processed and you should receive it within 5-7 business days.',
+      'We\'ll send you tracking information once your order ships.'
+    ],
+    ctaText: '📦 Track Your Order',
+    ctaUrl: `${websiteUrl}/myaccount/orders`,
+    footerText: 'Thank you for shopping with us!',
+    websiteUrl
+  });
+};
+
+export const outlookCompatiblePaymentFailedEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  amount: string, 
+  errorReason: string,
+  websiteUrl: string
+) => {
+  return OutlookCompatibleEmailTemplate.generate({
+    title: 'Payment Failed',
+    headerText: '❌ Payment Could Not Be Processed',
+    subHeaderText: `Payment failed for order ${orderNumber}`,
+    customerName,
+    content: [
+      `We're sorry, but we couldn't process your payment for the following order:`,
+      `<strong>Order Number:</strong> ${orderNumber}`,
+      `<strong>Amount:</strong> ₹${amount}`,
+      `<strong>Payment Status:</strong> <span style="color: #ef4444; font-weight: bold;">Failed</span>`,
+      `<strong>Reason:</strong> ${errorReason}`,
+      '',
+      '<strong>What happens next?</strong>',
+      '• Your order has been placed but is pending payment',
+      '• No amount has been charged to your account',
+      '• You can retry payment or choose a different payment method',
+      '',
+      'Please try again or contact our support team if you continue to experience issues.'
+    ],
+    ctaText: '🔄 Retry Payment',
+    ctaUrl: `${websiteUrl}/myaccount/orders`,
+    footerText: 'Need help? Contact our support team',
     websiteUrl
   });
 };

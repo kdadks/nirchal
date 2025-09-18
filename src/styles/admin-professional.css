@@ -222,6 +222,107 @@
   table-layout: fixed; /* Fixed layout for better column control */
 }
 
+.admin-table th,
+.admin-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure product name column handles overflow properly */
+.admin-products-table .admin-table-col-2 {
+  overflow: visible; /* Allow content to show for product name column */
+}
+
+.admin-products-table .admin-table-col-2 > div {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Text truncation classes */
+.truncate-cell {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Center align image column */
+.admin-table .admin-table-col-1 {
+  text-align: center;
+}
+
+/* Responsive table wrapper */
+.responsive-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+}
+
+/* Enhanced mobile responsiveness for tables */
+@media (max-width: 1023px) {
+  .responsive-table-wrapper {
+    /* Add shadow to indicate scrollable content */
+    box-shadow: inset -10px 0 10px -10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .admin-table {
+    min-width: 900px; /* Increased minimum width for better display */
+    font-size: 13px; /* Slightly smaller font on mobile */
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 8px 6px !important; /* Reduce padding on mobile */
+  }
+  
+  /* Hide less important columns on mobile */
+  .admin-table .hide-mobile {
+    display: none !important;
+  }
+  
+  /* Adjust column widths for mobile - Products table */
+  .admin-products-table .admin-table-col-0 { width: 40px; } /* Checkbox */
+  .admin-products-table .admin-table-col-1 { width: 60px; } /* Image - centered */
+  .admin-products-table .admin-table-col-2 { width: 220px; min-width: 220px; } /* Product name - more space */
+  .admin-products-table .admin-table-col-3 { width: 120px; } /* Category */
+  .admin-products-table .admin-table-col-4 { width: 140px; } /* Inventory - wider for "X in stock Y variants" */
+  .admin-products-table .admin-table-col-5 { width: 80px; } /* Status */
+  .admin-products-table .admin-table-col-6 { width: 80px; } /* Featured */
+  .admin-products-table .admin-table-col-7 { width: 80px; } /* Actions */
+  
+  /* Inventory table mobile adjustments */
+  .admin-inventory-table .admin-table-col-0 { width: 30px; }
+  .admin-inventory-table .admin-table-col-1 { width: 160px; min-width: 160px; }
+  .admin-inventory-table .admin-table-col-2 { width: 120px; }
+  .admin-inventory-table .admin-table-col-3 { width: 80px; }
+  .admin-inventory-table .admin-table-col-4 { width: 80px; }
+  .admin-inventory-table .admin-table-col-5 { width: 90px; }
+  .admin-inventory-table .admin-table-col-6 { width: 80px; }
+}
+
+@media (max-width: 767px) {
+  .admin-table {
+    font-size: 12px; /* Even smaller on very small screens */
+    min-width: 750px; /* Reduced minimum width for small screens */
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    padding: 6px 4px !important; /* Further reduce padding */
+  }
+  
+  /* Tighter column widths for very small screens */
+  .admin-products-table .admin-table-col-0 { width: 35px; }
+  .admin-products-table .admin-table-col-1 { width: 50px; }
+  .admin-products-table .admin-table-col-2 { width: 180px; min-width: 180px; }
+  .admin-products-table .admin-table-col-3 { width: 100px; }
+  .admin-products-table .admin-table-col-4 { width: 120px; }
+  .admin-products-table .admin-table-col-5 { width: 70px; }
+  .admin-products-table .admin-table-col-6 { width: 70px; }
+  .admin-products-table .admin-table-col-7 { width: 70px; }
+}
+
 /* Products table specific column widths */
 .admin-products-table .admin-table-col-0 { /* Checkbox */
   width: 40px;
@@ -240,20 +341,58 @@
   padding-left: 4px !important;
 }
 
-.admin-products-table .admin-table-col-3 { /* Status */
-  width: 100px;
+.admin-products-table .admin-table-col-3 { /* Category */
+  width: 120px;
 }
 
 .admin-products-table .admin-table-col-4 { /* Inventory */
   width: 140px;
 }
 
-.admin-products-table .admin-table-col-5 { /* Category */
+.admin-products-table .admin-table-col-5 { /* Status */
+  width: 100px;
+}
+
+.admin-products-table .admin-table-col-6 { /* Featured */
+  width: 80px;
+  text-align: center;
+}
+
+.admin-products-table .admin-table-col-7 { /* Actions */
+  width: 100px;
+  text-align: center;
+}
+
+/* Inventory table specific column widths */
+.admin-inventory-table .admin-table-col-0 { /* Checkbox */
+  width: 40px;
+  text-align: center;
+}
+
+.admin-inventory-table .admin-table-col-1 { /* Product */
+  width: 30%;
+  min-width: 200px;
+}
+
+.admin-inventory-table .admin-table-col-2 { /* Variant */
+  width: 25%;
+  min-width: 150px;
+}
+
+.admin-inventory-table .admin-table-col-3 { /* Stock */
   width: 120px;
 }
 
-.admin-products-table .admin-table-col-6 { /* Actions */
-  width: 140px;
+.admin-inventory-table .admin-table-col-4 { /* Status */
+  width: 100px;
+}
+
+.admin-inventory-table .admin-table-col-5 { /* Last Updated */
+  width: 120px;
+}
+
+.admin-inventory-table .admin-table-col-6 { /* Actions */
+  width: 80px;
   text-align: center;
 }
 
@@ -645,36 +784,53 @@
   padding-right: 32px;
 }
 
-/* Compact checkbox styling */
-.admin-checkbox-wrapper {
+/* Checkbox group container */
+.admin-checkbox-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.admin-checkbox-group:hover .admin-checkbox {
+  border-color: var(--admin-primary);
 }
 
 .admin-checkbox {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border: 2px solid #d1d5db;
-  border-radius: 3px;
+  border-radius: 4px;
   background-color: white;
   cursor: pointer;
   transition: all 0.15s ease;
+  flex-shrink: 0;
+  position: relative;
 }
 
 .admin-checkbox:checked {
   background-color: var(--admin-primary);
   border-color: var(--admin-primary);
   background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='m13.854 3.646-7.5 7.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6 10.293l7.146-7.147a.5.5 0 0 1 .708.708z'/%3e%3c/svg%3e");
+  background-size: 12px 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.admin-checkbox:focus {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
 }
 
 .admin-checkbox-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--admin-text-primary);
   cursor: pointer;
   user-select: none;
+  line-height: 1.4;
 }
 
 /* Specific overrides for modal forms to ensure proper styling */
@@ -700,6 +856,165 @@
   font-weight: 500 !important;
   color: var(--admin-text-primary) !important;
   font-family: 'Roboto', sans-serif !important;
+}
+
+/* Modal Form Enhancements */
+.admin-modal .admin-form-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-modal .admin-form-grid.grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.admin-modal .admin-form-grid.grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.admin-modal .admin-form-field {
+  margin-bottom: 16px;
+}
+
+.admin-modal .admin-form-field:last-child {
+  margin-bottom: 0;
+}
+
+/* Variant Type Selection Modal specific styles */
+.variant-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.variant-type-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  min-height: 120px;
+  justify-content: center;
+}
+
+.variant-type-card:hover {
+  border-color: var(--admin-primary);
+  background-color: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.variant-type-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  color: white;
+}
+
+.variant-type-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--admin-text-primary);
+  margin-bottom: 4px;
+}
+
+.variant-type-description {
+  font-size: 12px;
+  color: var(--admin-text-secondary);
+  line-height: 1.3;
+}
+
+/* Bulk Variant Modal specific styles */
+.bulk-variant-preview {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 16px 0;
+  background-color: white;
+}
+
+.bulk-variant-header {
+  background-color: #f9fafb;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--admin-text-primary);
+}
+
+.bulk-variant-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+}
+
+.bulk-variant-item:last-child {
+  border-bottom: none;
+}
+
+.bulk-variant-item:nth-child(even) {
+  background-color: #fafbfc;
+}
+
+.bulk-variant-name {
+  font-weight: 500;
+  color: var(--admin-text-primary);
+  font-size: 14px;
+}
+
+.bulk-variant-fields {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.bulk-variant-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.bulk-variant-field label {
+  font-size: 11px;
+  color: var(--admin-text-secondary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.bulk-variant-field input {
+  width: 70px;
+  padding: 6px 8px;
+  font-size: 13px;
+  text-align: center;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+
+.bulk-variant-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
 }
 
 /* Action icons */
@@ -743,11 +1058,213 @@
 .admin-text-secondary { color: var(--admin-text-secondary); }
 .admin-text-primary { color: var(--admin-text-primary); }
 
-/* Responsive */
+/* Responsive Design Improvements */
+@media (max-width: 1366px) {
+  /* 14-inch laptop and smaller wide screens */
+  .admin-sidebar {
+    width: 220px;
+  }
+  
+  .admin-main {
+    margin-left: 220px;
+  }
+  
+  .admin-content {
+    padding: 16px;
+  }
+  
+  .admin-modal-overlay {
+    padding: 8px;
+  }
+  
+  .admin-modal {
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  /* Compact form layouts */
+  .admin-form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  .admin-form-grid-triple {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  
+  /* Responsive tables */
+  .admin-table-responsive {
+    font-size: 13px;
+  }
+  
+  .admin-table-responsive th,
+  .admin-table-responsive td {
+    padding: 8px 6px;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Tablet landscape and small laptops */
+  .admin-sidebar {
+    width: 200px;
+  }
+  
+  .admin-main {
+    margin-left: 200px;
+  }
+  
+  .admin-modal {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  /* Single column layouts for forms */
+  .admin-form-grid,
+  .admin-form-grid-triple {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  /* Variant grid responsive - stack on smaller screens */
+  .variant-grid {
+    display: block !important;
+  }
+  
+  /* Force single column layout on mobile */
+  .variant-grid > * {
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Ensure mobile layout is visible and desktop is hidden */
+  .variant-grid .lg\\:hidden {
+    display: block !important;
+  }
+  
+  .variant-grid .hidden.lg\\:flex {
+    display: none !important;
+  }
+  
+  .variant-grid-header {
+    display: none !important;
+  }
+  
+  .variant-grid-row {
+    display: block !important;
+    padding: 16px !important;
+    border: 1px solid var(--admin-border) !important;
+    border-radius: 8px !important;
+    margin-bottom: 12px !important;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .variant-grid-cell {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 8px 0 !important;
+    border-bottom: 1px solid #f5f5f5;
+    min-height: 36px;
+  }
+  
+  .variant-grid-cell:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+  
+  .variant-grid-cell::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--admin-text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    min-width: 80px;
+    margin-right: 12px;
+  }
+  
+  .variant-grid-cell input,
+  .variant-grid-cell select,
+  .variant-grid-cell textarea {
+    max-width: 180px !important;
+    margin-left: auto !important;
+  }
+  
+  /* Modal responsive adjustments */
+  .admin-modal {
+    max-width: 95% !important;
+    width: 95% !important;
+    margin: 8px !important;
+    max-height: 90vh !important;
+  }
+  
+  .admin-modal.modal-sm {
+    max-width: 90% !important;
+  }
+  
+  .admin-modal.modal-md {
+    max-width: 95% !important;
+  }
+  
+  .admin-modal.modal-lg,
+  .admin-modal.modal-xl {
+    max-width: 98% !important;
+  }
+  
+  .admin-modal-header {
+    padding: 16px 20px 12px 20px !important;
+  }
+  
+  .admin-modal-body {
+    padding: 16px 20px !important;
+  }
+  
+  .admin-modal-footer {
+    padding: 12px 20px 16px 20px !important;
+    flex-direction: column-reverse !important;
+  }
+  
+  .admin-modal-footer .admin-btn {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .admin-modal-footer .admin-btn:last-child {
+    margin-bottom: 0 !important;
+  }
+  
+  /* Bulk operations responsive */
+  .bulk-operations {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .bulk-operations > div {
+    width: 100% !important;
+  }
+  
+  /* Button groups stack vertically */
+  .admin-btn-group {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  
+  .admin-btn-group .admin-btn {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+}
+
 @media (max-width: 768px) {
+  /* Mobile and small tablets */
   .admin-sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    width: 280px;
+    z-index: 1100;
   }
   
   .admin-sidebar.open {
@@ -759,11 +1276,99 @@
   }
   
   .admin-content {
-    padding: 16px;
+    padding: 12px;
   }
   
   .admin-search {
     width: 200px;
+  }
+  
+  /* Full-screen modals on mobile */
+  .admin-modal {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+  
+  .admin-modal-overlay {
+    padding: 0;
+  }
+  
+  /* Mobile-optimized form elements */
+  .admin-input,
+  .admin-select,
+  .admin-textarea {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 12px;
+  }
+  
+  /* Image grid responsive */
+  .image-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  
+  /* Hide less important columns on mobile */
+  .admin-table-mobile-hidden {
+    display: none !important;
+  }
+  
+  /* Stack navigation items in header */
+  .admin-header {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+  
+  .admin-header-left,
+  .admin-header-right {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Small mobile devices */
+  .admin-content {
+    padding: 8px;
+  }
+  
+  .admin-card {
+    padding: 12px;
+  }
+  
+  .admin-modal-header {
+    padding: 12px;
+  }
+  
+  .admin-modal-body {
+    padding: 12px;
+  }
+  
+  .admin-modal-footer {
+    padding: 12px;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .admin-modal-footer .admin-btn {
+    width: 100%;
+  }
+  
+  /* Single column image grid */
+  .image-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Smaller buttons and inputs */
+  .admin-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .admin-input,
+  .admin-select,
+  .admin-textarea {
+    padding: 10px;
   }
 }
 
@@ -797,6 +1402,93 @@
   background-color: #f3f4f6;
   color: var(--admin-text-muted);
   border-radius: 4px;
+}
+
+/* Responsive Utility Classes */
+.admin-responsive-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-responsive-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.admin-responsive-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-responsive-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.admin-stack-mobile {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .admin-stack-mobile {
+    flex-direction: column;
+  }
+}
+
+.admin-hide-mobile {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .admin-hide-mobile {
+    display: none;
+  }
+}
+
+.admin-show-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-show-mobile {
+    display: block;
+  }
+}
+
+/* Modal responsive improvements */
+.admin-modal-responsive {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .admin-modal-responsive {
+    max-width: 100%;
+    height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* Form responsive improvements */
+.admin-form-responsive {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .admin-form-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-form-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.admin-form-full-width {
+  grid-column: 1 / -1;
 }
 
 /* Data table specific styles */
@@ -1091,18 +1783,47 @@
 
 /* Compact, Professional Modal styles */
 .admin-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   background-color: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(2px);
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 99999 !important;
   animation: fadeIn 0.15s ease-out;
+  padding: 16px;
+}
+
+/* Force highest z-index for account page modals to overcome Layout stacking context */
+body .admin-modal-overlay {
+  z-index: 999999 !important;
+  position: fixed !important;
+}
+
+body .admin-modal-overlay .admin-modal {
+  z-index: 999999 !important;
+  position: relative !important;
+}
+
+/* Specific overrides for account modals */
+.account-modal-overlay {
+  z-index: 999999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
+}
+
+.account-modal {
+  z-index: 999999 !important;
+  position: relative !important;
+  transform: none !important;
 }
 
 @keyframes fadeIn {
@@ -1125,12 +1846,37 @@
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  max-width: 480px; /* Much smaller for simple forms */
-  width: 90%;
-  max-height: 80vh;
+  max-width: 520px; /* Optimized for variant modals */
+  width: 95%;
+  max-height: 85vh;
   overflow: hidden;
   animation: slideUp 0.2s ease-out;
   border: 1px solid #e5e8eb;
+  position: relative;
+  z-index: 999999 !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal size variants */
+.admin-modal.modal-sm {
+  max-width: 400px;
+  width: 90%;
+}
+
+.admin-modal.modal-md {
+  max-width: 520px;
+  width: 95%;
+}
+
+.admin-modal.modal-lg {
+  max-width: 700px;
+  width: 98%;
+}
+
+.admin-modal.modal-xl {
+  max-width: 900px;
+  width: 98%;
 }
 
 .admin-modal-header {
@@ -1138,28 +1884,42 @@
   border-bottom: 1px solid #e5e8eb;
   background-color: #fafbfc;
   position: relative;
+  flex-shrink: 0;
 }
 
 .admin-modal-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--admin-text-primary);
-  margin: 0;
+  margin: 0 0 4px 0;
   font-family: 'Roboto', sans-serif;
+  line-height: 1.4;
 }
 
-.admin-modal-content {
+.admin-modal-subtitle {
+  font-size: 13px;
+  color: var(--admin-text-secondary);
+  margin: 0;
+  line-height: 1.3;
+  margin-top: 4px;
+}
+
+.admin-modal-body {
   padding: 20px 24px;
   background-color: white;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* Allow flex shrinking */
 }
 
-.admin-modal-actions {
+.admin-modal-footer {
   padding: 16px 24px 20px 24px;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   border-top: 1px solid #e5e8eb;
   background-color: #fafbfc;
+  flex-shrink: 0;
 }
 
 .admin-modal-actions .admin-btn {
@@ -1237,4 +1997,178 @@
   background-color: #fca5a5;
   border-color: #fca5a5;
   cursor: not-allowed;
+}
+
+/* Modal positioning fixes for smaller screens */
+.admin-modal-content {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .admin-modal-content {
+    width: auto;
+    min-width: 400px;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-modal-content {
+    min-width: 500px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-modal-content {
+    min-width: 600px;
+  }
+}
+
+/* Responsive table improvements */
+.admin-table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .admin-table-responsive table {
+    min-width: 600px;
+  }
+  
+  .admin-table-responsive th,
+  .admin-table-responsive td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Mobile-first navigation improvements */
+@media (max-width: 1024px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .admin-main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Compact form spacing for tablets */
+@media (max-width: 1366px) and (min-width: 768px) {
+  .admin-form-section {
+    padding: 1rem;
+  }
+  
+  .admin-form-grid {
+    gap: 1rem;
+  }
+  
+  .admin-input-group {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Enhanced Modal Responsive System */
+@media (max-width: 1366px) {
+  .admin-modal {
+    max-width: 85%;
+    width: 85%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .admin-modal {
+    max-width: 90%;
+    width: 90%;
+    max-height: 85vh;
+  }
+  
+  .admin-modal-overlay {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-modal {
+    max-width: 95%;
+    width: 95%;
+    max-height: 90vh;
+    border-radius: 6px;
+  }
+  
+  .admin-modal-overlay {
+    padding: 8px;
+  }
+  
+  .admin-modal-header {
+    padding: 16px 20px 12px 20px;
+  }
+  
+  .admin-modal-body {
+    padding: 16px 20px;
+  }
+  
+  .admin-modal-footer {
+    padding: 12px 20px 16px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 95vh;
+    border-radius: 0;
+    margin: 0;
+  }
+  
+  .admin-modal-overlay {
+    padding: 0;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+  
+  .admin-modal-header {
+    padding: 14px 16px 10px 16px;
+  }
+  
+  .admin-modal-body {
+    padding: 14px 16px;
+  }
+  
+  .admin-modal-footer {
+    padding: 10px 16px 14px 16px;
+  }
+}
+
+/* Ensure modal body scrolls properly */
+.admin-modal-body {
+  overflow-y: auto;
+  max-height: calc(85vh - 120px);
+}
+
+/* Mobile modal scroll improvements */
+@media (max-width: 768px) {
+  .admin-modal-body {
+    max-height: calc(90vh - 100px);
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-modal-body {
+    max-height: calc(95vh - 80px);
+  }
 }

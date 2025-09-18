@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAdminContext } from '../../contexts/AdminContext';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import {
   LayoutDashboard,
   Package,
@@ -17,7 +18,10 @@ import {
   Search,
   User,
   RefreshCw,
-  Truck
+  Truck,
+  Shield,
+  Boxes,
+  Image
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -31,6 +35,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
+  // Get search context
+  const { searchTerm, setSearchTerm, setCurrentPage } = useAdminSearch();
+  
   // Get counts from AdminContext
   const { counts, refreshCounts } = useAdminContext();
 
@@ -42,10 +49,22 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       badge: null
     },
     {
+      name: 'Hero Slides',
+      path: '/admin/hero-slides',
+      icon: <Image className="admin-nav-icon" />,
+      badge: null
+    },
+    {
       name: 'Products',
       path: '/admin/products',
       icon: <Package className="admin-nav-icon" />,
       badge: counts.products?.toString() || '0'
+    },
+    {
+      name: 'Inventory',
+      path: '/admin/inventory',
+      icon: <Boxes className="admin-nav-icon" />,
+      badge: null
     },
     {
       name: 'Categories',
@@ -58,6 +77,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       path: '/admin/vendors',
       icon: <Truck className="admin-nav-icon" />,
       badge: counts.vendors?.toString() || '0'
+    },
+    {
+      name: 'Logistics',
+      path: '/admin/logistics-partners',
+      icon: <RefreshCw className="admin-nav-icon" />,
+      badge: counts.logisticsPartners?.toString() || '0'
     },
     {
       name: 'Orders',
@@ -78,6 +103,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       badge: counts.users?.toString() || '0'
     },
     {
+      name: 'Security',
+      path: '/admin/security',
+      icon: <Shield className="admin-nav-icon" />,
+      badge: null
+    },
+    {
       name: 'Settings',
       path: '/admin/settings',
       icon: <Settings className="admin-nav-icon" />,
@@ -89,16 +120,24 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const getCurrentPageContext = () => {
     const path = location.pathname;
     if (path.includes('/products')) return 'products';
+    if (path.includes('/inventory')) return 'inventory';
     if (path.includes('/categories')) return 'categories';
     if (path.includes('/vendors')) return 'vendors';
+    if (path.includes('/logistics-partners')) return 'logistics';
     if (path.includes('/orders')) return 'orders';
     if (path.includes('/users')) return 'users';
     if (path.includes('/analytics')) return 'analytics';
+    if (path.includes('/security')) return 'security';
     if (path.includes('/settings')) return 'settings';
     return 'dashboard';
   };
 
   const currentPage = getCurrentPageContext();
+
+  // Update search context when page changes
+  useEffect(() => {
+    setCurrentPage(currentPage);
+  }, [currentPage, setCurrentPage]);
 
   // Smart refresh function that refreshes data based on current page
   const handleRefresh = async () => {
@@ -116,9 +155,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate('/admin/login');
     } catch (error) {
+      // Log the error but don't prevent logout navigation
       console.error('Error signing out:', error);
+    } finally {
+      // Always navigate to login page regardless of signOut success
+      navigate('/admin/login');
     }
   };
 
@@ -207,29 +249,38 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="md:hidden p-2"
+              className="lg:hidden p-2 hover:bg-gray-100 rounded-md"
             >
               <Menu className="h-5 w-5" />
             </button>
 
-            {/* Search Bar - Dynamic placeholder */}
-            <div className="hidden md:flex items-center relative">
+            {/* Search Bar - Responsive */}
+            <div className="hidden sm:flex items-center relative flex-1 max-w-md">
               <Search className="absolute left-3 h-4 w-4 text-gray-400" />
               <input
                 type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={`Search ${currentPage === 'products' ? 'products...' : 
                              currentPage === 'categories' ? 'categories...' : 
+                             currentPage === 'vendors' ? 'vendors...' :
+                             currentPage === 'logistics' ? 'logistics partners...' :
                              currentPage === 'orders' ? 'orders...' : 
                              currentPage === 'users' ? 'users...' : 
-                             'products, orders, customers...'}`}
-                className="admin-search pl-10"
+                             'items...'}`}
+                className="admin-search pl-10 w-full"
               />
             </div>
+            
+            {/* Mobile search button */}
+            <button className="sm:hidden p-2 hover:bg-gray-100 rounded-md">
+              <Search className="h-5 w-5" />
+            </button>
           </div>
 
           <div className="admin-header-right">
             {/* Dynamic Action Buttons */}
-            <div style={{ display: 'flex', gap: '8px', marginRight: '16px' }}>
+            <div className="flex gap-2">
               <button 
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -237,17 +288,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 title="Refresh Data"
               >
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden md:inline ml-1">Refresh</span>
               </button>
             </div>
 
             {/* Notifications */}
-            <button className="p-2 relative">
+            <button className="p-2 relative hover:bg-gray-100 rounded-md">
               <Bell className="h-5 w-5 text-gray-600" />
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
             </button>
 
             {/* User menu */}
-            <div className="flex items-center space-x-2 text-sm admin-text-secondary">
+            <div className="hidden md:flex items-center space-x-2 text-sm admin-text-secondary">
+              <User className="h-4 w-4" />
               <span>Admin</span>
             </div>
           </div>

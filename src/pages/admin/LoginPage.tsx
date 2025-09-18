@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Crown, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
@@ -46,9 +46,11 @@ const LoginPage: React.FC = () => {
       <div className="relative sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo and Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl shadow-lg mb-4">
-            <Crown className="h-8 w-8 text-white" />
-          </div>
+          <Link to="/" className="inline-block group">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-primary-500 to-accent-500 rounded-2xl shadow-lg mb-4 transition-transform duration-200 group-hover:scale-105 group-hover:shadow-xl">
+              <Crown className="h-8 w-8 text-white" />
+            </div>
+          </Link>
           <h2 className="text-3xl font-display font-bold bg-gradient-to-r from-primary-800 to-accent-600 bg-clip-text text-transparent">
             Nirchal Admin
           </h2>
