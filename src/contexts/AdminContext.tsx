@@ -7,6 +7,7 @@ interface AdminCounts {
   users: number;
   products: number;
   categories: number;
+  logisticsPartners: number;
 }
 
 interface AdminContextType {
@@ -25,18 +26,20 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     users: 0,
     products: 0,
     categories: 0,
+    logisticsPartners: 0,
   });
   const [loading, setLoading] = useState(true);
 
   const fetchCounts = async (): Promise<AdminCounts> => {
     try {
       // Fetch all counts in parallel
-      const [vendorsResult, ordersResult, usersResult, productsResult, categoriesResult] = await Promise.all([
+      const [vendorsResult, ordersResult, usersResult, productsResult, categoriesResult, logisticsPartnersResult] = await Promise.all([
         supabase.from('vendors').select('id', { count: 'exact', head: true }),
         supabase.from('orders').select('id', { count: 'exact', head: true }),
         supabase.from('customers').select('id', { count: 'exact', head: true }),
         supabase.from('products').select('id', { count: 'exact', head: true }),
-        supabase.from('categories').select('id', { count: 'exact', head: true })
+        supabase.from('categories').select('id', { count: 'exact', head: true }),
+        supabase.from('logistics_partners').select('id', { count: 'exact', head: true })
       ]);
 
       return {
@@ -45,6 +48,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         users: usersResult.count || 0,
         products: productsResult.count || 0,
         categories: categoriesResult.count || 0,
+        logisticsPartners: logisticsPartnersResult.count || 0,
       };
     } catch (error) {
       console.error('Error fetching admin counts:', error);
@@ -54,6 +58,7 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
         users: 0,
         products: 0,
         categories: 0,
+        logisticsPartners: 0,
       };
     }
   };

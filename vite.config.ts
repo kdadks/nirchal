@@ -24,6 +24,9 @@ export default defineConfig({
       '@config': path.resolve(__dirname, './src/config'),
     },
   },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+  },
   server: {
     port: 5173,
     strictPort: false,
@@ -34,12 +37,25 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     minify: 'esbuild',
+    // Increase chunk size limit to reduce chunk fragmentation
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-        }
+          ui: ['lucide-react', 'react-hot-toast'],
+          utils: ['date-fns', 'uuid']
+        },
+        // Add hash to filenames for better cache busting
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
+    },
+    // Ensure consistent builds
+    target: 'esnext',
+    modulePreload: {
+      polyfill: true
     }
   },
   preview: {

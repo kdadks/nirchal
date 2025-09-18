@@ -101,7 +101,7 @@ async function insertDefaultSettings() {
   // Insert basic settings
   const basicSettings = [
     { category: 'shop', key: 'store_name', value: 'Nirchal', description: 'Store display name', is_required: true, default_value: 'Nirchal' },
-    { category: 'shop', key: 'store_email', value: 'contact@nirchal.com', description: 'Store contact email', is_required: true, default_value: '' },
+    { category: 'shop', key: 'store_email', value: 'support@nirchal.com', description: 'Store contact email', is_required: true, default_value: '' },
     { category: 'shop', key: 'currency', value: 'INR', description: 'Store currency', is_required: true, default_value: 'INR' },
     { category: 'payment', key: 'razorpay_enabled', value: 'true', description: 'Enable Razorpay payments', is_required: false, default_value: 'false' },
     { category: 'payment', key: 'cod_enabled', value: 'true', description: 'Enable Cash on Delivery', is_required: false, default_value: 'true' },

@@ -80,7 +80,7 @@ async function insertSettingsDirectly() {
   const settings = [
     // Shop Settings
     { category: 'shop', key: 'store_name', value: 'Nirchal', data_type: 'string', description: 'Name of your store', is_required: true, default_value: 'Nirchal' },
-    { category: 'shop', key: 'store_email', value: 'contact@nirchal.com', data_type: 'string', description: 'Store contact email address', is_required: true, default_value: 'contact@nirchal.com' },
+    { category: 'shop', key: 'store_email', value: 'support@nirchal.com', data_type: 'string', description: 'Store contact email address', is_required: true, default_value: 'support@nirchal.com' },
     { category: 'shop', key: 'store_phone', value: '+91 98765 43210', data_type: 'string', description: 'Store contact phone number', is_required: true, default_value: '' },
     { category: 'shop', key: 'store_address', value: 'Mumbai, Maharashtra, India', data_type: 'string', description: 'Store physical address', is_required: true, default_value: '' },
     { category: 'shop', key: 'store_description', value: 'Premium Indian ethnic wear for the modern woman', data_type: 'string', description: 'Brief description of your store', is_required: false, default_value: '' },

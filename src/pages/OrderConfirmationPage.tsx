@@ -2,8 +2,10 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import toast from 'react-hot-toast';
 const OrderConfirmationPage: React.FC = () => {
+  const { customer } = useCustomerAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -14,10 +16,9 @@ const OrderConfirmationPage: React.FC = () => {
     const em = sessionStorage.getItem('last_order_email') || '';
     const tp = sessionStorage.getItem('new_customer_temp_password') || '';
     
-    console.log('OrderConfirmationPage - sessionStorage values:', {
+    console.log('OrderConfirmationPage loaded:', {
       orderNumber: on,
       email: em,
-      tempPassword: tp,
       hasTempPassword: !!tp
     });
     
@@ -27,8 +28,10 @@ const OrderConfirmationPage: React.FC = () => {
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
     if (!orderNumber) {
+      console.log('OrderConfirmationPage: No order number found, redirecting to cart');
       setShouldRedirect(true);
     } else {
+      console.log('OrderConfirmationPage: Order found, displaying confirmation');
       setShouldRedirect(false);
     }
     setHasCheckedRedirect(true);
@@ -50,7 +53,14 @@ const OrderConfirmationPage: React.FC = () => {
 
   // Don't render anything until we've checked the redirect condition
   if (!hasCheckedRedirect) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading order confirmation...</p>
+        </div>
+      </div>
+    );
   }
 
   // Render redirect if needed
@@ -62,8 +72,8 @@ const OrderConfirmationPage: React.FC = () => {
     if (tempPassword && !passwordChanged) {
       setShowPasswordModal(true);
     } else {
-      // Navigate to account normally
-      window.location.href = '/myaccount';
+      // Navigate to account orders tab
+      window.location.href = '/myaccount?tab=orders';
     }
   };
 
@@ -73,9 +83,9 @@ const OrderConfirmationPage: React.FC = () => {
     // Clear temp password notification
     sessionStorage.removeItem('new_customer_temp_password');
     toast.success('Password updated successfully! Your account is now secure.');
-    // Navigate to account after password change
+    // Navigate to account orders tab after password change
     setTimeout(() => {
-      window.location.href = '/myaccount';
+      window.location.href = '/myaccount?tab=orders';
     }, 500);
   };
 
@@ -154,8 +164,9 @@ const OrderConfirmationPage: React.FC = () => {
             <p className="font-medium mb-1">Manage your order</p>
             <ul className="list-disc list-inside text-sm space-y-1">
               <li>Use the Account page to view orders and saved addresses.</li>
-              <li>{email ? `Sign in with ${email} to link this order to your account.` : 'Sign in with your email to link this order to your account.'}</li>
-              <li>In production, an account is required to see order history.</li>
+              {!customer && (
+                <li>{email ? `Sign in with ${email} to link this order to your account.` : 'Sign in with your email to link this order to your account.'}</li>
+              )}
             </ul>
           </div>
           <p className="text-gray-600">

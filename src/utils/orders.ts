@@ -21,8 +21,8 @@ export type AddressUpsert = {
 };
 
 export type OrderItemInput = {
-  product_id: number | null;
-  product_variant_id: number | null;
+  product_id: string | null; // Changed from number to string to support UUIDs
+  product_variant_id: string | null; // Changed from number to string to support UUIDs
   product_name: string;
   product_sku?: string;
   unit_price: number;
@@ -88,7 +88,7 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       needsWelcomeEmail: data.needs_welcome_email
     };
   } catch (rpcError) {
-    console.log('RPC function failed, using fallback with temp password generation:', rpcError);
+    // RPC function failed, using fallback method
     
     // Enhanced fallback: Check if customer exists first
     const { data: existingCustomer, error: checkError } = await supabase
@@ -176,7 +176,7 @@ export async function markWelcomeEmailSent(supabase: SupabaseClient, customerId:
     }
     
     // Fallback to direct update
-    console.log('RPC mark_welcome_email_sent failed, using fallback');
+    // RPC failed, using fallback method
     const { error: updateError } = await supabase
       .from('customers')
       .update({
@@ -353,8 +353,87 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
     if (itemsError) {
       console.warn('createOrderWithItems: inserting items failed:', itemsError.message);
       // continue; order exists
+    } else {
+      // Successfully created order items, now update inventory
+      await updateInventoryForOrder(supabase, input.items);
     }
   }
 
   return order as any;
+}
+
+// Function to update inventory when an order is placed
+async function updateInventoryForOrder(supabase: SupabaseClient, items: OrderItemInput[]) {
+
+  
+  for (const item of items) {
+    try {
+      // Find the inventory record for this product/variant
+      let inventoryQuery = supabase
+        .from('inventory')
+        .select('id, quantity, product_id, variant_id, products!inner(name)')
+        .eq('product_id', item.product_id);
+
+      // If there's a variant, look for variant-specific inventory
+      if (item.product_variant_id) {
+        inventoryQuery = inventoryQuery.eq('variant_id', item.product_variant_id);
+      } else {
+        // No variant, look for default inventory (variant_id is null)
+        inventoryQuery = inventoryQuery.is('variant_id', null);
+      }
+
+      const { data: inventoryRecords, error: inventoryError } = await inventoryQuery;
+
+      if (inventoryError) {
+        console.error(`[updateInventoryForOrder] Error finding inventory for item ${item.product_name}:`, inventoryError);
+        continue;
+      }
+
+      if (!inventoryRecords || inventoryRecords.length === 0) {
+        console.warn(`[updateInventoryForOrder] No inventory record found for product ${item.product_name}, variant ${item.product_variant_id || 'default'}`);
+        continue;
+      }
+
+      const inventoryRecord = inventoryRecords[0];
+      const oldQuantity = inventoryRecord.quantity;
+      const newQuantity = Math.max(0, oldQuantity - item.quantity); // Prevent negative inventory
+
+      // Update the inventory quantity
+      const { error: updateError } = await supabase
+        .from('inventory')
+        .update({ 
+          quantity: newQuantity,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', inventoryRecord.id);
+
+      if (updateError) {
+        console.error(`[updateInventoryForOrder] Error updating inventory for ${item.product_name}:`, updateError);
+        continue;
+      }
+
+      // Create inventory history record
+      const { error: historyError } = await supabase
+        .from('inventory_history')
+        .insert({
+          inventory_id: inventoryRecord.id,
+          previous_quantity: oldQuantity, // Use correct column name
+          new_quantity: newQuantity,
+          change_type: 'STOCK_OUT', // Use change_type instead of action_type
+          reason: 'Customer Order',
+          created_by: null, // Use created_by instead of user_name
+          created_at: new Date().toISOString()
+        });
+
+      if (historyError) {
+        console.error(`[updateInventoryForOrder] Error creating inventory history for ${item.product_name}:`, historyError);
+        // Don't fail the order if history creation fails
+      } else {
+        // History creation failed but order should continue
+      }
+
+    } catch (error) {
+      console.error(`[updateInventoryForOrder] Unexpected error processing ${item.product_name}:`, error);
+    }
+  }
 }

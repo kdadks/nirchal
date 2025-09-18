@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabaseAdmin } from '../config/supabase';
+import { extractFileName, deleteImageFromPublicFolder, saveImageToPublicFolder, generateProductImageFileName } from '../utils/localStorageUtils';
 import type {
 	Product,
 	Category,
 	Vendor,
+	LogisticsPartner,
 	ProductWithDetails,
 	ProductFormData,
 	CategoryFormData,
@@ -92,14 +95,46 @@ export const useCategories = () => {
 	const deleteCategory = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
+			// 1. Get category data including image URL for storage cleanup
+			const { data: category, error: categoryFetchError } = await supabase
+				.from('categories')
+				.select('image_url')
+				.eq('id', id)
+				.single();
+			
+			if (categoryFetchError) {
+				throw categoryFetchError;
+			}
+			
+			// 2. Delete category image from local storage if it exists
+			if (category?.image_url) {
+				// Extract filename from URL - only delete files we uploaded (not external URLs)
+				const fileName = extractFileName(category.image_url);
+				
+				if (fileName) {
+					console.log('Deleting category image from local storage:', fileName);
+					const deleteResult = await deleteImageFromPublicFolder(fileName, 'categories');
+					
+					if (!deleteResult.success) {
+						console.warn('Category image deletion error (non-critical):', deleteResult.error);
+					} else {
+						console.log('✅ Category image deleted from local storage');
+					}
+				}
+			}
+			
+			// 3. Delete category from database
 			const { error } = await supabase
 				.from('categories')
 				.delete()
 				.eq('id', id);
 
 			if (error) throw error;
+			
+			console.log('✅ Category deleted successfully');
 			await fetchCategories();
 		} catch (e) {
+			console.error('Error deleting category:', e);
 			throw e instanceof Error ? e : new Error('Error deleting category');
 		}
 	};
@@ -209,6 +244,113 @@ export const useVendors = () => {
 	};
 };
 
+// Logistics Partners
+export const useLogisticsPartners = () => {
+	const { supabase } = useAuth();
+	const [logisticsPartners, setLogisticsPartners] = useState<LogisticsPartner[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (!supabase) return;
+		fetchLogisticsPartners();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [supabase]);
+
+	React.useEffect(() => {
+		if (error) console.error('[LogisticsPartners] Error:', error);
+		if (import.meta.env.DEV && logisticsPartners) console.debug('[LogisticsPartners] data:', logisticsPartners);
+	}, [logisticsPartners, error]);
+
+	const fetchLogisticsPartners = async () => {
+		if (!supabase) return;
+		setLoading(true);
+		try {
+			const { data, error } = await supabase
+				.from('logistics_partners')
+				.select('*')
+				.order('name');
+
+			if (error) throw error;
+			setLogisticsPartners(data || []);
+		} catch (e) {
+			setError(e instanceof Error ? e.message : 'Error fetching logistics partners');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const createLogisticsPartner = async (data: Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { data: partner, error } = await supabase
+				.from('logistics_partners')
+				.insert([data])
+				.select()
+				.single();
+
+			if (error) throw error;
+			await fetchLogisticsPartners();
+			return partner;
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error creating logistics partner');
+		}
+	};
+
+	const updateLogisticsPartner = async (id: string, data: Partial<Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>>) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		
+		// Use admin client if available, fallback to regular client
+		const client = supabaseAdmin || supabase;
+		const clientType = supabaseAdmin ? 'ADMIN' : 'REGULAR';
+		
+		try {
+			console.log(`[${clientType}] Updating logistics partner with data:`, data);
+			const { data: result, error } = await client
+				.from('logistics_partners')
+				.update(data)
+				.eq('id', id)
+				.select();
+
+			if (error) {
+				console.error(`[${clientType}] Supabase error:`, error);
+				throw new Error(`Database error: ${error.message} (Code: ${error.code})`);
+			}
+			
+			console.log(`[${clientType}] Update successful:`, result);
+			await fetchLogisticsPartners();
+		} catch (e) {
+			console.error(`[${clientType}] Full error details:`, e);
+			throw e instanceof Error ? e : new Error('Error updating logistics partner');
+		}
+	};
+
+	const deleteLogisticsPartner = async (id: string) => {
+		if (!supabase) throw new Error('Supabase client not initialized');
+		try {
+			const { error } = await supabase
+				.from('logistics_partners')
+				.delete()
+				.eq('id', id);
+
+			if (error) throw error;
+			await fetchLogisticsPartners();
+		} catch (e) {
+			throw e instanceof Error ? e : new Error('Error deleting logistics partner');
+		}
+	};
+
+	return {
+		logisticsPartners,
+		loading,
+		error,
+		createLogisticsPartner,
+		updateLogisticsPartner,
+		deleteLogisticsPartner,
+		refresh: fetchLogisticsPartners
+	};
+};
+
 // Products
 export const useProducts = () => {
 	const { supabase } = useAuth();
@@ -231,130 +373,83 @@ export const useProducts = () => {
 		if (!supabase) return;
 		setLoading(true);
 		try {
-			// First fetch products with basic joins including swatch images
+			// Try JOIN query first (like frontend) for better reliability
+			const { data: joinedData, error: joinError } = await supabase
+				.from('products')
+				.select(`
+					*,
+					category:categories(id, name),
+					images:product_images(*),
+					variants:product_variants(*),
+					inventory(*)
+				`)
+				.order('created_at', { ascending: false });
+
+			if (!joinError && joinedData) {
+				setProducts(joinedData as ProductWithDetails[] || []);
+				return;
+			}
+
+			// Fallback to manual join (original method)
 			const { data: productsData, error: productsError } = await supabase
 				.from('products')
 				.select(`
 					*,
-					category:categories(*),
-					images:product_images(*),
-					variants:product_variants(*, swatch_image:product_images!swatch_image_id(*))
+					category:categories(id, name)
 				`)
 				.order('created_at', { ascending: false });
 
-			console.log('[Supabase products] productsData:', productsData);
-			console.log('[Supabase products] productsError:', productsError);
+			if (productsError) {
+				console.error('[Products] Error:', productsError);
+				throw productsError;
+			}
 
-			if (productsError && !productsData) throw productsError;
-
-			// Fetch inventory separately
-			console.log('[Debug] About to fetch inventory...');
-			
-			// Check current user and session
-			const { data: session } = await supabase.auth.getSession();
-			console.log('[Auth Check] Current session:', session?.session?.user?.id);
-			console.log('[Auth Check] User role:', session?.session?.user?.role);
-			console.log('[Auth Check] User email:', session?.session?.user?.email);
-			
-			const { data: inventoryData, error: inventoryError } = await supabase
-				.from('inventory')
-				.select('*');
-
-			console.log('[Supabase inventory] inventoryData:', inventoryData);
-			console.log('[Supabase inventory] inventoryError:', inventoryError);
-			
-			// If we get an empty array, try to understand why
-			if (inventoryData && inventoryData.length === 0) {
-				console.log('[Debug] Inventory table returned empty. Checking if it\'s an RLS issue...');
+			// Fetch additional data in parallel for better performance
+			const [imagesData, variantsData, inventoryData] = await Promise.all([
+				// Product images
+				supabase
+					.from('product_images')
+					.select('*')
+					.then(({ data, error }) => {
+						if (error) console.warn('[Products] Images fetch failed:', error);
+						return data || [];
+					}),
 				
-				// Try to get just one specific record that we know exists
-				const { data: specificInventory, error: specificError } = await supabase
+				// Product variants with swatch images
+				supabase
+					.from('product_variants')
+					.select(`
+						*,
+						swatch_image:product_images!swatch_image_id(*)
+					`)
+					.then(({ data, error }) => {
+						if (error) console.warn('[Products] Variants fetch failed:', error);
+						return data || [];
+					}),
+				
+				// Inventory data
+				supabase
 					.from('inventory')
 					.select('*')
-					.eq('product_id', '707d596f-902f-4b04-9dac-1e0aa844572a')
-					.limit(1);
-				console.log('[Debug] Specific inventory for product 707d596f:', specificInventory, specificError);
-				
-				// Try a simple count without data
-				const { count: totalCount, error: countErr } = await supabase
-					.from('inventory')
-					.select('*', { count: 'exact', head: true });
-				console.log('[Debug] Total inventory count:', totalCount, 'error:', countErr);
-			}
+					.then(({ data, error }) => {
+						if (error) console.warn('[Products] Inventory fetch failed:', error);
+						return data || [];
+					})
+			]);
 
-			// Also try to get count
-			const { count, error: countError } = await supabase
-				.from('inventory')
-				.select('*', { count: 'exact', head: true });
-			
-			console.log('[Inventory Count]', count, 'error:', countError);
-
-			// Test if we can see any data with different conditions
-			const { data: allInventory, error: allError } = await supabase
-				.from('inventory')
-				.select('id, product_id, quantity')
-				.limit(10);
-			
-			console.log('[All Inventory Limited]', allInventory, allError);
-
-			// Try without RLS (this will fail if RLS is enabled but helps debug)
-			try {
-				const { data: rawInventory, error: rawError } = await supabase
-					.rpc('get_inventory_raw');
-				console.log('[Raw Inventory Check]', rawInventory, rawError);
-			} catch (rpcError) {
-				console.log('[RPC Error]', rpcError);
-			}
-
-			if (inventoryError) {
-				console.error('[Inventory Error]', inventoryError);
-			}
-
-			// Manually join inventory to products
+			// Efficiently map all data together
 			const productsWithInventory = (productsData || []).map(product => {
 				const productInventory = (inventoryData || []).filter(inv => inv.product_id === product.id);
-				console.log(`[Manual Join] Product ${product.name} (${product.id}) matched inventory:`, productInventory);
-				
-				// Debug: Check for orphaned inventory records (inventory without corresponding variants)
-				if (productInventory.length > 0) {
-					const variantIds = (product.variants || []).map((v: any) => v.id);
-					console.log(`[Debug] Product ${product.name} variant IDs:`, variantIds);
-					console.log(`[Debug] Product ${product.name} inventory details:`, productInventory.map(inv => ({
-						id: inv.id,
-						variant_id: inv.variant_id,
-						quantity: inv.quantity,
-						hasVariantId: !!inv.variant_id
-					})));
-					
-					const orphanedInventory = productInventory.filter(inv => 
-						inv.variant_id && !variantIds.includes(inv.variant_id)
-					);
-					
-					const inventoryWithoutVariant = productInventory.filter(inv => !inv.variant_id);
-					
-					if (orphanedInventory.length > 0) {
-						console.warn(`[Debug] ⚠️ Found ${orphanedInventory.length} orphaned inventory records for product ${product.name}:`, orphanedInventory);
-					}
-					
-					if (inventoryWithoutVariant.length > 0) {
-						console.log(`[Debug] Found ${inventoryWithoutVariant.length} inventory records without variant_id for product ${product.name}:`, inventoryWithoutVariant);
-					}
-					
-					const totalInventoryQuantity = productInventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-					console.log(`[Debug] Product ${product.name} total inventory: ${totalInventoryQuantity} from ${productInventory.length} records`);
-				}
+				const productImages = (imagesData || []).filter(img => img.product_id === product.id);
+				const productVariants = (variantsData || []).filter(variant => variant.product_id === product.id);
 				
 				return {
 					...product,
+					images: productImages,
+					variants: productVariants,
 					inventory: productInventory
 				};
 			});
-
-			console.log('[Products Debug] productsWithInventory:', productsWithInventory);
-			if (productsWithInventory.length > 0) {
-				console.log('[Products Debug] First product inventory:', productsWithInventory[0]?.inventory);
-				console.log('[Products Debug] All product IDs:', productsWithInventory.map(p => p.id));
-			}
 
 			setProducts(productsWithInventory as ProductWithDetails[] || []);
 		} catch (e) {
@@ -405,22 +500,26 @@ export const useProducts = () => {
 				await Promise.all(images.map(async (image: any, index: number) => {
 					if (image.file) {
 						console.log(`[createProduct] Processing image ${index + 1}:`, image.file.name);
-						const fileName = `${Date.now()}-${image.file.name}`;
-						const { error: uploadError } = await supabase.storage
-							.from('product-images')
-							.upload(fileName, image.file);
+						
+						// Generate unique filename for local storage
+						const fileName = generateProductImageFileName((productData as any).name || 'product', image.file.name, index);
+						
+						// Save image to local public folder
+						const uploadResult = await saveImageToPublicFolder(image.file, fileName, 'products');
 
-						if (uploadError) {
-							console.error(`[createProduct] Upload error for image ${index + 1}:`, uploadError);
-							throw uploadError;
+						if (!uploadResult.success) {
+							console.error(`[createProduct] Upload error for image ${index + 1}:`, uploadResult.error);
+							throw new Error(uploadResult.error || 'Image upload failed');
 						}
 
-						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Type:', typeof newProduct.id);
+						// Use the full GitHub URL from upload result
+						const imageUrl = uploadResult.githubUrl || uploadResult.filePath || fileName;
+						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Image URL:', imageUrl);
 						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: newProduct.id,
-								image_url: fileName,
+								image_url: imageUrl, // Store full GitHub URL for consistency
 								alt_text: image.alt_text,
 								is_primary: image.is_primary
 							}]);
@@ -430,7 +529,7 @@ export const useProducts = () => {
 							console.error(`[createProduct] Failed insert data:`, {
 								product_id: newProduct.id,
 								product_id_type: typeof newProduct.id,
-								image_url: fileName,
+								image_url: imageUrl,
 								alt_text: image.alt_text,
 								is_primary: image.is_primary
 							});
@@ -445,10 +544,20 @@ export const useProducts = () => {
 
 			// Insert variants and inventory for each variant
 			if (variants?.length) {
-				// Remove quantity and low_stock_threshold from variant insert, collect for inventory
-				const variantsToInsert = variants.map(({ quantity, low_stock_threshold, ...rest }: { quantity: number; low_stock_threshold: number; [key: string]: any }) => ({
-					...rest,
+				// Only include fields that exist in the database schema
+				const variantsToInsert = variants.map(({ quantity, low_stock_threshold, material, style, variant_type, swatch_image, ...rest }: { 
+					quantity: number; 
+					low_stock_threshold: number; 
+					material?: any;
+					style?: any;
+					variant_type?: any;
+					swatch_image?: any;
+					[key: string]: any 
+				}) => ({
 					sku: rest.sku === '' ? null : rest.sku,
+					size: rest.size || null,
+					color: rest.color || null,
+					price_adjustment: rest.price_adjustment || 0,
 					swatch_image_id: rest.swatch_image_id || null,
 					color_hex: rest.color_hex || null,
 					product_id: newProduct.id
@@ -468,7 +577,7 @@ export const useProducts = () => {
 						product_id: newProduct.id,
 						variant_id: variant.id,
 						quantity: variants[i].quantity ?? 0,
-						low_stock_threshold: variants[i].low_stock_threshold ?? (inventory?.low_stock_threshold ?? 10)
+						low_stock_threshold: variants[i].low_stock_threshold ?? (inventory?.low_stock_threshold ?? 2)
 					}));
 					
 					console.log('[createProduct] About to insert inventory. Checking auth status...');
@@ -581,8 +690,15 @@ export const useProducts = () => {
 			// 2. Delete images marked for deletion
 			for (const img of imagesToDelete) {
 				if (img.image_url) {
-					// Remove from storage
-					await supabase.storage.from('product-images').remove([img.image_url]);
+					// Extract filename and remove from local storage
+					const filename = extractFileName(img.image_url);
+					if (filename) {
+						console.log('Deleting image from local storage during update:', filename);
+						const deleteResult = await deleteImageFromPublicFolder(filename, 'products');
+						if (!deleteResult.success) {
+							console.warn('Local storage deletion error during update:', deleteResult.error);
+						}
+					}
 					// Remove from DB
 					await supabase.from('product_images').delete().eq('id', img.id);
 				}
@@ -604,16 +720,24 @@ export const useProducts = () => {
 			if (images) {
 				for (const img of images) {
 					if (img.file && !img.existing) {
-						const fileName = `${Date.now()}-${img.file.name}`;
-						const { error: uploadError } = await supabase.storage
-							.from('product-images')
-							.upload(fileName, img.file);
-						if (uploadError) throw uploadError;
+						// Generate unique filename for local storage
+						const fileName = generateProductImageFileName((updateData as any).name || 'product', img.file.name);
+						
+						// Save image to local public folder
+						const uploadResult = await saveImageToPublicFolder(img.file, fileName, 'products');
+						
+						if (!uploadResult.success) {
+							throw new Error(uploadResult.error || 'Image upload failed');
+						}
+						
+						// Use the full GitHub URL from upload result
+						const imageUrl = uploadResult.githubUrl || uploadResult.filePath || fileName;
+						
 						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: id,
-								image_url: fileName,
+								image_url: imageUrl, // Store full GitHub URL for consistency
 								alt_text: img.alt_text,
 								is_primary: img.is_primary
 							}]);
@@ -772,7 +896,7 @@ export const useProducts = () => {
 												.from('inventory')
 												.update({
 													quantity: newQty,
-													low_stock_threshold: v.low_stock_threshold ?? 10
+													low_stock_threshold: v.low_stock_threshold ?? 2
 												})
 												.eq('id', inv.id);
 											if (updateInvError) throw updateInvError;
@@ -785,7 +909,7 @@ export const useProducts = () => {
 													product_id: id,
 													variant_id: variantId,
 													quantity: v.quantity ?? 0,
-													low_stock_threshold: v.low_stock_threshold ?? 10
+													low_stock_threshold: v.low_stock_threshold ?? 2
 												})
 												.select()
 												.single();
@@ -844,62 +968,70 @@ export const useProducts = () => {
 	const deleteProduct = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			// 1. Get product images for storage cleanup
+			// 1. Get product_images for storage cleanup
 			const { data: productImages, error: imagesFetchError } = await supabase
 				.from('product_images')
 				.select('image_url')
 				.eq('product_id', id);
 			
 			if (imagesFetchError) {
-				throw imagesFetchError;
+				console.warn('Could not fetch product images for cleanup:', imagesFetchError);
 			}
 			
-			// 2. Delete product images from storage IMMEDIATELY (before any database deletions)
-			if (productImages && productImages.length > 0) {
-				const imageUrls = productImages
-					.map(img => img.image_url)
-					.filter(url => url && !url.startsWith('http')); // Only delete files we uploaded
-				
-				if (imageUrls.length > 0) {
-					const { error: storageDeleteError } = await supabase.storage
-						.from('product-images')
-						.remove(imageUrls);
-					
-					if (storageDeleteError) {
-						console.warn('Storage deletion error (non-critical):', storageDeleteError);
-					}
-				}
-			}
-			
-			// 3. Get product variants for inventory cleanup
-			const { data: productVariants, error: variantsFetchError } = await supabase
+			// 2. Get variant swatch images separately
+			const { data: variantImages, error: variantImagesFetchError } = await supabase
 				.from('product_variants')
-				.select('id')
+				.select(`
+					swatch_image_id,
+					swatch_image:product_images!swatch_image_id(image_url)
+				`)
 				.eq('product_id', id);
 			
-			if (variantsFetchError) throw variantsFetchError;
-			
-			// 4. Get inventory records for history cleanup
-			const variantIds = productVariants?.map(v => v.id) || [];
-			let inventoryIds: any[] = [];
-			
-			if (variantIds.length > 0) {
-				const { data: variantInventory, error: variantInvError } = await supabase
-					.from('inventory')
-					.select('id')
-					.in('variant_id', variantIds);
-				if (variantInvError) throw variantInvError;
-				inventoryIds = [...inventoryIds, ...(variantInventory?.map(inv => inv.id) || [])];
+			if (variantImagesFetchError) {
+				console.warn('Could not fetch variant swatch images for cleanup:', variantImagesFetchError);
 			}
 			
-			// Also get main product inventory (without variant)
-			const { data: productInventory, error: productInvError } = await supabase
-				.from('inventory')
-				.select('id')
-				.eq('product_id', id)
-				.is('variant_id', null);
-			if (productInvError) throw productInvError;
-			inventoryIds = [...inventoryIds, ...(productInventory?.map(inv => inv.id) || [])];
+			// 3. Collect all image URLs for storage cleanup
+			const imageUrlsToDelete: string[] = [];
+			
+			// Add product_images table images
+			if (productImages && Array.isArray(productImages)) {
+				imageUrlsToDelete.push(...productImages.map(img => img.image_url));
+			}
+			
+			// Add variant swatch images
+			if (variantImages && Array.isArray(variantImages)) {
+				variantImages.forEach((variant: any) => {
+					if (variant.swatch_image?.image_url) {
+						imageUrlsToDelete.push(variant.swatch_image.image_url);
+					}
+				});
+			}
+			
+			// 4. Delete all images from local storage IMMEDIATELY (before any database deletions)
+			if (imageUrlsToDelete.length > 0) {
+				const imageFilenames = imageUrlsToDelete
+					.map(url => extractFileName(url))
+					.filter(filename => filename !== null) as string[];
+				
+				if (imageFilenames.length > 0) {
+					console.log('Deleting product images from GitHub storage:', imageFilenames);
+					
+					// Delete each image individually to handle errors gracefully
+					for (const filename of imageFilenames) {
+						const deleteResult = await deleteImageFromPublicFolder(filename, 'products');
+						if (!deleteResult.success) {
+							console.warn(`❌ Failed to delete image ${filename}:`, deleteResult.error);
+						} else {
+							console.log(`✅ Successfully processed image deletion: ${filename}`);
+						}
+					}
+					
+					console.log(`✅ Processed ${imageFilenames.length} product images for deletion`);
+				}
+			} else {
+				console.log('No images to delete from storage');
+			}
 			
 			// 5. Delete inventory history records (get fresh list to ensure we catch all)
 			const { data: allInventoryForProduct, error: allInvError } = await supabase
@@ -934,7 +1066,7 @@ export const useProducts = () => {
 				}
 			}
 			
-			// 6. Delete inventory records (both variant and product inventory)
+			// 8. Delete inventory records (both variant and product inventory)
 			try {
 				const { error: inventoryDeleteError } = await supabase
 					.from('inventory')
@@ -1116,7 +1248,7 @@ export const useProducts = () => {
 				throw invError;
 			}
 			
-			// 7. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
+			// 9. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
 			try {
 				const { error: orderItemsUpdateError } = await supabase
 					.from('order_items')
@@ -1131,7 +1263,7 @@ export const useProducts = () => {
 				console.warn('[deleteProduct] Order items update skipped (table not accessible)');
 			}
 			
-			// 8. Delete product analytics records - OPTIONAL  
+			// 10. Delete product analytics records - OPTIONAL  
 			try {
 				const { error: analyticsDeleteError } = await supabase
 					.from('product_analytics')
@@ -1146,7 +1278,7 @@ export const useProducts = () => {
 				console.warn('[deleteProduct] Analytics deletion skipped (table not accessible)');
 			}
 			
-			// 9. Delete the product using a stored procedure to handle audit log conflicts
+			// 11. Delete the product using a stored procedure to handle audit log conflicts
 			console.log('[deleteProduct] About to delete product:', id);
 			
 			// First, try to delete using RPC (stored procedure) if available
@@ -1198,6 +1330,26 @@ export const useProducts = () => {
 			await fetchProducts();
 		} catch (e) {
 			console.error('Error deleting product:', e);
+			// Enhanced error logging for debugging
+			if (e && typeof e === 'object') {
+				try {
+					console.error('Error details (stringified):', JSON.stringify(e, null, 2));
+				} catch (jsonErr) {
+					console.error('Error details (raw object):', e);
+					if ((e as any).constructor) {
+						console.error('Error constructor:', (e as any).constructor.name);
+					}
+					if ((e as any).message) {
+						console.error('Error message:', (e as any).message);
+					}
+					if ((e as any).code) {
+						console.error('Error code:', (e as any).code);
+					}
+					if ((e as any).details) {
+						console.error('Error details:', (e as any).details);
+					}
+				}
+			}
 			throw e instanceof Error ? e : new Error('Error deleting product');
 		}
 	};
@@ -1216,6 +1368,14 @@ export const useProducts = () => {
 					results.push({ id, success: true });
 				} catch (error) {
 					console.error(`Failed to delete product ${id}:`, error);
+					// Enhanced error logging for debugging
+					if (error && typeof error === 'object') {
+						try {
+							console.error(`Product ${id} error details (stringified):`, JSON.stringify(error, null, 2));
+						} catch (jsonErr) {
+							console.error(`Product ${id} error details (raw):`, error);
+						}
+					}
 					results.push({ id, success: false, error });
 				}
 			}
@@ -1436,4 +1596,309 @@ export const useDashboardAnalytics = () => {
 		error,
 		refresh: fetchDashboardData
 	};
+};
+
+// Product Import Functionality
+interface ImportOptions {
+	batchSize: number;
+	skipDuplicates: boolean;
+	updateExisting: boolean;
+	validateOnly: boolean;
+	onProgress?: (progress: number, status: string) => void;
+}
+
+interface ImportResult {
+	success: number;
+	failed: number;
+	errors: Array<{
+		row: number;
+		product: string;
+		error: string;
+	}>;
+	warnings: Array<{
+		row: number;
+		product: string;
+		warning: string;
+	}>;
+}
+
+export const importProducts = async (
+	csvData: any[], 
+	options: ImportOptions
+): Promise<ImportResult> => {
+	const { batchSize, skipDuplicates, updateExisting, validateOnly, onProgress } = options;
+	const result: ImportResult = {
+		success: 0,
+		failed: 0,
+		errors: [],
+		warnings: []
+	};
+
+	try {
+		// Validate CSV structure
+		onProgress?.(5, 'Validating CSV structure...');
+		const requiredFields = ['name', 'category_name', 'price'];
+		const firstRow = csvData[0];
+		
+		for (const field of requiredFields) {
+			if (!Object.prototype.hasOwnProperty.call(firstRow, field)) {
+				throw new Error(`Missing required field: ${field}`);
+			}
+		}
+
+		// Get categories and vendors for reference
+		onProgress?.(10, 'Loading reference data...');
+		
+		if (!supabaseAdmin) {
+			throw new Error('Supabase admin client not initialized - missing service role key');
+		}
+		
+		const [categoriesResult, vendorsResult] = await Promise.all([
+			supabaseAdmin.from('categories').select('id, name'),
+			supabaseAdmin.from('vendors').select('id, name')
+		]);
+
+		if (categoriesResult.error) throw categoriesResult.error;
+		if (vendorsResult.error) throw vendorsResult.error;
+
+		const categoriesMap = new Map(
+			categoriesResult.data.map((cat: any) => [cat.name.toLowerCase(), cat.id])
+		);
+		const vendorsMap = new Map(
+			vendorsResult.data.map((vendor: any) => [vendor.name.toLowerCase(), vendor.id])
+		);
+
+		// Process products in batches
+		const totalProducts = csvData.length;
+		const batches = [];
+		
+		for (let i = 0; i < totalProducts; i += batchSize) {
+			batches.push(csvData.slice(i, i + batchSize));
+		}
+
+		let processedCount = 0;
+
+		for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+			const batch = batches[batchIndex];
+			const batchProgress = 15 + (batchIndex / batches.length) * 80;
+			
+			onProgress?.(batchProgress, `Processing batch ${batchIndex + 1}/${batches.length}...`);
+
+			for (const row of batch) {
+				const rowNumber = processedCount + 1;
+				
+				try {
+					// Generate slug from name
+					const slug = generateSlug(row.name || '');
+					if (!slug) {
+						throw new Error('Product name is required');
+					}
+
+					// Validate required fields
+					if (!row.name?.trim()) {
+						throw new Error('Product name is required');
+					}
+					if (!row.category_name?.trim()) {
+						throw new Error('Category name is required');
+					}
+					if (!row.price || isNaN(parseFloat(row.price))) {
+						throw new Error('Valid price is required');
+					}
+
+					// Check for duplicates
+					if (skipDuplicates) {
+						const existingProduct = await supabaseAdmin
+							.from('products')
+							.select('id, name')
+							.or(`sku.eq.${row.sku || ''},slug.eq.${slug}`)
+							.single();
+
+						if (existingProduct.data && !updateExisting) {
+							result.warnings.push({
+								row: rowNumber,
+								product: row.name,
+								warning: 'Product already exists (skipped)'
+							});
+							continue;
+						}
+					}
+
+					// Find category ID
+					const categoryId = categoriesMap.get(row.category_name.toLowerCase());
+					if (!categoryId) {
+						throw new Error(`Category "${row.category_name}" not found`);
+					}
+
+					// Find vendor ID (optional)
+					let vendorId = null;
+					if (row.vendor_name?.trim()) {
+						vendorId = vendorsMap.get(row.vendor_name.toLowerCase());
+						if (!vendorId) {
+							result.warnings.push({
+								row: rowNumber,
+								product: row.name,
+								warning: `Vendor "${row.vendor_name}" not found, creating without vendor`
+							});
+						}
+					}
+
+					if (validateOnly) {
+						// Just validate, don't actually import
+						result.success++;
+						continue;
+					}
+
+					// Prepare product data
+					const productData = {
+						name: row.name.trim(),
+						slug: slug,
+						description: row.description || null,
+						category_id: categoryId,
+						vendor_id: vendorId,
+						price: parseFloat(row.price),
+						sale_price: row.sale_price ? parseFloat(row.sale_price) : null,
+						sku: row.sku || null,
+						is_active: row.is_active?.toLowerCase() === 'true',
+						is_featured: row.is_featured?.toLowerCase() === 'true',
+						meta_title: row.meta_title || null,
+						meta_description: row.meta_description || null,
+						created_by: 'import',
+						updated_by: 'import'
+					};
+
+					// Insert product
+					const { data: newProduct, error: productError } = await supabaseAdmin
+						.from('products')
+						.insert(productData)
+						.select()
+						.single();
+
+					if (productError) throw productError;
+
+					// Process variants if they exist
+					if (row.variant_sizes || row.variant_colors) {
+						const variantSizes = row.variant_sizes ? row.variant_sizes.split('|') : [''];
+						const variantColors = row.variant_colors ? row.variant_colors.split('|') : [''];
+						const variantSkus = row.variant_skus ? row.variant_skus.split('|') : [];
+						const variantColorHex = row.variant_color_hex ? row.variant_color_hex.split('|') : [];
+						const variantPriceAdjustments = row.variant_price_adjustments ? row.variant_price_adjustments.split('|') : [];
+						const quantities = row.quantities ? row.quantities.split('|') : [];
+						const lowStockThresholds = row.low_stock_thresholds ? row.low_stock_thresholds.split('|') : [];
+
+						const variants: Array<{
+							size: string | null;
+							color: string | null;
+							color_hex: string | null;
+							sku: string | null;
+							quantity: number;
+							low_stock_threshold: number;
+							price_adjustment: number;
+						}> = [];
+						const maxVariants = Math.max(variantSizes.length, variantColors.length, 1);
+
+						for (let i = 0; i < maxVariants; i++) {
+							if (variantSizes[i] || variantColors[i]) {
+								variants.push({
+									size: variantSizes[i] || null,
+									color: variantColors[i] || null,
+									sku: variantSkus[i] || null,
+									color_hex: variantColorHex[i] || null,
+									price_adjustment: variantPriceAdjustments[i] ? parseFloat(variantPriceAdjustments[i]) : 0,
+									quantity: quantities[i] ? parseInt(quantities[i]) : 0,
+									low_stock_threshold: lowStockThresholds[i] ? parseInt(lowStockThresholds[i]) : 2
+								});
+							}
+						}
+
+						// Insert variants
+						if (variants.length > 0) {
+							const variantsToInsert = variants.map(variant => ({
+								product_id: newProduct.id,
+								sku: variant.sku,
+								size: variant.size,
+								color: variant.color,
+								color_hex: variant.color_hex,
+								price_adjustment: variant.price_adjustment,
+								swatch_image_id: null
+							}));
+
+							const { data: insertedVariants, error: variantError } = await supabaseAdmin
+								.from('product_variants')
+								.insert(variantsToInsert)
+								.select();
+
+							if (variantError) throw variantError;
+
+							// Insert inventory for each variant
+							const inventoryToInsert = insertedVariants.map((variant: any, index: any) => ({
+								product_id: newProduct.id,
+								variant_id: variant.id,
+								quantity: variants[index].quantity,
+								low_stock_threshold: variants[index].low_stock_threshold
+							}));
+
+							const { error: inventoryError } = await supabaseAdmin
+								.from('inventory')
+								.insert(inventoryToInsert);
+
+							if (inventoryError) throw inventoryError;
+						} else {
+							// Product without variants - create base inventory
+							const { error: inventoryError } = await supabaseAdmin
+								.from('inventory')
+								.insert({
+									product_id: newProduct.id,
+									variant_id: null,
+									quantity: row.quantities ? parseInt(row.quantities) : 0,
+									low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 2
+								});
+
+							if (inventoryError) throw inventoryError;
+						}
+					} else {
+						// Product without variants - create base inventory
+						const { error: inventoryError } = await supabaseAdmin
+							.from('inventory')
+							.insert({
+								product_id: newProduct.id,
+								variant_id: null,
+								quantity: row.quantities ? parseInt(row.quantities) : 0,
+								low_stock_threshold: row.low_stock_thresholds ? parseInt(row.low_stock_thresholds) : 2
+							});
+
+						if (inventoryError) throw inventoryError;
+					}
+
+					result.success++;
+
+				} catch (error) {
+					result.failed++;
+					result.errors.push({
+						row: rowNumber,
+						product: row.name || 'Unknown',
+						error: error instanceof Error ? error.message : 'Unknown error'
+					});
+				}
+
+				processedCount++;
+			}
+		}
+
+		onProgress?.(100, 'Import completed');
+		return result;
+
+	} catch (error) {
+		throw new Error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+	}
+};
+
+// Helper function to generate URL-friendly slug
+const generateSlug = (text: string): string => {
+	return text
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9 -]/g, '') // Remove special characters
+		.replace(/\s+/g, '-') // Replace spaces with hyphens
+		.replace(/-+/g, '-') // Replace multiple hyphens with single
+		.replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 };
