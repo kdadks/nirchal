@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
@@ -38,34 +39,51 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [userInteractedWithColor, setUserInteractedWithColor] = useState(false);
+
+  // Get all swatch image URLs
+  const swatchImageUrls = product.variants 
+    ? product.variants.map(v => v.swatchImage).filter(Boolean) as string[]
+    : [];
+
+  // Filter gallery images to exclude swatch images
+  const galleryImages = product.images.filter(img => !swatchImageUrls.includes(img));
+  
+  // Create mapping from gallery image index to original image index
+  const galleryToOriginalIndex = (galleryIndex: number): number => {
+    const galleryImage = galleryImages[galleryIndex];
+    return product.images.findIndex(img => img === galleryImage);
+  };
 
   // Initialize selections when modal opens
   React.useEffect(() => {
     if (isOpen) {
-      setSelectedSize(product.sizes[0] || 'Free Size');
-      setSelectedColor(product.colors[0] || 'Default');
-      // Also try to switch image to the swatch for the default color
-      const defaultColor = (product.colors && product.colors[0]) || undefined;
-      if (defaultColor) {
-        const colorVariant = product.variants?.find(v => v.color === defaultColor);
-        const swatchUrl = colorVariant?.swatchImage;
-        const swatchId = colorVariant?.swatchImageId;
-        if (swatchUrl || swatchId) {
-          let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
-          if (idx === -1 && swatchId) {
-            const idNoDash = swatchId.replace(/-/g, '');
-            idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
-          }
-          if (idx >= 0) setCurrentImageIndex(idx);
-        }
+      // Filter out "Free Size" and only set size if valid sizes exist
+      const validSizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
+      if (validSizes.length > 0) {
+        setSelectedSize(validSizes[0] || '');
+      } else {
+        setSelectedSize('');
       }
+      
+      // Only show colors if there are actual variants
+      const colors = product.variants && product.variants.length > 0 
+        ? (product.colors || [])
+        : [];
+      setSelectedColor(colors[0] || '');
+      
+      // Start with primary image (index 0) instead of swatch image
+      setCurrentImageIndex(0);
+      // Reset user interaction flag when modal opens
+      setUserInteractedWithColor(false);
     }
   }, [isOpen, product.sizes, product.colors]);
 
-  // When color changes, switch image to swatch if available
+  // When color changes, switch image to swatch if available (only if user clicked a color)
   React.useEffect(() => {
     if (!isOpen) return;
     if (!selectedColor) return;
+    if (!userInteractedWithColor) return; // Only switch if user clicked a color
     const colorVariant = product.variants?.find(v => v.color === selectedColor);
     const swatchUrl = colorVariant?.swatchImage;
     const swatchId = colorVariant?.swatchImageId;
@@ -76,16 +94,18 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
     }
     if (idx >= 0) setCurrentImageIndex(idx);
-  }, [isOpen, selectedColor, product.variants, product.images]);
+  }, [isOpen, selectedColor, product.variants, product.images, userInteractedWithColor]);
 
   if (!isOpen) return null;
 
   const getSelectedVariant = () => {
     if (!product.variants || product.variants.length === 0) return undefined;
+    // Only normalize size if a size is actually selected
     const normalizedSize = selectedSize && selectedSize.toLowerCase() === 'free size' ? undefined : selectedSize;
     return product.variants.find(v => {
       const colorMatch = selectedColor ? v.color === selectedColor : true;
-      const sizeMatch = normalizedSize ? v.size === normalizedSize : true;
+      // If no size is selected (product has no sizes), match any size
+      const sizeMatch = selectedSize ? (normalizedSize ? v.size === normalizedSize : true) : true;
       return colorMatch && sizeMatch;
     });
   };
@@ -111,7 +131,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       name: product.name,
       price: adjustedPrice,
       image: product.images[currentImageIndex] || product.images[0],
-      size: selectedSize,
+      size: selectedSize || undefined,
       color: selectedColor,
       variantId: selectedVariant?.id
     });
@@ -136,9 +156,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col relative">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div 
+        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col relative"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Quick View</h2>
           <button
@@ -178,39 +201,31 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                 )}
               </div>
 
-              {/* Thumbnail Images */}
-              {product.images.length > 1 && (
+              {/* Thumbnail Images - Show only non-swatch images */}
+              {galleryImages.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto">
-                  {product.images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
-                        index === currentImageIndex
-                          ? 'border-amber-500'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <img
-                        src={image}
-                        alt={`${product.name} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
+                  {galleryImages.map((image, galleryIndex) => {
+                    const originalIndex = galleryToOriginalIndex(galleryIndex);
+                    return (
+                      <button
+                        key={galleryIndex}
+                        onClick={() => setCurrentImageIndex(originalIndex)}
+                        className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${
+                          originalIndex === currentImageIndex
+                            ? 'border-amber-500'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <img
+                          src={image}
+                          alt={`${product.name} view ${galleryIndex + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-
-              {/* Buy Now Button - Aligned with image */}
-              <div className="pt-4">
-                <button
-                  onClick={handleBuyNow}
-                  disabled={product.stockStatus === 'Out of Stock'}
-                  className="w-full py-3 px-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {product.stockStatus === 'Out of Stock' ? 'Out of Stock' : 'Buy Now'}
-                </button>
-              </div>
             </div>
 
             {/* Product Details */}
@@ -245,11 +260,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               {/* Options Section - Always Show */}
               <div className="space-y-4">
                 
-                {/* Color Selection with Swatches */}
+                {/* Color Selection with Swatches - Only show if variants exist */}
+                {product.variants && product.variants.length > 0 && (product.colors && product.colors.length > 0) && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Color</h4>
-                  <div className="grid grid-cols-5 gap-2 max-w-xs">
-                    {(product.colors && product.colors.length > 0 ? product.colors : ['Default']).map((color) => {
+                  <div className="grid grid-cols-6 gap-3 max-w-sm">
+                    {product.colors.map((color) => {
                       // Find the variant for this color to check for swatch image
                       const colorVariant = product.variants?.find(v => v.color === color);
                       
@@ -265,6 +281,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                       
                       const handleSwatchClick = () => {
                         setSelectedColor(color);
+                        setUserInteractedWithColor(true); // Mark that user clicked a color
                         // If swatch has an image, try to find it in main product images
                         if (hasSwatchImage && swatchImageUrl) {
                           // First try to find exact URL match
@@ -366,26 +383,32 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                     })}
                   </div>
                 </div>
+                )}
 
-                {/* Size Selection */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Size</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(product.sizes && product.sizes.length > 0 ? product.sizes : ['Free Size']).map((size) => (
-                      <button
-                        key={size}
-                        onClick={() => setSelectedSize(size)}
-                        className={`px-3 py-1 text-sm border rounded transition-colors ${
-                          selectedSize === size
-                            ? 'border-amber-500 bg-amber-50 text-amber-700'
-                            : 'border-gray-300 hover:border-gray-400'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* Size Selection - Only show if sizes are defined and not empty */}
+                {(() => {
+                  const validSizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
+                  return validSizes.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 mb-2">Size</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {validSizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedSize(size)}
+                            className={`px-3 py-1 text-sm border rounded transition-colors ${
+                              selectedSize === size
+                                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Stock Status */}
@@ -401,6 +424,17 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                   {product.stockStatus}
                 </span>
               </div>
+
+              {/* Buy Now Button - Below availability */}
+              <div className="pt-2">
+                <button
+                  onClick={handleBuyNow}
+                  disabled={product.stockStatus === 'Out of Stock'}
+                  className="w-full py-3 px-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {product.stockStatus === 'Out of Stock' ? 'Out of Stock' : 'Buy Now'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -415,7 +449,8 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

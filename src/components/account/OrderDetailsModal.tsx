@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { X, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '../../config/supabase';
+import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
 import toast from 'react-hot-toast';
 
 interface OrderItem {
   id: number;
+  product_id: number;
   product_name: string;
   product_sku?: string;
+  product_image?: string;
   variant_size?: string;
   variant_color?: string;
   variant_material?: string;
@@ -54,6 +57,14 @@ interface OrderDetails {
   updated_at: string;
   notes?: string;
   admin_notes?: string;
+  logistics_partner_id?: string;
+  tracking_number?: string;
+  logistics_partners?: {
+    id: string;
+    name: string;
+    tracking_url_template?: string;
+    website?: string;
+  };
 }
 
 interface OrderDetailsModalProps {
@@ -71,6 +82,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
+  // Helper function to generate tracking URL
+  const getTrackingUrl = (order: OrderDetails): string | null => {
+    if (!order.tracking_number || !order.logistics_partners?.tracking_url_template) {
+      return null;
+    }
+    
+    return order.logistics_partners.tracking_url_template.replace(
+      '{tracking_number}', 
+      order.tracking_number
+    );
+  };
+
   useEffect(() => {
     if (isOpen && orderId) {
       loadOrderDetails();
@@ -85,23 +108,119 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       // Load order details
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          logistics_partners(
+            id,
+            name,
+            tracking_url_template,
+            website
+          )
+        `)
         .eq('id', orderId)
         .single();
 
       if (orderError) throw orderError;
+      if (!order) throw new Error('Order not found');
 
-      // Load order items
+      // Handle the logistics_partners relation safely
+      const logistics_partners = order.logistics_partners && 
+        typeof order.logistics_partners === 'object' && 
+        !Array.isArray(order.logistics_partners) && 
+        'id' in order.logistics_partners 
+          ? order.logistics_partners 
+          : undefined;
+
+      // Type assertion to ensure proper typing
+      const typedOrder = {
+        ...order,
+        logistics_partners
+      } as unknown as OrderDetails;
+
+      // Load order items with product images and variant swatch images
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select(`
+          *,
+          products(
+            id,
+            name,
+            product_images(image_url, is_primary),
+            product_variants(
+              id,
+              color,
+              size,
+              swatch_image_id,
+              product_images!swatch_image_id(image_url)
+            )
+          )
+        `)
         .eq('order_id', orderId)
         .order('id');
 
       if (itemsError) throw itemsError;
 
-      setOrderDetails(order);
-      setOrderItems(items || []);
+      // Process items to extract product images with variant-specific swatch support
+      const processedItems = (items || []).map((item: any) => {
+        let productImage: string | undefined;
+        let productData = item.products;
+        
+        // If no product data from join (product_id was null), try to find product by name
+        if (!productData && item.product_name) {
+          // This is a fallback for old order items without product_id
+          // We can't fetch additional data here, so we'll rely on pattern-based URLs
+        }
+        
+        // First priority: Try to find variant-specific swatch image
+        if (item.variant_color && productData?.product_variants) {
+          const matchingVariant = productData.product_variants.find((variant: any) => {
+            const colorMatch = variant.color === item.variant_color;
+            // Handle size matching - if variant has no size (null) and order item has 'Free Size', consider it a match
+            const sizeMatch = !item.variant_size || 
+                             item.variant_size === 'Free Size' || 
+                             variant.size === item.variant_size ||
+                             !variant.size;
+            return colorMatch && sizeMatch;
+          });
+          
+          if (matchingVariant?.product_images?.image_url) {
+            productImage = getStorageImageUrl(matchingVariant.product_images.image_url);
+            if (import.meta.env.DEV) {
+              console.log('[OrderDetailsModal] Using variant swatch image:', {
+                itemId: item.id,
+                variantColor: item.variant_color,
+                variantSize: item.variant_size,
+                swatchImageUrl: productImage
+              });
+            }
+          }
+        }
+        
+        // Second priority: Use primary/first product image as fallback
+        if (!productImage && productData?.product_images && Array.isArray(productData.product_images) && productData.product_images.length > 0) {
+          const productImages = productData.product_images;
+          const primaryImage = productImages.find((img: any) => img.is_primary);
+          const selectedImageData = primaryImage || productImages[0];
+          
+          if (selectedImageData?.image_url) {
+            productImage = getStorageImageUrl(selectedImageData.image_url);
+          }
+        } 
+        
+        // Third priority: Pattern-based fallback (for items without proper product_id)
+        if (!productImage && (item.product_id || item.product_name)) {
+          const possibleImages = getProductImageUrls(item.product_id || 'unknown', item.product_name);
+          productImage = possibleImages[0];
+        }
+        
+        return {
+          ...item,
+          product_image: productImage
+        };
+      });
+
+      setOrderDetails(typedOrder);
+      setOrderItems(processedItems);
     } catch (error) {
       console.error('Error loading order details:', error);
       toast.error('Failed to load order details');
@@ -220,23 +339,54 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <div className="space-y-3">
                   {orderItems.map((item) => (
                     <div key={item.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{item.product_name}</h4>
-                          {item.product_sku && (
-                            <p className="text-sm text-gray-500">SKU: {item.product_sku}</p>
-                          )}
-                          <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
-                            {item.variant_size && <span>Size: {item.variant_size}</span>}
-                            {item.variant_color && <span>Color: {item.variant_color}</span>}
-                            {item.variant_material && <span>Material: {item.variant_material}</span>}
+                      <div className="flex gap-4">
+                        {/* Product Image */}
+                        <div className="flex-shrink-0">
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                            {item.product_image ? (
+                              <img
+                                src={item.product_image}
+                                alt={item.product_name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  // Hide the image and show placeholder
+                                  target.style.display = 'none';
+                                  const placeholder = target.nextElementSibling as HTMLElement;
+                                  if (placeholder) placeholder.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className="w-full h-full flex items-center justify-center text-gray-400"
+                              style={{ display: item.product_image ? 'none' : 'flex' }}
+                            >
+                              <Package size={24} />
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">{formatCurrency(item.unit_price)} × {item.quantity}</p>
-                          <p className="text-lg font-semibold text-primary-600">
-                            {formatCurrency(item.total_price)}
-                          </p>
+                        
+                        {/* Product Details */}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">{item.product_name}</h4>
+                              {item.product_sku && (
+                                <p className="text-sm text-gray-500">SKU: {item.product_sku}</p>
+                              )}
+                              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                                {item.variant_size && <span>Size: {item.variant_size}</span>}
+                                {item.variant_color && <span>Color: {item.variant_color}</span>}
+                                {item.variant_material && <span>Material: {item.variant_material}</span>}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{formatCurrency(item.unit_price)} × {item.quantity}</p>
+                              <p className="text-lg font-semibold text-primary-600">
+                                {formatCurrency(item.total_price)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -351,23 +501,61 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </div>
 
               {/* Tracking Information */}
-              {(orderDetails.shipped_at || orderDetails.delivered_at) && (
+              {(orderDetails.shipped_at || orderDetails.delivered_at || orderDetails.tracking_number) && (
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Tracking Information</h3>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="space-y-2">
-                      {orderDetails.shipped_at && (
-                        <div className="flex justify-between">
-                          <span>Shipped At</span>
-                          <span>{formatDate(orderDetails.shipped_at)}</span>
+                    <div className="space-y-3">
+                      {/* Logistics Partner */}
+                      {orderDetails.logistics_partners && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Courier Partner</span>
+                          <span className="font-medium">{orderDetails.logistics_partners.name}</span>
                         </div>
                       )}
-                      {orderDetails.delivered_at && (
-                        <div className="flex justify-between">
-                          <span>Delivered At</span>
-                          <span>{formatDate(orderDetails.delivered_at)}</span>
+
+                      {/* Tracking Number */}
+                      {orderDetails.tracking_number && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Tracking Number</span>
+                          <span className="font-mono text-sm font-medium bg-white px-2 py-1 rounded border">
+                            {orderDetails.tracking_number}
+                          </span>
                         </div>
                       )}
+
+                      {/* Tracking URL */}
+                      {orderDetails.tracking_number && getTrackingUrl(orderDetails) && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Track Package</span>
+                          <a
+                            href={getTrackingUrl(orderDetails)!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                          >
+                            <Truck size={16} />
+                            Track Order
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Timeline */}
+                      <div className="border-t pt-3 space-y-2">
+                        {orderDetails.shipped_at && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Shipped At</span>
+                            <span className="font-medium">{formatDate(orderDetails.shipped_at)}</span>
+                          </div>
+                        )}
+                        {orderDetails.delivered_at && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Delivered At</span>
+                            <span className="font-medium">{formatDate(orderDetails.delivered_at)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

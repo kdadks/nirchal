@@ -9,6 +9,20 @@ import App from './App';
 import './index.css';
 import './styles/animations.css';
 
+// Load Razorpay script early for security compliance
+import './utils/razorpayLoader';
+
+// Suppress Quill.js deprecation warnings
+if (import.meta.env.PROD) {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (args[0]?.includes?.('DOMNodeInserted') || args[0]?.includes?.('mutation event')) {
+      return; // Suppress Quill.js deprecation warnings in production
+    }
+    originalWarn.apply(console, args);
+  };
+}
+
 // Create root with strict error handling
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 

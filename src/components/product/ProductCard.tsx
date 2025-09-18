@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { getProductStockInfo } from '../../utils/inventoryUtils';
 import QuickViewModal from './QuickViewModal';
+import CustomerAuthModal from '../auth/CustomerAuthModal';
 import type { Product } from '../../types';
 
 interface ProductCardProps {
@@ -17,9 +19,54 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const { addToWishlist, isInWishlist } = useWishlist();
   const { addToCart } = useCart();
   const navigate = useNavigate();
-  const [imageSrc, setImageSrc] = React.useState(product.images[0] || '/placeholder-product.jpg');
+  // Use first image (should be primary due to sorting in usePublicProducts)
+  const primaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
+  const [imageSrc, setImageSrc] = React.useState(primaryImage);
   const [imageError, setImageError] = React.useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Check if product has any stock available
+  const stockInfo = getProductStockInfo(product);
+  const hasStock = stockInfo.isInStock;
+
+  // Update image source when product changes
+  useEffect(() => {
+    const newPrimaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
+    
+    // Debug logging in development
+    if (import.meta.env.DEV && product.images && product.images.length > 0) {
+      console.log(`[ProductCard] ${product.name} - Using image:`, newPrimaryImage);
+      console.log(`[ProductCard] ${product.name} - Total images:`, product.images.length);
+    }
+    
+    setImageSrc(newPrimaryImage);
+    setImageError(false);
+  }, [product]);
+
+  // Intersection Observer for better lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '50px', // Start loading 50px before the card comes into view
+        threshold: 0.1
+      }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   const getDefaultAdjustedPrice = () => {
     if (!product.variants || product.variants.length === 0) return product.price;
@@ -71,10 +118,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleWishlistClick = (e: React.MouseEvent) => {
+  const handleWishlistClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToWishlist(product.id);
+    
+    const result = await addToWishlist(product.id);
+    if (!result.success && result.requiresAuth) {
+      setShowAuthModal(true);
+    } else if (!result.success) {
+      console.error('Failed to add to wishlist');
+    }
   };
 
   const handleQuickViewClick = (e: React.MouseEvent) => {
@@ -94,22 +147,43 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <>
-      <div className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200 h-auto flex flex-col">
+      <div 
+        ref={cardRef}
+        className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200 h-auto flex flex-col"
+      >
         <Link to={`/products/${product.slug}`} className="flex-1 flex flex-col">
           {/* Image Container */}
           <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 flex-shrink-0">
-            <img
-              src={imageSrc}
-              alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              onError={handleImageError}
-              loading="lazy"
-            />
+            {isInView ? (
+              <img
+                src={imageSrc}
+                srcSet={`${imageSrc} 1x, ${imageSrc}?w=800&q=80 2x`}
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 product-image hw-accelerate"
+                onError={handleImageError}
+                loading="lazy"
+                style={{
+                  imageRendering: 'auto',
+                  filter: 'contrast(1.02) saturate(1.01)',
+                }}
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+                <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
+              </div>
+            )}
             
             {/* Stock Status Badge */}
-            {product.stockStatus === 'Out of Stock' && (
+            {!hasStock && (
               <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
                 Out of Stock
+              </div>
+            )}
+            
+            {/* Low Stock Badge */}
+            {hasStock && product.stockStatus === 'Low Stock' && (
+              <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                Low Stock
               </div>
             )}
             
@@ -121,24 +195,24 @@ const ProductCard: React.FC<ProductCardProps> = ({
             )}
 
             {/* Action Buttons - Top Right */}
-            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              {/* Quick View Button */}
+            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {/* Quick View Button - Hidden on mobile */}
               <button
                 onClick={handleQuickViewClick}
-                className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors duration-200"
+                className="hidden md:flex w-8 h-8 bg-white shadow-lg rounded-full items-center justify-center hover:bg-amber-50 hover:shadow-xl transition-all duration-200 z-10"
                 title="Quick View"
               >
-                <Eye className="w-4 h-4 text-gray-600 hover:text-amber-600" />
+                <Eye className="w-4 h-4 text-gray-700 hover:text-amber-600" />
               </button>
               
-              {/* Wishlist Button */}
+              {/* Wishlist Button - Larger on mobile for better touch target */}
               <button
                 onClick={handleWishlistClick}
-                className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors duration-200"
+                className="w-9 h-9 md:w-8 md:h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors duration-200"
                 title="Add to Wishlist"
               >
                 <Heart 
-                  className={`w-4 h-4 transition-colors duration-200 ${
+                  className={`w-5 h-5 md:w-4 md:h-4 transition-colors duration-200 ${
                     isInWishlist(product.id)
                       ? 'fill-red-500 text-red-500' 
                       : 'text-gray-600 hover:text-red-500'
@@ -175,18 +249,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             </div>
 
-            {/* Add to Cart Button - 10px space */}
+            {/* Add to Cart Button - Larger touch target on mobile */}
             <div className="pt-2.5">
               <button
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleAddToCart();
+                  if (hasStock) {
+                    handleAddToCart();
+                  }
                 }}
-                disabled={product.stockStatus === 'Out of Stock'}
-                className="w-full py-2 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!hasStock}
+                className="w-full py-3 md:py-2 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-400"
               >
-                {product.stockStatus === 'Out of Stock' ? 'Out of Stock' : 'Add to Cart'}
+                {!hasStock ? 'Out of Stock' : 'Add to Cart'}
               </button>
             </div>
           </div>
@@ -198,6 +274,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
         product={product}
         isOpen={showQuickView}
         onClose={() => setShowQuickView(false)}
+      />
+
+      {/* Customer Auth Modal */}
+      <CustomerAuthModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
       />
     </>
   );

@@ -13,7 +13,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function addPasswordColumn() {
   try {
-    console.log('Adding password column to customers table...');
+    
     
     const migrationSQL = readFileSync(join(__dirname, '..', 'src', 'db', 'add_customer_password.sql'), 'utf8');
     
@@ -21,7 +21,7 @@ async function addPasswordColumn() {
     const { error } = await supabase.rpc('exec_sql', { sql: migrationSQL });
     
     if (error) {
-      console.error('Migration error:', error);
+      
       // Try alternative approach - execute each statement
       const statements = migrationSQL.split(';').filter(stmt => stmt.trim().length > 0);
       
@@ -34,7 +34,7 @@ async function addPasswordColumn() {
             // Try using raw SQL for ALTER TABLE
             try {
               const { error: alterError } = await supabase.rpc('exec_sql', { sql: cleanStmt });
-              if (alterError) console.log('Note: Column might already exist:', alterError.message);
+              if (alterError) 
             } catch (e) {
               console.log('Note: ALTER TABLE issue (column might exist):', e);
             }
@@ -49,20 +49,20 @@ async function addPasswordColumn() {
                 ])
                 .select();
             } catch (insertError) {
-              console.log('Note: Test users might already exist');
+              
             }
           }
         }
       }
     }
     
-    console.log('Migration completed!');
-    console.log('You can now test with:');
-    console.log('- Email: test@example.com, Password: password123');
-    console.log('- Email: john@example.com, Password: password456');
+    
+    
+    
+    
     
   } catch (error) {
-    console.error('Migration failed:', error);
+    
   }
 }
 

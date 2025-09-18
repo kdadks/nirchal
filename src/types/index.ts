@@ -37,6 +37,7 @@ export interface Product {
   rating: number;
   reviewCount: number;
   stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock' | 'Pre-Order';
+  stockQuantity?: number;
   specifications?: {
     [key: string]: string;
   };
@@ -47,7 +48,7 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
-  image: string;
+  image_url?: string; // Made optional to match database schema
   description?: string;
   featured?: boolean;
   slug?: string;
