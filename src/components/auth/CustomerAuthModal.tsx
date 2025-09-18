@@ -38,18 +38,19 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open) {
-      // Reset form when modal closes
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setFirstName('');
-      setLastName('');
-      setPhone('');
-      setMode('login');
-      setError(null);
-      setMessage(null);
+    if (open) {
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+      // Focus the first input for accessibility
+      const firstInput = document.getElementById('email');
+      if (firstInput) firstInput.focus();
+    } else {
+      document.body.style.overflow = 'unset';
     }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,9 +146,9 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md rounded-xl shadow-xl border border-gray-200 p-6 mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[1100] flex items-start justify-center pt-20 p-4 bg-black/50 animate-in fade-in duration-200">
+      <div className="absolute inset-0 bg-black/50 animate-in fade-in duration-200" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-md rounded-xl shadow-2xl border border-gray-200 p-6 max-h-[calc(100vh-10rem)] overflow-y-auto animate-in zoom-in-95 duration-200 mt-8">
         <button
           onClick={onClose}
           className="absolute right-3 top-3 p-2 text-gray-500 hover:text-gray-700"
