@@ -60,24 +60,24 @@ const BlogPage: React.FC = () => {
   const categories = Array.from(new Set(blogPosts.map(post => post.category)));
 
   return (
-    <div className="container mx-auto px-4 py-8 pt-24">
+    <div className="container mx-auto px-4 py-6 md:py-8 pt-20 md:pt-24">
       <Helmet>
         <title>Blog - Nirchal</title>
         <meta name="description" content="Read the latest articles about fashion trends, styling tips, and updates from Nirchal" />
       </Helmet>
 
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-serif font-bold text-gray-900 mb-6">Blog</h1>
+        <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-4 md:mb-6">Blog</h1>
 
         {/* Categories */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          <button className="px-4 py-2 rounded-full bg-primary-600 text-white">
+        <div className="flex flex-wrap gap-2 mb-6 md:mb-8">
+          <button className="px-3 md:px-4 py-1.5 md:py-2 rounded-full bg-primary-600 text-white text-sm md:text-base">
             All Posts
           </button>
           {categories.map((category, index) => (
             <button
               key={index}
-              className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm md:text-base"
             >
               {category}
             </button>
@@ -85,18 +85,18 @@ const BlogPage: React.FC = () => {
         </div>
 
         {/* Featured Post */}
-        <div className="mb-12">
-          <div className="relative h-[400px] rounded-xl overflow-hidden group">
+        <div className="mb-8 md:mb-12">
+          <div className="relative h-[250px] md:h-[400px] rounded-xl overflow-hidden group">
             <img
               src={blogPosts[0].image}
               alt={blogPosts[0].title}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6 text-white">
-              <div className="flex items-center gap-4 mb-2 text-sm">
+            <div className="absolute bottom-0 left-0 p-4 md:p-6 text-white">
+              <div className="flex items-center gap-2 md:gap-4 mb-2 text-xs md:text-sm">
                 <span className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1" />
+                  <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                   {new Date(blogPosts[0].date).toLocaleDateString('en-US', {
                     day: 'numeric',
                     month: 'long',
@@ -104,7 +104,7 @@ const BlogPage: React.FC = () => {
                   })}
                 </span>
                 <span className="flex items-center">
-                  <User className="w-4 h-4 mr-1" />
+                  <User className="w-3 h-3 md:w-4 md:h-4 mr-1" />
                   {blogPosts[0].author}
                 </span>
                 <span className="flex items-center">

@@ -82,7 +82,7 @@ const EditProductPage: React.FC = () => {
     is_featured: product.is_featured,
     meta_title: product.meta_title || '',
     meta_description: product.meta_description || '',
-    images: product.images.map(image => ({
+    images: (product.images || []).map(image => ({
       id: image.id,
       image_url: image.image_url,
       alt_text: image.alt_text,
@@ -90,7 +90,7 @@ const EditProductPage: React.FC = () => {
       existing: true,
       toDelete: false
     })),
-    variants: product.variants.map(variant => {
+    variants: (product.variants || []).map(variant => {
       // Find inventory for this variant
       const inv = Array.isArray(product.inventory)
         ? product.inventory.find((i: any) => i.variant_id === variant.id)
@@ -128,7 +128,7 @@ const EditProductPage: React.FC = () => {
         variant_type: variant.size ? 'size' : variant.color ? 'color' : undefined,
         price_adjustment: variant.price_adjustment,
         quantity: inv ? inv.quantity : 0,
-        low_stock_threshold: inv ? inv.low_stock_threshold : 10,
+        low_stock_threshold: inv ? inv.low_stock_threshold : 2,
         swatch_image_id: variant.swatch_image_id,
         swatch_image: swatchImageUrl
       };
@@ -147,7 +147,7 @@ const EditProductPage: React.FC = () => {
       }
       
       // Default when no product-level inventory found
-      return { quantity: 0, low_stock_threshold: 10 };
+      return { quantity: 0, low_stock_threshold: 2 };
     })()
   };
 

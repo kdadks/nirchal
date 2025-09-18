@@ -121,6 +121,7 @@ export const usePublicProducts = (featured?: boolean) => {
               rating: 0, // No reviews available
               reviewCount: 0,
               stockStatus: 'In Stock' as const,
+              stockQuantity: 0, // No inventory data available in fallback
               specifications: {},
               reviews: [],
               variants: []
@@ -197,7 +198,22 @@ export const usePublicProducts = (featured?: boolean) => {
         let images: string[] = [];
         
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
-          images = product.product_images.map((img: any) => {
+          // Sort images so primary image comes first, with fallback sorting
+          const sortedImages = [...product.product_images].sort((a: any, b: any) => {
+            // Primary images come first
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            
+            // If neither or both are primary, sort by created date (oldest first) as fallback
+            if (a.created_at && b.created_at) {
+              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            }
+            
+            // Final fallback: maintain original order
+            return 0;
+          });
+          
+          images = sortedImages.map((img: any) => {
             if (img.image_url) {
               return getStorageImageUrl(img.image_url);
             }
@@ -224,96 +240,105 @@ export const usePublicProducts = (featured?: boolean) => {
             sizes = ['Free Size'];
           }
           
-          // Process variants with swatch images
-          variants = product.product_variants.map((variant: any) => {
-            if (import.meta.env.DEV) console.debug('[usePublicProducts] processing variant', {
-              id: variant.id,
-              color: variant.color,
-              swatchImageId: variant.swatch_image_id,
-              swatchImageJoined: variant.swatch_image,
-              productImagesCount: product.product_images?.length || 0
-            });
-            
-            let swatchImageUrl = null;
-            
-            // Debug: Check what we have available
-            if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch debug', {
-              variantId: variant.id,
-              swatchImageId: variant.swatch_image_id,
-              hasDirectJoin: !!variant.swatch_image,
-              directJoinData: variant.swatch_image,
-              availableProductImages: product.product_images?.map((img: any) => ({ id: img.id, image_url: img.image_url }))
-            });
-            
-            // First try to use the directly joined swatch image
-            if (variant.swatch_image?.image_url) {
-              swatchImageUrl = getStorageImageUrl(variant.swatch_image.image_url);
-              if (import.meta.env.DEV) console.debug('[usePublicProducts] joined swatch URL', swatchImageUrl);
-            }
-            // Try to find the specific swatch image by ID in product_images array
-            else if (variant.swatch_image_id && Array.isArray(product.product_images)) {
-              if (import.meta.env.DEV) {
-                console.debug('[usePublicProducts] searching swatch in product_images');
-                console.debug('[usePublicProducts] available images', product.product_images.map((img: any) => ({ id: img.id, image_url: img.image_url })));
-                console.debug('[usePublicProducts] swatch_image_id', variant.swatch_image_id);
-              }
-              
-              const swatchImage = product.product_images.find((img: any) => {
-                // Try both string and direct comparison
-                return img.id === variant.swatch_image_id || String(img.id) === String(variant.swatch_image_id);
+            // Process variants with swatch images and inventory
+            variants = product.product_variants.map((variant: any) => {
+              if (import.meta.env.DEV) console.debug('[usePublicProducts] processing variant', {
+                id: variant.id,
+                color: variant.color,
+                swatchImageId: variant.swatch_image_id,
+                swatchImageJoined: variant.swatch_image,
+                productImagesCount: product.product_images?.length || 0
               });
               
-              if (import.meta.env.DEV) console.debug('[usePublicProducts] found swatch image record', swatchImage);
-              if (swatchImage?.image_url) {
-                swatchImageUrl = getStorageImageUrl(swatchImage.image_url);
-                if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch URL from record', swatchImageUrl);
-              } else {
-                if (import.meta.env.DEV) console.debug('[usePublicProducts] no specific swatch image found');
+              let swatchImageUrl = null;
+              
+              // Debug: Check what we have available
+              if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch debug', {
+                variantId: variant.id,
+                swatchImageId: variant.swatch_image_id,
+                hasDirectJoin: !!variant.swatch_image,
+                directJoinData: variant.swatch_image,
+                availableProductImages: product.product_images?.map((img: any) => ({ id: img.id, image_url: img.image_url }))
+              });
+              
+              // First try to use the directly joined swatch image
+              if (variant.swatch_image?.image_url) {
+                swatchImageUrl = getStorageImageUrl(variant.swatch_image.image_url);
+                if (import.meta.env.DEV) console.debug('[usePublicProducts] joined swatch URL', swatchImageUrl);
               }
-            }
+              // Try to find the specific swatch image by ID in product_images array
+              else if (variant.swatch_image_id && Array.isArray(product.product_images)) {
+                if (import.meta.env.DEV) {
+                  console.debug('[usePublicProducts] searching swatch in product_images');
+                  console.debug('[usePublicProducts] available images', product.product_images.map((img: any) => ({ id: img.id, image_url: img.image_url })));
+                  console.debug('[usePublicProducts] swatch_image_id', variant.swatch_image_id);
+                }
+                
+                const swatchImage = product.product_images.find((img: any) => {
+                  // Try both string and direct comparison
+                  return img.id === variant.swatch_image_id || String(img.id) === String(variant.swatch_image_id);
+                });
+                
+                if (import.meta.env.DEV) console.debug('[usePublicProducts] found swatch image record', swatchImage);
+                if (swatchImage?.image_url) {
+                  swatchImageUrl = getStorageImageUrl(swatchImage.image_url);
+                  if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch URL from record', swatchImageUrl);
+                } else {
+                  if (import.meta.env.DEV) console.debug('[usePublicProducts] no specific swatch image found');
+                }
+              }
 
-            // If still no swatch image found, log the issue
-            if (!swatchImageUrl && variant.swatch_image_id) {
-              console.warn('[usePublicProducts] ⚠️ Swatch image not found for variant:', {
+              // If still no swatch image found, log the issue
+              if (!swatchImageUrl && variant.swatch_image_id) {
+                console.warn('[usePublicProducts] ⚠️ Swatch image not found for variant:', {
+                  variantId: variant.id,
+                  color: variant.color,
+                  swatchImageId: variant.swatch_image_id,
+                  message: 'The swatch_image_id exists but no corresponding image was found in product_images'
+                });
+              }
+              
+              if (import.meta.env.DEV) console.debug('[usePublicProducts] final swatch result', {
                 variantId: variant.id,
                 color: variant.color,
                 swatchImageId: variant.swatch_image_id,
-                message: 'The swatch_image_id exists but no corresponding image was found in product_images'
+                finalSwatchImageUrl: swatchImageUrl
               });
-            }
-            
-            if (import.meta.env.DEV) console.debug('[usePublicProducts] final swatch result', {
-              variantId: variant.id,
-              color: variant.color,
-              swatchImageId: variant.swatch_image_id,
-              finalSwatchImageUrl: swatchImageUrl
-            });
-            
-            // Normalize hex value to #RRGGBB if possible
-            let normalizedHex: string | undefined;
-            if (typeof variant.color_hex === 'string') {
-              const raw = variant.color_hex.trim();
-              const withHash = raw.startsWith('#') ? raw : `#${raw}`;
-              if (/^#([0-9A-Fa-f]{6})$/.test(withHash)) {
-                normalizedHex = withHash;
+              
+              // Normalize hex value to #RRGGBB if possible
+              let normalizedHex: string | undefined;
+              if (typeof variant.color_hex === 'string') {
+                const raw = variant.color_hex.trim();
+                const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+                if (/^#([0-9A-Fa-f]{6})$/.test(withHash)) {
+                  normalizedHex = withHash;
+                }
               }
-            }
 
-            return {
-              id: variant.id,
-              sku: variant.sku,
-              size: variant.size,
-              color: variant.color,
-              colorHex: normalizedHex,
-              material: undefined, // Not available in current schema
-              style: undefined,    // Not available in current schema
-              priceAdjustment: variant.price_adjustment || 0,
-              quantity: 0,         // Not available in current schema
-              variantType: variant.color ? 'color' : variant.size ? 'size' : undefined,
-              swatchImageId: variant.swatch_image_id,
-              swatchImage: swatchImageUrl
-            };
-          });
+              // Find inventory quantity for this variant
+              let variantQuantity = 0;
+              if (Array.isArray(product.inventory)) {
+                const variantInventory = product.inventory.find((inv: any) => 
+                  inv.variant_id === variant.id || String(inv.variant_id) === String(variant.id)
+                );
+                variantQuantity = variantInventory?.quantity || 0;
+              }
+
+              return {
+                id: variant.id,
+                sku: variant.sku,
+                size: variant.size,
+                color: variant.color,
+                colorHex: normalizedHex,
+                material: undefined, // Not available in current schema
+                style: undefined,    // Not available in current schema
+                priceAdjustment: variant.price_adjustment || 0,
+                quantity: variantQuantity, // Now properly mapped from inventory
+                variantType: variant.color ? 'color' : variant.size ? 'size' : undefined,
+                swatchImageId: variant.swatch_image_id,
+                swatchImage: swatchImageUrl
+              };
+            });
         }
         
         // If no variants exist at all, show "Free Size"
@@ -366,7 +391,24 @@ export const usePublicProducts = (featured?: boolean) => {
           category: String(product.category ?? ''),
           color: String(product.color ?? ''),
           inStock: Boolean(product.in_stock ?? true),
-          stockQuantity: Number(product.stock_quantity ?? 0),
+          stockQuantity: (() => {
+            // Calculate the actual stock quantity from inventory data
+            if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+              const relevantInventory = product.inventory.filter((inv: any) => {
+                if (hasVariants) {
+                  // For products with variants, only count variant-specific inventory
+                  return inv.variant_id !== null;
+                } else {
+                  // For products without variants, only count product-level inventory
+                  return inv.variant_id === null;
+                }
+              });
+              
+              return relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+            }
+            return 0;
+          })(),
           stockStatus: (() => {
             // Calculate stock status based on inventory data
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {

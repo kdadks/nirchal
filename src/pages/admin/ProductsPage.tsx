@@ -2,19 +2,23 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts, useCategories, useVendors } from '../../hooks/useAdmin';
 import { usePagination } from '../../hooks/usePagination';
-import DataTable from '../../components/admin/DataTable';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
-import type { ProductWithDetails } from '../../types/admin';
-import { Package, Filter, Trash2, AlertTriangle, Upload, Download } from 'lucide-react';
+import ProductImportModal from '../../components/admin/ProductImportModal';
+import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
+import { getStorageImageUrl } from '../../utils/storageUtils';
+import { Package, Filter, Trash2, Upload, Download } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, loading, deleteProduct, deleteProducts } = useProducts();
+  const { products, loading, deleteProduct, deleteProducts, updateProduct, refresh } = useProducts();
   const { categories } = useCategories();
   const { vendors } = useVendors();
+  const { searchTerm } = useAdminSearch();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'bulk'; id?: string; ids?: string[] }>({ type: 'single' });
   const [isDeleting, setIsDeleting] = useState(false);
   const [filters, setFilters] = useState({
@@ -30,11 +34,25 @@ const ProductsPage: React.FC = () => {
     }
   }, [products]);
 
-  // Filter products based on current filters
+  // Filter products based on current filters and search term
   const filteredProducts = React.useMemo(() => {
     if (!products) return [];
     
     return products.filter(product => {
+      // Search term filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesName = product.name.toLowerCase().includes(searchLower);
+        const matchesDescription = product.description?.toLowerCase().includes(searchLower);
+        const matchesSku = product.sku?.toLowerCase().includes(searchLower);
+        const matchesCategory = categories.find(cat => cat.id === product.category_id)?.name.toLowerCase().includes(searchLower);
+        const matchesVendor = vendors.find(v => v.id === product.vendor_id)?.name.toLowerCase().includes(searchLower);
+        
+        if (!matchesName && !matchesDescription && !matchesSku && !matchesCategory && !matchesVendor) {
+          return false;
+        }
+      }
+      
       // Status filter
       if (filters.status) {
         const isActive = product.is_active;
@@ -54,7 +72,7 @@ const ProductsPage: React.FC = () => {
       
       return true;
     });
-  }, [products, filters]);
+  }, [products, filters, searchTerm, categories, vendors]);
 
   // Pagination
   const {
@@ -104,6 +122,15 @@ const ProductsPage: React.FC = () => {
     setShowDeleteConfirm(true);
   };
 
+  const handleToggleFeatured = async (productId: string, currentFeaturedStatus: boolean) => {
+    try {
+      await updateProduct(productId, { is_featured: !currentFeaturedStatus });
+      await refresh(); // Refresh the products list to show updated status
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
   const confirmDelete = async () => {
     setIsDeleting(true);
     try {
@@ -122,160 +149,83 @@ const ProductsPage: React.FC = () => {
     }
   };
 
-  const cancelDelete = () => {
-    setShowDeleteConfirm(false);
-    setDeleteTarget({ type: 'single' });
-  };
-
-  const columns = [
-    {
-      key: 'select',
-      title: (
-        <input
-          type="checkbox"
-          checked={products?.length > 0 && selectedProducts.length === products.length}
-          onChange={(e) => handleSelectAll(e.target.checked)}
-          className="admin-checkbox"
-        />
-      ),
-      render: (row: ProductWithDetails) => (
-        <input
-          type="checkbox"
-          checked={selectedProducts.includes(row.id.toString())}
-          onChange={(e) => handleSelectProduct(row.id.toString(), e.target.checked)}
-          className="admin-checkbox"
-        />
-      ),
-    },
-    {
-      key: 'thumbnail',
-      title: '',
-      render: (row: ProductWithDetails) => {
-        const img = row.images?.find(img => img.is_primary) || row.images?.[0];
-        if (!img) {
-          return (
-            <div className="admin-product-thumbnail admin-image-placeholder">
-              <Package className="h-4 w-4" />
-            </div>
-          );
-        }
-        // Build Supabase Storage public URL
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
-        const publicUrl = img.image_url?.startsWith('http')
-          ? img.image_url
-          : `${supabaseUrl}/storage/v1/object/public/product-images/${img.image_url}`;
-        return (
-          <img 
-            src={publicUrl} 
-            alt={img.alt_text || ''} 
-            className="admin-product-thumbnail"
-          />
-        );
-      },
-    },
-    {
-      key: 'name',
-      title: 'Product',
-      render: (row: ProductWithDetails) => (
-        <div className="admin-product-title-wrapper">
-          <button
-            onClick={() => navigate(`/admin/products/edit/${row.id}`)}
-            className="admin-product-title-link"
-          >
-            {row.name}
-          </button>
-        </div>
-      ),
-      sortable: true,
-    },
-    {
-      key: 'status',
-      title: 'Status',
-      render: (row: ProductWithDetails) => (
-        <span className={`admin-badge ${row.is_active ? 'admin-badge-success' : 'admin-badge-neutral'}`}>
-          {row.is_active ? 'Active' : 'Inactive'}
-        </span>
-      ),
-    },
-    {
-      key: 'inventory',
-      title: 'Inventory',
-      render: (row: ProductWithDetails) => {
-        if (!row.inventory || row.inventory.length === 0) {
-          return <span className="admin-text-muted">No stock</span>;
-        }
-        const totalStock = row.inventory.reduce((sum, inv) => sum + (inv.quantity || 0), 0);
-        const variantCount = row.variants?.length || 0;
-        
-        return (
-          <div className="admin-text-sm">
-            <div className={`admin-font-mono ${totalStock > 10 ? 'admin-text-success' : totalStock > 0 ? 'admin-text-warning' : 'admin-text-danger'}`}>
-              {totalStock} in stock
-            </div>
-            {variantCount > 0 && (
-              <div className="admin-text-muted admin-text-xs">
-                for {variantCount} variant{variantCount !== 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      key: 'category',
-      title: 'Category',
-      render: (row: ProductWithDetails) => {
-        // Defensive: handle null, array, or object
-        if (!row.category) return <span className="admin-text-muted">-</span>;
-        if (Array.isArray(row.category)) {
-          return row.category[0]?.name || <span className="admin-text-muted">-</span>;
-        }
-        return row.category.name || <span className="admin-text-muted">-</span>;
-      },
-    },
-    {
-      key: 'actions',
-      title: 'Actions',
-      render: (row: ProductWithDetails) => (
-        <div className="admin-table-actions">
-          <button
-            onClick={() => handleDeleteProduct(row.id.toString())}
-            className="admin-btn admin-btn-sm admin-btn-danger"
-            title="Delete Product"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div>
-      {/* Filters */}
-      {showFilters && (
-        <div className="admin-card" style={{ marginBottom: '16px' }}>
-          <div className="admin-card-content">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <div className="admin-form-group">
-                <label className="admin-label">Status</label>
+      {/* Header with Title and Actions */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Products ({totalItems}{filters.status || filters.category || filters.vendor ? ` of ${products?.length || 0}` : ''})</h1>
+            </div>
+            <div className="flex items-center space-x-3">
+              {selectedProducts.length > 0 && (
+                <>
+                  <span className="text-sm text-gray-500">
+                    {selectedProducts.length} selected
+                  </span>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete Selected
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Filter className="h-4 w-4 mr-1" />
+                {showFilters ? 'Hide Filters' : 'Filters'}
+              </button>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Import
+              </button>
+              <button
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </button>
+              <button
+                onClick={() => navigate('/admin/products/create')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <Package className="h-4 w-4 mr-1" />
+                Add Product
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters Section */}
+        {showFilters && (
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select
                   value={filters.status}
                   onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                  className="admin-input"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Statuses</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
-              
-              <div className="admin-form-group">
-                <label className="admin-label">Category</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select
                   value={filters.category}
                   onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                  className="admin-input"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Categories</option>
                   {categories.map((category) => (
@@ -283,13 +233,12 @@ const ProductsPage: React.FC = () => {
                   ))}
                 </select>
               </div>
-              
-              <div className="admin-form-group">
-                <label className="admin-label">Vendor</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
                 <select
                   value={filters.vendor}
                   onChange={(e) => setFilters(prev => ({ ...prev, vendor: e.target.value }))}
-                  className="admin-input"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Vendors</option>
                   {vendors.filter(vendor => vendor.is_active).map((vendor) => (
@@ -299,124 +248,233 @@ const ProductsPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Products Table */}
-      <DataTable
-        columns={columns}
-        data={paginatedProducts || []}
-        isLoading={loading}
-        searchable={true}
-        filterable={false}
-        title={`Products (${totalItems}${filters.status || filters.category || filters.vendor ? ` of ${products?.length || 0}` : ''})`}
-        subtitle="All products in your catalog"
-        headerActions={
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            {selectedProducts.length > 0 && (
-              <>
-                <div className="admin-text-sm admin-text-muted" style={{ marginRight: '8px' }}>
-                  {selectedProducts.length} selected
-                </div>
-                <button
-                  onClick={handleBulkDelete}
-                  className="admin-btn admin-btn-danger admin-btn-sm"
-                  title={`Delete ${selectedProducts.length} selected products`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Selected
-                </button>
-              </>
-            )}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="admin-btn admin-btn-secondary admin-btn-sm"
-            >
-              <Filter className="h-4 w-4" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </button>
-            <button
-              className="admin-btn admin-btn-secondary admin-btn-sm"
-              title="Import Products"
-            >
-              <Upload className="h-4 w-4" />
-              Import
-            </button>
-            <button
-              className="admin-btn admin-btn-secondary admin-btn-sm"
-              title="Export Products"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </button>
-            <button
-              onClick={() => navigate('/admin/products/create')}
-              className="admin-btn admin-btn-primary admin-btn-sm"
-              title="Add Product"
-            >
-              <Package className="h-4 w-4" />
-              Add Product
-            </button>
+        {/* Table */}
+        <div className="responsive-table-wrapper">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-sm text-gray-500">Loading products...</p>
+            </div>
+          ) : (
+            <table className="admin-table admin-products-table min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="admin-table-col-0 px-4 py-2 text-left">
+                    <input
+                      type="checkbox"
+                      checked={paginatedProducts?.length > 0 && selectedProducts.length === paginatedProducts.length}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </th>
+                  <th scope="col" className="admin-table-col-1 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Image
+                  </th>
+                  <th scope="col" className="admin-table-col-2 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th scope="col" className="admin-table-col-3 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th scope="col" className="admin-table-col-4 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Inventory
+                  </th>
+                  <th scope="col" className="admin-table-col-5 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="admin-table-col-6 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Featured
+                  </th>
+                  <th scope="col" className="admin-table-col-7 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedProducts?.map((product) => {
+                  const img = product.images?.find(img => img.is_primary) || product.images?.[0];
+                  const publicUrl = img?.image_url ? getStorageImageUrl(img.image_url) : null;
+                  
+                  const totalStock = product.inventory?.reduce((sum, inv) => sum + (inv.quantity || 0), 0) || 0;
+                  const variantCount = product.variants?.length || 0;
+                  
+                  return (
+                    <tr key={product.id} className="hover:bg-gray-50">
+                      <td className="admin-table-col-0 px-4 py-2 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedProducts.includes(product.id.toString())}
+                          onChange={(e) => handleSelectProduct(product.id.toString(), e.target.checked)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                      </td>
+                      <td className="admin-table-col-1 px-4 py-2 whitespace-nowrap text-center">
+                        {publicUrl ? (
+                          <img 
+                            src={publicUrl} 
+                            alt={img?.alt_text || product.name} 
+                            className="h-8 w-8 rounded-md object-cover mx-auto"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-md bg-gray-100 flex items-center justify-center mx-auto">
+                            <Package className="h-4 w-4 text-gray-400" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="admin-table-col-2 px-4 py-2">
+                        <div className="flex items-center min-w-0">
+                          <div className="min-w-0 flex-1">
+                            <button
+                              onClick={() => navigate(`/admin/products/edit/${product.id}`)}
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600 truncate block max-w-full"
+                              title={product.name}
+                            >
+                              {product.name}
+                            </button>
+                            {product.sku && (
+                              <div className="text-xs text-gray-400 truncate max-w-full" title={`SKU: ${product.sku}`}>
+                                SKU: {product.sku}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="admin-table-col-3 px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                        {product.category ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 truncate max-w-full">
+                            {Array.isArray(product.category) ? product.category[0]?.name : product.category.name}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">No category</span>
+                        )}
+                      </td>
+                      <td className="admin-table-col-4 px-4 py-2 whitespace-nowrap">
+                        <div className="text-sm">
+                          <div className={`font-medium ${
+                            totalStock > 10 
+                              ? 'text-green-600' 
+                              : totalStock > 0 
+                              ? 'text-yellow-600' 
+                              : 'text-red-600'
+                          }`}>
+                            {totalStock} in stock
+                          </div>
+                          {variantCount > 0 && (
+                            <div className="text-xs text-gray-500">
+                              {variantCount} variant{variantCount !== 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="admin-table-col-5 px-4 py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase ${
+                          product.is_active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {product.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="admin-table-col-6 px-4 py-2 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => handleToggleFeatured(product.id.toString(), Boolean(product.is_featured))}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            product.is_featured
+                              ? 'bg-blue-600'
+                              : 'bg-gray-200'
+                          }`}
+                          title={product.is_featured ? 'Remove from featured' : 'Add to featured'}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              product.is_featured ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </td>
+                      <td className="admin-table-col-7 px-4 py-2 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center justify-center">
+                          <button
+                            onClick={() => handleDeleteProduct(product.id.toString())}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete product"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="border-t border-gray-200 px-4 py-2">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={totalItems}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
           </div>
-        }
-        footerContent={
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            itemsPerPage={itemsPerPage}
-            totalItems={totalItems}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        }
-      />
+        )}
+      </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal">
-            <div className="admin-modal-header">
-              <h3 className="admin-modal-title">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                Confirm Deletion
-              </h3>
-            </div>
-            <div className="admin-modal-content">
-              <p className="admin-text-secondary">
-                {deleteTarget.type === 'single' 
-                  ? 'Are you sure you want to delete this product? This action cannot be undone.'
-                  : `Are you sure you want to delete ${deleteTarget.ids?.length} selected products? This action cannot be undone.`
-                }
-              </p>
-              <p className="admin-text-sm admin-text-muted" style={{ marginTop: '8px' }}>
-                This will permanently delete:
-              </p>
-              <ul className="admin-text-sm admin-text-muted" style={{ marginTop: '4px', paddingLeft: '16px' }}>
-                <li>Product information and description</li>
-                <li>All product images</li>
-                <li>Product variants and inventory</li>
-                <li>Product history and analytics</li>
-              </ul>
-            </div>
-            <div className="admin-modal-actions">
-              <button
-                onClick={cancelDelete}
-                className="admin-btn admin-btn-secondary"
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="admin-btn admin-btn-danger"
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeleteTarget({ type: 'single' });
+        }}
+        onConfirm={confirmDelete}
+        title={deleteTarget.type === 'single' ? 'Delete Product' : 'Delete Products'}
+        description={
+          deleteTarget.type === 'single' 
+            ? 'Are you sure you want to delete this product? This action cannot be undone.'
+            : `Are you sure you want to delete ${deleteTarget.ids?.length} selected products? This action cannot be undone.`
+        }
+        itemType="product"
+        items={
+          deleteTarget.type === 'bulk' && deleteTarget.ids
+            ? deleteTarget.ids.map(id => {
+                const product = products?.find(p => p.id === id);
+                return { id, name: product?.name || 'Unknown Product' };
+              })
+            : []
+        }
+        singleItemName={
+          deleteTarget.type === 'single' && deleteTarget.id
+            ? products?.find(p => p.id === deleteTarget.id)?.name
+            : undefined
+        }
+        consequences={[
+          'Product information and description',
+          'All product images',
+          'Product variants and inventory',
+          'Product history and analytics'
+        ]}
+        isDeleting={isDeleting}
+        variant="danger"
+      />
+
+      {/* Import Modal */}
+      <ProductImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={() => {
+          setShowImportModal(false);
+          refresh();
+        }}
+      />
     </div>
   );
 };

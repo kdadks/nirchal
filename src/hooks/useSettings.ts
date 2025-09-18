@@ -38,7 +38,7 @@ export const useSettings = () => {
         .order('display_order');
 
       if (error) throw error;
-      setCategories(data || []);
+      setCategories((data as any) || []);
     } catch (err) {
       console.error('Error fetching settings categories:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch categories');
@@ -55,7 +55,7 @@ export const useSettings = () => {
       if (error) throw error;
 
       const categorySettings: Record<string, Setting> = {};
-      data?.forEach((setting: Setting) => {
+      (data as any)?.forEach((setting: Setting) => {
         categorySettings[setting.key] = setting;
       });
 
@@ -87,11 +87,11 @@ export const useSettings = () => {
       if (error) throw error;
 
       const groupedSettings: Record<string, Record<string, Setting>> = {};
-      allSettings?.forEach((setting) => {
-        if (!groupedSettings[setting.category]) {
-          groupedSettings[setting.category] = {};
+      (allSettings as any)?.forEach((setting: any) => {
+        if (!groupedSettings[(setting as any).category]) {
+          groupedSettings[(setting as any).category] = {};
         }
-        groupedSettings[setting.category][setting.key] = {
+        groupedSettings[(setting as any).category][(setting as any).key] = {
           key: setting.key,
           value: setting.value,
           type: setting.type || setting.data_type,

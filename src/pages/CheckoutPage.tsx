@@ -8,6 +8,11 @@ import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile, markWelcomeEmailSent } from '@utils/orders';
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 import { transactionalEmailService } from '../services/transactionalEmailService';
+import { useRazorpay } from '../hooks/useRazorpay';
+import PaymentSecurityWrapper from '../components/security/PaymentSecurityWrapper';
+import SecurePaymentForm from '../components/security/SecurePaymentForm';
+import StateDropdown from '../components/common/StateDropdown';
+import CityDropdown from '../components/common/CityDropdown';
 
 interface CheckoutForm {
   // Contact Information
@@ -36,7 +41,7 @@ interface CheckoutForm {
   selectedBillingAddressId?: string;
   billingIsSameAsDelivery: boolean;
   
-  paymentMethod: 'cod' | 'online' | 'upi';
+  paymentMethod: 'razorpay';
 }
 
 interface CustomerAddress {
@@ -61,7 +66,9 @@ const CheckoutPage: React.FC = () => {
   const { state: { items, total }, clearCart } = useCart();
   const { supabase } = useAuth();
   const { customer } = useCustomerAuth();
+  const { isLoaded: isRazorpayLoaded, createOrder: createRazorpayOrder, openCheckout: openRazorpayCheckout, verifyPayment: verifyRazorpayPayment } = useRazorpay();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [currentStep] = useState(1);
   const [form, setForm] = useState<CheckoutForm>({
     // Contact Information
@@ -90,7 +97,7 @@ const CheckoutPage: React.FC = () => {
     selectedBillingAddressId: '',
     billingIsSameAsDelivery: true,
     
-    paymentMethod: 'cod'
+    paymentMethod: 'razorpay'
   });
 
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
@@ -130,13 +137,26 @@ const CheckoutPage: React.FC = () => {
             if (address.phone && !existing.phone) {
               existing.phone = address.phone;
             }
+            if (address.first_name && !existing.first_name) {
+              existing.first_name = address.first_name;
+            }
+            if (address.last_name && !existing.last_name) {
+              existing.last_name = address.last_name;
+            }
           } else {
             addressMap.set(key, { ...address });
           }
         });
         
-        // Convert map back to array
+        // Convert map back to array - limit to only 1 delivery address to prevent confusion
         addressMap.forEach(address => processedAddresses.push(address));
+        
+        // Sort addresses: default first, then by ID (latest first)
+        processedAddresses.sort((a, b) => {
+          if (a.is_default && !b.is_default) return -1;
+          if (!a.is_default && b.is_default) return 1;
+          return b.id.localeCompare(a.id); // Sort by ID as fallback
+        });
         
         setCustomerAddresses(processedAddresses);
 
@@ -146,7 +166,7 @@ const CheckoutPage: React.FC = () => {
         }
         
         // Auto-select default address if available
-        const defaultAddress = processedAddresses.find(addr => addr.is_default);
+        const defaultAddress = processedAddresses.find(addr => addr.is_default) || processedAddresses[0];
         if (defaultAddress) {
           setForm(prev => ({
             ...prev,
@@ -159,24 +179,35 @@ const CheckoutPage: React.FC = () => {
           }));
         }
 
-        // Auto-select billing address if available and not same as delivery
+        // Check if customer has a billing address and auto-select billing checkbox accordingly
+        const hasBillingAddress = processedAddresses.some(addr => addr.is_billing);
         const billingAddress = processedAddresses.find(addr => addr.is_billing);
-        if (billingAddress && (!defaultAddress || billingAddress.id !== defaultAddress.id)) {
-          setForm(prev => ({
-            ...prev,
-            billingIsSameAsDelivery: false,
-            selectedBillingAddressId: billingAddress.id,
-            billingFirstName: billingAddress.first_name,
-            billingLastName: billingAddress.last_name,
-            billingAddress: billingAddress.address_line_1,
-            billingAddressLine2: billingAddress.address_line_2 || '',
-            billingCity: billingAddress.city,
-            billingState: billingAddress.state,
-            billingPincode: billingAddress.postal_code,
-            billingPhone: billingAddress.phone || '',
-          }));
-        } else if (billingAddress && defaultAddress && billingAddress.id === defaultAddress.id) {
-          // Same address is both default and billing
+        
+        if (hasBillingAddress && billingAddress) {
+          // If billing address is the same as default/delivery address, check the "same as delivery" box
+          if (defaultAddress && billingAddress.id === defaultAddress.id) {
+            setForm(prev => ({
+              ...prev,
+              billingIsSameAsDelivery: true,
+            }));
+          } else {
+            // Different billing address - uncheck "same as delivery" and populate billing fields
+            setForm(prev => ({
+              ...prev,
+              billingIsSameAsDelivery: false,
+              selectedBillingAddressId: billingAddress.id,
+              billingFirstName: billingAddress.first_name || '',
+              billingLastName: billingAddress.last_name || '',
+              billingAddress: billingAddress.address_line_1,
+              billingAddressLine2: billingAddress.address_line_2 || '',
+              billingCity: billingAddress.city,
+              billingState: billingAddress.state,
+              billingPincode: billingAddress.postal_code,
+              billingPhone: billingAddress.phone || '',
+            }));
+          }
+        } else {
+          // No billing address saved - default to "same as delivery"
           setForm(prev => ({
             ...prev,
             billingIsSameAsDelivery: true,
@@ -245,6 +276,15 @@ const CheckoutPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before proceeding
+    const formElement = e.target as HTMLFormElement;
+    if (!formElement.checkValidity()) {
+      formElement.reportValidity();
+      setIsSubmitting(false);
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -274,20 +314,15 @@ const CheckoutPage: React.FC = () => {
         shouldSendWelcomeEmail = customerRes?.needsWelcomeEmail || false;
         tempPassword = customerRes?.tempPassword || null;
         
-        console.log('Checkout customer creation result:', {
-          customerId: customerRes?.id,
-          tempPassword,
-          existingCustomer: customerRes?.existingCustomer,
-          shouldSendWelcomeEmail
-        });
+
         
         // Store temp password info if this is a new customer with temp password
         if (tempPassword && !customerRes?.existingCustomer) {
-          console.log('Storing temp password in sessionStorage:', tempPassword);
+
           sessionStorage.setItem('new_customer_temp_password', tempPassword);
           sessionStorage.setItem('new_customer_email', form.email.trim());
         } else {
-          console.log('No temp password to store:', { tempPassword, existingCustomer: customerRes?.existingCustomer });
+
         }
       }
 
@@ -332,7 +367,7 @@ const CheckoutPage: React.FC = () => {
       }
 
       // 3) Create order with items
-      const deliveryCost = total >= 2999 ? 0 : 99;
+      const deliveryCost = total >= 2999 ? 0 : 150;
       const finalTotal = total + deliveryCost;
       
       const billingAddress = sanitizeOrderAddress({
@@ -369,8 +404,8 @@ const CheckoutPage: React.FC = () => {
         billing: billingAddress,
         delivery: deliveryAddress,
         items: items.map(it => ({
-          product_id: Number(it.id) || null,
-          product_variant_id: it.variantId ? Number(it.variantId) : null,
+          product_id: it.id, // Keep as string UUID, don't convert to number
+          product_variant_id: it.variantId ? it.variantId : null, // Keep as string UUID if exists
           product_name: it.name,
           product_sku: undefined,
           unit_price: it.price,
@@ -384,87 +419,343 @@ const CheckoutPage: React.FC = () => {
       if (!order) {
         throw new Error('Order creation failed - no order returned');
       }
-      
-      // Handle welcome email for customers who need it
-      if (shouldSendWelcomeEmail && customerId) {
-        // Send welcome email (with temp password if available)
+
+      // 4) Handle Razorpay payment if selected
+      if (form.paymentMethod === 'razorpay') {
+        if (!isRazorpayLoaded) {
+          throw new Error('Razorpay is not loaded. Please try again.');
+        }
+
         try {
-          await transactionalEmailService.sendWelcomeEmail({
-            first_name: form.firstName,
-            last_name: form.lastName,
-            email: form.email,
-            temp_password: tempPassword || undefined // Pass the temp password if available
+          // Show processing toast
+          toast('💳 Initializing secure payment...', {
+            duration: 3000,
           });
-          console.log('Welcome email sent successfully', tempPassword ? 'with temp password' : 'for existing customer');
           
-          // Mark welcome email as sent in database
-          if (customerId) {
-            await markWelcomeEmailSent(supabase, customerId);
-          }
-        } catch (emailError) {
-          console.error('Failed to send welcome email:', emailError);
-          // Don't block the checkout process if email fails
-        }
-      }
-      
-      // ALWAYS send order confirmation email for successful orders
-      // For customers with temp password: Send after 30 seconds delay
-      // For all other customers: Send immediately
-      const sendOrderConfirmation = async () => {
-        try {
-          await transactionalEmailService.sendOrderConfirmationEmail({
-            id: order.id.toString(),
-            order_number: order.order_number,
-            customer_name: `${form.firstName} ${form.lastName}`,
+          // Create Razorpay order
+          const razorpayOrderData = await createRazorpayOrder({
+            amount: finalTotal,
+            currency: 'INR',
+            receipt: order.order_number,
             customer_email: form.email,
-            total_amount: finalTotal,
-            status: 'confirmed',
-            items: items.map(item => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: (item.price * item.quantity).toFixed(2)
-            }))
+            customer_phone: form.phone,
+            notes: {
+              order_id: order.id.toString(),
+              customer_name: `${form.firstName} ${form.lastName}`
+            }
           });
-          console.log('Order confirmation email sent successfully');
-        } catch (emailError) {
-          console.error('Failed to send order confirmation email:', emailError);
+
+          // Open Razorpay checkout
+          openRazorpayCheckout({
+            key: razorpayOrderData.checkout_config.key,
+            amount: razorpayOrderData.checkout_config.amount,
+            currency: razorpayOrderData.checkout_config.currency,
+            name: razorpayOrderData.checkout_config.name,
+            description: razorpayOrderData.checkout_config.description,
+            order_id: razorpayOrderData.order.id,
+            image: razorpayOrderData.checkout_config.image,
+            prefill: {
+              name: `${form.firstName} ${form.lastName}`,
+              email: form.email,
+              contact: form.phone
+            },
+            theme: razorpayOrderData.checkout_config.theme,
+            handler: async (response) => {
+              try {
+                // Verify payment
+                const verificationResult = await verifyRazorpayPayment({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  order_id: order.id.toString()
+                });
+
+                if (verificationResult.verified) {
+                  // 🎉 Payment successful toast
+                  toast.success('💳 Payment successful! Processing your order...', {
+                    duration: 4000,
+                  });
+                  
+                  // Payment successful - send payment success email first
+                  try {
+                    await transactionalEmailService.sendPaymentSuccessEmail({
+                      customer_name: `${form.firstName} ${form.lastName}`,
+                      customer_email: form.email,
+                      order_number: order.order_number,
+                      amount: finalTotal,
+                      payment_id: response.razorpay_payment_id
+                    });
+
+                  } catch (emailError) {
+                    console.error('Failed to send payment success email:', emailError);
+                  }
+                  
+                  // Payment successful - proceed with post-order actions
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                } else {
+                  // Check if this is a duplicate payment attempt
+                  if (verificationResult.duplicate_payment || verificationResult.duplicate_payment_id) {
+                    console.warn('🚫 Duplicate payment detected:', verificationResult);
+                    
+                    if (verificationResult.duplicate_payment) {
+                      // Order already paid - redirect to confirmation
+                      toast.success('✅ This order has already been paid successfully!', {
+                        duration: 5000,
+                      });
+                      await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                      return;
+                    }
+                    
+                    if (verificationResult.duplicate_payment_id) {
+                      // Payment ID already used
+                      toast.error('⚠️ This payment has already been processed. Please contact support if you were charged multiple times.', {
+                        duration: 6000,
+                      });
+                      setIsSubmitting(false);
+                      return;
+                    }
+                  }
+                  
+                  throw new Error(verificationResult.error || 'Payment verification failed');
+                }
+              } catch (paymentError) {
+                console.error('Payment verification error:', paymentError);
+                
+                // Parse error response for duplicate payment handling
+                let errorMessage = paymentError instanceof Error ? paymentError.message : 'Payment verification failed';
+                let isDuplicatePayment = false;
+                
+                try {
+                  if (paymentError instanceof Error && paymentError.message.includes('duplicate_payment')) {
+                    isDuplicatePayment = true;
+                    errorMessage = 'This order has already been paid. No additional payment is required.';
+                  }
+                } catch (parseError) {
+                  // Continue with original error handling
+                }
+                
+                if (isDuplicatePayment) {
+                  toast.success('✅ Order already paid successfully!', {
+                    duration: 4000,
+                  });
+                  // Redirect to confirmation for already paid orders
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                  return;
+                }
+                
+                // Send payment failure email for actual failures
+                try {
+                  await transactionalEmailService.sendPaymentFailureEmail({
+                    customer_name: `${form.firstName} ${form.lastName}`,
+                    customer_email: form.email,
+                    order_number: order.order_number,
+                    amount: finalTotal,
+                    error_reason: errorMessage
+                  });
+
+                } catch (emailError) {
+                  console.error('Failed to send payment failure email:', emailError);
+                }
+                
+                toast.error('❌ Payment verification failed. Please contact support.', {
+                  duration: 6000,
+                });
+                setIsSubmitting(false);
+              }
+            },
+            modal: {
+              ondismiss: async () => {
+
+                
+                // Send payment failure email for cancelled payments
+                try {
+                  await transactionalEmailService.sendPaymentFailureEmail({
+                    customer_name: `${form.firstName} ${form.lastName}`,
+                    customer_email: form.email,
+                    order_number: order.order_number,
+                    amount: finalTotal,
+                    error_reason: 'Payment cancelled by user'
+                  });
+
+                } catch (emailError) {
+                  console.error('Failed to send payment cancellation email:', emailError);
+                }
+                
+                toast('💳 Payment cancelled. Your order has been saved and you can retry payment later.', {
+                  duration: 4000,
+                });
+                setIsSubmitting(false);
+              }
+            }
+          });
+
+          // Don't proceed to confirmation page here - wait for payment handler
+          return;
+
+        } catch (razorpayError) {
+          console.error('Razorpay error:', razorpayError);
+          
+          // Send payment failure email for Razorpay initialization errors
+          try {
+            await transactionalEmailService.sendPaymentFailureEmail({
+              customer_name: `${form.firstName} ${form.lastName}`,
+              customer_email: form.email,
+              order_number: order.order_number,
+              amount: finalTotal,
+              error_reason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed'
+            });
+
+          } catch (emailError) {
+            console.error('Failed to send payment initialization failure email:', emailError);
+          }
+          
+          toast.error('⚠️ Payment initialization failed. Please try again.', {
+            duration: 5000,
+          });
+          throw razorpayError;
         }
-      };
-      
-      if (tempPassword && shouldSendWelcomeEmail) {
-        // New customer with temp password: Send order confirmation after 30 seconds delay
-        console.log('Scheduling order confirmation email after 30 second delay (new customer with temp password)');
-        setTimeout(sendOrderConfirmation, 30000);
       } else {
-        // All other cases: Send order confirmation immediately
-        console.log('Sending order confirmation email immediately');
-        await sendOrderConfirmation();
+        // For non-Razorpay payments (COD, etc.), proceed as usual
+        await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
       }
       
-      // Save basics for confirmation screen
-      if (order?.order_number) sessionStorage.setItem('last_order_number', order.order_number);
-      if (form?.email) sessionStorage.setItem('last_order_email', form.email.trim());
-      
-      navigate('/order-confirmation');
-      
-      // Clear cart AFTER navigation to avoid redirect race condition
-      setTimeout(() => {
-        clearCart();
-      }, 100);
     } catch (error) {
       console.error('Checkout error details:', error);
       
       // Check if order was actually created despite the error
       const orderNumber = sessionStorage.getItem('last_order_number');
       if (orderNumber) {
-        navigate('/order-confirmation');
+        window.location.href = '/order-confirmation';
         return;
       }
       
-      toast.error('There was an error processing your order. Please try again.');
+      toast.error('❌ There was an error processing your order. Please try again.', {
+        duration: 5000,
+      });
     } finally {
-      setIsSubmitting(false);
+      if (form.paymentMethod !== 'razorpay') {
+        setIsSubmitting(false);
+      }
+      // For Razorpay, isSubmitting will be set to false in the payment handler or modal dismiss
     }
+  };
+
+  // Extracted function for handling successful orders
+  const handleSuccessfulOrder = async (
+    order: any, 
+    shouldSendWelcomeEmail: boolean, 
+    tempPassword: string | null, 
+    customerId: string | null, 
+    finalTotal: number
+  ) => {
+    // Immediately show processing state to prevent cart page flash
+    setIsOrderProcessing(true);
+    
+    // Handle welcome email for customers who need it
+    if (shouldSendWelcomeEmail && customerId) {
+      // Send welcome email (with temp password if available)
+      try {
+        await transactionalEmailService.sendWelcomeEmail({
+          first_name: form.firstName,
+          last_name: form.lastName,
+          email: form.email,
+          temp_password: tempPassword || undefined // Pass the temp password if available
+        });
+
+        
+        // Mark welcome email as sent in database
+        if (customerId) {
+          await markWelcomeEmailSent(supabase, customerId);
+        }
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't block the checkout process if email fails
+      }
+    }
+    
+    // ALWAYS send order received email for successful orders (not confirmation yet)
+    // For customers with temp password: Send after 30 seconds delay
+    // For all other customers: Send immediately
+    const sendOrderReceived = async () => {
+      try {
+        await transactionalEmailService.sendOrderReceivedEmail({
+          id: order.id.toString(),
+          order_number: order.order_number,
+          customer_name: `${form.firstName} ${form.lastName}`,
+          customer_email: form.email,
+          total_amount: finalTotal,
+          status: 'received',
+          items: items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: (item.price * item.quantity).toFixed(2)
+          }))
+        });
+
+      } catch (emailError) {
+        console.error('Failed to send order received email:', emailError);
+      }
+    };
+
+    // Send order notification to support team
+    const sendOrderNotification = async () => {
+      try {
+        await transactionalEmailService.sendOrderNotificationToSupport({
+          order_number: order.order_number,
+          customer_name: `${form.firstName} ${form.lastName}`,
+          customer_email: form.email,
+          total_amount: finalTotal,
+          items_count: items.length,
+          payment_method: form.paymentMethod
+        });
+
+      } catch (emailError) {
+        console.error('Failed to send order notification to support:', emailError);
+      }
+    };
+    
+    if (tempPassword && shouldSendWelcomeEmail) {
+      // New customer with temp password: Send order received email after 30 seconds delay
+
+      setTimeout(sendOrderReceived, 30000);
+    } else {
+      // All other cases: Send order received email immediately
+
+      await sendOrderReceived();
+    }
+
+    // Send order notification to support team (always immediate)
+    await sendOrderNotification();
+    
+    // Save basics for confirmation screen
+
+    
+    if (order?.order_number) {
+      sessionStorage.setItem('last_order_number', order.order_number);
+
+    } else {
+      console.error('No order number to save!', order);
+    }
+    
+    if (form?.email) {
+      sessionStorage.setItem('last_order_email', form.email.trim());
+
+    }
+    
+    // Verify the values were saved
+
+
+    // Navigate to order confirmation page
+    // Using window.location.href for reliable navigation in production
+
+    window.location.href = '/order-confirmation';
+    
+    // Clear cart AFTER navigation to avoid redirect race condition
+    setTimeout(() => {
+      clearCart();
+    }, 100);
+
+    setIsSubmitting(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -486,6 +777,14 @@ const CheckoutPage: React.FC = () => {
         handleBillingAddressChange();
       }
     }
+  };
+
+  const handleDeliveryStateChange = (value: string) => {
+    setForm(prev => ({ ...prev, deliveryState: value, deliveryCity: '' }));
+  };
+
+  const handleBillingStateChange = (value: string) => {
+    setForm(prev => ({ ...prev, billingState: value, billingCity: '' }));
   };
 
   const handleDeliveryAddressSelect = (addressId: string) => {
@@ -539,11 +838,37 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
+  // City dropdown handlers
+  const handleDeliveryCityChange = (value: string) => {
+    setForm(prev => ({ ...prev, deliveryCity: value }));
+  };
+
+  const handleBillingCityChange = (value: string) => {
+    setForm(prev => ({ ...prev, billingCity: value }));
+  };
+
   const handleDeleteAddress = async (addressId: string) => {
     if (!customer) return;
     
+    // Prevent event propagation to avoid triggering form submission
+    event?.preventDefault();
+    event?.stopPropagation();
+    
     try {
-      // Get the address details to check if it's the default address
+      // Check if this is the only address - don't allow deletion if customer only has one
+      const { count: totalAddresses } = await supabase
+        .from('customer_addresses')
+        .select('*', { count: 'exact', head: true })
+        .eq('customer_id', customer.id);
+
+      if (totalAddresses === 1) {
+        toast.error('⚠️ Cannot delete your only address. Please add another address first.', {
+          duration: 5000,
+        });
+        return;
+      }
+
+      // Get the address details
       const { data: addressToDelete } = await supabase
         .from('customer_addresses')
         .select('*')
@@ -552,89 +877,98 @@ const CheckoutPage: React.FC = () => {
         .single();
 
       if (!addressToDelete) {
-        toast.error('Address not found');
+        toast.error('📍 Address not found', {
+          duration: 3000,
+        });
         return;
       }
 
-      // Check if this is the default address and if it's the only address
-      if (addressToDelete.is_default) {
-        // Count total addresses for this customer
-        const { count: totalAddresses } = await supabase
-          .from('customer_addresses')
-          .select('*', { count: 'exact', head: true })
-          .eq('customer_id', customer.id);
-
-        if (totalAddresses === 1) {
-          toast.error('Cannot delete the only address. Please add another address first and make it default before deleting this one.');
-          return;
-        }
-
-        // Check if there's another default address (should not happen due to constraint, but safety check)
-        const { count: defaultCount } = await supabase
-          .from('customer_addresses')
-          .select('*', { count: 'exact', head: true })
-          .eq('customer_id', customer.id)
-          .eq('is_default', true)
-          .neq('id', addressId);
-
-        if (defaultCount === 0) {
-          toast.error('Cannot delete the default address. Please make another address default first.');
-          return;
-        }
+      // If it's the default address and there are multiple addresses, prevent deletion
+      if (addressToDelete.is_default && totalAddresses && totalAddresses > 1) {
+        toast.error('🏠 Cannot delete the default address. Please make another address default first.', {
+          duration: 4000,
+        });
+        return;
       }
 
-      // Check if this address is associated with any orders
-      const { data: orders, error: orderError } = await supabase
-        .from('orders')
-        .select('id, billing_address_line_1, billing_city, billing_postal_code, shipping_address_line_1, shipping_city, shipping_postal_code')
-        .eq('customer_id', customer.id);
-
-      if (orderError) throw orderError;
-
-      // Check if this address is used in any orders
-      const isUsedInOrders = orders?.some(order => {
-        const billingMatch = order.billing_address_line_1 === addressToDelete.address_line_1 &&
-          order.billing_city === addressToDelete.city &&
-          order.billing_postal_code === addressToDelete.postal_code;
-        
-        const shippingMatch = order.shipping_address_line_1 === addressToDelete.address_line_1 &&
-          order.shipping_city === addressToDelete.city &&
-          order.shipping_postal_code === addressToDelete.postal_code;
-
-        return billingMatch || shippingMatch;
+      // Show confirmation toast instead of browser dialog
+      toast((t) => (
+        <div className="flex flex-col gap-2">
+          <div className="font-medium">Delete Address?</div>
+          <div className="text-sm text-gray-600">
+            Are you sure you want to delete this address?
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                performDeletion(addressId);
+              }}
+              className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-gray-300 text-gray-700 text-sm rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: Infinity, // Keep open until user acts
+        position: 'top-center',
       });
 
-      let confirmMessage = 'Are you sure you want to delete this address?';
-      if (isUsedInOrders) {
-        confirmMessage = 'This address is associated with your past orders but the order information is safely stored. Are you sure you want to delete this address from your saved addresses?';
-      }
+    } catch (error) {
+      console.error('Error deleting address:', error);
+      toast.error('❌ Failed to delete address', {
+        duration: 4000,
+      });
+    }
+  };
 
-      const confirmDelete = window.confirm(confirmMessage);
-      if (!confirmDelete) return;
-
+  // Separate function to perform the actual deletion
+  const performDeletion = async (addressId: string) => {
+    try {
       // Delete the address
       const { error } = await supabase
         .from('customer_addresses')
         .delete()
         .eq('id', addressId)
-        .eq('customer_id', customer.id);
+        .eq('customer_id', customer?.id);
 
       if (error) throw error;
 
-      // Reload addresses
+      // Update local state - remove the deleted address
       setCustomerAddresses(prev => prev.filter(addr => addr.id !== addressId));
       
-      // Clear selection if deleted address was selected
+      // Clear form selections if deleted address was selected
       setForm(prev => ({
         ...prev,
-        ...(prev.selectedDeliveryAddressId === addressId ? { selectedDeliveryAddressId: '' } : {}),
-        ...(prev.selectedBillingAddressId === addressId ? { selectedBillingAddressId: '' } : {})
+        ...(prev.selectedDeliveryAddressId === addressId ? { 
+          selectedDeliveryAddressId: '',
+          deliveryAddress: '',
+          deliveryAddressLine2: '',
+          deliveryCity: '',
+          deliveryState: '',
+          deliveryPincode: ''
+        } : {}),
+        ...(prev.selectedBillingAddressId === addressId ? { 
+          selectedBillingAddressId: '',
+          billingIsSameAsDelivery: true // Reset to same as delivery
+        } : {})
       }));
 
-      toast.success('Address deleted successfully');
+      toast.success('✅ Address deleted successfully', {
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error deleting address:', error);
-      toast.error('Failed to delete address');
+      toast.error('❌ Failed to delete address', {
+        duration: 4000,
+      });
     }
   };
 
@@ -712,34 +1046,38 @@ const CheckoutPage: React.FC = () => {
 
         if (error) throw error;
         
-        console.log(`Cleaned up ${addressesToDelete.length} duplicate addresses`);
+
       }
     } catch (error) {
       console.error('Error cleaning up duplicate addresses:', error);
     }
   };
 
-  const deliveryCost = total >= 2999 ? 0 : 99;
+  const deliveryCost = total >= 2999 ? 0 : 150;
   const finalTotal = total + deliveryCost;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Hero Banner Section */}
-      <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">
-              Secure Checkout
-            </h1>
-            <p className="text-xl text-amber-100 max-w-2xl mx-auto">
-              Complete your order securely with our trusted checkout process
-            </p>
+    <PaymentSecurityWrapper>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 relative">
+        {/* Order Processing Overlay - positioned to cover only main content area */}
+        {isOrderProcessing && (
+          <div className="absolute inset-0 bg-white bg-opacity-95 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
+              <p className="text-gray-600 mb-4">Processing your order details...</p>
+              <div className="flex items-center justify-center space-x-2">
+                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        )}
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Back to Cart Link */}
           <div className="mb-8">
@@ -754,28 +1092,30 @@ const CheckoutPage: React.FC = () => {
 
           {/* Progress Steps */}
           <div className="flex items-center justify-center mb-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-8 py-6">
-              <div className="flex items-center space-x-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-4 sm:px-8 py-4 sm:py-6 w-full max-w-md sm:max-w-none">
+              <div className="flex items-center justify-between sm:justify-center sm:space-x-4">
                 {[
                   { step: 1, label: 'Shipping' },
                   { step: 2, label: 'Payment' },
                   { step: 3, label: 'Review' }
                 ].map((item, index) => (
                   <React.Fragment key={item.step}>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold ${
-                      currentStep >= item.step
-                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {item.step}
+                    <div className="flex flex-col sm:flex-row items-center sm:space-x-2">
+                      <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full font-semibold text-sm ${
+                        currentStep >= item.step
+                          ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white'
+                          : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {item.step}
+                      </div>
+                      <span className={`text-xs sm:text-sm font-medium mt-1 sm:mt-0 ${
+                        currentStep >= item.step ? 'text-gray-900' : 'text-gray-500'
+                      }`}>
+                        {item.label}
+                      </span>
                     </div>
-                    <span className={`text-sm font-medium ${
-                      currentStep >= item.step ? 'text-gray-900' : 'text-gray-500'
-                    }`}>
-                      {item.label}
-                    </span>
                     {index < 2 && (
-                      <div className={`w-12 h-0.5 ${
+                      <div className={`hidden sm:block w-12 h-0.5 ${
                         currentStep > item.step 
                           ? 'bg-gradient-to-r from-amber-600 to-orange-600' 
                           : 'bg-gray-200'
@@ -801,60 +1141,68 @@ const CheckoutPage: React.FC = () => {
                   </div>
                   
                   <div className="p-6">
-                    {/* Address Cards for Logged-in Users */}
+                    {/* Address Cards for Logged-in Users - Show only primary address */}
                     {customer && customerAddresses.length > 0 && (
                       <div className="mb-6">
                         <label className="block text-sm font-medium text-gray-700 mb-3">
                           Select Delivery Address
                         </label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                          {customerAddresses.map((address) => (
-                            <div
-                              key={address.id}
-                              onClick={() => handleDeliveryAddressSelect(address.id)}
-                              className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                                form.selectedDeliveryAddressId === address.id
-                                  ? 'border-amber-500 bg-amber-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              <div className="text-sm">
-                                <div className="font-medium text-gray-900 mb-1">
-                                  {address.address_line_1}
-                                  {address.address_line_2 && (
-                                    <div className="font-normal text-gray-700">
-                                      {address.address_line_2}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-gray-600 mb-1">
-                                  {address.city}, {address.state} {address.postal_code}
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <div className="flex gap-1">
-                                    {/* Tags removed for logged-in users */}
+                        
+                        {/* Show only the default/first address as a single card */}
+                        {(() => {
+                          const primaryAddress = customerAddresses.find(addr => addr.is_default) || customerAddresses[0];
+                          return primaryAddress ? (
+                            <div className="mb-4">
+                              <div
+                                key={primaryAddress.id}
+                                onClick={() => handleDeliveryAddressSelect(primaryAddress.id)}
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 max-w-md ${
+                                  form.selectedDeliveryAddressId === primaryAddress.id
+                                    ? 'border-amber-500 bg-amber-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <div className="text-sm">
+                                  <div className="font-medium text-gray-900 mb-1">
+                                    {primaryAddress.address_line_1}
+                                    {primaryAddress.address_line_2 && (
+                                      <div className="font-normal text-gray-700">
+                                        {primaryAddress.address_line_2}
+                                      </div>
+                                    )}
                                   </div>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteAddress(address.id);
-                                    }}
-                                    className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
-                                  >
-                                    Delete
-                                  </button>
+                                  <div className="text-gray-600 mb-1">
+                                    {primaryAddress.city}, {primaryAddress.state} {primaryAddress.postal_code}
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-xs text-green-600">
+                                      ✓ Primary Address
+                                    </div>
+                                    {customerAddresses.length > 1 && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteAddress(primaryAddress.id);
+                                        }}
+                                        className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
+                                      >
+                                        Delete
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          ) : null;
+                        })()}
+                        
                         <div className="text-center">
                           <button
                             type="button"
                             onClick={() => setForm(prev => ({ ...prev, selectedDeliveryAddressId: '' }))}
                             className="text-sm text-amber-600 hover:text-amber-700 font-medium"
                           >
-                            + Enter new address
+                            + Use different address
                           </button>
                         </div>
                       </div>
@@ -958,32 +1306,31 @@ const CheckoutPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          City *
+                          State *
                         </label>
-                        <input
-                          type="text"
-                          name="deliveryCity"
-                          value={form.deliveryCity}
-                          onChange={handleInputChange}
+                        <StateDropdown
+                          name="deliveryState"
+                          value={form.deliveryState}
+                          onChange={handleDeliveryStateChange}
                           required
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                          placeholder="City"
+                          placeholder="Select State"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          State *
+                          City *
                         </label>
-                        <input
-                          type="text"
-                          name="deliveryState"
-                        value={form.deliveryState}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                        placeholder="State"
-                      />
-                    </div>
+                        <CityDropdown
+                          name="deliveryCity"
+                          value={form.deliveryCity}
+                          onChange={handleDeliveryCityChange}
+                          selectedState={form.deliveryState}
+                          required
+                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                          placeholder="Select City"
+                        />
+                      </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         PIN Code *
@@ -1113,30 +1460,29 @@ const CheckoutPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              City *
+                              State *
                             </label>
-                            <input
-                              type="text"
-                              name="billingCity"
-                              value={form.billingCity}
-                              onChange={handleInputChange}
+                            <StateDropdown
+                              name="billingState"
+                              value={form.billingState}
+                              onChange={handleBillingStateChange}
                               required
                               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                              placeholder="City"
+                              placeholder="Select State"
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              State *
+                              City *
                             </label>
-                            <input
-                              type="text"
-                              name="billingState"
-                              value={form.billingState}
-                              onChange={handleInputChange}
+                            <CityDropdown
+                              name="billingCity"
+                              value={form.billingCity}
+                              onChange={handleBillingCityChange}
+                              selectedState={form.billingState}
                               required
                               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                              placeholder="State"
+                              placeholder="Select City"
                             />
                           </div>
                           <div>
@@ -1160,47 +1506,21 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Payment Method */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                      <CreditCard size={20} className="text-amber-600" />
-                      Payment Method
-                    </h2>
-                  </div>
-                  
-                  <div className="p-6">
-                    <div className="space-y-4">
-                      {[
-                        { value: 'cod', label: 'Cash on Delivery', desc: 'Pay when you receive your order', icon: '💵' },
-                        { value: 'online', label: 'Credit/Debit Card', desc: 'Secure payment via card', icon: '💳' },
-                        { value: 'upi', label: 'UPI Payment', desc: 'Pay using UPI apps', icon: '📱' }
-                      ].map((method) => (
-                        <label key={method.value} className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
-                          form.paymentMethod === method.value
-                            ? 'border-amber-500 bg-amber-50'
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value={method.value}
-                          checked={form.paymentMethod === method.value}
-                          onChange={handleInputChange}
-                          className="w-4 h-4 text-amber-600 border-gray-300 focus:ring-amber-500 focus:ring-2"
-                        />
-                        <div className="ml-4 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{method.icon}</span>
-                            <span className="font-medium text-gray-900">{method.label}</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">{method.desc}</p>
-                        </div>
-                      </label>
-                    ))}
-                    </div>
-                  </div>
-                </div>
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                  <div className="p-6 border-b border-gray-200">
+                                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                                      <CreditCard size={20} className="text-amber-600" />
+                                      Payment Method
+                                    </h2>
+                                  </div>
+                                  
+                                  <div className="p-6">
+                                    <SecurePaymentForm
+                                      paymentMethod={form.paymentMethod}
+                                      onPaymentMethodChange={(method) => setForm(prev => ({ ...prev, paymentMethod: method }))}
+                                    />
+                                  </div>
+                                </div>
 
                 {/* Place Order Button */}
                 <button
@@ -1229,6 +1549,38 @@ const CheckoutPage: React.FC = () => {
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
+              {/* Additional Place Order Button - Hidden on Mobile */}
+              <div className="mb-6 hidden lg:block">
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => {
+                    // Trigger the form submission
+                    const form = document.querySelector('form');
+                    if (form) {
+                      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    }
+                  }}
+                  className={`w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
+                    isSubmitting
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
+                      Processing Order...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={20} />
+                      Place Order - ₹{finalTotal.toLocaleString()}
+                    </>
+                  )}
+                </button>
+              </div>
+              
               <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 sticky top-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                   <ShoppingBag size={24} className="text-amber-600" />
@@ -1283,7 +1635,7 @@ const CheckoutPage: React.FC = () => {
                 <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
                   <div className="flex items-center gap-3 text-sm text-green-700 bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200">
                     <Shield size={16} />
-                    <span className="font-medium">Secure 256-bit SSL encryption</span>
+                    <span className="font-medium">PCI DSS compliant secure encryption</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
                     <Truck size={16} />
@@ -1295,7 +1647,8 @@ const CheckoutPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PaymentSecurityWrapper>
   );
 };
 

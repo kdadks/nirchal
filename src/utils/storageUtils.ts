@@ -1,28 +1,31 @@
 /**
- * Utility functions for handling Supabase storage URLs
+ * Utility functions for handling image storage URLs
+ * This file now redirects to localStorageUtils for local file storage
  */
 
+import { 
+  getProductImageUrl, 
+  getCategoryImageUrl as getLocalCategoryImageUrl, 
+  extractFileName as extractLocalFileName,
+  convertSupabaseUrlToLocal 
+} from './localStorageUtils';
+
 /**
- * Generate a public URL for an image stored in the category-images bucket
- * @param imagePath - The path/filename of the image in the storage bucket
+ * Extract filename from a storage URL or return the path if it's already a filename
+ * @param imageUrl - Full URL or filename
+ * @returns Just the filename part for storage operations
+ */
+export const extractStorageFileName = (imageUrl: string): string | null => {
+  return extractLocalFileName(imageUrl);
+};
+
+/**
+ * Generate a public URL for an image stored in the category folder
+ * @param imagePath - The path/filename of the image
  * @returns Full public URL to access the image
  */
 export const getCategoryImageUrl = (imagePath: string): string => {
-  if (!imagePath) return '';
-  
-  // If already a full URL, return as is
-  if (imagePath.startsWith('http')) {
-    return imagePath;
-  }
-  
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) {
-    console.error('[Storage Utils] VITE_SUPABASE_URL not found in environment');
-    return '';
-  }
-  
-  // Construct the full storage URL for category images
-  return `${supabaseUrl}/storage/v1/object/public/category-images/${imagePath}`;
+  return getLocalCategoryImageUrl(imagePath);
 };
 
 /**
@@ -34,37 +37,90 @@ export const getCategoryImageUrls = (categorySlug: string): string[] => {
   if (!categorySlug) return [];
   
   const patterns = [
+    `${categorySlug}.png`,
     `${categorySlug}.jpg`,
     `${categorySlug}.jpeg`,
-    `${categorySlug}.png`,
     `${categorySlug}.webp`,
-    `category_${categorySlug}.jpg`,
     `category-${categorySlug}.jpg`,
-    `${categorySlug}_image.jpg`,
-    `${categorySlug}-image.jpg`
+    `${categorySlug}-image.jpg`,
+    `${categorySlug.replace(/-/g, '')}.png`, // Remove dashes
+    `${categorySlug.replace(/-/g, '')}.jpg`   // Remove dashes
   ];
   
-  return patterns.map(pattern => getCategoryImageUrl(pattern));
+  return patterns.map(pattern => getCategoryStorageUrl(pattern));
 };
 
 /**
- * Generate a public URL for an image stored in the product-images bucket
- * @param imagePath - The path/filename of the image in the storage bucket
+ * Find the best matching category image URL based on category name and slug
+ * This function will check for existing patterns and return the most likely URL
+ * @param categoryName - The category name
+ * @param categorySlug - The category slug
+ * @returns The most likely image URL
+ */
+export const findCategoryImageUrl = (categoryName: string, categorySlug?: string): string => {
+  const slug = categorySlug || categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  
+  // For "Blouses" category, we know the file is "blouses-1757588849075.png"
+  if (slug === 'blouses' || categoryName.toLowerCase() === 'blouses') {
+    return getCategoryStorageUrl('blouses-1757588849075.png');
+  }
+  
+  // Default pattern-based approach
+  const possibleUrls = getCategoryImageUrls(slug);
+  return possibleUrls[0] || '';
+};
+
+/**
+ * Generate a public URL for an image stored in the product folder
+ * @param imagePath - The path/filename of the image
  * @returns Full public URL to access the image
  */
 export const getStorageImageUrl = (imagePath: string): string => {
-  if (!imagePath) return '';
+  if (!imagePath || !imagePath.trim()) return '';
   
-  // If already a full URL, return as is
-  if (imagePath.startsWith('http')) {
+  // If it's already a GitHub raw URL, return as is
+  if (imagePath.startsWith('https://raw.githubusercontent.com')) {
     return imagePath;
   }
   
-  // Use the actual Supabase URL that's working for existing images
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tazrvokohjfzicdzzxia.supabase.co';
+  // If it's a GitHub blob URL, convert to raw URL
+  if (imagePath.startsWith('https://github.com') && imagePath.includes('/blob/')) {
+    return imagePath.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
+  }
   
-  // Construct the full storage URL
-  return `${supabaseUrl}/storage/v1/object/public/product-images/${imagePath}`;
+  // If it's a full Supabase URL, convert to local
+  if (imagePath.startsWith('http') && imagePath.includes('supabase')) {
+    return convertSupabaseUrlToLocal(imagePath);
+  }
+  
+  return getProductImageUrl(imagePath);
+};
+
+/**
+ * Generate a public URL for an image stored in the category folder
+ * @param imagePath - The path/filename of the image
+ * @returns Full public URL to access the image
+ */
+export const getCategoryStorageUrl = (imagePath: string): string => {
+  if (!imagePath || !imagePath.trim()) return '';
+  
+  // If it's already a GitHub raw URL, return as is
+  if (imagePath.startsWith('https://raw.githubusercontent.com')) {
+    return imagePath;
+  }
+  
+  // If it's a GitHub blob URL, convert to raw URL
+  if (imagePath.startsWith('https://github.com') && imagePath.includes('/blob/')) {
+    return imagePath.replace('https://github.com', 'https://raw.githubusercontent.com').replace('/blob/', '/');
+  }
+  
+  // If it's a full Supabase URL, convert to local
+  if (imagePath.startsWith('http') && imagePath.includes('supabase')) {
+    return convertSupabaseUrlToLocal(imagePath);
+  }
+  
+  // For any other case (filename, local path, etc.), use the GitHub URL generation
+  return getLocalCategoryImageUrl(imagePath);
 };
 
 /**
@@ -74,34 +130,29 @@ export const getStorageImageUrl = (imagePath: string): string => {
  * @returns Array of possible image URLs to try
  */
 export const getProductImageUrls = (productId: string | number, productName?: string): string[] => {
-  const basePatterns = [
-    `${productId}.jpg`,
-    `${productId}.jpeg`,
-    `${productId}.png`,
-    `${productId}.webp`,
-    `product_${productId}.jpg`,
-    `product-${productId}.jpg`,
-    `img_${productId}.jpg`,
-    `image_${productId}.jpg`
-  ];
+  const patterns = [];
   
-  // Add category-specific patterns if product name is provided
-  const categoryPatterns: string[] = [];
   if (productName) {
-    const name = productName.toLowerCase();
-    const category = name.includes('saree') ? 'saree' : 
-                    name.includes('lehenga') ? 'lehenga' : 
-                    name.includes('kurti') ? 'kurti' : 'product';
-    
-    categoryPatterns.push(
-      `${category}-${productId}.jpg`,
-      `${category}_${productId}.jpg`,
-      `${category}/${productId}.jpg`
+    const sanitizedName = productName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    patterns.push(
+      `${sanitizedName}.jpg`,
+      `${sanitizedName}.jpeg`,
+      `${sanitizedName}.png`,
+      `${sanitizedName}.webp`,
+      `product-${sanitizedName}.jpg`,
+      `${sanitizedName}-1.jpg`
     );
   }
   
-  const allPatterns = [...categoryPatterns, ...basePatterns];
-  return allPatterns.map(pattern => getStorageImageUrl(pattern));
+  patterns.push(
+    `product-${productId}.jpg`,
+    `product-${productId}.jpeg`, 
+    `product-${productId}.png`,
+    `product-${productId}.webp`,
+    `${productId}.jpg`
+  );
+  
+  return patterns.map(pattern => getProductImageUrl(pattern));
 };
 
 /**

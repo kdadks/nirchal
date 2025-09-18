@@ -3,12 +3,13 @@ import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useUserReviews } from '../hooks/useUserReviews';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../config/supabase';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 import AddressModal from '../components/account/AddressModal';
 import EditProfileModal from '../components/account/EditProfileModal';
 import OrderDetailsModal from '../components/account/OrderDetailsModal';
+import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 import { 
   Heart, 
   ShoppingBag, 
@@ -21,8 +22,14 @@ import {
   Edit2, 
   Trash2,
   AlertTriangle,
-  ChevronRight,
-  Star 
+  Star,
+  LogIn,
+  CreditCard,
+  CheckCircle,
+  XCircle,
+  Clock,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDisplayDate } from '../utils/formatDate';
@@ -33,6 +40,10 @@ type OrderRow = {
   status: string;
   total_amount: number;
   created_at: string;
+  payment_status?: string;
+  razorpay_payment_id?: string;
+  razorpay_order_id?: string;
+  payment_details?: any;
 };
 
 type AddressRow = {
@@ -63,12 +74,24 @@ const AccountPage: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressRow | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<number | null>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings'>('profile');
+  const location = useLocation();
+
+  // Check URL parameters for tab selection
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['profile', 'orders', 'wishlist', 'reviews', 'addresses', 'settings'].includes(tabParam)) {
+      setActiveTab(tabParam as 'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings');
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const load = async () => {
@@ -81,7 +104,7 @@ const AccountPage: React.FC = () => {
         // Filter orders and addresses by current customer ID
         const [ordersResult, addressesResult] = await Promise.all([
           supabase.from('orders')
-            .select('id, order_number, status, total_amount, created_at')
+            .select('id, order_number, status, total_amount, created_at, payment_status, razorpay_payment_id, razorpay_order_id, payment_details')
             .eq('customer_id', customer.id)
             .order('created_at', { ascending: false }),
           supabase.from('customer_addresses')
@@ -94,14 +117,14 @@ const AccountPage: React.FC = () => {
           console.error('Error loading orders:', ordersResult.error);
           toast.error('Failed to load orders');
         } else {
-          setOrders(ordersResult.data || []);
+          setOrders((ordersResult.data as any) || []);
         }
         
         if (addressesResult.error) {
           console.error('Error loading addresses:', addressesResult.error);
           toast.error('Failed to load addresses');
         } else {
-          setAddresses(addressesResult.data || []);
+          setAddresses((addressesResult.data as any) || []);
         }
       } catch (error) {
         console.error('Error loading account data:', error);
@@ -226,7 +249,7 @@ const AccountPage: React.FC = () => {
             console.error('Error reloading addresses:', error);
             toast.error('Failed to reload addresses');
           } else {
-            setAddresses(data || []);
+            setAddresses((data as any) || []);
           }
         });
     }
@@ -235,6 +258,18 @@ const AccountPage: React.FC = () => {
   const handleOrderClick = (order: OrderRow) => {
     setSelectedOrderId(order.id);
     setShowOrderDetailsModal(true);
+  };
+
+  const togglePaymentDetails = (orderId: number) => {
+    setExpandedPaymentDetails(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
   };
 
   const handleEditProfile = () => {
@@ -246,22 +281,53 @@ const AccountPage: React.FC = () => {
     // through the refreshCustomer method in CustomerAuthContext
   };
 
+  // Show login prompt instead of redirecting for Track Order functionality
   if (!customer && import.meta.env.PROD) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <LogIn className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Access Required</h2>
+            <p className="text-gray-600 mb-6">
+              Please sign in to access your account, track orders, and manage your profile.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+              >
+                Sign In / Register
+              </button>
+              <Link
+                to="/"
+                className="block w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Continue Shopping
+              </Link>
+            </div>
+          </div>
+        </div>
+        
+        {/* Auth Modal */}
+        <CustomerAuthModal 
+          open={showAuthModal} 
+          onClose={() => setShowAuthModal(false)} 
+        />
+      </div>
+    );
   }
 
   const sidebarItems = [
     { id: 'profile' as const, label: 'Profile', icon: User },
-    { id: 'orders' as const, label: 'Orders', icon: Package },
+    { id: 'orders' as const, label: 'Orders', icon: Package, badge: orders.length },
     { id: 'wishlist' as const, label: 'Wishlist', icon: Heart, badge: wishlist.length },
     { id: 'reviews' as const, label: 'Reviews & Ratings', icon: Star, badge: totalReviews },
     { id: 'addresses' as const, label: 'Addresses', icon: MapPin },
     { id: 'settings' as const, label: 'Settings', icon: Settings },
   ];
-
-  if (!customer && import.meta.env.PROD) {
-    return <Navigate to="/" replace />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -326,8 +392,38 @@ const AccountPage: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Sidebar Navigation */}
-            <div className="lg:w-64 flex-shrink-0">
+            {/* Mobile Navigation - Tabs at top */}
+            <div className="lg:hidden">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-6">
+                <div className="grid grid-cols-3 gap-1">
+                  {sidebarItems.slice(0, 6).map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex flex-col items-center gap-1 px-2 py-3 text-center rounded-lg transition-colors ${
+                          activeTab === item.id
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Icon size={20} className={activeTab === item.id ? 'text-primary-700' : 'text-gray-500'} />
+                        <span className="text-xs font-medium whitespace-nowrap">{item.label}</span>
+                        {'badge' in item && item.badge !== undefined && item.badge > 0 && (
+                          <span className="bg-primary-100 text-primary-700 text-xs font-medium px-1.5 py-0.5 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Sidebar Navigation - Expanded width */}
+            <div className="hidden lg:block lg:w-72 flex-shrink-0">
               <nav className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <ul className="space-y-2">
                   {sidebarItems.map((item) => {
@@ -344,7 +440,7 @@ const AccountPage: React.FC = () => {
                         >
                           <div className="flex items-center gap-3">
                             <Icon size={20} className={activeTab === item.id ? 'text-primary-700' : 'text-gray-500'} />
-                            <span className="font-medium">{item.label}</span>
+                            <span className="font-medium whitespace-nowrap">{item.label}</span>
                           </div>
                           {'badge' in item && item.badge !== undefined && item.badge > 0 && (
                             <span className="bg-primary-100 text-primary-700 text-xs font-medium px-2 py-1 rounded-full">
@@ -429,7 +525,7 @@ const AccountPage: React.FC = () => {
                 {/* Orders Tab */}
                 {activeTab === 'orders' && (
                   <div className="p-6">
-                    <h2 className="text-xl font-semibold mb-6">Recent Orders</h2>
+                    <h2 className="text-xl font-semibold mb-6">Your Orders</h2>
                     {orders.length === 0 ? (
                       <div className="text-center py-12">
                         <Package size={48} className="mx-auto text-gray-300 mb-4" />
@@ -442,22 +538,35 @@ const AccountPage: React.FC = () => {
                         </Link>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {orders.map((order) => (
                           <div 
                             key={order.id} 
-                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
-                            onClick={() => handleOrderClick(order)}
+                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all"
                           >
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <h3 className="font-medium text-gray-900">Order #{order.order_number}</h3>
-                                <p className="text-sm text-gray-500">
-                                  {formatDisplayDate(order.created_at)}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
+                            {/* Desktop layout */}
+                            <div className="hidden sm:flex items-center justify-between">
+                              {/* Order number - clickable */}
+                              <button
+                                onClick={() => handleOrderClick(order)}
+                                className="font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                              >
+                                Order #{order.order_number}
+                              </button>
+                              
+                              {/* Order date */}
+                              <span className="text-sm text-gray-500">
+                                {formatDisplayDate(order.created_at)}
+                              </span>
+                              
+                              {/* Price */}
+                              <span className="font-semibold text-gray-900">
+                                ₹{order.total_amount?.toLocaleString()}
+                              </span>
+                              
+                              {/* Status and Payment Status */}
+                              <div className="flex items-center gap-2">
+                                <span className={`px-3 py-1 text-xs font-medium rounded-md ${
                                   order.status === 'delivered' ? 'bg-green-100 text-green-800' :
                                   order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
                                   order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
@@ -465,13 +574,162 @@ const AccountPage: React.FC = () => {
                                 }`}>
                                   {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                                 </span>
-                                <p className="font-semibold text-gray-900 mt-1">₹{order.total_amount}</p>
+                                {order.payment_status && (
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-md flex items-center gap-1 ${
+                                    order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                                    order.payment_status === 'failed' ? 'bg-red-100 text-red-800' :
+                                    order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {order.payment_status === 'paid' ? <CheckCircle size={10} /> :
+                                     order.payment_status === 'failed' ? <XCircle size={10} /> :
+                                     order.payment_status === 'pending' ? <Clock size={10} /> : null}
+                                    {order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}
+                                  </span>
+                                )}
                               </div>
                             </div>
-                            <div className="flex items-center justify-between text-sm text-gray-500 mt-2">
-                              <span>Click to view details</span>
-                              <ChevronRight size={16} />
+
+                            {/* Mobile layout */}
+                            <div className="block sm:hidden space-y-2">
+                              <div className="flex items-center justify-between">
+                                <button
+                                  onClick={() => handleOrderClick(order)}
+                                  className="font-medium text-primary-600 hover:text-primary-700 transition-colors text-sm"
+                                >
+                                  Order #{order.order_number}
+                                </button>
+                                <div className="flex items-center gap-1">
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-md ${
+                                    order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                    order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                    order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                  </span>
+                                  {order.payment_status && (
+                                    <span className={`px-1 py-1 text-xs font-medium rounded-md flex items-center gap-1 ${
+                                      order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                                      order.payment_status === 'failed' ? 'bg-red-100 text-red-800' :
+                                      order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {order.payment_status === 'paid' ? <CheckCircle size={10} /> :
+                                       order.payment_status === 'failed' ? <XCircle size={10} /> :
+                                       order.payment_status === 'pending' ? <Clock size={10} /> : null}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">
+                                  {formatDisplayDate(order.created_at)}
+                                </span>
+                                <span className="font-semibold text-gray-900">
+                                  ₹{order.total_amount?.toLocaleString()}
+                                </span>
+                              </div>
                             </div>
+
+                            {/* Payment History Section */}
+                            {(order.payment_status || order.razorpay_payment_id) && (
+                              <div className="mt-4 border-t">
+                                <button
+                                  onClick={() => togglePaymentDetails(order.id)}
+                                  className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <CreditCard size={16} className="text-gray-600" />
+                                    <span className="text-sm font-medium text-gray-900">Payment Details</span>
+                                  </div>
+                                  {expandedPaymentDetails.has(order.id) ? (
+                                    <ChevronDown size={16} className="text-gray-500" />
+                                  ) : (
+                                    <ChevronRight size={16} className="text-gray-500" />
+                                  )}
+                                </button>
+                                
+                                {expandedPaymentDetails.has(order.id) && (
+                                  <div className="p-3 bg-gray-50 rounded-b-lg space-y-2">
+                                    {/* Payment Status */}
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-gray-600">Payment Status:</span>
+                                      <div className="flex items-center gap-1">
+                                        {order.payment_status === 'paid' ? (
+                                          <>
+                                            <CheckCircle size={14} className="text-green-600" />
+                                            <span className="text-green-600 font-medium">Paid</span>
+                                          </>
+                                        ) : order.payment_status === 'failed' ? (
+                                          <>
+                                            <XCircle size={14} className="text-red-600" />
+                                            <span className="text-red-600 font-medium">Failed</span>
+                                          </>
+                                        ) : order.payment_status === 'pending' ? (
+                                          <>
+                                            <Clock size={14} className="text-yellow-600" />
+                                            <span className="text-yellow-600 font-medium">Pending</span>
+                                          </>
+                                        ) : (
+                                          <span className="text-gray-500 font-medium">{order.payment_status || 'N/A'}</span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Transaction ID */}
+                                    {order.razorpay_payment_id && (
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Transaction ID:</span>
+                                        <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                          {order.razorpay_payment_id}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Razorpay Order ID */}
+                                    {order.razorpay_order_id && (
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Order ID:</span>
+                                        <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                          {order.razorpay_order_id}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {/* Payment Method from payment_details */}
+                                    {order.payment_details && (
+                                      <div className="mt-2 pt-2 border-t border-gray-200">
+                                        {order.payment_details.method && (
+                                          <div className="flex items-center justify-between text-sm">
+                                            <span className="text-gray-600">Payment Method:</span>
+                                            <span className="text-gray-900 capitalize">
+                                              {order.payment_details.method}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {order.payment_details.bank && (
+                                          <div className="flex items-center justify-between text-sm mt-1">
+                                            <span className="text-gray-600">Bank:</span>
+                                            <span className="text-gray-900">
+                                              {order.payment_details.bank}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {order.payment_details.wallet && (
+                                          <div className="flex items-center justify-between text-sm mt-1">
+                                            <span className="text-gray-600">Wallet:</span>
+                                            <span className="text-gray-900">
+                                              {order.payment_details.wallet}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -495,7 +753,7 @@ const AccountPage: React.FC = () => {
                         </Link>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {wishlist.map((productId) => {
                           const product = products.find(p => p.id === productId);
                           if (!product) return null;
@@ -575,21 +833,31 @@ const AccountPage: React.FC = () => {
                         {userReviews.map((review) => (
                           <div key={review.id} className="border border-gray-200 rounded-lg p-6 bg-white">
                             <div className="flex gap-4">
-                              {/* Product Image */}
+                              {/* Product Image - Clickable */}
                               <div className="flex-shrink-0">
-                                <img
-                                  src={review.product_image || '/placeholder-product.jpg'}
-                                  alt={review.product_name}
-                                  className="w-16 h-16 object-cover rounded-lg"
-                                />
+                                <Link to={`/products/${review.product_slug}`}>
+                                  <img
+                                    src={review.product_image || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80'}
+                                    alt={review.product_name}
+                                    className="w-16 h-16 object-cover rounded-lg hover:opacity-80 transition-opacity cursor-pointer"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+                                    }}
+                                  />
+                                </Link>
                               </div>
                               
                               {/* Review Content */}
                               <div className="flex-1">
                                 <div className="flex items-start justify-between mb-2">
-                                  <div>
-                                    <h3 className="font-medium text-gray-900">{review.product_name}</h3>
-                                    <div className="flex items-center mt-1">
+                                  <div className="flex-1">
+                                    <Link to={`/products/${review.product_slug}`}>
+                                      <h3 className="font-medium text-gray-900 hover:text-primary-600 transition-colors cursor-pointer">
+                                        {review.product_name}
+                                      </h3>
+                                    </Link>
+                                    <div className="flex items-center mt-1 gap-3">
                                       <div className="flex">
                                         {[1, 2, 3, 4, 5].map((star) => (
                                           <Star
@@ -603,17 +871,17 @@ const AccountPage: React.FC = () => {
                                           />
                                         ))}
                                       </div>
-                                      <span className="ml-2 text-sm text-gray-600">
+                                      <span className="text-sm text-gray-600">
                                         {review.rating} out of 5 stars
+                                      </span>
+                                      <span className="text-sm text-gray-500">
+                                        • {formatDisplayDate(review.created_at)}
                                       </span>
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-sm text-gray-500">
-                                      {formatDisplayDate(review.created_at)}
-                                    </p>
                                     {review.helpful > 0 && (
-                                      <p className="text-xs text-green-600 mt-1">
+                                      <p className="text-xs text-green-600">
                                         {review.helpful} found helpful
                                       </p>
                                     )}
@@ -652,16 +920,6 @@ const AccountPage: React.FC = () => {
                                     </div>
                                   </div>
                                 )}
-                                
-                                {/* Action */}
-                                <div className="mt-4 pt-4 border-t border-gray-100">
-                                  <Link
-                                    to={`/products/${review.product_id}`}
-                                    className="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors"
-                                  >
-                                    View Product →
-                                  </Link>
-                                </div>
                               </div>
                             </div>
                           </div>

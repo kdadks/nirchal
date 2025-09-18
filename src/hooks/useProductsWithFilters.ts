@@ -60,6 +60,7 @@ export const useProductsWithFilters = (
       // Apply category filter using category_id
       if (filters.category) {
   if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Applying category filter:', filters.category);
+        let categoryFound = false;
         try {
           // Get category ID from category slug (URL parameter uses slug)
           const { data: categoryData } = await supabase
@@ -71,8 +72,9 @@ export const useProductsWithFilters = (
           if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by slug:', categoryData);
           
           if (categoryData) {
-            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by slug:', categoryData.id);
-            query = query.eq('category_id', categoryData.id);
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by slug:', (categoryData as any).id);
+            query = query.eq('category_id', (categoryData as any).id);
+            categoryFound = true;
           } else {
             // Fallback: try matching by name if slug doesn't work
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found by slug, try name');
@@ -85,14 +87,29 @@ export const useProductsWithFilters = (
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by name:', categoryByName);
             
             if (categoryByName) {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by name:', categoryByName.id);
-              query = query.eq('category_id', categoryByName.id);
-            } else {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] No category for:', filters.category);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by name:', (categoryByName as any).id);
+              query = query.eq('category_id', (categoryByName as any).id);
+              categoryFound = true;
             }
+          }
+          
+          // If category filter was specified but no category was found, return empty results
+          if (!categoryFound) {
+            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found, returning empty results for:', filters.category);
+            setProducts([]);
+            setTotalCount(0);
+            setTotalPages(0);
+            setLoading(false);
+            return;
           }
         } catch (err) {
           console.warn('[useProductsWithFilters] Could not apply category filter:', err);
+          // If there's an error finding the category, return empty results rather than all products
+          setProducts([]);
+          setTotalCount(0);
+          setTotalPages(0);
+          setLoading(false);
+          return;
         }
       }
 
@@ -202,6 +219,7 @@ export const useProductsWithFilters = (
         // Apply category filter in fallback too
         if (filters.category) {
           if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category filter:', filters.category);
+          let categoryFound = false;
           try {
             // Get category ID from category slug (URL parameter uses slug)
             const { data: categoryData } = await supabase
@@ -213,8 +231,9 @@ export const useProductsWithFilters = (
             if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by slug:', categoryData);
             
             if (categoryData) {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by slug:', categoryData.id);
-              fallbackQuery = fallbackQuery.eq('category_id', categoryData.id);
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by slug:', (categoryData as any).id);
+              fallbackQuery = fallbackQuery.eq('category_id', (categoryData as any).id);
+              categoryFound = true;
             } else {
               // Fallback: try matching by name if slug doesn't work
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: category not by slug, try name');
@@ -227,14 +246,29 @@ export const useProductsWithFilters = (
               if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by name:', categoryByName);
               
               if (categoryByName) {
-                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by name:', categoryByName.id);
-                fallbackQuery = fallbackQuery.eq('category_id', categoryByName.id);
-              } else {
-                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: no category for', filters.category);
+                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by name:', (categoryByName as any).id);
+                fallbackQuery = fallbackQuery.eq('category_id', (categoryByName as any).id);
+                categoryFound = true;
               }
+            }
+            
+            // If category filter was specified but no category was found in fallback, return empty results
+            if (!categoryFound) {
+              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: Category not found, returning empty results for:', filters.category);
+              setProducts([]);
+              setTotalCount(0);
+              setTotalPages(0);
+              setLoading(false);
+              return;
             }
           } catch (err) {
             console.warn('[useProductsWithFilters] Fallback category filter failed:', err);
+            // If there's an error finding the category in fallback, return empty results
+            setProducts([]);
+            setTotalCount(0);
+            setTotalPages(0);
+            setLoading(false);
+            return;
           }
         }
           
@@ -292,6 +326,26 @@ export const useProductsWithFilters = (
       if (error) {
         console.error('[useProductsWithFilters] Database error:', error);
         const msg = (error.message || '').toLowerCase();
+        
+        // Handle JWT expiration
+        if (msg.includes('jwt') && msg.includes('expired')) {
+          try {
+            console.log('[useProductsWithFilters] JWT expired, attempting token refresh...');
+            await supabase.auth.refreshSession();
+            
+            // Retry the query manually after refresh
+            await fetchProducts();
+            return; // Exit early on successful retry
+          } catch (refreshError) {
+            console.error('[useProductsWithFilters] Token refresh failed:', refreshError);
+            setError('Authentication session expired. Please refresh the page.');
+            setProducts([]);
+            setTotalCount(0);
+            setTotalPages(0);
+            return;
+          }
+        }
+        
         const isSchemaIssue = msg.includes('column') || msg.includes('does not exist') || msg.includes('invalid input syntax for type json') || msg.includes('json');
         const isPermissionIssue = msg.includes('permission denied') || msg.includes('not allowed') || msg.includes('rls');
 
@@ -356,7 +410,14 @@ export const useProductsWithFilters = (
         let images: string[] = [];
         
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
-          images = product.product_images
+          // Sort images by is_primary field (primary images first)
+          const sortedImages = [...product.product_images].sort((a: any, b: any) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return 0;
+          });
+          
+          images = sortedImages
             .map((img: any) => {
               const imageUrl = img.image_url;
               return imageUrl ? getStorageImageUrl(imageUrl) : null;
@@ -372,7 +433,14 @@ export const useProductsWithFilters = (
               .order('is_primary', { ascending: false });
               
             if (productImages && productImages.length > 0) {
-              images = productImages
+              // Sort images by is_primary field (primary images first)
+              const sortedImages = [...productImages].sort((a: any, b: any) => {
+                if (a.is_primary && !b.is_primary) return -1;
+                if (!a.is_primary && b.is_primary) return 1;
+                return 0;
+              });
+              
+              images = sortedImages
                 .map((img: any) => {
                   const imageUrl = img.image_url;
                   return imageUrl ? getStorageImageUrl(imageUrl) : null;
@@ -592,6 +660,18 @@ export const useProductsWithFilters = (
           rating: Number(rating.toFixed(1)),
           reviewCount: reviews.length,
           stockStatus,
+          stockQuantity: (() => {
+            // Calculate standalone product quantity from inventory
+            if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+              if (!hasVariants) {
+                // For products without variants, sum up product-level inventory (variant_id === null)
+                const productInventory = product.inventory.filter((inv: any) => inv.variant_id === null);
+                return productInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              }
+            }
+            return 0;
+          })(),
           specifications: {},
           reviews: [],
           variants
