@@ -1,4 +1,3 @@
-/* global HTMLImageElement */
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Truck, Shield, Award, RefreshCw, Star } from 'lucide-react';

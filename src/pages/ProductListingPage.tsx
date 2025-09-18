@@ -164,7 +164,8 @@ const ProductListingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Hero Section */}
+      {/* Hero Section - Commented out */}
+      {/*
       <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -178,6 +179,7 @@ const ProductListingPage: React.FC = () => {
           </div>
         </div>
       </div>
+      */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-8">
