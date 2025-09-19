@@ -11,8 +11,17 @@ import {
   Truck,
   RefreshCw
 } from 'lucide-react';
+import { useSettings } from '../../hooks/useSettings';
 
 const Footer: React.FC = () => {
+  const { getSetting } = useSettings();
+
+  // Get social media URLs from settings
+  const facebookUrl = getSetting('shop', 'social_facebook_url') || 'https://facebook.com/nirchal';
+  const instagramUrl = getSetting('shop', 'social_instagram_url') || 'https://instagram.com/nirchal';
+  const twitterUrl = getSetting('shop', 'social_twitter_url') || 'https://twitter.com/nirchal';
+  const youtubeUrl = getSetting('shop', 'social_youtube_url') || 'https://youtube.com/nirchal';
+
   return (
     <footer className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white border-t border-gray-700/50">
       {/* Single Row Minimal Footer */}
@@ -28,11 +37,11 @@ const Footer: React.FC = () => {
             <div className="flex items-center justify-center lg:justify-start gap-4 text-xs text-gray-400">
               <div className="flex items-center gap-1">
                 <Phone size={12} />
-                <span>+91 98765 43210</span>
+                <span>+919910489316</span>
               </div>
               <div className="flex items-center gap-1">
                 <Mail size={12} />
-                <span>hello@nirchal.com</span>
+                <span>support@nirchal.com</span>
               </div>
             </div>
           </div>
@@ -84,7 +93,7 @@ const Footer: React.FC = () => {
             {/* Social Links */}
             <div className="flex justify-center lg:justify-end gap-2 mb-3">
               <a
-                href="https://instagram.com/nirchal"
+                href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gray-800 p-2 rounded hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500 transition-all duration-300"
@@ -92,7 +101,7 @@ const Footer: React.FC = () => {
                 <Instagram size={14} />
               </a>
               <a
-                href="https://facebook.com/nirchal"
+                href={facebookUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gray-800 p-2 rounded hover:bg-blue-600 transition-all duration-300"
@@ -100,7 +109,7 @@ const Footer: React.FC = () => {
                 <Facebook size={14} />
               </a>
               <a
-                href="https://twitter.com/nirchal"
+                href={twitterUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gray-800 p-2 rounded hover:bg-blue-400 transition-all duration-300"
@@ -108,7 +117,7 @@ const Footer: React.FC = () => {
                 <Twitter size={14} />
               </a>
               <a
-                href="https://youtube.com/nirchal"
+                href={youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gray-800 p-2 rounded hover:bg-red-600 transition-all duration-300"
@@ -118,10 +127,23 @@ const Footer: React.FC = () => {
             </div>
 
             {/* Payment Methods */}
-            <div className="flex justify-center lg:justify-end gap-2 text-xs">
-              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-2 py-1 rounded text-white">VISA</div>
-              <div className="bg-gradient-to-r from-orange-500 to-red-600 px-2 py-1 rounded text-white">MC</div>
-              <div className="bg-gradient-to-r from-green-600 to-green-700 px-2 py-1 rounded text-white">UPI</div>
+            <div className="flex justify-center lg:justify-end items-center gap-2">
+              <span className="text-xs text-gray-400 mr-2">We Accept:</span>
+              <img
+                src="/images/payment/visa.png"
+                alt="Visa"
+                className="h-3 rounded"
+              />
+              <img
+                src="/images/payment/mastercard.png"
+                alt="Mastercard"
+                className="h-3 rounded"
+              />
+              <img
+                src="/images/payment/upi.png"
+                alt="UPI"
+                className="h-3 rounded"
+              />
             </div>
           </div>
 
