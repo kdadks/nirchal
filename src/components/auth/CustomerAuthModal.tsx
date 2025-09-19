@@ -83,10 +83,16 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
     try {
       if (mode === 'login') {
         const result = await signIn(email, password);
+        console.log('Login result:', result);
         if (result.success) {
+          console.log('Login successful, customer data should be set now');
+          console.log('Current customer from context:', customer);
           onClose();
-          // Redirect to dashboard after successful login using React Router
-          navigate('/myaccount');
+          // Add a small delay to ensure modal closes and customer context updates
+          setTimeout(() => {
+            console.log('Navigating to /myaccount...');
+            navigate('/myaccount');
+          }, 200);
         } else {
           setError(result.error || 'Login failed');
         }

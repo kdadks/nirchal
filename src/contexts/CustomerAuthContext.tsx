@@ -99,49 +99,50 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
-      // Use secure RPC to validate credentials server-side
-      const { data, error } = await supabase.rpc('login_customer', {
-        user_email: email,
-        user_password: password
-      });
+      
+      // Fetch customer data directly from database
+      const { data: customerData, error } = await supabase
+        .from('customers')
+        .select('id, email, first_name, last_name, phone, date_of_birth, gender, password_hash, is_active')
+        .eq('email', email)
+        .single();
 
-      if (error) {
-        console.error('Login RPC error:', error);
-        return { success: false, error: 'Login failed. Please try again.' };
+      if (error || !customerData) {
+        console.log('Customer not found or error:', error);
+        return { success: false, error: 'Invalid email or password' };
       }
 
-      // Type assertion for RPC response
-      const response = data as { 
-        success: boolean; 
-        error?: string; 
-        customer?: {
-          id: string;
-          email: string;
-          first_name: string;
-          last_name: string;
-          phone?: string;
-          date_of_birth?: string;
-          gender?: string;
-        };
-      } | null;
-
-      if (!response || !response.success || !response.customer) {
-        console.warn('Login RPC returned unsuccessful response:', response);
-        return { success: false, error: response?.error || 'Invalid email or password' };
+      // Check if account is active
+      if (!customerData.is_active) {
+        return { success: false, error: 'Account is deactivated' };
       }
 
-      const customerData = {
-        id: response.customer.id,
-        email: response.customer.email,
-        first_name: response.customer.first_name,
-        last_name: response.customer.last_name,
-        phone: response.customer.phone || undefined,
-        date_of_birth: response.customer.date_of_birth || undefined,
-        gender: response.customer.gender || undefined
+      // Check if password hash exists
+      if (!customerData.password_hash) {
+        return { success: false, error: 'Password not set for this account' };
+      }
+
+      // Import bcrypt dynamically for client-side password comparison
+      const bcrypt = await import('bcryptjs');
+      const isPasswordValid = await bcrypt.compare(password, customerData.password_hash as string);
+
+      if (!isPasswordValid) {
+        return { success: false, error: 'Invalid email or password' };
+      }
+
+      // Successful login - prepare customer data
+      const customer: Customer = {
+        id: customerData.id as string,
+        email: customerData.email as string,
+        first_name: customerData.first_name as string,
+        last_name: customerData.last_name as string,
+        phone: customerData.phone as string || undefined,
+        date_of_birth: customerData.date_of_birth as string || undefined,
+        gender: customerData.gender as string || undefined
       };
       
-      setCustomer(customerData);
-      localStorage.setItem('nirchal_customer', JSON.stringify(customerData));
+      setCustomer(customer);
+      localStorage.setItem('nirchal_customer', JSON.stringify(customer));
       
       return { success: true };
     } catch (error) {
