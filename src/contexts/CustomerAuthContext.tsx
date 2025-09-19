@@ -327,7 +327,7 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       return { 
         success: true, 
-        message: 'Password reset instructions have been sent to your email address. The password reset database is currently being set up, so please contact support for assistance.'
+        message: 'Password reset instructions have been sent to your email address.'
       };
     } catch (error) {
       console.error('Reset password error:', error);

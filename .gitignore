@@ -41,6 +41,8 @@ emergency_cleanup.sql
 test_minimal.sql
 temp_*.sql
 temp_*.js
+setup-*.js
+setup-*-simple.js
 
 # RLS and database setup files
 *-rls-*.sql
