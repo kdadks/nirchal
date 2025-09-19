@@ -5,12 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../contexts/CartContext';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
-
-const typeAheadSuggestions = [
-  'Silk Sarees', 'Cotton Kurtis', 'Designer Lehengas', 'Wedding Collection',
-  'Festive Wear', 'Casual Kurtas', 'Party Dresses', 'Traditional Wear',
-  'Ethnic Jewelry', 'Bridal Collection'
-];
+import { useProductSearch } from '../../hooks/useProductSearch';
 
 const promotionalMessages = [
   {
@@ -56,6 +51,9 @@ const Header: React.FC = () => {
   const [authOpen, setAuthOpen] = useState(false);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
+  // Product search hook for typeahead
+  const { products: searchProducts } = useProductSearch(searchQuery);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -84,25 +82,30 @@ const Header: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredSuggestions = typeAheadSuggestions.filter(suggestion =>
-    suggestion.toLowerCase().includes(searchQuery.toLowerCase()) && searchQuery.length > 0
-  );
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
+      // If there are search results, go to the first product
+      if (searchProducts.length > 0) {
+        const firstProduct = searchProducts[0];
+        const productSlug = firstProduct.slug || firstProduct.id;
+        navigate(`/products/${productSlug}`);
+      } else {
+        // Fallback to products listing page
+        navigate(`/products?search=${encodeURIComponent(searchQuery)}`);
+      }
       setSearchOpen(false);
       setSearchQuery('');
       setShowSuggestions(false);
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setSearchQuery(suggestion);
-    setShowSuggestions(false);
-    navigate(`/products?search=${encodeURIComponent(suggestion)}`);
+  const handleProductClick = (product: { slug?: string; id: string }) => {
+    const productSlug = product.slug || product.id;
+    navigate(`/products/${productSlug}`);
     setSearchOpen(false);
+    setSearchQuery('');
+    setShowSuggestions(false);
   };
 
   return (
@@ -130,73 +133,16 @@ const Header: React.FC = () => {
                 to="/"
                 className="relative group flex items-center gap-2 lg:gap-4"
               >
-                {/* Enhanced Logo Container with Glossy Effects */}
-                <div className="relative p-3 rounded-xl bg-gradient-to-br from-primary-500/15 via-accent-500/15 to-secondary-500/15 backdrop-blur-md border border-primary-200/60 group-hover:border-primary-300/80 transition-all duration-500 shadow-xl group-hover:shadow-2xl overflow-hidden">
-                  {/* Animated background gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary-400/20 via-accent-400/20 to-secondary-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                  {/* Glossy shine effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-all duration-1000"></div>
-
-                  {/* Glowing border effect */}
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-400 via-accent-400 to-secondary-400 opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-500"></div>
-
-                  {/* Logo Placeholder with Enhanced Styling */}
-                  <div className="relative flex items-center justify-center w-10 h-10">
-                    {/* Outer glow ring */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary-500 via-accent-500 to-secondary-500 rounded-full opacity-20 group-hover:opacity-40 blur-md transition-opacity duration-500"></div>
-
-                    {/* Main logo container */}
-                    <div className="relative w-full h-full bg-gradient-to-br from-primary-600 via-accent-500 to-secondary-500 rounded-full border-2 border-white/30 shadow-lg overflow-hidden">
-                      {/* Inner gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/20"></div>
-
-                      {/* Logo content placeholder - will be replaced with image */}
-                      <div className="relative w-full h-full flex items-center justify-center">
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 32 32"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="text-white drop-shadow-lg"
-                        >
-                          {/* Enhanced logo design */}
-                          <circle
-                            cx="16"
-                            cy="16"
-                            r="14"
-                            fill="url(#enhancedLogoGradient)"
-                            stroke="rgba(255,255,255,0.3)"
-                            strokeWidth="1"
-                          />
-
-                          {/* Stylized N with enhanced design */}
-                          <path
-                            d="M9 11 L9 21 L11 21 L11 15 L13.5 19 L13.5 21 L15.5 21 L15.5 11 L13.5 11 L13.5 17 L11 13 L11 11 Z"
-                            fill="white"
-                            className="drop-shadow-sm"
-                          />
-
-                          {/* Decorative elements */}
-                          <circle cx="19" cy="13" r="1" fill="white" opacity="0.9" />
-                          <circle cx="21" cy="17" r="0.8" fill="white" opacity="0.7" />
-                          <circle cx="23" cy="21" r="0.6" fill="white" opacity="0.6" />
-
-                          {/* Enhanced gradient definition */}
-                          <defs>
-                            <linearGradient id="enhancedLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="rgba(255,255,255,0.9)" />
-                              <stop offset="50%" stopColor="rgba(255,255,255,0.7)" />
-                              <stop offset="100%" stopColor="rgba(255,255,255,0.5)" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                      </div>
-
-                      {/* Inner shine effect */}
-                      <div className="absolute top-1 left-1 w-2 h-2 bg-white/40 rounded-full blur-sm"></div>
-                    </div>
+                {/* Clean Logo Container */}
+                <div className="relative">
+                  {/* Logo - Clean and Large */}
+                  <div className="relative flex items-center justify-center w-16 h-16">
+                    {/* Logo image */}
+                    <img 
+                      src="/nirchallogo.jpg" 
+                      alt="Nirchal Logo" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                 </div>
 
@@ -235,9 +181,14 @@ const Header: React.FC = () => {
               >
                 <Link
                   to="/products"
-                  className="relative px-3 py-2 text-primary-700 hover:text-primary-800 font-semibold transition-all duration-300 group rounded-lg hover:bg-white/50 text-sm"
+                  className="relative flex items-center gap-2 px-3 py-2 text-primary-700 hover:text-primary-800 font-semibold transition-all duration-300 group rounded-lg hover:bg-white/50 text-sm"
                 >
-                  Collections
+                  <img
+                    src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=48&h=48&fit=crop&crop=center"
+                    alt="Collections"
+                    className="w-6 h-6 rounded-full object-cover border border-primary-200"
+                  />
+                  COLLECTIONS
                   <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 group-hover:w-full transition-all duration-300" />
                 </Link>
               </motion.div>
@@ -404,16 +355,17 @@ const Header: React.FC = () => {
             </div>
 
             {/* Search Bar - Desktop */}
-            <div className="hidden lg:flex flex-1 max-w-xl ml-12 mr-6 relative" onClick={(e) => e.stopPropagation()}>
+            <div className="hidden lg:flex flex-1 max-w-xl ml-12 mr-6 relative z-[10000]" onClick={(e) => e.stopPropagation()}>
               <motion.div
                 initial={false}
                 animate={searchOpen ? { scale: 1.02 } : { scale: 1 }}
                 transition={{ duration: 0.2 }}
-                className={`relative rounded-full overflow-hidden transition-all duration-300 shadow-lg ${
+                className={`relative rounded-full overflow-visible transition-all duration-300 shadow-lg z-[10000] ${
                   searchOpen
                     ? 'bg-white/98 backdrop-blur-md shadow-2xl ring-4 ring-primary-200/30 border-2 border-primary-300/50'
                     : 'bg-white/90 backdrop-blur-md border-2 border-primary-200/40 hover:bg-white/95 hover:border-primary-300/60 hover:shadow-xl'
                 }`}
+                style={{ zIndex: 10000 }}
               >
                 <form onSubmit={handleSearch} className="relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-500 w-5 h-5 z-10" />
@@ -423,11 +375,11 @@ const Header: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
-                      setShowSuggestions(e.target.value.length > 0);
+                      setShowSuggestions(true); // Always show when typing
                     }}
                     onFocus={() => {
                       setSearchOpen(true);
-                      setShowSuggestions(searchQuery.length > 0);
+                      setShowSuggestions(true); // Always show on focus if there's content
                     }}
                     className="w-full pl-12 pr-6 py-3 bg-transparent text-primary-900 placeholder-primary-400 outline-none font-medium text-sm rounded-full"
                   />
@@ -440,29 +392,43 @@ const Header: React.FC = () => {
                   </button>
                 </form>
 
-                {/* Enhanced type-ahead suggestions */}
+                {/* Enhanced product search suggestions */}
                 <AnimatePresence>
-                  {showSuggestions && filteredSuggestions.length > 0 && (
+                  {showSuggestions && searchProducts.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 right-0 mt-3 bg-neutral-100/95 backdrop-blur-lg rounded-3xl shadow-2xl border-2 border-neutral-200/50 overflow-hidden z-[1001]"
+                      className="absolute top-full left-0 right-0 mt-3 bg-white backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[10002] min-w-[500px]"
+                      style={{ zIndex: 10002 }}
                     >
-                      {filteredSuggestions.slice(0, 6).map((suggestion, index) => (
+                      {searchProducts.slice(0, 6).map((product, index) => (
                         <motion.button
-                          key={suggestion}
+                          key={product.id}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full px-5 py-4 text-left text-primary-700 hover:bg-primary-50/80 hover:text-primary-800 transition-all duration-200 flex items-center gap-4 first:rounded-t-3xl last:rounded-b-3xl border-b border-primary-100/30 last:border-b-0"
+                          onClick={() => handleProductClick(product)}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-200 flex items-center gap-4 border-b border-gray-100 last:border-b-0"
                         >
-                          <div className="w-8 h-8 bg-primary-100/50 rounded-full flex items-center justify-center">
-                            <Search className="w-4 h-4 text-primary-500" />
+                          {product.image_url ? (
+                            <img 
+                              src={product.image_url} 
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded-lg bg-gray-100 flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Search className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 truncate text-sm leading-5">{product.name}</div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {product.sale_price > 0 ? `₹${product.sale_price.toLocaleString()}` : 'Price not available'}
+                            </div>
                           </div>
-                          <span className="font-medium">{suggestion}</span>
                         </motion.button>
                       ))}
                     </motion.div>
@@ -504,7 +470,7 @@ const Header: React.FC = () => {
                         value={searchQuery}
                         onChange={(e) => {
                           setSearchQuery(e.target.value);
-                          setShowSuggestions(e.target.value.length > 0);
+                          setShowSuggestions(true); // Always show when typing
                         }}
                         onBlur={() => {
                           // Close search if input is empty
@@ -532,27 +498,43 @@ const Header: React.FC = () => {
                       </button>
                     </form>
 
-                    {/* Mobile type-ahead suggestions */}
+                    {/* Mobile product search suggestions */}
                     <AnimatePresence>
-                      {showSuggestions && filteredSuggestions.length > 0 && (
+                      {showSuggestions && searchProducts.length > 0 && (
                         <motion.div
                           initial={{ opacity: 0, y: -10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute top-full left-0 right-0 mt-2 bg-neutral-100/95 backdrop-blur-lg rounded-2xl shadow-2xl border-2 border-neutral-200/50 overflow-hidden z-[1001] max-h-64 overflow-y-auto"
+                          className="absolute top-full left-0 right-0 mt-2 bg-white backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[10002] max-h-64 overflow-y-auto"
+                          style={{ zIndex: 10002 }}
                         >
-                          {filteredSuggestions.slice(0, 4).map((suggestion, index) => (
+                          {searchProducts.slice(0, 4).map((product, index) => (
                             <motion.button
-                              key={suggestion}
+                              key={product.id}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: index * 0.03 }}
-                              onClick={() => handleSuggestionClick(suggestion)}
-                              className="w-full px-4 py-3 text-left text-primary-700 hover:bg-primary-50/80 hover:text-primary-800 transition-all duration-200 flex items-center gap-3 first:rounded-t-2xl last:rounded-b-2xl border-b border-primary-100/30 last:border-b-0"
+                              onClick={() => handleProductClick(product)}
+                              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-200 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
                             >
-                              <Search className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                              <span className="font-medium text-sm truncate">{suggestion}</span>
+                              {product.image_url ? (
+                                <img 
+                                  src={product.image_url} 
+                                  alt={product.name}
+                                  className="w-10 h-10 object-cover rounded-lg bg-gray-100 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                  <Search className="w-5 h-5 text-gray-400" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 truncate text-sm">{product.name}</div>
+                                <div className="text-sm text-gray-600">
+                                  {product.sale_price > 0 ? `₹${product.sale_price.toLocaleString()}` : 'Price not available'}
+                                </div>
+                              </div>
                             </motion.button>
                           ))}
                         </motion.div>
@@ -810,7 +792,12 @@ const Header: React.FC = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 py-4 px-4 text-primary-700 hover:text-primary-800 font-semibold rounded-xl hover:bg-primary-50/50 transition-all duration-300 border border-transparent hover:border-primary-200/30"
               >
-                <span>Collections</span>
+                <img
+                  src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=56&h=56&fit=crop&crop=center"
+                  alt="Collections"
+                  className="w-7 h-7 rounded-full object-cover border border-primary-200"
+                />
+                <span>COLLECTIONS</span>
               </Link>
 
               {/* MEN Section */}
