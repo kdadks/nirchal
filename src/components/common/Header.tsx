@@ -51,8 +51,8 @@ const Header: React.FC = () => {
   const [authOpen, setAuthOpen] = useState(false);
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
 
-  // Product search hook for typeahead
-  const { products: searchProducts } = useProductSearch(searchQuery);
+  // Product search hook for typeahead (increased to 12 products)
+  const { products: searchProducts } = useProductSearch(searchQuery, 12);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -394,23 +394,34 @@ const Header: React.FC = () => {
 
                 {/* Enhanced product search suggestions */}
                 <AnimatePresence>
-                  {showSuggestions && searchProducts.length > 0 && (
+                  {(() => {
+                    return showSuggestions && searchProducts.length > 0;
+                  })() && (
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 right-0 mt-3 bg-white backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[10002] min-w-[500px]"
+                      className="absolute top-full left-0 right-0 mt-3 bg-white backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 z-[10002] min-w-[500px] max-h-[400px] overflow-hidden"
                       style={{ zIndex: 10002 }}
                     >
-                      {searchProducts.slice(0, 6).map((product, index) => (
-                        <motion.button
-                          key={product.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          onClick={() => handleProductClick(product)}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-200 flex items-center gap-4 border-b border-gray-100 last:border-b-0"
+                      {/* Header with result count */}
+                      {searchProducts.length > 8 && (
+                        <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs text-gray-600">
+                          Showing {Math.min(searchProducts.length, 10)} of {searchProducts.length} results
+                        </div>
+                      )}
+                      
+                      {/* Scrollable results container */}
+                      <div className="overflow-y-auto max-h-[360px] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        {searchProducts.slice(0, 10).map((product, index) => (
+                          <motion.button
+                            key={product.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            onClick={() => handleProductClick(product)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-200 flex items-center gap-4 border-b border-gray-100 last:border-b-0"
                         >
                           {product.image_url ? (
                             <img 
@@ -425,12 +436,18 @@ const Header: React.FC = () => {
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-gray-900 truncate text-sm leading-5">{product.name}</div>
+                            {product.matchType === 'description' && product.matchContext && (
+                              <div className="text-xs text-blue-600 mt-1 italic truncate">
+                                "{product.matchContext}"
+                              </div>
+                            )}
                             <div className="text-sm text-gray-600 mt-1">
                               {product.sale_price > 0 ? `₹${product.sale_price.toLocaleString()}` : 'Price not available'}
                             </div>
                           </div>
                         </motion.button>
                       ))}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
