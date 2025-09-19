@@ -8,6 +8,7 @@ interface ProductFilters {
   priceRange?: { min: number; max: number };
   fabric?: string;
   occasion?: string;
+  search?: string;
   sortBy?: 'newest' | 'price_low' | 'price_high' | 'rating' | 'name';
 }
 
@@ -145,6 +146,16 @@ export const useProductsWithFilters = (
           } catch (textErr) {
             console.warn('[useProductsWithFilters] Occasion column may not exist, skipping occasion filter:', textErr);
           }
+        }
+      }
+
+      // Apply search filter - search across name and description
+      if (filters.search) {
+        try {
+          // Use or filter to search across name and description
+          query = query.or(`name.ilike.%${filters.search}%, description.ilike.%${filters.search}%`);
+        } catch (err) {
+          console.warn('[useProductsWithFilters] Search filter failed:', err);
         }
       }
 
@@ -692,6 +703,7 @@ export const useProductsWithFilters = (
     filters.priceRange?.max,
     filters.fabric,
     filters.occasion,
+    filters.search,
     filters.sortBy,
     pagination.page,
     pagination.limit
