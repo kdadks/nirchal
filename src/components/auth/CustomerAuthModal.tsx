@@ -1,24 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { transactionalEmailService } from '../../services/transactionalEmailService';
 import { markWelcomeEmailSent } from '../../utils/orders';
+import { SecurityUtils } from '../../utils/securityUtils';
 
 interface CustomerAuthModalProps {
   open: boolean;
   onClose: () => void;
+  initialMode?: 'login' | 'register' | 'forgot' | 'reset-token';
+  resetToken?: string;
 }
 
-const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) => {
-  const { signIn, signUp, resetPassword, customer } = useCustomerAuth();
+const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ 
+  open, 
+  onClose, 
+  initialMode = 'login',
+  resetToken = ''
+}) => {
+    const { signIn, signUp, resetPassword, resetPasswordWithToken, customer } = useCustomerAuth();
   const { supabase } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset-token'>(initialMode);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Form fields
   const [email, setEmail] = useState('');
@@ -27,6 +37,17 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+  // Update mode when initialMode or resetToken changes
+  useEffect(() => {
+    if (resetToken && initialMode === 'reset-token') {
+      setMode('reset-token');
+    } else {
+      setMode(initialMode);
+    }
+  }, [initialMode, resetToken]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -121,10 +142,66 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
         } else {
           setError(result.error || 'Failed to send reset email');
         }
+      } else if (mode === 'reset-token') {
+        if (!resetToken) {
+          setError('Invalid reset token');
+          return;
+        }
+
+        if (newPassword !== confirmNewPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+
+        const passwordErrors = validatePassword(newPassword);
+        if (passwordErrors.length > 0) {
+          setError(passwordErrors[0]);
+          return;
+        }
+
+        try {
+          // Hash the new password before sending to server
+          const hashedPassword = await SecurityUtils.hashPassword(newPassword);
+          
+          const result = await resetPasswordWithToken(resetToken, hashedPassword);
+          
+          if (result.success) {
+            setMessage('Password reset successfully! You can now sign in with your new password.');
+            // Switch to login mode after successful reset
+            setTimeout(() => {
+              setMode('login');
+              setNewPassword('');
+              setConfirmNewPassword('');
+              setError(null);
+            }, 2000);
+          } else {
+            setError(result.error || 'Failed to reset password');
+          }
+        } catch (error) {
+          console.error('Password reset error:', error);
+          setError('An unexpected error occurred. Please try again.');
+        }
       }
     } finally {
       setLoading(false);
     }
+  };
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = [];
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    return errors;
   };
 
   const getTitle = () => {
@@ -132,6 +209,8 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
       case 'login': return 'Sign In';
       case 'register': return 'Create Account';
       case 'forgot': return 'Reset Password';
+      case 'reset-token': return 'Reset Password';
+      default: return 'Authentication';
     }
   };
 
@@ -140,6 +219,8 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
       case 'login': return 'Sign in to view your orders and manage your account.';
       case 'register': return 'Create an account to track orders and save your information.';
       case 'forgot': return 'Enter your email address to receive password reset instructions.';
+      case 'reset-token': return 'Enter your new password below.';
+      default: return '';
     }
   };
 
@@ -173,20 +254,22 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              required
-              disabled={loading}
-            />
-          </div>
+          {mode !== 'reset-token' && (
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                required
+                disabled={loading}
+              />
+            </div>
+          )}
 
           {mode === 'register' && (
             <>
@@ -236,7 +319,7 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
             </>
           )}
 
-          {mode !== 'forgot' && (
+          {mode !== 'forgot' && mode !== 'reset-token' && (
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
@@ -252,6 +335,73 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
                 minLength={6}
               />
             </div>
+          )}
+
+          {mode === 'reset-token' && (
+            <>
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    required
+                    disabled={loading}
+                    minLength={8}
+                    placeholder="Enter your new password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    disabled={loading}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirmNewPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    required
+                    disabled={loading}
+                    minLength={8}
+                    placeholder="Confirm your new password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    disabled={loading}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                <p className="font-medium mb-1">Password requirements:</p>
+                <ul className="space-y-1">
+                  <li>• At least 8 characters long</li>
+                  <li>• Contains uppercase and lowercase letters</li>
+                  <li>• Contains at least one number</li>
+                </ul>
+              </div>
+            </>
           )}
 
           {mode === 'register' && (
@@ -277,7 +427,11 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
             disabled={loading}
             className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : mode === 'register' ? 'Create Account' : 'Send Reset Email'}
+            {loading ? 'Please wait...' : 
+             mode === 'login' ? 'Sign In' : 
+             mode === 'register' ? 'Create Account' : 
+             mode === 'forgot' ? 'Send Reset Email' :
+             mode === 'reset-token' ? 'Reset Password' : 'Submit'}
           </button>
         </form>
 
@@ -320,6 +474,19 @@ const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({ open, onClose }) 
           {mode === 'forgot' && (
             <div>
               Remember your password?{' '}
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                className="text-primary-600 hover:text-primary-700 font-medium"
+              >
+                Sign in
+              </button>
+            </div>
+          )}
+
+          {mode === 'reset-token' && (
+            <div>
+              Password reset complete?{' '}
               <button
                 type="button"
                 onClick={() => setMode('login')}
