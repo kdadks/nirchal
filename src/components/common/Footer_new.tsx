@@ -7,7 +7,6 @@ import {
   Youtube,
   Mail,
   Phone,
-  Heart,
   Shield,
   Truck,
   RefreshCw

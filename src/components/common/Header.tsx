@@ -136,7 +136,7 @@ const Header: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-br from-primary-400/20 via-accent-400/20 to-secondary-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                   {/* Glossy shine effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-all duration-1000"></div>
 
                   {/* Glowing border effect */}
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary-400 via-accent-400 to-secondary-400 opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-500"></div>
@@ -213,7 +213,7 @@ const Header: React.FC = () => {
                   <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-500 via-accent-500 to-secondary-500 group-hover:w-full transition-all duration-500 rounded-full"></div>
 
                   {/* Subtle shine effect on text */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000 rounded-lg"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-all duration-1000 rounded-lg"></div>
                 </div>
 
                 {/* Floating sparkle effects */}
@@ -494,7 +494,7 @@ const Header: React.FC = () => {
                     animate={{ scale: 1, opacity: 1, width: 'auto' }}
                     exit={{ scale: 0.8, opacity: 0, width: 40 }}
                     transition={{ duration: 0.2 }}
-                    className="relative rounded-full overflow-hidden transition-all duration-300 shadow-lg bg-white/98 backdrop-blur-md shadow-2xl ring-4 ring-primary-200/30 border-2 border-primary-300/50"
+                    className="relative rounded-full overflow-hidden transition-all duration-300 bg-white/98 backdrop-blur-md shadow-2xl ring-4 ring-primary-200/30 border-2 border-primary-300/50"
                   >
                     <form onSubmit={handleSearch} className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary-500 w-4 h-4 z-10" />
@@ -566,7 +566,7 @@ const Header: React.FC = () => {
             {/* Right Side Actions */}
             <div className="flex items-center gap-1 lg:gap-3 ml-2 lg:ml-6">
               {/* User Account/Login */}
-              <motion.div className="relative" onClick={(e) => e.stopPropagation()}>
+              <motion.div className="relative" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -771,7 +771,7 @@ const Header: React.FC = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation(); // Prevent triggering the parent banner click
                     navigate('/products');
                   }}
