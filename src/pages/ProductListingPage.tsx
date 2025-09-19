@@ -12,6 +12,7 @@ interface ProductFilters {
   priceRange?: { min: number; max: number };
   fabric?: string;
   occasion?: string;
+  search?: string;
   sortBy?: 'newest' | 'price_low' | 'price_high' | 'rating' | 'name';
 }
 
@@ -35,6 +36,18 @@ const ProductListingPage: React.FC = () => {
       }));
     }
   }, [searchParams, filters.category]);
+
+  // Sync search from URL (?search=query) to filters; clear when param missing
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search');
+    const current = filters.search ?? undefined;
+    if (searchFromUrl !== current) {
+      setFilters(prev => ({
+        ...prev,
+        search: searchFromUrl || undefined
+      }));
+    }
+  }, [searchParams, filters.search]);
 
   // Memoize pagination to prevent unnecessary re-renders
   const paginationOptions = useMemo(() => ({
@@ -302,7 +315,13 @@ const ProductListingPage: React.FC = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="text-sm text-gray-600">
-                  {totalCount || 0} products found
+                  {filters.search ? (
+                    <span>
+                      {totalCount || 0} results found for "<span className="font-medium text-gray-800">{filters.search}</span>"
+                    </span>
+                  ) : (
+                    <span>{totalCount || 0} products found</span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-4">
