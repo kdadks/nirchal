@@ -3,7 +3,7 @@ import { Heart, ShoppingBag, Search, Menu, X, User, ChevronDown, Sparkles, Gift,
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../contexts/CartContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 
 const typeAheadSuggestions = [
@@ -42,8 +42,8 @@ const promotionalMessages = [
 
 const Header: React.FC = () => {
   const { totalItems } = useCart();
-  const { user, signOut } = useAuth();
-  const isAuthenticated = !!user;
+  const { customer, signOut } = useCustomerAuth();
+  const isAuthenticated = !!customer;
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -591,7 +591,7 @@ const Header: React.FC = () => {
                   <div className="relative flex items-center gap-2">
                     <User className="w-4 h-4" />
                     <span className="hidden sm:inline text-sm">
-                      {isAuthenticated ? (user?.name || 'Account') : 'Login'}
+                      {isAuthenticated ? (customer?.first_name ? `${customer.first_name} ${customer.last_name}` : 'Account') : 'Login'}
                     </span>
                     {isAuthenticated && (
                       <motion.div
@@ -884,7 +884,7 @@ const Header: React.FC = () => {
 
               {isAuthenticated ? (
                 <div className="pt-6 border-t border-primary-100/30 space-y-3">
-                  <p className="text-sm text-primary-600 px-4 font-medium">Signed in as {user?.name}</p>
+                  <p className="text-sm text-primary-600 px-4 font-medium">Signed in as {customer?.first_name ? `${customer.first_name} ${customer.last_name}` : customer?.email}</p>
                   <div className="space-y-1">
                     <button
                       onClick={() => {
