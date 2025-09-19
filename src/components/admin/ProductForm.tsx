@@ -213,52 +213,119 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
 
   const handleBulkVariantInput = (values: string) => {
     setBulkVariantValues(values);
-    const variants = values
+    const newValues = values
       .split(',')
       .map(v => v.trim())
-      .filter(v => v.length > 0)
-      .map(value => {
-        if (selectedVariantType === 'color') {
-          return {
-            id: generateUUID(),
-            size: null,
-            color: value,
-            material: null,
-            style: null,
-            sku: '',
-            price_adjustment: 0,
-            quantity: 0,
-            variant_type: selectedVariantType,
-            swatch_image: null,
-            low_stock_threshold: formData.inventory.low_stock_threshold
-          };
-        } else {
-          const existingColors = Array.from(new Set(
-            formData.variants
-              .filter(v => v.color)
-              .map(v => v.color)
-          ));
-          if (existingColors.length === 0) {
-            return null;
-          } else {
-            return existingColors.map(color => ({
+      .filter(v => v.length > 0);
+
+    if (newValues.length === 0) {
+      setPendingVariants([]);
+      return;
+    }
+
+    // Get existing variants grouped by type
+    const existingSizes = Array.from(new Set(
+      formData.variants
+        .filter(v => v.size)
+        .map(v => v.size)
+    ));
+    
+    const existingColors = Array.from(new Set(
+      formData.variants
+        .filter(v => v.color)
+        .map(v => v.color)
+    ));
+
+    let variants: any[] = [];
+
+    if (selectedVariantType === 'color') {
+      if (existingSizes.length === 0) {
+        // No existing sizes, create color-only variants
+        variants = newValues.map(color => ({
+          id: generateUUID(),
+          size: null,
+          color: color,
+          material: null,
+          style: null,
+          sku: '',
+          price_adjustment: 0,
+          quantity: 0,
+          variant_type: selectedVariantType,
+          swatch_image: null,
+          low_stock_threshold: formData.inventory.low_stock_threshold
+        }));
+      } else {
+        // Create combinations with existing sizes
+        variants = [];
+        newValues.forEach(color => {
+          existingSizes.forEach(size => {
+            variants.push({
               id: generateUUID(),
-              size: selectedVariantType === 'size' ? value : null,
+              size: size,
               color: color,
               material: null,
               style: null,
               sku: '',
               price_adjustment: 0,
               quantity: 0,
-              variant_type: selectedVariantType,
+              variant_type: 'combination',
               swatch_image: null,
               low_stock_threshold: formData.inventory.low_stock_threshold
-            }));
-          }
-        }
-      })
-      .flat()
-      .filter(variant => variant !== null) as any[];
+            });
+          });
+        });
+        
+        // Also remove existing size-only variants as they'll be replaced by combinations
+        setFormData(prev => ({
+          ...prev,
+          variants: prev.variants.filter(v => !(v.size && !v.color))
+        }));
+      }
+    } else if (selectedVariantType === 'size') {
+      if (existingColors.length === 0) {
+        // No existing colors, create size-only variants
+        variants = newValues.map(size => ({
+          id: generateUUID(),
+          size: size,
+          color: null,
+          material: null,
+          style: null,
+          sku: '',
+          price_adjustment: 0,
+          quantity: 0,
+          variant_type: selectedVariantType,
+          swatch_image: null,
+          low_stock_threshold: formData.inventory.low_stock_threshold
+        }));
+      } else {
+        // Create combinations with existing colors
+        variants = [];
+        newValues.forEach(size => {
+          existingColors.forEach(color => {
+            variants.push({
+              id: generateUUID(),
+              size: size,
+              color: color,
+              material: null,
+              style: null,
+              sku: '',
+              price_adjustment: 0,
+              quantity: 0,
+              variant_type: 'combination',
+              swatch_image: null,
+              low_stock_threshold: formData.inventory.low_stock_threshold
+            });
+          });
+        });
+        
+        // Also remove existing color-only variants as they'll be replaced by combinations
+        setFormData(prev => ({
+          ...prev,
+          variants: prev.variants.filter(v => !(v.color && !v.size))
+        }));
+      }
+    }
+
     setPendingVariants(variants);
   };
 
@@ -1326,7 +1393,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                               const index = formData.variants.findIndex(v => v.id === variant.id);
                               const getVariantLabel = (v: any) => {
                                 const parts: string[] = [];
-                                if (v.size) parts.push(`Size: ${v.size}`);
+                                if (v.size) parts.push(v.size);
                                 if (parts.length === 0 && v.color) {
                                   return `Color Only`;
                                 }
