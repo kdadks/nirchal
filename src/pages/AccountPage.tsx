@@ -65,6 +65,12 @@ type AddressRow = {
 
 const AccountPage: React.FC = () => {
   const { customer } = useCustomerAuth();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('AccountPage rendered, customer:', customer);
+  }, [customer]);
+  
   const { wishlist, removeFromWishlist } = useWishlist();
   const { products } = usePublicProducts();
   const { reviews: userReviews, loading: reviewsLoading, totalReviews } = useUserReviews();

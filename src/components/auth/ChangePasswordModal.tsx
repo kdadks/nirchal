@@ -58,45 +58,62 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.rpc('change_customer_password', {
-        p_email: email,
-        p_old_password: formData.currentPassword,
-        p_new_password: formData.newPassword
-      });
-
-      if (error) {
-        setError('Failed to change password. Please try again.');
-        return;
-      }
-
-      // Type assertion for RPC response
-      const response = data as { success: boolean; message?: string } | null;
+      // Client-side password change implementation
+      console.log('Starting password change process...');
       
-      if (!response?.success) {
-        setError(response?.message || 'Failed to change password');
+      // 1. First, verify the current password by fetching customer data
+      const { data: customerData, error: fetchError } = await supabase
+        .from('customers')
+        .select('id, password_hash, first_name, last_name')
+        .eq('email', email)
+        .single();
+
+      if (fetchError || !customerData) {
+        console.error('Error fetching customer data:', fetchError);
+        setError('Failed to verify current password. Please try again.');
         return;
       }
+
+      // 2. Import bcrypt and verify current password
+      const bcrypt = await import('bcryptjs');
+      const isCurrentPasswordValid = await bcrypt.compare(formData.currentPassword, customerData.password_hash as string);
+
+      if (!isCurrentPasswordValid) {
+        setError('Current password is incorrect');
+        return;
+      }
+
+      console.log('Current password verified successfully');
+
+      // 3. Hash the new password
+      const hashedNewPassword = await bcrypt.hash(formData.newPassword, 12);
+      console.log('New password hashed');
+
+      // 4. Update the password in the database
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update({ 
+          password_hash: hashedNewPassword,
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', email);
+
+      if (updateError) {
+        console.error('Error updating password:', updateError);
+        setError('Failed to update password. Please try again.');
+        return;
+      }
+
+      console.log('Password updated successfully');
 
       // Send password change confirmation email
       try {
-        // Get customer information for the email
-        const { data: customerData, error: customerError } = await supabase
-          .from('customers')
-          .select('first_name, last_name')
-          .eq('email', email)
-          .single();
-
-        if (!customerError && customerData) {
-          // Type assertion for customer data
-          const customer = customerData as { first_name: string; last_name: string };
-          
-          await transactionalEmailService.sendPasswordChangeConfirmation({
-            first_name: customer.first_name,
-            last_name: customer.last_name,
-            email: email
-          });
-          console.log('Password change confirmation email sent successfully');
-        }
+        await transactionalEmailService.sendPasswordChangeConfirmation({
+          first_name: customerData.first_name as string,
+          last_name: customerData.last_name as string,
+          email: email
+        });
+        console.log('Password change confirmation email sent successfully');
       } catch (emailError) {
         console.error('Failed to send password change confirmation email:', emailError);
         // Don't block the password change process if email fails
