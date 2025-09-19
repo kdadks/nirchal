@@ -326,41 +326,47 @@ const CheckoutPage: React.FC = () => {
 
       // 2) Create/Upsert delivery address with proper flags
       if (customerId) {
-        // Save delivery address
-        const deliveryAddressData = sanitizeAddressData({
-          first_name: form.firstName,
-          last_name: form.lastName,
-          address_line_1: form.deliveryAddress,
-          address_line_2: form.deliveryAddressLine2,
-          city: form.deliveryCity,
-          state: form.deliveryState,
-          postal_code: form.deliveryPincode,
-          phone: form.phone,
-          country: 'India',
-          is_default: true,
-        });
-
-        await upsertAddressWithFlags(deliveryAddressData, true, false);
-
-        // Handle billing address
-        if (form.billingIsSameAsDelivery) {
-          // Mark the same address as billing too
-          await upsertAddressWithFlags(deliveryAddressData, true, true);
-        } else if (form.billingAddress.trim()) {
-          // Save different billing address
-          const billingAddressData = sanitizeAddressData({
-            first_name: form.billingFirstName,
-            last_name: form.billingLastName,
-            address_line_1: form.billingAddress,
-            address_line_2: form.billingAddressLine2,
-            city: form.billingCity,
-            state: form.billingState,
-            postal_code: form.billingPincode,
-            phone: form.billingPhone,
+        try {
+          // Save delivery address
+          const deliveryAddressData = sanitizeAddressData({
+            first_name: form.firstName,
+            last_name: form.lastName,
+            address_line_1: form.deliveryAddress,
+            address_line_2: form.deliveryAddressLine2,
+            city: form.deliveryCity,
+            state: form.deliveryState,
+            postal_code: form.deliveryPincode,
+            phone: form.phone,
             country: 'India',
-            is_default: false,
+            is_default: true,
           });
-          await upsertAddressWithFlags(billingAddressData, false, true);
+
+          await upsertAddressWithFlags(deliveryAddressData, true, false);
+
+          // Handle billing address
+          if (form.billingIsSameAsDelivery) {
+            // Mark the same address as billing too
+            await upsertAddressWithFlags(deliveryAddressData, true, true);
+          } else if (form.billingAddress.trim()) {
+            // Save different billing address
+            const billingAddressData = sanitizeAddressData({
+              first_name: form.billingFirstName,
+              last_name: form.billingLastName,
+              address_line_1: form.billingAddress,
+              address_line_2: form.billingAddressLine2,
+              city: form.billingCity,
+              state: form.billingState,
+              postal_code: form.billingPincode,
+              phone: form.billingPhone,
+              country: 'India',
+              is_default: false,
+            });
+            await upsertAddressWithFlags(billingAddressData, false, true);
+          }
+        } catch (addressError) {
+          console.error('Error saving addresses:', addressError);
+          // Don't throw - continue with order creation
+          toast.error('Address saving failed, but order will continue');
         }
       }
 
@@ -979,7 +985,7 @@ const CheckoutPage: React.FC = () => {
       const sanitizedAddress = sanitizeAddressData(addressData);
       
       // Find existing address with same details
-      const { data: existingAddresses } = await supabase
+      const { data: existingAddresses, error: selectError } = await supabase
         .from('customer_addresses')
         .select('*')
         .eq('customer_id', customer.id)
@@ -988,10 +994,12 @@ const CheckoutPage: React.FC = () => {
         .eq('state', sanitizedAddress.state)
         .eq('postal_code', sanitizedAddress.postal_code);
 
+      if (selectError) throw selectError;
+
       if (existingAddresses && existingAddresses.length > 0) {
         // Update existing address to add new flags
         const existingAddress = existingAddresses[0];
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('customer_addresses')
           .update({
             is_shipping: existingAddress.is_shipping || isDelivery,
@@ -1003,11 +1011,20 @@ const CheckoutPage: React.FC = () => {
           })
           .eq('id', existingAddress.id);
 
-        if (error) throw error;
+        if (updateError) throw updateError;
         return { id: existingAddress.id };
       } else {
         // Create new address
-        const { data, error } = await supabase
+        // If this address should be default, first remove default flag from other addresses
+        if (sanitizedAddress.is_default) {
+          await supabase
+            .from('customer_addresses')
+            .update({ is_default: false })
+            .eq('customer_id', customer.id)
+            .eq('is_default', true);
+        }
+        
+        const { data, error: insertError } = await supabase
           .from('customer_addresses')
           .insert({
             customer_id: customer.id,
@@ -1018,12 +1035,12 @@ const CheckoutPage: React.FC = () => {
           .select('id')
           .single();
 
-        if (error) throw error;
+        if (insertError) throw insertError;
         return data;
       }
     } catch (error) {
       console.error('Error upserting address:', error);
-      return null;
+      throw error;
     }
   };
 
