@@ -338,7 +338,7 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const resetPasswordWithToken = async (token: string, newPassword: string): Promise<{ success: boolean; error?: string; message?: string }> => {
     try {
       const { data, error } = await supabase.rpc('reset_password_with_token', {
-        token,
+        reset_token: token,
         new_password: newPassword
       });
 
