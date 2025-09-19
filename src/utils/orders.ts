@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { SecurityUtils } from './securityUtils';
 
 export type CustomerUpsert = {
   email: string;
@@ -123,7 +124,9 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       // New customer - create with temp password
       const tempPassword = generateTempPassword();
       
-      // Hash the temp password (simple approach for fallback)
+      // Hash the temp password using bcrypt
+      const hashedPassword = await SecurityUtils.hashPassword(tempPassword);
+      
       const { data, error } = await supabase
         .from('customers')
         .insert({
@@ -131,7 +134,7 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
           first_name: payload.first_name,
           last_name: payload.last_name,
           phone: payload.phone || null,
-          password_hash: `temp_${tempPassword}`, // Simple prefix for temp passwords
+          password_hash: hashedPassword, // Properly encrypted password
           welcome_email_sent: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -146,7 +149,7 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
       
       return {
         id: data.id,
-        tempPassword: tempPassword,
+        tempPassword: SecurityUtils.encryptTempData(tempPassword), // Encrypt temp password for secure transmission
         existingCustomer: false,
         needsWelcomeEmail: true
       };
@@ -156,6 +159,7 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
 
 // Helper function to generate temp password
 function generateTempPassword(): string {
+  // Generate a clean, user-friendly password without prefixes
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
   for (let i = 0; i < 8; i++) {
