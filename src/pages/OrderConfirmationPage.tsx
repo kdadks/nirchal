@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { SecurityUtils } from '../utils/securityUtils';
 import toast from 'react-hot-toast';
 const OrderConfirmationPage: React.FC = () => {
   const { customer } = useCustomerAuth();
@@ -22,7 +23,7 @@ const OrderConfirmationPage: React.FC = () => {
       hasTempPassword: !!tp
     });
     
-    return { orderNumber: on, email: em, tempPassword: tp };
+    return { orderNumber: on, email: em, tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '' };
   }, []);
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
