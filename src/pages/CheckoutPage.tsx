@@ -13,6 +13,7 @@ import PaymentSecurityWrapper from '../components/security/PaymentSecurityWrappe
 import SecurePaymentForm from '../components/security/SecurePaymentForm';
 import StateDropdown from '../components/common/StateDropdown';
 import CityDropdown from '../components/common/CityDropdown';
+import { SecurityUtils } from '../utils/securityUtils';
 
 interface CheckoutForm {
   // Contact Information
@@ -318,11 +319,8 @@ const CheckoutPage: React.FC = () => {
         
         // Store temp password info if this is a new customer with temp password
         if (tempPassword && !customerRes?.existingCustomer) {
-
           sessionStorage.setItem('new_customer_temp_password', tempPassword);
           sessionStorage.setItem('new_customer_email', form.email.trim());
-        } else {
-
         }
       }
 
@@ -659,7 +657,7 @@ const CheckoutPage: React.FC = () => {
           first_name: form.firstName,
           last_name: form.lastName,
           email: form.email,
-          temp_password: tempPassword || undefined // Pass the temp password if available
+          temp_password: tempPassword ? SecurityUtils.decryptTempData(tempPassword) : undefined // Decrypt temp password for email
         });
 
         

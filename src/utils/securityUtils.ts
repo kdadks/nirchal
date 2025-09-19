@@ -1,5 +1,6 @@
 // Security utilities for PCI DSS compliance
 import { SECURITY_CONFIG } from '../config/security-dev';
+import bcrypt from 'bcryptjs';
 
 export class SecurityUtils {
   
@@ -37,6 +38,43 @@ export class SecurityUtils {
     }
     
     return result;
+  }
+
+  /**
+   * Hash a password using bcrypt
+   */
+  static async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12; // Higher than default for better security
+    return await bcrypt.hash(password, saltRounds);
+  }
+
+  /**
+   * Compare a plain text password with a hashed password
+   */
+  static async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+    return await bcrypt.compare(password, hashedPassword);
+  }
+
+  /**
+   * Encrypt temporary data (like temp passwords) for secure transmission/storage
+   */
+  static encryptTempData(data: string): string {
+    // Simple base64 encoding with a prefix for basic obfuscation
+    // In production, you might want to use a more robust encryption method
+    const encoded = Buffer.from(data).toString('base64');
+    return `temp_enc_${encoded}`;
+  }
+
+  /**
+   * Decrypt temporary data that was encrypted with encryptTempData
+   */
+  static decryptTempData(encryptedData: string): string {
+    if (!encryptedData.startsWith('temp_enc_')) {
+      // If not encrypted format, return as-is (backward compatibility)
+      return encryptedData;
+    }
+    const encoded = encryptedData.replace('temp_enc_', '');
+    return Buffer.from(encoded, 'base64').toString('utf-8');
   }
 
   /**
