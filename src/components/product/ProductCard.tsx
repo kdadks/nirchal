@@ -36,12 +36,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   useEffect(() => {
     const newPrimaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
     
-    // Debug logging in development
-    if (import.meta.env.DEV && product.images && product.images.length > 0) {
-      console.log(`[ProductCard] ${product.name} - Using image:`, newPrimaryImage);
-      console.log(`[ProductCard] ${product.name} - Total images:`, product.images.length);
-    }
-    
     setImageSrc(newPrimaryImage);
     setImageError(false);
   }, [product]);

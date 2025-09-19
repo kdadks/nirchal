@@ -60,7 +60,6 @@ export const useProductsWithFilters = (
 
       // Apply category filter using category_id
       if (filters.category) {
-  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Applying category filter:', filters.category);
         let categoryFound = false;
         try {
           // Get category ID from category slug (URL parameter uses slug)
@@ -70,25 +69,18 @@ export const useProductsWithFilters = (
             .eq('slug', filters.category)
             .single();
           
-          if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by slug:', categoryData);
-          
           if (categoryData) {
-            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by slug:', (categoryData as any).id);
             query = query.eq('category_id', (categoryData as any).id);
             categoryFound = true;
           } else {
             // Fallback: try matching by name if slug doesn't work
-            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found by slug, try name');
             const { data: categoryByName } = await supabase
               .from('categories')
               .select('id, name, slug')
               .eq('name', filters.category)
               .single();
             
-            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category by name:', categoryByName);
-            
             if (categoryByName) {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Found category by name:', (categoryByName as any).id);
               query = query.eq('category_id', (categoryByName as any).id);
               categoryFound = true;
             }
@@ -96,7 +88,6 @@ export const useProductsWithFilters = (
           
           // If category filter was specified but no category was found, return empty results
           if (!categoryFound) {
-            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Category not found, returning empty results for:', filters.category);
             setProducts([]);
             setTotalCount(0);
             setTotalPages(0);
