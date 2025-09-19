@@ -28,26 +28,28 @@ const ProductListingPage: React.FC = () => {
   // Sync category from URL (?category=slug) to filters; clear when param missing
   useEffect(() => {
     const categoryFromUrl = searchParams.get('category');
-    const current = filters.category ?? undefined;
-    if (categoryFromUrl !== current) {
+    
+    // Only update if there's actually a difference
+    if (categoryFromUrl !== filters.category) {
       setFilters(prev => ({
         ...prev,
         category: categoryFromUrl || undefined
       }));
     }
-  }, [searchParams, filters.category]);
+  }, [searchParams]); // Remove filters.category from dependencies to prevent loops
 
   // Sync search from URL (?search=query) to filters; clear when param missing
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
-    const current = filters.search ?? undefined;
-    if (searchFromUrl !== current) {
+    
+    // Only update if there's actually a difference
+    if (searchFromUrl !== filters.search) {
       setFilters(prev => ({
         ...prev,
         search: searchFromUrl || undefined
       }));
     }
-  }, [searchParams, filters.search]);
+  }, [searchParams]); // Remove filters.search from dependencies to prevent loops
 
   // Memoize pagination to prevent unnecessary re-renders
   const paginationOptions = useMemo(() => ({
