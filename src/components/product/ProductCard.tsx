@@ -4,7 +4,7 @@ import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
-import { getProductStockInfo } from '../../utils/inventoryUtils';
+import { getProductStockInfo, hasAnyVariantInStock } from '../../utils/inventoryUtils';
 import QuickViewModal from './QuickViewModal';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 import type { Product } from '../../types';
@@ -30,7 +30,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Check if product has any stock available
   const stockInfo = getProductStockInfo(product);
-  const hasStock = stockInfo.isInStock;
+  const hasStock = product.variants && product.variants.length > 0 
+    ? hasAnyVariantInStock(product) 
+    : stockInfo.isInStock;
 
   // Update image source when product changes
   useEffect(() => {
