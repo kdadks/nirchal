@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Footer from '../common/Footer_new';
-import AIChatbot from '../common/AIChatbot';
 import Header from '../common/Header';
 
 interface LayoutProps {
@@ -34,9 +33,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Footer */}
       <Footer />
-
-      {/* AI Chatbot */}
-      <AIChatbot />
 
     </div>
   );

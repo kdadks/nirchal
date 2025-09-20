@@ -49,6 +49,14 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   // Filter gallery images to exclude swatch images
   const galleryImages = product.images.filter(img => !swatchImageUrls.includes(img));
   
+  // Compute available colors - only show if there are actual variants with meaningful color differences
+  const colors = product.variants && product.variants.length > 0 
+    ? product.variants
+        .filter(variant => variant.color && variant.color.trim() !== '')
+        .map(variant => variant.color!)
+        .filter((color, index, arr) => arr.indexOf(color) === index)
+    : [];
+  
   // Create mapping from gallery image index to original image index
   const galleryToOriginalIndex = (galleryIndex: number): number => {
     const galleryImage = galleryImages[galleryIndex];
@@ -66,10 +74,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
         setSelectedSize('');
       }
       
-      // Only show colors if there are actual variants
-      const colors = product.variants && product.variants.length > 0 
-        ? (product.colors || [])
-        : [];
+      // Only show colors if there are actual variants with color differences
       setSelectedColor(colors[0] || '');
       
       // Start with primary image (index 0) instead of swatch image
@@ -260,12 +265,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               {/* Options Section - Always Show */}
               <div className="space-y-4">
                 
-                {/* Color Selection with Swatches - Only show if variants exist */}
-                {product.variants && product.variants.length > 0 && (product.colors && product.colors.length > 0) && (
+                {/* Color Selection with Swatches - Only show if there are colors available */}
+                {colors.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Color</h4>
                   <div className="grid grid-cols-6 gap-3 max-w-sm">
-                    {product.colors.map((color) => {
+                    {colors.map((color) => {
                       // Find the variant for this color to check for swatch image
                       const colorVariant = product.variants?.find(v => v.color === color);
                       
