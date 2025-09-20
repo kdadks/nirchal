@@ -61,7 +61,7 @@ export const getSelectedProductStockInfo = (
   }
   
   // If product has variants but none selected, consider it unavailable
-  if (!selectedSize && !selectedColor) {
+  if ((!selectedSize || selectedSize === '') && (!selectedColor || selectedColor === '')) {
     return {
       isInStock: false,
       quantity: 0,
@@ -72,8 +72,8 @@ export const getSelectedProductStockInfo = (
   
   // Find the matching variant
   const variant = product.variants.find(v => {
-    const sizeMatch = !selectedSize || v.size === selectedSize || selectedSize === 'Free Size';
-    const colorMatch = !selectedColor || v.color === selectedColor;
+    const sizeMatch = !selectedSize || selectedSize === '' || v.size === selectedSize || selectedSize === 'Free Size';
+    const colorMatch = !selectedColor || selectedColor === '' || v.color === selectedColor;
     return sizeMatch && colorMatch;
   });
   
