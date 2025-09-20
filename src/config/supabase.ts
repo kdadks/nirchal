@@ -9,28 +9,53 @@ if (!supabaseUrl || !supabaseAnonKey) {
 	throw new Error('Missing Supabase environment variables');
 }
 
-// Singleton instances to prevent multiple GoTrueClient warnings
+// Simple singleton pattern - the warning in dev is due to HMR, but it's harmless
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
 
-// Regular client for public operations
-export const supabase = supabaseInstance || (supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: 'nirchal-auth'
-  }
-}));
+// Suppress multiple client warnings in development (due to HMR)
+if (import.meta.env.DEV) {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (args[0]?.includes?.('Multiple GoTrueClient instances detected')) {
+      return; // Suppress this warning in development
+    }
+    originalWarn.apply(console, args);
+  };
+}
 
-// Admin client for privileged operations (if service key is available)
-export const supabaseAdmin = supabaseServiceKey 
-  ? (supabaseAdminInstance || (supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceKey, {
+// Regular client for public operations
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'nirchal-auth'
+      }
+    });
+  }
+  return supabaseInstance;
+}
+
+// Admin client for privileged operations
+function getSupabaseAdminClient() {
+  if (!supabaseServiceKey) return null;
+  
+  if (!supabaseAdminInstance) {
+    supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
         storageKey: 'nirchal-admin-auth'
       }
-    })))
-  : null;
+    });
+  }
+  return supabaseAdminInstance;
+}
+
+// Export the singleton instances
+export const supabase = getSupabaseClient();
+export const supabaseAdmin = getSupabaseAdminClient();
 

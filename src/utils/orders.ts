@@ -1,5 +1,4 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { SecurityUtils } from './securityUtils';
 
 export type CustomerUpsert = {
   email: string;
@@ -67,139 +66,45 @@ export type CreateOrderInput = {
 };
 
 export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string; tempPassword?: string; existingCustomer?: boolean; needsWelcomeEmail?: boolean } | null> {
-  // Try the new temp password function first, fallback to direct insert if it fails
-  try {
-    const { data, error } = await supabase
-      .rpc('create_checkout_customer', {
-        p_email: payload.email,
-        p_first_name: payload.first_name,
-        p_last_name: payload.last_name,
-        p_phone: payload.phone || null
-      });
-      
-    if (error) {
-      // RPC failed, fallback to direct insert
-      throw error; // Will trigger fallback
-    }
+  // Use RPC function only - no fallback
+  const { data, error } = await supabase
+    .rpc('create_checkout_customer', {
+      p_email: payload.email,
+      p_first_name: payload.first_name,
+      p_last_name: payload.last_name,
+      p_phone: payload.phone || null
+    });
     
-    return {
-      id: data.id,
-      tempPassword: data.temp_password,
-      existingCustomer: data.existing_customer,
-      needsWelcomeEmail: data.needs_welcome_email
-    };
-  } catch (rpcError) {
-    // RPC function failed, using fallback method
-    
-    // Enhanced fallback: Check if customer exists first
-    const { data: existingCustomer, error: checkError } = await supabase
-      .from('customers')
-      .select('id, welcome_email_sent')
-      .eq('email', payload.email)
-      .single();
-    
-    if (!checkError && existingCustomer) {
-      // Existing customer - update their info
-      const { error: updateError } = await supabase
-        .from('customers')
-        .update({
-          first_name: payload.first_name,
-          last_name: payload.last_name,
-          phone: payload.phone || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existingCustomer.id);
-      
-      if (updateError) {
-        console.error('Failed to update existing customer:', updateError);
-      }
-      
-      return {
-        id: existingCustomer.id,
-        tempPassword: undefined,
-        existingCustomer: true,
-        needsWelcomeEmail: !existingCustomer.welcome_email_sent // Send if never sent
-      };
-    } else {
-      // New customer - create with temp password
-      const tempPassword = generateTempPassword();
-      
-      // Hash the temp password using bcrypt
-      const hashedPassword = await SecurityUtils.hashPassword(tempPassword);
-      
-      const { data, error } = await supabase
-        .from('customers')
-        .insert({
-          email: payload.email,
-          first_name: payload.first_name,
-          last_name: payload.last_name,
-          phone: payload.phone || null,
-          password_hash: hashedPassword, // Properly encrypted password
-          welcome_email_sent: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-        
-      if (error) {
-        console.error('Failed to create new customer with temp password:', error);
-        return null;
-      }
-      
-      return {
-        id: data.id,
-        tempPassword: SecurityUtils.encryptTempData(tempPassword), // Encrypt temp password for secure transmission
-        existingCustomer: false,
-        needsWelcomeEmail: true
-      };
-    }
+  if (error) {
+    console.error('RPC create_checkout_customer failed:', error);
+    return null;
   }
-}
-
-// Helper function to generate temp password
-function generateTempPassword(): string {
-  // Generate a clean, user-friendly password without prefixes
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  
+  if (!data) {
+    console.error('RPC create_checkout_customer returned no data');
+    return null;
   }
-  return result;
+  
+  return {
+    id: data.id,
+    tempPassword: data.temp_password,
+    existingCustomer: data.existing_customer,
+    needsWelcomeEmail: data.needs_welcome_email
+  };
 }
 
 export async function markWelcomeEmailSent(supabase: SupabaseClient, customerId: string): Promise<boolean> {
-  try {
-    // Try RPC function first
-    const { data, error } = await supabase.rpc('mark_welcome_email_sent', {
-      customer_id: parseInt(customerId)
-    });
-    
-    if (!error && data === true) {
-      return true;
-    }
-    
-    // Fallback to direct update
-    // RPC failed, using fallback method
-    const { error: updateError } = await supabase
-      .from('customers')
-      .update({
-        welcome_email_sent: true,
-        welcome_email_sent_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', parseInt(customerId));
-    
-    if (updateError) {
-      console.error('Failed to mark welcome email as sent (fallback):', updateError);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error marking welcome email as sent:', error);
+  // Use RPC function only - no fallback
+  const { data, error } = await supabase.rpc('mark_welcome_email_sent', {
+    customer_id: parseInt(customerId)
+  });
+  
+  if (error) {
+    console.error('RPC mark_welcome_email_sent failed:', error);
     return false;
   }
+  
+  return data === true;
 }
 
 export async function upsertCustomerAddress(supabase: SupabaseClient, payload: AddressUpsert): Promise<{ id: number } | null> {
