@@ -14,7 +14,9 @@ import {
   getSelectedProductStockInfo, 
   isSizeAvailable, 
   isColorAvailable, 
-  getMaxQuantity 
+  getMaxQuantity,
+  getAvailableColors,
+  getAvailableSizes
 } from '../utils/inventoryUtils';
 import type { Product } from '../types';
 
@@ -65,15 +67,23 @@ const ProductDetailPage: React.FC = () => {
   useEffect(() => {
     if (!product) return;
     
-    // Reset user interaction flag for new product
+    // Reset selections for new product
+    setSelectedSize('');
+    setSelectedColor('');
     setHasUserInteractedWithColor(false);
     
-    // Preselect first available size only if sizes exist and are not empty
-    if (!selectedSize && product.sizes && product.sizes.length > 0 && product.sizes.some(size => size && size.trim() !== '')) {
-      setSelectedSize(product.sizes[0]!);
+    // Get available sizes and colors (without filtering by current selection)
+    const availableColors = product.variants && product.variants.length > 0 
+      ? getAvailableColors(product) // Don't filter by selectedSize initially
+      : [];
+    const availableSizes = getAvailableSizes(product); // Don't filter by selectedColor initially
+    
+    // Preselect first available size and color
+    if (availableSizes.length > 0) {
+      setSelectedSize(availableSizes[0]!);
     }
-    if (!selectedColor && colors.length > 0) {
-      setSelectedColor(colors[0]!);
+    if (availableColors.length > 0) {
+      setSelectedColor(availableColors[0]!);
     }
 
     // Always set to primary image (index 0) when product first loads
@@ -229,9 +239,9 @@ const ProductDetailPage: React.FC = () => {
   };
 
   const sizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
-  // Only show colors if there are actual variants
+  // Only show colors if there are actual variants, and only available colors
   const colors = product.variants && product.variants.length > 0 
-    ? (product.colors || [])
+    ? getAvailableColors(product, selectedSize)
     : [];
 
   // Get all swatch image URLs
