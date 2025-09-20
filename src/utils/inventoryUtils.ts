@@ -1,4 +1,5 @@
 import type { Product, ProductVariant } from '../types';
+import { sortSizesByOrder } from './sizeUtils';
 
 export interface StockInfo {
   isInStock: boolean;
@@ -109,7 +110,7 @@ export const hasAnyVariantInStock = (product: Product): boolean => {
 export const getAvailableSizes = (product: Product, selectedColor?: string): string[] => {
   if (!product.variants || product.variants.length === 0) {
     const stockInfo = getProductStockInfo(product);
-    return stockInfo.isAvailable ? (product.sizes || ['Free Size']) : [];
+    return stockInfo.isAvailable ? sortSizesByOrder(product.sizes || ['Free Size']) : [];
   }
   
   const availableSizes = new Set<string>();
@@ -126,7 +127,7 @@ export const getAvailableSizes = (product: Product, selectedColor?: string): str
     }
   });
   
-  return Array.from(availableSizes);
+  return sortSizesByOrder(Array.from(availableSizes));
 };
 
 /**

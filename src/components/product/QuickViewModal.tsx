@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { getSortedProductSizes } from '../../utils/sizeUtils';
 import type { Product } from '../../types';
 
 interface QuickViewModalProps {
@@ -67,7 +68,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   React.useEffect(() => {
     if (isOpen) {
       // Filter out "Free Size" and only set size if valid sizes exist
-      const validSizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
+      const validSizes = getSortedProductSizes(product, true);
       if (validSizes.length > 0) {
         setSelectedSize(validSizes[0] || '');
       } else {
@@ -392,7 +393,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
 
                 {/* Size Selection - Only show if sizes are defined and not empty */}
                 {(() => {
-                  const validSizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
+                  const validSizes = getSortedProductSizes(product, true);
                   return validSizes.length > 0 && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-2">Size</h4>
