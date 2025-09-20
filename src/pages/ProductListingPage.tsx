@@ -62,11 +62,14 @@ const ProductListingPage: React.FC = () => {
     }
   }, [searchParams]); // Remove filters.search from dependencies to prevent loops
 
+  // Determine if we're on a category-specific page
+  const isCategoryPage = !!categorySlug;
+  
   // Memoize pagination to prevent unnecessary re-renders
   const paginationOptions = useMemo(() => ({
     page: currentPage,
-    limit: 20
-  }), [currentPage]);
+    limit: isCategoryPage ? 25 : 20  // 25 products per page for category pages, 20 for general products
+  }), [currentPage, isCategoryPage]);
 
   // Fetch data from database
   const { products, loading: productsLoading, totalPages, totalCount, error } = useProductsWithFilters(
@@ -208,9 +211,10 @@ const ProductListingPage: React.FC = () => {
       */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8">
-          {/* Desktop Filters Sidebar */}
-          <aside className="hidden lg:block w-72 flex-shrink-0">
+        <div className={isCategoryPage ? "w-full" : "flex gap-8"}>
+          {/* Desktop Filters Sidebar - Only show on general products page */}
+          {!isCategoryPage && (
+            <aside className="hidden lg:block w-72 flex-shrink-0">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
@@ -310,19 +314,22 @@ const ProductListingPage: React.FC = () => {
               </div>
             </div>
           </aside>
+          )}
 
           {/* Main Content */}
-          <main className="flex-1">
-            {/* Mobile Filters Button */}
-            <div className="lg:hidden mb-4">
-              <button
-                onClick={() => setMobileFiltersOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                <Filter className="w-4 h-4" />
-                Filters
-              </button>
-            </div>
+          <main className={isCategoryPage ? "w-full" : "flex-1"}>
+            {/* Mobile Filters Button - Only show on general products page */}
+            {!isCategoryPage && (
+              <div className="lg:hidden mb-4">
+                <button
+                  onClick={() => setMobileFiltersOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  <Filter className="w-4 h-4" />
+                  Filters
+                </button>
+              </div>
+            )}
 
             {/* Results Header */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
@@ -389,7 +396,9 @@ const ProductListingPage: React.FC = () => {
             ) : (
               <>
                 <div className={`grid gap-6 ${viewMode === 'grid' 
-                  ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  ? isCategoryPage 
+                    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                    : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
                   : 'grid-cols-1'
                 }`}>
                   {products.map((product) => (
@@ -406,7 +415,7 @@ const ProductListingPage: React.FC = () => {
                     <Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}
-                      itemsPerPage={20}
+                      itemsPerPage={isCategoryPage ? 25 : 20}
                       totalItems={totalCount}
                       onPageChange={setCurrentPage}
                       onItemsPerPageChange={() => {}} // No-op since server controls page size
@@ -420,8 +429,8 @@ const ProductListingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Filters Modal */}
-      {mobileFiltersOpen && (
+      {/* Mobile Filters Modal - Only show on general products page */}
+      {!isCategoryPage && mobileFiltersOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setMobileFiltersOpen(false)} />
           <div className="relative w-full max-w-xs bg-white shadow-xl p-6 overflow-y-auto">

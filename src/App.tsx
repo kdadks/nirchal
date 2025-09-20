@@ -8,6 +8,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CustomerAuthProvider } from './contexts/CustomerAuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
+import { AIAssistantButton } from './components/ai/AIAssistantButton';
 import AppRoutes from './routes';
 
 const router = createBrowserRouter([
@@ -32,6 +33,7 @@ const App: React.FC = () => {
           <CartProvider>
             <WishlistProvider>
               <RouterProvider router={router} />
+              <AIAssistantButton />
               <Toaster
                 position="top-right"
                 toastOptions={{

@@ -142,7 +142,14 @@ const Header: React.FC = () => {
                     <img 
                       src="/nirchallogo.jpg" 
                       alt="Nirchal Logo" 
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain rounded-xl shadow-sm"
+                      style={{
+                        imageRendering: 'crisp-edges',
+                        filter: 'contrast(1.1) saturate(1.05) brightness(1.02)',
+                        WebkitBackfaceVisibility: 'hidden',
+                        backfaceVisibility: 'hidden',
+                        transform: 'translateZ(0)'
+                      }}
                     />
                   </div>
                 </div>
@@ -385,9 +392,7 @@ const Header: React.FC = () => {
 
                 {/* Enhanced product search suggestions */}
                 <AnimatePresence>
-                  {(() => {
-                    return showSuggestions && searchProducts.length > 0;
-                  })() && (
+                  {showSuggestions && searchProducts.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -412,6 +417,7 @@ const Header: React.FC = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: index * 0.05 }}
                             onClick={() => handleProductClick(product)}
+                            onMouseDown={(e) => e.preventDefault()} // Prevent input blur when clicking
                             className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-200 flex items-center gap-4 border-b border-gray-100 last:border-b-0"
                         >
                           {product.image_url ? (
@@ -478,15 +484,28 @@ const Header: React.FC = () => {
                         value={searchQuery}
                         onChange={(e) => {
                           setSearchQuery(e.target.value);
-                          setShowSuggestions(true); // Always show when typing
+                          setShowSuggestions(true);
                         }}
-                        onBlur={() => {
-                          // Close search if input is empty
-                          if (!searchQuery.trim()) {
-                            setTimeout(() => {
-                              setSearchOpen(false);
+                        onBlur={(e) => {
+                          // Capture references before timeout to avoid null currentTarget
+                          const currentElement = e.currentTarget;
+                          const relatedTarget = e.relatedTarget;
+                          
+                          // Delay closing to allow clicking on suggestions
+                          setTimeout(() => {
+                            // Check if the related target is within the suggestions dropdown
+                            const suggestionsContainer = currentElement?.closest('.relative')?.querySelector('[data-suggestions]');
+                            if (!suggestionsContainer?.contains(relatedTarget as Node)) {
+                              if (!searchQuery.trim()) {
+                                setSearchOpen(false);
+                              }
                               setShowSuggestions(false);
-                            }, 150);
+                            }
+                          }, 200);
+                        }}
+                        onFocus={() => {
+                          if (searchQuery.trim()) {
+                            setShowSuggestions(true);
                           }
                         }}
                         className="w-64 pl-9 pr-12 py-2.5 bg-transparent text-primary-900 placeholder-primary-400 outline-none font-medium text-sm rounded-full"
@@ -505,49 +524,51 @@ const Header: React.FC = () => {
                         <X className="w-3 h-3 text-neutral-600" />
                       </button>
                     </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                    {/* Mobile product search suggestions */}
-                    <AnimatePresence>
-                      {showSuggestions && searchProducts.length > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute top-full left-0 right-0 mt-2 bg-white backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[10002] max-h-64 overflow-y-auto"
-                          style={{ zIndex: 10002 }}
-                        >
-                          {searchProducts.slice(0, 4).map((product, index) => (
-                            <motion.button
-                              key={product.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.03 }}
-                              onClick={() => handleProductClick(product)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-all duration-200 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
-                            >
-                              {product.image_url ? (
-                                <img 
-                                  src={product.image_url} 
-                                  alt={product.name}
-                                  className="w-10 h-10 object-cover rounded-lg bg-gray-100 flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <Search className="w-5 h-5 text-gray-400" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-gray-900 truncate text-sm">{product.name}</div>
-                                <div className="text-sm text-gray-600">
-                                  {product.sale_price > 0 ? `₹${product.sale_price.toLocaleString()}` : 'Price not available'}
-                                </div>
-                              </div>
-                            </motion.button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+              {/* Mobile product search suggestions - positioned outside collapsed/expanded container */}
+              <AnimatePresence>
+                {showSuggestions && searchProducts.length > 0 && searchOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute top-full left-0 mt-2 w-64 bg-white backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[10002] max-h-64 overflow-y-auto"
+                    style={{ zIndex: 10002 }}
+                    data-suggestions="true"
+                  >
+                    {searchProducts.slice(0, 4).map((product, index) => (
+                      <motion.button
+                        key={product.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        onClick={() => handleProductClick(product)}
+                        onMouseDown={(e) => e.preventDefault()} // Prevent input blur when clicking
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                      >
+                        {product.image_url ? (
+                          <img 
+                            src={product.image_url} 
+                            alt={product.name}
+                            className="w-10 h-10 object-cover rounded-lg bg-gray-100 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Search className="w-5 h-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 truncate text-sm">{product.name}</div>
+                          <div className="text-sm text-gray-600">
+                            {product.sale_price > 0 ? `₹${product.sale_price.toLocaleString()}` : 'Price not available'}
+                          </div>
+                        </div>
+                      </motion.button>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
