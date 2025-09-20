@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { getStorageImageUrl } from '../utils/storageUtils';
+import { getCachedCategoryId } from '../utils/categoryCache';
 import type { Product } from '../types';
 
 interface ProductFilters {
@@ -58,36 +59,17 @@ export const useProductsWithFilters = (
         `, { count: 'exact' })
         .eq('is_active', true);
 
-      // Apply category filter using category_id
+      // Apply category filter using cached category ID lookup
       if (filters.category) {
-        let categoryFound = false;
         try {
-          // Get category ID from category slug (URL parameter uses slug)
-          const { data: categoryData } = await supabase
-            .from('categories')
-            .select('id, name, slug')
-            .eq('slug', filters.category)
-            .single();
+          // Use cached category ID lookup instead of direct database query
+          const categoryId = await getCachedCategoryId(filters.category);
           
-          if (categoryData) {
-            query = query.eq('category_id', (categoryData as any).id);
-            categoryFound = true;
+          if (categoryId) {
+            query = query.eq('category_id', categoryId);
           } else {
-            // Fallback: try matching by name if slug doesn't work
-            const { data: categoryByName } = await supabase
-              .from('categories')
-              .select('id, name, slug')
-              .eq('name', filters.category)
-              .single();
-            
-            if (categoryByName) {
-              query = query.eq('category_id', (categoryByName as any).id);
-              categoryFound = true;
-            }
-          }
-          
-          // If category filter was specified but no category was found, return empty results
-          if (!categoryFound) {
+            // If category filter was specified but no category was found, return empty results
+            console.warn('[useProductsWithFilters] Category not found:', filters.category);
             setProducts([]);
             setTotalCount(0);
             setTotalPages(0);
