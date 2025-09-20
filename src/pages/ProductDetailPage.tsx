@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useProductReviews } from '../hooks/useProductReviews';
+import { useProductSuggestions } from '../hooks/useProductSuggestions';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search, Facebook, Linkedin, MessageCircle, Link2, Check, ShoppingBag, Heart, Share2 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
@@ -7,6 +8,7 @@ import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
+import ProductCard from '../components/product/ProductCard';
 import { format } from 'date-fns';
 import { 
   getSelectedProductStockInfo, 
@@ -14,6 +16,7 @@ import {
   isColorAvailable, 
   getMaxQuantity 
 } from '../utils/inventoryUtils';
+import type { Product } from '../types';
 
 // Custom SVG Icons
 const TelegramIcon = ({ size = 20 }: { size?: number }) => (
@@ -51,6 +54,7 @@ const ProductDetailPage: React.FC = () => {
 
   const product = products.find(p => p.slug === slug);
   const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
+  const { suggestions } = useProductSuggestions({ currentProduct: product || null });
 
   useEffect(() => {
     if (product?.id) fetchReviews();
@@ -991,6 +995,25 @@ const ProductDetailPage: React.FC = () => {
           </div>
 
         </div>
+
+        {/* You May Like Section */}
+        {suggestions.length > 0 && (
+          <div className="mt-2 md:mt-4">
+            <div className="text-center mb-3 md:mb-6">
+              <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 sm:mb-1 md:mb-2 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
+                You May Like
+              </h2>
+              <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-xl md:max-w-2xl mx-auto leading-relaxed px-4">
+                More beautiful pieces selected for you
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+              {suggestions.map((suggestion: Product) => (
+                <ProductCard key={suggestion.id} product={suggestion} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Full Screen Image Modal */}
