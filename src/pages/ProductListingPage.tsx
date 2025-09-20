@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, Grid, List } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { useProductsWithFilters } from '../hooks/useProductsWithFilters';
 import { useCategories } from '../hooks/useCategories';
 import ProductCard from '../components/product/ProductCard';
@@ -18,6 +18,7 @@ interface ProductFilters {
 
 const ProductListingPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { categorySlug } = useParams<{ categorySlug?: string }>();
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -25,18 +26,28 @@ const ProductListingPage: React.FC = () => {
     sortBy: 'newest'
   });
 
-  // Sync category from URL (?category=slug) to filters; clear when param missing
+  // Sync category from URL route parameter (/category/slug) or query parameter (?category=slug) to filters
   useEffect(() => {
     const categoryFromUrl = searchParams.get('category');
+    let categoryToSet: string | undefined;
+    
+    if (categorySlug) {
+      // Route parameter takes priority: /category/slug-name
+      // Try the slug first, but also prepare a name fallback
+      categoryToSet = categorySlug;
+    } else if (categoryFromUrl) {
+      // Query parameter fallback: /products?category=name
+      categoryToSet = categoryFromUrl;
+    }
     
     // Only update if there's actually a difference
-    if (categoryFromUrl !== filters.category) {
+    if (categoryToSet !== filters.category) {
       setFilters(prev => ({
         ...prev,
-        category: categoryFromUrl || undefined
+        category: categoryToSet
       }));
     }
-  }, [searchParams]); // Remove filters.category from dependencies to prevent loops
+  }, [searchParams, categorySlug]); // Dependencies: URL search params and route params
 
   // Sync search from URL (?search=query) to filters; clear when param missing
   useEffect(() => {

@@ -51,7 +51,7 @@ export const AppRoutes: React.FC = () => {
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/categories" element={<CategoryPage />} />
-        <Route path="/category/:categoryId" element={<CategoryPage />} />
+        <Route path="/category/:categorySlug" element={<ProductListingPage />} />
         <Route path="/products" element={<ProductListingPage />} />
         <Route path="/products/:slug" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
