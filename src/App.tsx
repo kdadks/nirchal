@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
@@ -9,6 +9,7 @@ import { CustomerAuthProvider } from './contexts/CustomerAuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
 import { AIAssistantButton } from './components/ai/AIAssistantButton';
+import { preloadCategories } from './utils/categoryCache';
 import AppRoutes from './routes';
 
 const router = createBrowserRouter([
@@ -19,6 +20,13 @@ const router = createBrowserRouter([
 ]);
 
 const App: React.FC = () => {
+  // Preload category cache on app startup
+  useEffect(() => {
+    preloadCategories().catch(error => {
+      console.warn('[App] Failed to preload category cache:', error);
+    });
+  }, []);
+
   return (
     <>
       <Helmet>

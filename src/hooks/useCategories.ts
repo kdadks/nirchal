@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../config/supabase';
-import { getCategoryStorageUrl, findCategoryImageUrl } from '../utils/storageUtils';
+import { getCachedCategories } from '../utils/categoryCache';
 import type { Category } from '../types';
 
 export const useCategories = () => {
@@ -17,99 +16,13 @@ export const useCategories = () => {
       setLoading(true);
       setError(null);
       
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name', { ascending: true });
-
-      if (error) {
-        console.error('[useCategories] Error:', error);
-        
-        // Handle JWT expiration
-        const errorMsg = (error.message || '').toLowerCase();
-        if (errorMsg.includes('jwt') && errorMsg.includes('expired')) {
-          // Try to refresh the session
-          try {
-            await supabase.auth.refreshSession();
-            // Retry the request after refresh
-            const { data: retryData, error: retryError } = await supabase
-              .from('categories')
-              .select('*')
-              .order('name', { ascending: true });
-            
-            if (retryError) {
-              throw retryError;
-            }
-            
-            // Process the retry data
-            const transformedCategories: Category[] = (retryData || []).map((cat: any) => {
-              let imageUrl = '';
-              
-              // Use the image_url field from database if available
-              if (cat.image_url && cat.image_url.trim()) {
-                // If it's just a filename (legacy), convert to full GitHub URL
-                if (!cat.image_url.startsWith('http')) {
-                  imageUrl = getCategoryStorageUrl(cat.image_url);
-                } else {
-                  // It's already a full URL, use the storage URL function to ensure it's correct
-                  imageUrl = getCategoryStorageUrl(cat.image_url);
-                }
-              } else {
-                // If no image_url in database, try to find image by category name/slug pattern
-                imageUrl = findCategoryImageUrl(cat.name, cat.slug);
-              }
-
-              return {
-                id: String(cat.id),
-                name: String(cat.name),
-                image_url: imageUrl || '', // Use correct property name
-                description: cat.description,
-                featured: cat.featured || false,
-                slug: cat.slug
-              };
-            });
-
-            setCategories(transformedCategories);
-            return; // Exit early on successful retry
-          } catch (refreshError) {
-            console.error('[useCategories] Token refresh failed:', refreshError);
-            setError('Authentication session expired. Please refresh the page.');
-            return;
-          }
-        }
-        
-        throw error;
-      }
-
-      const transformedCategories: Category[] = (data || []).map((cat: any) => {
-        let imageUrl = '';
-        
-        // Use the image_url field from database if available
-        if (cat.image_url && cat.image_url.trim()) {
-          // If it's just a filename (legacy), convert to full GitHub URL
-          if (!cat.image_url.startsWith('http')) {
-            imageUrl = getCategoryStorageUrl(cat.image_url);
-          } else {
-            // It's already a full URL, use the storage URL function to ensure it's correct
-            imageUrl = getCategoryStorageUrl(cat.image_url);
-          }
-        } else {
-                // If no image_url in database, try to find image by category name/slug pattern
-                imageUrl = findCategoryImageUrl(cat.name, cat.slug);
-              }        return {
-          id: String(cat.id),
-          name: String(cat.name),
-          image_url: imageUrl || '', // Use correct property name
-          description: cat.description,
-          featured: cat.featured || false,
-          slug: cat.slug
-        };
-      });
-
-      setCategories(transformedCategories);
-    } catch (err) {
+      // Use cached categories
+      const data = await getCachedCategories();
+      setCategories(data);
+    } catch (err: any) {
       console.error('[useCategories] Error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch categories');
+      setError(err.message || 'Failed to fetch categories');
+      setCategories([]);
     } finally {
       setLoading(false);
     }
