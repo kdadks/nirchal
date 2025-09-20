@@ -633,7 +633,7 @@ const Header: React.FC = () => {
                     >
                       <div className="p-2">
                         <motion.button
-                          whileHover={{ backgroundColor: 'rgba(var(--color-primary-50), 0.8)' }}
+                          whileHover={{ backgroundColor: 'rgba(253, 248, 246, 0.8)' }}
                           onClick={() => {
                             navigate('/myaccount');
                             setUserDropdownOpen(false);
