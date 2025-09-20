@@ -17,22 +17,14 @@ const OrderConfirmationPage: React.FC = () => {
     const em = sessionStorage.getItem('last_order_email') || '';
     const tp = sessionStorage.getItem('new_customer_temp_password') || '';
     
-    console.log('OrderConfirmationPage loaded:', {
-      orderNumber: on,
-      email: em,
-      hasTempPassword: !!tp
-    });
-    
     return { orderNumber: on, email: em, tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '' };
   }, []);
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
     if (!orderNumber) {
-      console.log('OrderConfirmationPage: No order number found, redirecting to cart');
       setShouldRedirect(true);
     } else {
-      console.log('OrderConfirmationPage: Order found, displaying confirmation');
       setShouldRedirect(false);
     }
     setHasCheckedRedirect(true);

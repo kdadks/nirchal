@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, Grid, List } from 'lucide-react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
 import { useProductsWithFilters } from '../hooks/useProductsWithFilters';
 import { useCategories } from '../hooks/useCategories';
 import ProductCard from '../components/product/ProductCard';
@@ -22,32 +22,25 @@ const ProductListingPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState<ProductFilters>({
-    sortBy: 'newest'
-  });
-
-  // Sync category from URL route parameter (/category/slug) or query parameter (?category=slug) to filters
-  useEffect(() => {
+  
+  // Initialize filters with category from URL immediately
+  const [filters, setFilters] = useState<ProductFilters>(() => {
     const categoryFromUrl = searchParams.get('category');
     let categoryToSet: string | undefined;
     
     if (categorySlug) {
       // Route parameter takes priority: /category/slug-name
-      // Try the slug first, but also prepare a name fallback
       categoryToSet = categorySlug;
     } else if (categoryFromUrl) {
       // Query parameter fallback: /products?category=name
       categoryToSet = categoryFromUrl;
     }
     
-    // Only update if there's actually a difference
-    if (categoryToSet !== filters.category) {
-      setFilters(prev => ({
-        ...prev,
-        category: categoryToSet
-      }));
-    }
-  }, [searchParams, categorySlug]); // Dependencies: URL search params and route params
+    return {
+      sortBy: 'newest',
+      category: categoryToSet
+    };
+  });
 
   // Sync search from URL (?search=query) to filters; clear when param missing
   useEffect(() => {
@@ -61,6 +54,17 @@ const ProductListingPage: React.FC = () => {
       }));
     }
   }, [searchParams]); // Remove filters.search from dependencies to prevent loops
+
+  // Handle category slug changes when navigating between category pages
+  useEffect(() => {
+    if (categorySlug !== filters.category) {
+      setFilters(prev => ({
+        ...prev,
+        category: categorySlug || undefined
+      }));
+      setCurrentPage(1); // Reset to first page when category changes
+    }
+  }, [categorySlug]); // Watch for category slug changes
 
   // Determine if we're on a category-specific page
   const isCategoryPage = !!categorySlug;
@@ -211,6 +215,19 @@ const ProductListingPage: React.FC = () => {
       */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Breadcrumb */}
+        {filters.category && (
+          <nav className="mb-6">
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Link to="/" className="hover:text-amber-600 transition-colors">Home</Link>
+              <span>›</span>
+              <Link to="/products" className="hover:text-amber-600 transition-colors">Products</Link>
+              <span>›</span>
+              <span className="font-medium text-gray-900 capitalize">{filters.category}</span>
+            </div>
+          </nav>
+        )}
+        
         <div className={isCategoryPage ? "w-full" : "flex gap-8"}>
           {/* Desktop Filters Sidebar - Only show on general products page */}
           {!isCategoryPage && (

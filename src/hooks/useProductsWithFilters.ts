@@ -97,39 +97,19 @@ export const useProductsWithFilters = (
         }
       }
 
-      // Apply fabric filter - handle gracefully if column doesn't exist
+      // Apply fabric filter
       if (filters.fabric) {
-        try {
-          query = query.eq('fabric', filters.fabric);
-        } catch (err) {
-          console.warn('[useProductsWithFilters] Fabric column may not exist, skipping fabric filter:', err);
-        }
+        query = query.eq('fabric', filters.fabric);
       }
 
-      // Apply occasion filter - handle both JSON array and text formats
+      // Apply occasion filter
       if (filters.occasion) {
-        try {
-          // First try JSON array contains (for JSONB columns)
-          query = query.contains('occasion', [filters.occasion]);
-        } catch (err) {
-          console.warn('[useProductsWithFilters] JSON occasion filter failed, trying text filter:', err);
-          try {
-            // Fallback to text-based search (for TEXT columns)
-            query = query.ilike('occasion', `%${filters.occasion}%`);
-          } catch (textErr) {
-            console.warn('[useProductsWithFilters] Occasion column may not exist, skipping occasion filter:', textErr);
-          }
-        }
+        query = query.contains('occasion', [filters.occasion]);
       }
 
       // Apply search filter - search across name and description
       if (filters.search) {
-        try {
-          // Use or filter to search across name and description
-          query = query.or(`name.ilike.%${filters.search}%, description.ilike.%${filters.search}%`);
-        } catch (err) {
-          console.warn('[useProductsWithFilters] Search filter failed:', err);
-        }
+        query = query.or(`name.ilike.%${filters.search}%, description.ilike.%${filters.search}%`);
       }
 
       // Apply sorting
@@ -158,8 +138,6 @@ export const useProductsWithFilters = (
       const to = from + pagination.limit - 1;
       query = query.range(from, to);
 
-  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Executing query', filters);
-      
       let data, error, count;
       
       // First try to get products with images and all filters
@@ -171,189 +149,35 @@ export const useProductsWithFilters = (
         
         // Handle specific database column errors
         if (error) {
-          const msg = (error.message || '').toLowerCase();
-          const isSchemaIssue = msg.includes('column') ||
-                                msg.includes('does not exist') ||
-                                msg.includes('invalid input syntax for type json') ||
-                                msg.includes('json');
-          const isPermissionIssue = msg.includes('permission denied') ||
-                                    msg.includes('not allowed') ||
-                                    msg.includes('rls');
-
-          // If schema/permission issues (most likely product_images blocked by RLS), fallback
-          if (isSchemaIssue || isPermissionIssue) {
-            console.warn('[useProductsWithFilters] Schema/permission issue, attempting fallback query:', error.message);
-            throw new Error('Schema or permission issue - attempting fallback');
-          }
+          console.error('[useProductsWithFilters] Database error:', error);
+          throw error;
         }
+        
       } catch (err: any) {
-        if (err.message === 'Schema or permission issue - attempting fallback' || 
-            (err.message && (err.message.toLowerCase().includes('column') || err.message.toLowerCase().includes('json') || err.message.toLowerCase().includes('permission')))) {
-          console.warn('[useProductsWithFilters] Query failed due to schema issues, using minimal fallback:', err);
-        } else {
-          console.warn('[useProductsWithFilters] Query failed, falling back to simple query:', err);
-        }
-        
-        // Fallback to the most basic query possible - no filters that might cause issues
-        let fallbackQuery = supabase
-          .from('products')
-          .select('*', { count: 'exact' })
-          .eq('is_active', true);
-          
-        // Apply category filter in fallback too
-        if (filters.category) {
-          if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category filter:', filters.category);
-          let categoryFound = false;
-          try {
-            // Get category ID from category slug (URL parameter uses slug)
-            const { data: categoryData } = await supabase
-              .from('categories')
-              .select('id, name, slug')
-              .eq('slug', filters.category)
-              .single();
-            
-            if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by slug:', categoryData);
-            
-            if (categoryData) {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by slug:', (categoryData as any).id);
-              fallbackQuery = fallbackQuery.eq('category_id', (categoryData as any).id);
-              categoryFound = true;
-            } else {
-              // Fallback: try matching by name if slug doesn't work
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: category not by slug, try name');
-              const { data: categoryByName } = await supabase
-                .from('categories')
-                .select('id, name, slug')
-                .eq('name', filters.category)
-                .single();
-              
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback category by name:', categoryByName);
-              
-              if (categoryByName) {
-                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback found category by name:', (categoryByName as any).id);
-                fallbackQuery = fallbackQuery.eq('category_id', (categoryByName as any).id);
-                categoryFound = true;
-              }
-            }
-            
-            // If category filter was specified but no category was found in fallback, return empty results
-            if (!categoryFound) {
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Fallback: Category not found, returning empty results for:', filters.category);
-              setProducts([]);
-              setTotalCount(0);
-              setTotalPages(0);
-              setLoading(false);
-              return;
-            }
-          } catch (err) {
-            console.warn('[useProductsWithFilters] Fallback category filter failed:', err);
-            // If there's an error finding the category in fallback, return empty results
-            setProducts([]);
-            setTotalCount(0);
-            setTotalPages(0);
-            setLoading(false);
-            return;
-          }
-        }
-          
-        // Only apply safe filters in fallback
-        if (filters.priceRange) {
-          if (filters.priceRange.min > 0) {
-            fallbackQuery = fallbackQuery.gte('sale_price', filters.priceRange.min);
-          }
-          if (filters.priceRange.max < 100000) {
-            fallbackQuery = fallbackQuery.lte('sale_price', filters.priceRange.max);
-          }
-        }
-        
-        // Skip fabric and occasion filters in fallback to avoid JSON/column issues
-        // Skip category filter in fallback to avoid relationship issues
-        
-        switch (filters.sortBy) {
-          case 'price_low':
-            fallbackQuery = fallbackQuery.order('sale_price', { ascending: true });
-            break;
-          case 'price_high':
-            fallbackQuery = fallbackQuery.order('sale_price', { ascending: false });
-            break;
-          case 'name':
-            fallbackQuery = fallbackQuery.order('name', { ascending: true });
-            break;
-          case 'rating':
-            fallbackQuery = fallbackQuery.order('created_at', { ascending: false });
-            break;
-          case 'newest':
-          default:
-            fallbackQuery = fallbackQuery.order('created_at', { ascending: false });
-            break;
-        }
-        
-        const from = (pagination.page - 1) * pagination.limit;
-        const to = from + pagination.limit - 1;
-        fallbackQuery = fallbackQuery.range(from, to);
-        
-        try {
-          const fallbackResult = await fallbackQuery;
-          data = fallbackResult.data;
-          error = fallbackResult.error;
-          count = fallbackResult.count;
-        } catch (fallbackErr) {
-          console.error('[useProductsWithFilters] Even fallback query failed:', fallbackErr);
-          // If even the most basic query fails, return empty results
-          setProducts([]);
-          setTotalCount(0);
-          setTotalPages(0);
-          return;
-        }
+        console.error('[useProductsWithFilters] Query failed:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch products');
+        setProducts([]);
+        setTotalCount(0);
+        setTotalPages(0);
+        setLoading(false);
+        return;
       }
       
       if (error) {
         console.error('[useProductsWithFilters] Database error:', error);
-        const msg = (error.message || '').toLowerCase();
-        
-        // Handle JWT expiration
-        if (msg.includes('jwt') && msg.includes('expired')) {
-          try {
-            console.log('[useProductsWithFilters] JWT expired, attempting token refresh...');
-            await supabase.auth.refreshSession();
-            
-            // Retry the query manually after refresh
-            await fetchProducts();
-            return; // Exit early on successful retry
-          } catch (refreshError) {
-            console.error('[useProductsWithFilters] Token refresh failed:', refreshError);
-            setError('Authentication session expired. Please refresh the page.');
-            setProducts([]);
-            setTotalCount(0);
-            setTotalPages(0);
-            return;
-          }
-        }
-        
-        const isSchemaIssue = msg.includes('column') || msg.includes('does not exist') || msg.includes('invalid input syntax for type json') || msg.includes('json');
-        const isPermissionIssue = msg.includes('permission denied') || msg.includes('not allowed') || msg.includes('rls');
-
-        // For schema/permission issues, don't crash UI; return empty list
-        if (isSchemaIssue || isPermissionIssue) {
-          console.warn('[useProductsWithFilters] Database schema/permission issue - returning empty products:', error.message);
-          setProducts([]);
-          setTotalCount(0);
-          setTotalPages(0);
-          return;
-        }
-        throw new Error(`Database error: ${error.message}`);
+        const msg = (error as any).message || 'Database error';
+        setError(msg);
+        setProducts([]);
+        setTotalCount(0);
+        setTotalPages(0);
+        setLoading(false);
+        return;
       }
 
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / pagination.limit));
 
-      if (import.meta.env.DEV) {
-        console.debug('[useProductsWithFilters] Query done count:', count, 'len:', data?.length);
-        console.debug('[useProductsWithFilters] Filters:', filters);
-      }
-
       if (!data || data.length === 0) {
-  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] No products for filters');
         setProducts([]);
         return;
       }

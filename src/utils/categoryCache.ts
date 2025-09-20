@@ -118,16 +118,11 @@ export const getCachedCategory = async (identifier: string): Promise<Category | 
 
 // Get category ID by slug or name with caching
 export const getCachedCategoryId = async (slugOrName: string): Promise<string | null> => {
-  console.log('[CategoryCache] Looking for category:', slugOrName);
-  
   // Ensure categories are loaded
   const categories = await getCachedCategories();
-  console.log('[CategoryCache] Total categories loaded:', categories.length);
-  console.log('[CategoryCache] Categories available:', categories.map(c => ({ id: c.id, name: c.name, slug: c.slug })));
   
   // Return from map cache
   const category = categoryMapCache?.get(slugOrName);
-  console.log('[CategoryCache] Found category:', category ? { id: category.id, name: category.name, slug: category.slug } : null);
   
   if (!category) {
     // Try case-insensitive search as fallback
@@ -137,7 +132,6 @@ export const getCachedCategoryId = async (slugOrName: string): Promise<string | 
       cat.name.toLowerCase() === normalizedSlugOrName ||
       cat.name.toLowerCase().replace(/\s+/g, '-') === normalizedSlugOrName
     );
-    console.log('[CategoryCache] Fallback search result:', fallbackCategory ? { id: fallbackCategory.id, name: fallbackCategory.name, slug: fallbackCategory.slug } : null);
     return fallbackCategory?.id || null;
   }
   
