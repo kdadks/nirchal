@@ -18,6 +18,7 @@ import {
   getAvailableColors,
   getAvailableSizes
 } from '../utils/inventoryUtils';
+import { getSortedProductSizes } from '../utils/sizeUtils';
 import type { Product } from '../types';
 
 // Custom SVG Icons
@@ -238,7 +239,7 @@ const ProductDetailPage: React.FC = () => {
     setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
   };
 
-  const sizes = (product.sizes || []).filter(size => size && size.trim() !== '' && size.toLowerCase() !== 'free size');
+  const sizes = getSortedProductSizes(product, true);
   // Only show colors if there are actual variants, and only available colors
   const colors = product.variants && product.variants.length > 0 
     ? getAvailableColors(product, selectedSize)
