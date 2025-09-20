@@ -4,7 +4,7 @@ import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
-import { getProductStockInfo, hasAnyVariantInStock } from '../../utils/inventoryUtils';
+import { getProductStockInfo } from '../../utils/inventoryUtils';
 import QuickViewModal from './QuickViewModal';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 import type { Product } from '../../types';
@@ -28,11 +28,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [isInView, setIsInView] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Check if product has any stock available
-  const stockInfo = getProductStockInfo(product);
-  const hasStock = product.variants && product.variants.length > 0 
-    ? hasAnyVariantInStock(product) 
-    : stockInfo.isInStock;
+  // Check if product has any stock available - use useMemo to recalculate when product changes
+  const hasStock = React.useMemo(() => {
+    if (product.variants && product.variants.length > 0) {
+      // For products with variants, only check variant stock
+      return product.variants.some(variant => {
+        const variantQuantity = variant.quantity || 0;
+        return variantQuantity > 0;
+      });
+    } else {
+      // For products without variants, use product-level stock
+      const stockInfo = getProductStockInfo(product);
+      return stockInfo.isInStock;
+    }
+  }, [product]);
 
   // Update image source when product changes
   useEffect(() => {
