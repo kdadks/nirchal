@@ -6,6 +6,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 import { useProductSearch } from '../../hooks/useProductSearch';
+import { MENU_CATEGORIES } from '../../constants/categories';
 
 const promotionalMessages = [
   {
@@ -243,11 +244,11 @@ const Header: React.FC = () => {
                             transition={{ delay: 0.03, duration: 0.2 }}
                           >
                             <Link
-                              to="/products?category=Mens%20Kurta%20Sets"
+                              to={`/category/${MENU_CATEGORIES.men[0].slug}`}
                               onClick={() => setMenDropdownOpen(false)}
                               className="block p-3 rounded-xl bg-gradient-to-r from-primary-50/50 to-accent-50/50 hover:from-primary-100/80 hover:to-accent-100/80 text-neutral-700 hover:text-primary-700 font-medium transition-all duration-200 text-sm border border-white/30 hover:border-primary-300/50"
                             >
-                              Mens Kurta Sets
+                              {MENU_CATEGORIES.men[0].displayName}
                             </Link>
                           </motion.div>
                         </div>
@@ -301,29 +302,19 @@ const Header: React.FC = () => {
                           WOMEN
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 lg:gap-3">
-                          {[
-                            'Women Accessories',
-                            'Blouses',
-                            'Dupatta',
-                            'Dress Materials',
-                            'Women Kurtis',
-                            'Women Kurta Sets',
-                            'Women Lehenga Choli',
-                            'Women Skirts',
-                            'Womens Sarees'
-                          ].map((item, index) => (
+                          {MENU_CATEGORIES.women.map((item, index) => (
                             <motion.div
-                              key={item}
+                              key={item.slug}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: index * 0.03, duration: 0.2 }}
                             >
                               <Link
-                                to={`/products?category=${encodeURIComponent(item)}`}
+                                to={`/category/${item.slug}`}
                                 onClick={() => setWomenDropdownOpen(false)}
                                 className="block p-3 rounded-xl bg-gradient-to-r from-primary-50/50 to-accent-50/50 hover:from-primary-100/80 hover:to-accent-100/80 text-neutral-700 hover:text-primary-700 font-medium transition-all duration-200 text-sm border border-white/30 hover:border-primary-300/50"
                               >
-                                {item.replace('Women ', '').replace('Womens ', '')}
+                                {item.displayName}
                               </Link>
                             </motion.div>
                           ))}
@@ -340,7 +331,7 @@ const Header: React.FC = () => {
                 className="relative"
               >
                 <Link
-                  to="/products?category=Kidswear"
+                  to={`/category/${MENU_CATEGORIES.kids[0].slug}`}
                   className="relative flex items-center gap-2 px-3 py-2 text-primary-700 hover:text-primary-800 font-semibold transition-all duration-300 group rounded-lg hover:bg-white/50 text-sm"
                 >
                   <img
@@ -348,7 +339,7 @@ const Header: React.FC = () => {
                     alt="Kids Fashion"
                     className="w-6 h-6 rounded-full object-cover border border-primary-200"
                   />
-                  KIDS
+                  {MENU_CATEGORIES.kids[0].displayName.toUpperCase()}
                   <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-primary-500 to-accent-500 group-hover:w-full transition-all duration-300" />
                 </Link>
               </motion.div>
@@ -829,11 +820,11 @@ const Header: React.FC = () => {
                 </div>
                 <div className="ml-6 space-y-1">
                   <Link
-                    to="/products?category=Mens%20Kurta%20Sets"
+                    to={`/category/${MENU_CATEGORIES.men[0].slug}`}
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 py-2.5 px-4 text-primary-600 hover:text-primary-800 text-sm rounded-lg hover:bg-primary-50/50 transition-all duration-300 border border-transparent hover:border-primary-200/30"
                   >
-                    <span>Mens Kurta Sets</span>
+                    <span>{MENU_CATEGORIES.men[0].displayName}</span>
                   </Link>
                 </div>
               </div>
@@ -849,24 +840,14 @@ const Header: React.FC = () => {
                   <span>WOMEN</span>
                 </div>
                 <div className="ml-6 grid grid-cols-1 gap-1">
-                  {[
-                    'Women Accessories',
-                    'Blouses',
-                    'Dupatta',
-                    'Dress Materials',
-                    'Women Kurtis',
-                    'Women Kurta Sets',
-                    'Women Lehenga Choli',
-                    'Women Skirts',
-                    'Womens Sarees'
-                  ].map((item) => (
+                  {MENU_CATEGORIES.women.map((item) => (
                     <Link
-                      key={item}
-                      to={`/products?category=${encodeURIComponent(item)}`}
+                      key={item.slug}
+                      to={`/category/${item.slug}`}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 py-2.5 px-4 text-primary-600 hover:text-primary-800 text-sm rounded-lg hover:bg-primary-50/50 transition-all duration-300 border border-transparent hover:border-primary-200/30"
                     >
-                      <span>{item.replace('Women ', '').replace('Womens ', '')}</span>
+                      <span>{item.displayName}</span>
                     </Link>
                   ))}
                 </div>
@@ -874,7 +855,7 @@ const Header: React.FC = () => {
 
               {/* KIDS Section */}
               <Link
-                to="/products?category=Kidswear"
+                to={`/category/${MENU_CATEGORIES.kids[0].slug}`}
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3 py-4 px-4 text-primary-700 hover:text-primary-800 font-semibold rounded-xl hover:bg-primary-50/50 transition-all duration-300 border border-transparent hover:border-primary-200/30"
               >
@@ -883,7 +864,7 @@ const Header: React.FC = () => {
                   alt="Kids Fashion"
                   className="w-7 h-7 rounded-full object-cover border border-primary-200"
                 />
-                <span>KIDS</span>
+                <span>{MENU_CATEGORIES.kids[0].displayName.toUpperCase()}</span>
               </Link>
 
               {isAuthenticated ? (

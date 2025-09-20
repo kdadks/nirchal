@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ShoppingBag, ArrowRight, Filter } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
@@ -7,19 +6,11 @@ import CategoryCard from '../components/category/CategoryCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const CategoryPage = () => {
-  const { categoryId } = useParams();
   const navigate = useNavigate();
   const { categories, loading, error } = useCategories();
 
-  // If we have a categoryId, redirect to product listing with category filter
-  useEffect(() => {
-    if (categoryId) {
-      navigate(`/products?category=${categoryId}`);
-    }
-  }, [categoryId, navigate]);
-
   const handleCategoryClick = (categorySlug: string) => {
-    navigate(`/products?category=${categorySlug}`);
+    navigate(`/category/${categorySlug}`);
   };
 
   if (loading) {
