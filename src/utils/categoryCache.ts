@@ -47,8 +47,8 @@ const fetchCategoriesFromDB = async (): Promise<Category[]> => {
     }
 
     return {
-      id: cat.id,
-      name: cat.name,
+      id: String(cat.id),
+      name: String(cat.name),
       slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
       description: cat.description || '',
       image_url: imageUrl,
@@ -88,13 +88,13 @@ export const getCachedCategories = async (): Promise<Category[]> => {
     // Build map cache for fast lookups
     categoryMapCache = new Map();
     categories.forEach(cat => {
-      if (typeof cat.slug === 'string') {
+      if (cat.slug) {
         categoryMapCache!.set(cat.slug, cat);
       }
-      if (typeof cat.name === 'string') {
+      if (cat.name) {
         categoryMapCache!.set(cat.name, cat);
       }
-      if (typeof cat.id === 'string') {
+      if (cat.id) {
         categoryMapCache!.set(cat.id, cat);
       }
     });
@@ -118,7 +118,29 @@ export const getCachedCategory = async (identifier: string): Promise<Category | 
 
 // Get category ID by slug or name with caching
 export const getCachedCategoryId = async (slugOrName: string): Promise<string | null> => {
-  const category = await getCachedCategory(slugOrName);
+  console.log('[CategoryCache] Looking for category:', slugOrName);
+  
+  // Ensure categories are loaded
+  const categories = await getCachedCategories();
+  console.log('[CategoryCache] Total categories loaded:', categories.length);
+  console.log('[CategoryCache] Categories available:', categories.map(c => ({ id: c.id, name: c.name, slug: c.slug })));
+  
+  // Return from map cache
+  const category = categoryMapCache?.get(slugOrName);
+  console.log('[CategoryCache] Found category:', category ? { id: category.id, name: category.name, slug: category.slug } : null);
+  
+  if (!category) {
+    // Try case-insensitive search as fallback
+    const normalizedSlugOrName = slugOrName.toLowerCase();
+    const fallbackCategory = categories.find(cat => 
+      cat.slug?.toLowerCase() === normalizedSlugOrName || 
+      cat.name.toLowerCase() === normalizedSlugOrName ||
+      cat.name.toLowerCase().replace(/\s+/g, '-') === normalizedSlugOrName
+    );
+    console.log('[CategoryCache] Fallback search result:', fallbackCategory ? { id: fallbackCategory.id, name: fallbackCategory.name, slug: fallbackCategory.slug } : null);
+    return fallbackCategory?.id || null;
+  }
+  
   return category?.id || null;
 };
 
