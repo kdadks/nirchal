@@ -275,11 +275,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
           });
         });
         
-        // Also remove existing size-only variants as they'll be replaced by combinations
-        setFormData(prev => ({
-          ...prev,
-          variants: prev.variants.filter(v => !(v.size && !v.color))
-        }));
+        // Filtering will be handled in confirmBulkVariants
       }
     } else if (selectedVariantType === 'size') {
       if (existingColors.length === 0) {
@@ -298,7 +294,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
           low_stock_threshold: formData.inventory.low_stock_threshold
         }));
       } else {
-        // Create combinations with existing colors
+        // Create combinations with existing colors (add sizes as children of each color)
         variants = [];
         newValues.forEach(size => {
           existingColors.forEach(color => {
@@ -318,11 +314,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
           });
         });
         
-        // Also remove existing color-only variants as they'll be replaced by combinations
-        setFormData(prev => ({
-          ...prev,
-          variants: prev.variants.filter(v => !(v.color && !v.size))
-        }));
+        // Filtering will be handled in confirmBulkVariants
       }
     }
 
@@ -331,10 +323,34 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
 
   const confirmBulkVariants = () => {
     if (pendingVariants.length > 0) {
+      // Get existing variants grouped by type
+      const existingSizes = Array.from(new Set(
+        formData.variants
+          .filter(v => v.size)
+          .map(v => v.size)
+      ));
+      
+      const existingColors = Array.from(new Set(
+        formData.variants
+          .filter(v => v.color)
+          .map(v => v.color)
+      ));
+
+      let filteredExistingVariants = formData.variants;
+
+      // Apply filtering based on variant type being added
+      if (selectedVariantType === 'color' && existingSizes.length > 0) {
+        // Adding colors to existing sizes - remove size-only variants
+        filteredExistingVariants = formData.variants.filter(v => !(v.size && !v.color));
+      } else if (selectedVariantType === 'size' && existingColors.length > 0) {
+        // Adding sizes to existing colors - remove color-only variants  
+        filteredExistingVariants = formData.variants.filter(v => !(v.color && !v.size));
+      }
+
       setFormData(prev => ({
         ...prev,
         variants: [
-          ...prev.variants, 
+          ...filteredExistingVariants, 
           ...pendingVariants.map(v => ({ 
             ...v, 
             low_stock_threshold: prev.inventory.low_stock_threshold 
