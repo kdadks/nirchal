@@ -14,7 +14,6 @@ import {
 
 /**
  * Upload an image to R2 storage via server-side function
- * Falls back to old GitHub upload method in development
  * @param blob - The file blob to upload
  * @param fileName - The target filename
  * @param folder - 'products' or 'categories'
@@ -36,39 +35,8 @@ export const uploadImage = async (
       reader.readAsDataURL(blob);
     });
 
-    // Try R2 upload first (production)
-    try {
-      const response = await fetch('/.netlify/functions/upload-image-r2', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileName,
-          folder,
-          imageData: base64Data,
-          contentType: blob.type
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        
-        if (result.success) {
-          console.log(`[Image Storage] Successfully uploaded to R2: ${result.url}`);
-          return {
-            success: true,
-            url: result.url
-          };
-        }
-      }
-    } catch (r2Error) {
-      console.warn('[Image Storage] R2 upload failed, falling back to GitHub upload:', r2Error);
-    }
-
-    // Fallback to old GitHub upload method (for local development)
-    console.log('[Image Storage] Using fallback GitHub upload...');
-    const fallbackResponse = await fetch('/.netlify/functions/upload-image', {
+    // Upload to R2 via serverless function
+    const response = await fetch('/.netlify/functions/upload-image-r2', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,17 +49,29 @@ export const uploadImage = async (
       })
     });
 
-    const fallbackResult = await fallbackResponse.json();
-    
-    if (!fallbackResponse.ok || !fallbackResult.success) {
-      throw new Error(fallbackResult.error || 'Upload failed');
+    if (!response.ok) {
+      // If function doesn't exist (local dev), show helpful message
+      if (response.status === 404) {
+        throw new Error(
+          'Upload function not available. ' +
+          'In local dev, use "netlify dev" instead of "npm run dev". ' +
+          'Or test uploads on deployed environment: https://nirchal.pages.dev/'
+        );
+      }
+      throw new Error(`Upload failed with status ${response.status}`);
     }
 
-    console.log(`[Image Storage] Successfully uploaded via fallback: ${fallbackResult.githubUrl || fallbackResult.publicUrl}`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Upload failed');
+    }
+
+    console.log(`[Image Storage] Successfully uploaded to R2: ${result.url}`);
     
     return {
       success: true,
-      url: fallbackResult.githubUrl || fallbackResult.publicUrl || fallbackResult.filePath
+      url: result.url
     };
   } catch (error) {
     console.error('[Image Storage] Upload error:', error);
@@ -104,7 +84,6 @@ export const uploadImage = async (
 
 /**
  * Delete an image from R2 storage via server-side function
- * Falls back to old GitHub delete method in development
  * @param imageUrl - The full image URL or just the filename
  * @param folder - 'products' or 'categories'
  * @returns Promise with success status
@@ -122,59 +101,45 @@ export const deleteImage = async (
       return { success: true }; // Treat as success if no valid filename
     }
     
-    console.log(`[Image Storage] Deleting ${fileName} from storage (${folder})...`);
-    
-    // Only delete if it's an R2 URL
-    if (isR2Url(imageUrl)) {
-      // Try R2 delete first (production)
-      try {
-        const response = await fetch('/.netlify/functions/delete-image-r2', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileName,
-            folder
-          })
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            console.log(`[Image Storage] Successfully deleted from R2: ${fileName}`);
-            return { success: true };
-          }
-        }
-      } catch (r2Error) {
-        console.warn('[Image Storage] R2 delete failed, treating as success:', r2Error);
-        return { success: true }; // Treat R2 delete errors as success in dev
-      }
-    } else if (isGitHubUrl(imageUrl)) {
-      // Try GitHub delete fallback (for local development)
-      try {
-        const response = await fetch('/.netlify/functions/delete-image', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileName,
-            folder
-          })
-        });
-
-        if (response.ok) {
-          console.log(`[Image Storage] Successfully deleted via fallback: ${fileName}`);
-          return { success: true };
-        }
-      } catch (fallbackError) {
-        console.warn('[Image Storage] Fallback delete failed, treating as success:', fallbackError);
-      }
+    // Skip deletion for non-R2 URLs (legacy GitHub images - already migrated, don't exist anymore)
+    if (!isR2Url(imageUrl)) {
+      console.log(`[Image Storage] Skipping delete for non-R2 URL: ${imageUrl}`);
+      return { success: true };
     }
     
-    // If we get here, treat as success (file might not exist)
-    console.log(`[Image Storage] Delete completed (or file not found): ${fileName}`);
+    console.log(`[Image Storage] Deleting ${fileName} from R2 (${folder})...`);
+    
+    // Delete from R2 via serverless function
+    try {
+      const response = await fetch('/.netlify/functions/delete-image-r2', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName,
+          folder
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          console.log(`[Image Storage] Successfully deleted from R2: ${fileName}`);
+          return { success: true };
+        }
+      }
+      
+      // If function doesn't exist (local dev), treat as success
+      if (response.status === 404) {
+        console.warn('[Image Storage] Delete function not available (local dev), treating as success');
+        return { success: true };
+      }
+    } catch (error) {
+      console.warn('[Image Storage] Delete error, treating as success:', error);
+      return { success: true }; // Don't fail deletions - file might not exist
+    }
+    
     return { success: true };
   } catch (error) {
     console.error('[Image Storage] Delete error:', error);
