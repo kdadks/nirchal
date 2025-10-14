@@ -63,8 +63,15 @@ export const uploadImage = async (
 
     const result = await response.json();
     
+    console.log('[Image Storage] Upload response:', result);
+    
     if (!result.success) {
       throw new Error(result.error || 'Upload failed');
+    }
+
+    if (!result.url) {
+      console.error('[Image Storage] WARNING: Upload succeeded but no URL returned!', result);
+      throw new Error('Upload succeeded but no URL returned');
     }
 
     console.log(`[Image Storage] Successfully uploaded to R2: ${result.url}`);
