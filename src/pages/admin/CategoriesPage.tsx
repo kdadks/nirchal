@@ -4,7 +4,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import Pagination from '../../components/common/Pagination';
 import DeleteConfirmationModal from '../../components/admin/DeleteConfirmationModal';
-import { saveImageToPublicFolder, generateCategoryImageFileName } from '../../utils/localStorageUtils';
+import { saveImageToPublicFolder, generateCategoryImageFileName } from '../../utils/imageStorageAdapter';
 import { getCategoryStorageUrl } from '../../utils/storageUtils';
 import type { CategoryFormData } from '../../types/admin';
 import { Plus, Trash2, X, Upload, Download, Image as ImageIcon, Filter, Edit } from 'lucide-react';
@@ -218,16 +218,16 @@ const CategoriesPage: React.FC = () => {
       // Generate unique filename for local storage
       const fileName = generateCategoryImageFileName(form.name || 'category', file.name);
 
-      // Save image to local public folder
+      // Upload image to R2 storage
       const uploadResult = await saveImageToPublicFolder(file, fileName, 'categories');
 
       if (!uploadResult.success) {
         throw new Error(uploadResult.error || 'Image upload failed');
       }
 
-      // Set the form to use the full GitHub URL (not just filename)
-      const githubUrl = uploadResult.githubUrl || uploadResult.filePath || '';
-      setForm(prev => ({ ...prev, image_url: githubUrl }));
+      // Set the form to use the R2 URL
+      const imageUrl = uploadResult.url || '';
+      setForm(prev => ({ ...prev, image_url: imageUrl }));
       
       toast.success('Image uploaded successfully');
     } catch (error) {
