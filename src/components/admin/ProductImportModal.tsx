@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Upload, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
-import { saveImageToPublicFolder, generateProductImageFileName, generateCategoryImageFileName, getProductImageUrl, getCategoryImageUrl } from '../../utils/localStorageUtils';
+import { saveImageToPublicFolder, generateProductImageFileName, generateCategoryImageFileName, getProductImageUrl, getCategoryImageUrl } from '../../utils/imageStorageAdapter';
 
 // Import types and helper functions
 interface ImportOptions {
@@ -163,7 +163,7 @@ const useProductImport = () => {
       const uploadResult = await saveImageToPublicFolder(imageBlob, fileName, 'products');
 
       if (!uploadResult.success) {
-        console.error('❌ Failed to save image to local storage:', {
+        console.error('❌ Failed to save image to R2 storage:', {
           fileName,
           imageUrl,
           error: uploadResult.error
@@ -171,8 +171,8 @@ const useProductImport = () => {
         return null;
       }
 
-      console.log('✅ Successfully saved image to local storage:', uploadResult.filePath);
-      return uploadResult.filePath || null;
+      console.log('✅ Successfully saved image to R2 storage:', uploadResult.url);
+      return uploadResult.url || null;
     } catch (error) {
       console.error('❌ Error downloading/uploading image:', {
         imageUrl,
@@ -248,7 +248,7 @@ const useProductImport = () => {
       const uploadResult = await saveImageToPublicFolder(imageBlob, fileName, 'categories');
 
       if (!uploadResult.success) {
-        console.error('❌ Failed to save category image to local storage:', {
+        console.error('❌ Failed to save category image to R2 storage:', {
           fileName,
           imageUrl,
           error: uploadResult.error
@@ -256,8 +256,8 @@ const useProductImport = () => {
         return null;
       }
 
-      console.log('✅ Successfully saved category image to local storage:', uploadResult.filePath);
-      return fileName; // Return just the filename, not the full path
+      console.log('✅ Successfully saved category image to R2 storage:', uploadResult.url);
+      return uploadResult.url || null; // Return the full R2 URL
     } catch (error) {
       console.error('Error downloading/uploading category image:', error);
       return null;
