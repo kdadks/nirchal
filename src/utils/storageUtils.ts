@@ -1,6 +1,6 @@
 /**
  * Utility functions for handling image storage URLs
- * This file now redirects to localStorageUtils for local file storage
+ * This file now supports both GitHub (legacy) and Cloudflare R2 storage
  */
 
 import { 
@@ -9,13 +9,21 @@ import {
   extractFileName as extractLocalFileName,
   convertSupabaseUrlToLocal 
 } from './localStorageUtils';
+import { isR2Url, extractImageFileName } from './r2StorageUtils';
 
 /**
  * Extract filename from a storage URL or return the path if it's already a filename
+ * Supports both GitHub and R2 URLs
  * @param imageUrl - Full URL or filename
  * @returns Just the filename part for storage operations
  */
 export const extractStorageFileName = (imageUrl: string): string | null => {
+  // Check if it's an R2 URL first
+  if (isR2Url(imageUrl)) {
+    return extractImageFileName(imageUrl);
+  }
+  
+  // Fall back to local/GitHub extraction
   return extractLocalFileName(imageUrl);
 };
 
@@ -72,11 +80,17 @@ export const findCategoryImageUrl = (categoryName: string, categorySlug?: string
 
 /**
  * Generate a public URL for an image stored in the product folder
+ * Supports both GitHub (legacy) and R2 storage URLs
  * @param imagePath - The path/filename of the image
  * @returns Full public URL to access the image
  */
 export const getStorageImageUrl = (imagePath: string): string => {
   if (!imagePath || !imagePath.trim()) return '';
+  
+  // If it's already an R2 URL, return as is
+  if (isR2Url(imagePath)) {
+    return imagePath;
+  }
   
   // If it's already a GitHub raw URL, return as is
   if (imagePath.startsWith('https://raw.githubusercontent.com')) {
@@ -98,11 +112,17 @@ export const getStorageImageUrl = (imagePath: string): string => {
 
 /**
  * Generate a public URL for an image stored in the category folder
+ * Supports both GitHub (legacy) and R2 storage URLs
  * @param imagePath - The path/filename of the image
  * @returns Full public URL to access the image
  */
 export const getCategoryStorageUrl = (imagePath: string): string => {
   if (!imagePath || !imagePath.trim()) return '';
+  
+  // If it's already an R2 URL, return as is
+  if (isR2Url(imagePath)) {
+    return imagePath;
+  }
   
   // If it's already a GitHub raw URL, return as is
   if (imagePath.startsWith('https://raw.githubusercontent.com')) {
