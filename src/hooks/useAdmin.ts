@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabaseAdmin } from '../config/supabase';
-import { extractFileName, deleteImageFromPublicFolder, saveImageToPublicFolder, generateProductImageFileName } from '../utils/localStorageUtils';
+import { 
+	extractFileName, 
+	deleteImageFromPublicFolder, 
+	saveImageToPublicFolder, 
+	generateProductImageFileName 
+} from '../utils/imageStorageAdapter';
 import type {
 	Product,
 	Category,
@@ -501,10 +506,10 @@ export const useProducts = () => {
 					if (image.file) {
 						console.log(`[createProduct] Processing image ${index + 1}:`, image.file.name);
 						
-						// Generate unique filename for local storage
+						// Generate unique filename for R2 storage
 						const fileName = generateProductImageFileName((productData as any).name || 'product', image.file.name, index);
 						
-						// Save image to local public folder
+						// Upload image to R2 storage
 						const uploadResult = await saveImageToPublicFolder(image.file, fileName, 'products');
 
 						if (!uploadResult.success) {
@@ -512,8 +517,8 @@ export const useProducts = () => {
 							throw new Error(uploadResult.error || 'Image upload failed');
 						}
 
-						// Use the full GitHub URL from upload result
-						const imageUrl = uploadResult.githubUrl || uploadResult.filePath || fileName;
+						// Use the R2 URL from upload result
+						const imageUrl = uploadResult.url || fileName;
 						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Image URL:', imageUrl);
 						const { error: imageError } = await supabase
 							.from('product_images')
@@ -719,21 +724,19 @@ export const useProducts = () => {
 			// 4. Upload and insert new images
 			if (images) {
 				for (const img of images) {
-					if (img.file && !img.existing) {
-						// Generate unique filename for local storage
-						const fileName = generateProductImageFileName((updateData as any).name || 'product', img.file.name);
-						
-						// Save image to local public folder
-						const uploadResult = await saveImageToPublicFolder(img.file, fileName, 'products');
-						
-						if (!uploadResult.success) {
-							throw new Error(uploadResult.error || 'Image upload failed');
-						}
-						
-						// Use the full GitHub URL from upload result
-						const imageUrl = uploadResult.githubUrl || uploadResult.filePath || fileName;
-						
-						const { error: imageError } = await supabase
+				if (img.file && !img.existing) {
+					// Generate unique filename for R2 storage
+					const fileName = generateProductImageFileName((updateData as any).name || 'product', img.file.name);
+					
+					// Upload image to R2 storage
+					const uploadResult = await saveImageToPublicFolder(img.file, fileName, 'products');
+					
+					if (!uploadResult.success) {
+						throw new Error(uploadResult.error || 'Image upload failed');
+					}
+					
+					// Use the R2 URL from upload result
+					const imageUrl = uploadResult.url || fileName;						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: id,

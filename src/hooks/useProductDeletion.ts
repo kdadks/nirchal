@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../config/supabase';
-import { deleteImageFromPublicFolder } from '../utils/localStorageUtils';
+import { deleteImageFromPublicFolder } from '../utils/imageStorageAdapter';
 
 /**
  * Hook for handling product deletion with automatic image cleanup
