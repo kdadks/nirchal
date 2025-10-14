@@ -35,8 +35,8 @@ export const uploadImage = async (
       reader.readAsDataURL(blob);
     });
 
-    // Upload to R2 via serverless function
-    const response = await fetch('/.netlify/functions/upload-image-r2', {
+    // Upload to R2 via Cloudflare Function
+    const response = await fetch('/upload-image-r2', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -53,9 +53,9 @@ export const uploadImage = async (
       // If function doesn't exist (local dev), show helpful message
       if (response.status === 404) {
         throw new Error(
-          'Upload function not available. ' +
-          'In local dev, use "netlify dev" instead of "npm run dev". ' +
-          'Or test uploads on deployed environment: https://nirchal.pages.dev/'
+          'Upload function not available in local dev. ' +
+          'Test uploads on deployed environment: https://nirchal.pages.dev/ ' +
+          'Or use: wrangler pages dev dist --r2 PRODUCT_IMAGES=product-images'
         );
       }
       throw new Error(`Upload failed with status ${response.status}`);
@@ -109,9 +109,9 @@ export const deleteImage = async (
     
     console.log(`[Image Storage] Deleting ${fileName} from R2 (${folder})...`);
     
-    // Delete from R2 via serverless function
+    // Delete from R2 via Cloudflare Function
     try {
-      const response = await fetch('/.netlify/functions/delete-image-r2', {
+      const response = await fetch('/delete-image-r2', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
