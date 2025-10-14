@@ -44,7 +44,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['lucide-react', 'react-hot-toast'],
-          utils: ['date-fns', 'uuid']
+          utils: ['date-fns']
         },
         // Add hash to filenames for better cache busting
         chunkFileNames: 'assets/[name]-[hash].js',
