@@ -24,6 +24,11 @@ dist-ssr
 *.sw?
 .env
 
+# Migration reports and logs
+migration-report.json
+migration-errors.json
+direct-migration-errors.json
+
 # Debug, check, fix, and temporary files
 check-*.js
 debug*.sql
