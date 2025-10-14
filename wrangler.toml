@@ -1,0 +1,16 @@
+# Cloudflare Pages Configuration for R2 Integration
+name = "nirchal"
+compatibility_date = "2024-01-01"
+
+# R2 Bucket Binding
+[[r2_buckets]]
+binding = "PRODUCT_IMAGES"
+bucket_name = "product-images"
+preview_bucket_name = "product-images"
+
+# Environment Variables (set these in Cloudflare Pages dashboard)
+[env.production]
+vars = { }
+
+[env.preview]
+vars = { }
