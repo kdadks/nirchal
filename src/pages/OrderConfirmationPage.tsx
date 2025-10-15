@@ -12,6 +12,20 @@ const OrderConfirmationPage: React.FC = () => {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
+  const debugMode = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('debugOrder') === 'true';
+    } catch (error) {
+      console.error('OrderConfirmationPage: Failed to parse debug query param', error);
+      return false;
+    }
+  }, []);
+
   const { orderNumber, email, tempPassword } = useMemo(() => {
     try {
       const on = sessionStorage.getItem('last_order_number') || '';
@@ -31,7 +45,8 @@ const OrderConfirmationPage: React.FC = () => {
       console.log('OrderConfirmationPage: Loaded session data', {
         hasOrderNumber: !!on,
         email: em,
-        hasTempPassword: !!decryptedTempPassword
+        hasTempPassword: !!decryptedTempPassword,
+        debugMode
       });
       return payload;
     } catch (storageError) {
@@ -43,14 +58,19 @@ const OrderConfirmationPage: React.FC = () => {
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
     if (!orderNumber) {
-      setShouldRedirect(true);
-      console.warn('OrderConfirmationPage: Missing order number, redirecting back to cart');
+      if (debugMode) {
+        console.warn('OrderConfirmationPage: Missing order number but staying put because debug mode is active');
+        setShouldRedirect(false);
+      } else {
+        setShouldRedirect(true);
+        console.warn('OrderConfirmationPage: Missing order number, redirecting back to cart');
+      }
     } else {
       setShouldRedirect(false);
-      console.log('OrderConfirmationPage: Order number present, rendering confirmation screen', { orderNumber });
+      console.log('OrderConfirmationPage: Order number present, rendering confirmation screen', { orderNumber, debugMode });
     }
     setHasCheckedRedirect(true);
-  }, [orderNumber]);
+  }, [orderNumber, debugMode]);
 
   // Show password change notification for new customers - REMOVED AUTO-MODAL
   // Users will see notification on account page instead
@@ -79,7 +99,7 @@ const OrderConfirmationPage: React.FC = () => {
   }
 
   // Render redirect if needed
-  if (shouldRedirect) {
+  if (shouldRedirect && !debugMode) {
     return <Navigate to="/cart" replace />;
   }
 
