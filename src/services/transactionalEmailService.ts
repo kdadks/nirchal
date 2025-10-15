@@ -470,7 +470,7 @@ export class TransactionalEmailService {
       `;
 
       const emailPayload = {
-        to: 'support@nirchal.com',
+        to: ['support@nirchal.com', 'amit.ranjan78@gmail.com'], // Send to both support email and personal email
         subject: `🛍️ New Order #${orderData.order_number} - ₹${orderData.total_amount.toLocaleString()} - Nirchal`,
         html
       };
