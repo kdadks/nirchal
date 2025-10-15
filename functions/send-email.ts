@@ -1,15 +1,23 @@
 /**
- * Cloudflare Pages Function: Send Email via Zoho SMTP
+ * Cloudflare Pages Function: Send Email via Resend
  * 
- * This function handles all transactional email sending using Zoho Mail SMTP.
- * Uses MailChannels (built into Cloudflare Workers) for SMTP delivery.
+ * This function sends emails using Resend API - the best email service for Cloudflare Workers.
+ * Resend offers excellent deliverability, simple API, and works perfectly with custom domains.
+ * 
+ * Environment Variables Required:
+ * - RESEND_API_KEY: Your Resend API key (get from resend.com/api-keys)
+ * - EMAIL_FROM: From email address (e.g., support@nirchal.com)
+ * - EMAIL_FROM_NAME: Sender name (e.g., Nirchal)
+ * 
+ * Pricing:
+ * - Free: 3,000 emails/month
+ * - Pro: $20/month for 50,000 emails
  */
 
 interface Env {
-  // Zoho SMTP credentials
-  ZOHO_SMTP_USER: string;     // Your Zoho email address
-  ZOHO_SMTP_PASSWORD: string; // Your Zoho app password
-  ZOHO_SMTP_FROM_NAME: string; // Default sender name (e.g., "Nirchal")
+  RESEND_API_KEY: string;
+  EMAIL_FROM: string;
+  EMAIL_FROM_NAME: string;
 }
 
 interface EmailRequest {
@@ -36,13 +44,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   };
 
   try {
-    console.log('Send Email via Zoho SMTP - Request received');
+    console.log('Send Email via Resend - Request received');
 
-    // Validate Zoho SMTP credentials
-    if (!env.ZOHO_SMTP_USER || !env.ZOHO_SMTP_PASSWORD) {
-      console.error('Missing Zoho SMTP credentials');
+    // Validate Resend API key
+    if (!env.RESEND_API_KEY) {
+      console.error('Missing Resend API key');
       return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
+        JSON.stringify({ error: 'Email service not configured - missing RESEND_API_KEY' }),
         { status: 500, headers: corsHeaders }
       );
     }
@@ -60,86 +68,73 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     }
 
     // Prepare from address
-    const fromName = emailData.fromName || env.ZOHO_SMTP_FROM_NAME || 'Nirchal';
-    const fromAddress = emailData.from || env.ZOHO_SMTP_USER;
+    const fromName = emailData.fromName || env.EMAIL_FROM_NAME || 'Nirchal';
+    const fromAddress = emailData.from || env.EMAIL_FROM;
 
-    // Convert recipients to array format
+    // Format from field
+    const fromField = `${fromName} <${fromAddress}>`;
+
+    // Convert recipients to array format (Resend accepts strings or arrays)
     const toAddresses = Array.isArray(emailData.to) ? emailData.to : [emailData.to];
-    const ccAddresses = emailData.cc ? (Array.isArray(emailData.cc) ? emailData.cc : [emailData.cc]) : [];
-    const bccAddresses = emailData.bcc ? (Array.isArray(emailData.bcc) ? emailData.bcc : [emailData.bcc]) : [];
+    const ccAddresses = emailData.cc ? (Array.isArray(emailData.cc) ? emailData.cc : [emailData.cc]) : undefined;
+    const bccAddresses = emailData.bcc ? (Array.isArray(emailData.bcc) ? emailData.bcc : [emailData.bcc]) : undefined;
 
-    // Prepare email content
-    const personalizations = [{
-      to: toAddresses.map(email => ({ email })),
-      ...(ccAddresses.length > 0 && { cc: ccAddresses.map(email => ({ email })) }),
-      ...(bccAddresses.length > 0 && { bcc: bccAddresses.map(email => ({ email })) })
-    }];
-
-    // Build SMTP payload using MailChannels API format
-    const mailPayload = {
-      personalizations,
-      from: {
-        email: fromAddress,
-        name: fromName
-      },
-      ...(emailData.replyTo && { reply_to: { email: emailData.replyTo } }),
-      subject: emailData.subject,
-      content: [
-        {
-          type: 'text/html',
-          value: emailData.html
-        },
-        ...(emailData.text ? [{
-          type: 'text/plain',
-          value: emailData.text
-        }] : [])
-      ],
-      headers: {
-        'X-Mailer': 'Nirchal Cloudflare Worker',
-        'X-Priority': '1'
-      }
-    };
-
-    console.log('Sending email via Zoho SMTP:', {
+    console.log('Sending email via Resend:', {
       to: toAddresses,
       subject: emailData.subject,
-      from: `${fromName} <${fromAddress}>`
+      from: fromField
     });
 
-    // Send email via MailChannels SMTP (built into Cloudflare Workers)
-    // MailChannels will use Zoho SMTP for actual delivery
-    const smtpResponse = await fetch('https://api.mailchannels.net/tx/v1/send', {
+    // Build Resend API payload
+    const resendPayload: any = {
+      from: fromField,
+      to: toAddresses,
+      subject: emailData.subject,
+      html: emailData.html
+    };
+
+    // Add optional fields
+    if (emailData.text) resendPayload.text = emailData.text;
+    if (emailData.replyTo) resendPayload.reply_to = emailData.replyTo;
+    if (ccAddresses && ccAddresses.length > 0) resendPayload.cc = ccAddresses;
+    if (bccAddresses && bccAddresses.length > 0) resendPayload.bcc = bccAddresses;
+
+    // Send email via Resend API
+    const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(mailPayload)
+      body: JSON.stringify(resendPayload)
     });
 
-    if (!smtpResponse.ok) {
-      const errorText = await smtpResponse.text();
-      console.error('SMTP API error:', {
-        status: smtpResponse.status,
-        statusText: smtpResponse.statusText,
+    if (!resendResponse.ok) {
+      const errorText = await resendResponse.text();
+      console.error('Resend API error:', {
+        status: resendResponse.status,
+        statusText: resendResponse.statusText,
         error: errorText
       });
 
       return new Response(
         JSON.stringify({
-          error: 'Failed to send email',
+          error: 'Failed to send email via Resend',
           details: errorText,
-          status: smtpResponse.status
+          status: resendResponse.status
         }),
-        { status: smtpResponse.status, headers: corsHeaders }
+        { status: resendResponse.status, headers: corsHeaders }
       );
     }
 
-    console.log('✅ Email sent successfully via Zoho SMTP');
+    const resendResult = await resendResponse.json();
+    console.log('✅ Email sent successfully via Resend:', resendResult);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Email sent successfully via Zoho SMTP',
+        message: 'Email sent successfully via Resend',
+        id: resendResult.id,
         to: toAddresses,
         subject: emailData.subject
       }),

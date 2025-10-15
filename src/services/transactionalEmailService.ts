@@ -41,8 +41,9 @@ export class TransactionalEmailService {
   private baseUrl: string;
 
   constructor() {
-    // Use Cloudflare Functions (no prefix needed, functions are at root)
-    this.baseUrl = '';
+    // Use Netlify Functions for email sending (already configured with Zoho SMTP)
+    // Netlify Functions remain active at /.netlify/functions even when frontend is on Cloudflare
+    this.baseUrl = '/.netlify/functions';
   }
 
   // Send welcome email when user signs up
