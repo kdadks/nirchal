@@ -348,7 +348,11 @@ async function handlePaymentFailed(env: Env, payment: any) {
 // Handle order paid event
 async function handleOrderPaid(env: Env, order: any, payment: any) {
   try {
-    console.log('Processing order.paid event:', order.id);
+    console.log('🎯 Processing order.paid event:', {
+      razorpay_order_id: order.id,
+      razorpay_payment_id: payment?.id,
+      payment_status: payment?.status
+    });
     
     // Find the order using Razorpay order ID
     const orderResponse = await fetch(
@@ -362,7 +366,12 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
     );
 
     if (!orderResponse.ok) {
-      console.error('Failed to fetch order for order.paid event:', order.id);
+      const errorText = await orderResponse.text();
+      console.error('❌ Failed to fetch order for order.paid event:', {
+        razorpay_order_id: order.id,
+        status: orderResponse.status,
+        error: errorText
+      });
       return;
     }
 
@@ -370,12 +379,41 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
     const dbOrder = orderData[0];
 
     if (!dbOrder) {
-      console.error('Order not found for order.paid event:', order.id);
+      console.error('❌ Order not found for order.paid event:', {
+        razorpay_order_id: order.id,
+        searched_field: 'razorpay_order_id',
+        note: 'Order might not have razorpay_order_id set yet, or was not created properly'
+      });
       return;
     }
 
-    // Update order status to paid if not already
-    if (dbOrder.payment_status !== 'paid') {
+    console.log('✅ Found order:', {
+      order_id: dbOrder.id,
+      order_number: dbOrder.order_number,
+      current_payment_status: dbOrder.payment_status,
+      has_payment_details: !!dbOrder.payment_details
+    });
+
+    // Check if we need to update payment_details even if order is already paid
+    const needsUpdate = dbOrder.payment_status !== 'paid' || !dbOrder.payment_details;
+    
+    if (needsUpdate) {
+      console.log('💾 Updating order via order.paid event:', {
+        order_id: dbOrder.id,
+        order_number: dbOrder.order_number,
+        current_status: dbOrder.payment_status,
+        has_payment_details: !!dbOrder.payment_details,
+        will_add_payment_details: !!payment
+      });
+
+      // Fetch full payment details if we only have payment ID
+      let paymentDetails = payment;
+      if (!paymentDetails && payment?.id) {
+        console.log('📡 Fetching payment details from order.paid event payment_id:', payment.id);
+        // Payment details should be in the webhook payload
+        paymentDetails = payment;
+      }
+
       const updateResponse = await fetch(
         `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${dbOrder.id}`,
         {
@@ -388,19 +426,30 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
           },
           body: JSON.stringify({
             payment_status: 'paid',
-            razorpay_payment_id: payment?.id,
-            razorpay_order_id: order?.id,
-            payment_details: { order, payment },
+            razorpay_payment_id: payment?.id || dbOrder.razorpay_payment_id,
+            razorpay_order_id: order?.id || dbOrder.razorpay_order_id,
+            payment_details: paymentDetails || { order, payment },
             updated_at: new Date().toISOString()
           })
         }
       );
 
       if (!updateResponse.ok) {
-        console.error('Failed to update order status for order.paid');
+        const errorText = await updateResponse.text();
+        console.error('❌ Failed to update order status for order.paid:', {
+          status: updateResponse.status,
+          error: errorText,
+          order_id: dbOrder.id
+        });
       } else {
-        console.log('Order status updated to paid via order.paid event:', dbOrder.order_number);
+        console.log('✅ Order status updated via order.paid event:', {
+          order_number: dbOrder.order_number,
+          payment_id: payment?.id,
+          payment_details_added: !!paymentDetails
+        });
       }
+    } else {
+      console.log('ℹ️ Order already paid and has payment_details, skipping update:', dbOrder.order_number);
     }
 
   } catch (error) {
