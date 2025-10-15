@@ -91,13 +91,16 @@ export class EmailTemplates {
     </style>
   `;
 
-  private static readonly footerContent = `
-    <div class="footer">
-      <p><strong>Nirchal</strong> - Your Trusted Shopping Destination</p>
-      <p>📧 Email: support@nirchal.com | 🌐 Website: <a href="https://nirchal.netlify.app" style="color: #ea580c;">nirchal.netlify.app</a></p>
-      <p><small>This is an automated email. Please do not reply directly to this message.</small></p>
-    </div>
-  `;
+  private static getFooterContent(websiteUrl: string): string {
+    const displayUrl = websiteUrl.replace('https://', '').replace('http://', '');
+    return `
+      <div class="footer">
+        <p><strong>Nirchal</strong> - Your Trusted Shopping Destination</p>
+        <p>📧 Email: support@nirchal.com | 🌐 Website: <a href="${websiteUrl}" style="color: #ea580c;">${displayUrl}</a></p>
+        <p><small>This is an automated email. Please do not reply directly to this message.</small></p>
+      </div>
+    `;
+  }
 
   // Welcome Email Template
   static welcomeEmail(data: EmailTemplateData): { subject: string; html: string } {
@@ -133,7 +136,7 @@ export class EmailTemplates {
             </ul>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${data.websiteUrl || 'https://nirchal.netlify.app'}" class="button">🛍️ Start Shopping Now</a>
+              <a href="${data.websiteUrl}" class="button">🛍️ Start Shopping Now</a>
             </div>
             
             <p>If you have any questions, our friendly customer support team is here to help!</p>
@@ -144,7 +147,7 @@ export class EmailTemplates {
             </p>
           </div>
           
-          ${this.footerContent}
+          ${this.getFooterContent(data.websiteUrl || 'https://nirchal.pages.dev')}
         </div>
       </body>
       </html>
@@ -203,7 +206,7 @@ export class EmailTemplates {
             </p>
           </div>
           
-          ${this.footerContent}
+          ${this.getFooterContent(data.websiteUrl || 'https://nirchal.pages.dev')}
         </div>
       </body>
       </html>
@@ -269,7 +272,7 @@ export class EmailTemplates {
             </ul>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${data.websiteUrl || 'https://nirchal.netlify.app'}/myaccount" class="button">📱 Track Your Order</a>
+              <a href="${data.websiteUrl}/myaccount?tab=orders" class="button">📱 Track Your Order</a>
             </div>
             
             <p style="margin-top: 30px;">
@@ -278,7 +281,7 @@ export class EmailTemplates {
             </p>
           </div>
           
-          ${this.footerContent}
+          ${this.getFooterContent(data.websiteUrl || 'https://nirchal.pages.dev')}
         </div>
       </body>
       </html>
@@ -351,11 +354,11 @@ export class EmailTemplates {
             
             ${status === 'delivered' ? `
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${data.websiteUrl || 'https://nirchal.netlify.app'}" class="button">⭐ Rate Your Experience</a>
+                <a href="${data.websiteUrl}" class="button">⭐ Rate Your Experience</a>
               </div>
             ` : `
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${data.websiteUrl || 'https://nirchal.netlify.app'}/myaccount" class="button">📱 View Order Details</a>
+                <a href="${data.websiteUrl}/myaccount?tab=orders" class="button">📱 View Order Details</a>
               </div>
             `}
             
@@ -365,7 +368,7 @@ export class EmailTemplates {
             </p>
           </div>
           
-          ${this.footerContent}
+          ${this.getFooterContent(data.websiteUrl || 'https://nirchal.pages.dev')}
         </div>
       </body>
       </html>
@@ -424,7 +427,7 @@ export class EmailTemplates {
             </ul>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${data.websiteUrl || 'https://nirchal.netlify.app'}/myaccount" class="button">🔐 Manage Account</a>
+              <a href="${data.websiteUrl}/myaccount" class="button">🔐 Manage Account</a>
             </div>
             
             <p style="margin-top: 30px;">
@@ -433,7 +436,7 @@ export class EmailTemplates {
             </p>
           </div>
           
-          ${this.footerContent}
+          ${this.getFooterContent(data.websiteUrl || 'https://nirchal.pages.dev')}
         </div>
       </body>
       </html>
