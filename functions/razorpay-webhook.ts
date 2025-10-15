@@ -156,7 +156,7 @@ async function handlePaymentCaptured(env: Env, payment: any) {
     
     // 🔒 DUPLICATE PAYMENT PROTECTION: Check if this payment ID is already processed
     const existingPaymentResponse = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/orders?payment_id=eq.${payment.id}&select=id,order_number,payment_status`,
+      `${env.SUPABASE_URL}/rest/v1/orders?razorpay_payment_id=eq.${payment.id}&select=id,order_number,payment_status`,
       {
         headers: {
           'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
@@ -225,8 +225,8 @@ async function handlePaymentCaptured(env: Env, payment: any) {
         },
         body: JSON.stringify({
           payment_status: 'paid',
-          payment_id: payment.id,
-          payment_details: payment,
+          razorpay_payment_id: payment.id,
+          razorpay_order_id: payment.order_id,
           updated_at: new Date().toISOString()
         })
       }
