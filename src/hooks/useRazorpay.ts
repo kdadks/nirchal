@@ -92,9 +92,9 @@ export const useRazorpay = (): UseRazorpayReturn => {
       let response;
       
       if (isDevelopment) {
-        // Try the Netlify function first, but fall back to mock if unavailable
+        // Try the Cloudflare function first, but fall back to mock if unavailable
         try {
-          response = await fetch('/.netlify/functions/create-razorpay-order', {
+          response = await fetch('/create-razorpay-order', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export const useRazorpay = (): UseRazorpayReturn => {
             throw new Error('Function not available in development');
           }
         } catch (fetchError) {
-          console.warn('Netlify function not available, using mock response for development:', fetchError);
+          console.warn('Cloudflare function not available, using mock response for development:', fetchError);
           
           // Return mock Razorpay order for development
           const mockOrder = {
@@ -149,7 +149,7 @@ export const useRazorpay = (): UseRazorpayReturn => {
           return mockOrder;
         }
       } else {
-        response = await fetch('/.netlify/functions/create-razorpay-order', {
+        response = await fetch('/create-razorpay-order', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -200,7 +200,7 @@ export const useRazorpay = (): UseRazorpayReturn => {
 
   const verifyPayment = async (verificationData: RazorpayResponse & { order_id: string }): Promise<any> => {
     try {
-      const response = await fetch('/.netlify/functions/verify-razorpay-payment', {
+      const response = await fetch('/verify-razorpay-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
