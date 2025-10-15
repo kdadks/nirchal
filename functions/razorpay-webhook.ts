@@ -227,6 +227,7 @@ async function handlePaymentCaptured(env: Env, payment: any) {
           payment_status: 'paid',
           razorpay_payment_id: payment.id,
           razorpay_order_id: payment.order_id,
+          payment_details: payment,
           updated_at: new Date().toISOString()
         })
       }
@@ -350,7 +351,8 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
           },
           body: JSON.stringify({
             payment_status: 'paid',
-            payment_id: payment?.id,
+            razorpay_payment_id: payment?.id,
+            razorpay_order_id: order?.id,
             payment_details: { order, payment },
             updated_at: new Date().toISOString()
           })
