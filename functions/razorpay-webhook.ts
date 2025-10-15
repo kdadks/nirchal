@@ -16,6 +16,96 @@ interface Env {
   RAZORPAY_WEBHOOK_SECRET: string;
 }
 
+function createBasicAuthHeader(keyId: string, keySecret: string) {
+  const raw = `${keyId}:${keySecret}`;
+  if (typeof btoa === 'function') {
+    return `Basic ${btoa(raw)}`;
+  }
+  // @ts-ignore - Buffer is available in Node bundler during build
+  return `Basic ${Buffer.from(raw).toString('base64')}`;
+}
+
+async function fetchPaymentDetailsFromRazorpay(env: Env, paymentId?: string, orderId?: string) {
+  if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
+    console.error('❌ Missing Razorpay API credentials in environment variables');
+    return null;
+  }
+
+  const authHeader = createBasicAuthHeader(env.RAZORPAY_KEY_ID, env.RAZORPAY_KEY_SECRET);
+
+  try {
+    if (paymentId) {
+      const paymentResponse = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
+        headers: {
+          'Authorization': authHeader
+        }
+      });
+
+      if (paymentResponse.ok) {
+        const paymentDetails = await paymentResponse.json();
+        console.log('✅ Fetched payment via paymentId:', {
+          payment_id: paymentDetails.id,
+          method: paymentDetails.method,
+          amount: paymentDetails.amount,
+          status: paymentDetails.status
+        });
+        return paymentDetails;
+      }
+
+      const errorText = await paymentResponse.text();
+      console.error('❌ Razorpay /payments/{id} error:', {
+        status: paymentResponse.status,
+        error: errorText,
+        paymentId
+      });
+    }
+
+    if (orderId) {
+      console.log('📡 Fetching payments list for order:', orderId);
+      const paymentsResponse = await fetch(`https://api.razorpay.com/v1/orders/${orderId}/payments`, {
+        headers: {
+          'Authorization': authHeader
+        }
+      });
+
+      if (paymentsResponse.ok) {
+        const data = await paymentsResponse.json();
+        const paymentDetails = data?.items?.[0] || null;
+
+        if (paymentDetails) {
+          console.log('✅ Fetched payment via order payments list:', {
+            payment_id: paymentDetails.id,
+            method: paymentDetails.method,
+            amount: paymentDetails.amount,
+            status: paymentDetails.status
+          });
+          return paymentDetails;
+        }
+
+        console.warn('⚠️ No payments found for order:', {
+          orderId,
+          itemsCount: Array.isArray(data?.items) ? data.items.length : 0
+        });
+      } else {
+        const errorText = await paymentsResponse.text();
+        console.error('❌ Razorpay /orders/{id}/payments error:', {
+          status: paymentsResponse.status,
+          error: errorText,
+          orderId
+        });
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error fetching payment details from Razorpay API:', {
+      error: error instanceof Error ? error.message : String(error),
+      paymentId,
+      orderId
+    });
+  }
+
+  return null;
+}
+
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const { request, env } = context;
 
@@ -221,15 +311,17 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       return; // Skip processing for already paid orders
     }
 
+    const paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment.id, payment.order_id) || payment;
+
     // Update order status to paid
     console.log('💾 Updating order with payment details:', {
       order_id: order.id,
       order_number: order.order_number,
       updating_payment_id: payment.id,
       updating_order_id: payment.order_id,
-      payment_details_size: JSON.stringify(payment).length,
-      has_payment_method: !!payment.method,
-      has_payment_amount: !!payment.amount
+      payment_details_size: JSON.stringify(paymentDetails).length,
+      has_payment_method: !!paymentDetails?.method,
+      has_payment_amount: !!paymentDetails?.amount
     });
 
     const updateResponse = await fetch(
@@ -246,7 +338,7 @@ async function handlePaymentCaptured(env: Env, payment: any) {
           payment_status: 'paid',
           razorpay_payment_id: payment.id,
           razorpay_order_id: payment.order_id,
-          payment_details: payment,
+          payment_details: paymentDetails,
           updated_at: new Date().toISOString()
         })
       }
@@ -269,10 +361,10 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       order_id: order.id,
       order_number: order.order_number,
       payment_id: payment.id,
-      payment_method: payment.method,
-      payment_amount: payment.amount,
-      payment_details_type: typeof payment,
-      payment_details_keys: Object.keys(payment).length
+      payment_method: paymentDetails?.method,
+      payment_amount: paymentDetails?.amount,
+      payment_details_type: typeof paymentDetails,
+      payment_details_keys: paymentDetails ? Object.keys(paymentDetails).length : 0
     });
 
     // ✅ NOW UPDATE INVENTORY: Payment is confirmed, decrement stock
@@ -409,37 +501,7 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
         payment_id: payment?.id
       });
 
-      // Fetch full payment details from Razorpay API
-      let paymentDetails = null;
-      if (payment?.id) {
-        console.log('📡 Fetching full payment details from Razorpay API:', payment.id);
-        try {
-          const auth = Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString('base64');
-          const paymentResponse = await fetch(`https://api.razorpay.com/v1/payments/${payment.id}`, {
-            headers: {
-              'Authorization': `Basic ${auth}`
-            }
-          });
-
-          if (paymentResponse.ok) {
-            paymentDetails = await paymentResponse.json();
-            console.log('✅ Fetched payment details:', {
-              method: paymentDetails.method,
-              amount: paymentDetails.amount,
-              status: paymentDetails.status
-            });
-          } else {
-            console.error('❌ Failed to fetch payment from Razorpay:', await paymentResponse.text());
-            // Fall back to webhook payload
-            paymentDetails = payment;
-          }
-        } catch (error) {
-          console.error('❌ Error fetching payment from Razorpay:', error);
-          paymentDetails = payment;
-        }
-      } else {
-        paymentDetails = payment;
-      }
+      const paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment?.id, order?.id) || payment;
 
       const updatePayload = {
         payment_status: 'paid',
