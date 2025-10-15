@@ -725,6 +725,33 @@ const AccountPage: React.FC = () => {
                                             </span>
                                           </div>
                                         )}
+                                        {/* UPI Transaction ID */}
+                                        {order.payment_details.vpa && (
+                                          <div className="flex items-center justify-between text-sm mt-1">
+                                            <span className="text-gray-600">UPI ID:</span>
+                                            <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                              {order.payment_details.vpa}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {/* UPI Transaction Reference */}
+                                        {order.payment_details.acquirer_data?.upi_transaction_id && (
+                                          <div className="flex items-center justify-between text-sm mt-1">
+                                            <span className="text-gray-600">UPI Transaction ID:</span>
+                                            <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                              {order.payment_details.acquirer_data.upi_transaction_id}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {/* Bank Reference Number (for non-UPI) */}
+                                        {order.payment_details.acquirer_data?.bank_transaction_id && (
+                                          <div className="flex items-center justify-between text-sm mt-1">
+                                            <span className="text-gray-600">Bank Transaction ID:</span>
+                                            <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                              {order.payment_details.acquirer_data.bank_transaction_id}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>

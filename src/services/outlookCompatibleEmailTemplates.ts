@@ -130,7 +130,7 @@ export class OutlookCompatibleEmailTemplate {
                       <tr>
                         <td style="color: #666666; font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; text-align: center;">
                           <strong style="color: #ea580c;">Nirchal</strong> - ${data.footerText}<br>
-                          📧 support@nirchal.com | 🌐 <a href="${data.websiteUrl}" style="color: #ea580c; text-decoration: none;">nirchal.netlify.app</a>
+                          📧 support@nirchal.com | 🌐 <a href="${data.websiteUrl}" style="color: #ea580c; text-decoration: none;">${data.websiteUrl.replace('https://', '').replace('http://', '')}</a>
                         </td>
                       </tr>
                     </table>
