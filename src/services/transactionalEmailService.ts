@@ -57,7 +57,7 @@ export class TransactionalEmailService {
       
       const html = outlookCompatibleWelcomeEmail(
         `${customer.first_name} ${customer.last_name}`,
-        'https://nirchal.netlify.app',
+        window.location.origin,
         customer.temp_password // Pass temp password if available
       );
 
@@ -96,7 +96,7 @@ export class TransactionalEmailService {
       const html = outlookCompatiblePasswordResetEmail(
         `${customer.first_name} ${customer.last_name}`,
         resetLink,
-        'https://nirchal.netlify.app'
+        window.location.origin
       );
 
   const response = await fetch(`${this.baseUrl}/send-email`, {
@@ -121,7 +121,7 @@ export class TransactionalEmailService {
     try {
       const html = outlookCompatiblePasswordChangeEmail(
         `${customer.first_name} ${customer.last_name}`,
-        'https://nirchal.netlify.app'
+        window.location.origin
       );
 
   const response = await fetch(`${this.baseUrl}/send-email`, {
@@ -151,7 +151,7 @@ export class TransactionalEmailService {
         order.customer_name,
         orderNumber,
         (order.total_amount || 0).toString(),
-        'https://nirchal.netlify.app'
+        window.location.origin
       );
 
       const emailPayload = {
@@ -185,8 +185,8 @@ export class TransactionalEmailService {
   // Send order received email (when order is first placed)
   async sendOrderReceivedEmail(order: OrderData): Promise<boolean> {
     try {
-      const websiteUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://nirchal.netlify.app' 
+      const websiteUrl = typeof window !== 'undefined' 
+        ? window.location.origin 
         : 'http://localhost:5173';
       
       const orderNumber = order.order_number || `ORD${order.id}`;
@@ -234,7 +234,7 @@ export class TransactionalEmailService {
         orderNumber,
         order.status,
         order.tracking_number,
-        'https://nirchal.netlify.app'
+        window.location.origin
       );
 
   const response = await fetch(`${this.baseUrl}/send-email`, {
@@ -279,7 +279,7 @@ export class TransactionalEmailService {
         order.tracking_number,
         trackingUrl,
         logisticsPartner,
-        'https://nirchal.netlify.app'
+        window.location.origin
       );
 
       const emailPayload = {
@@ -326,7 +326,7 @@ export class TransactionalEmailService {
         paymentData.order_number,
         paymentData.amount.toString(),
         paymentData.payment_id,
-        'https://nirchal.netlify.app'
+        window.location.origin
       );
 
       const emailPayload = {
@@ -373,7 +373,7 @@ export class TransactionalEmailService {
         paymentData.order_number,
         paymentData.amount.toString(),
         paymentData.error_reason,
-        'https://nirchal.netlify.app'
+        window.location.origin
       );
 
       const emailPayload = {
