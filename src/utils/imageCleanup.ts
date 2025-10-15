@@ -39,7 +39,7 @@ export async function cleanupProblematicImages(): Promise<{
   results?: Array<{ filePath: string; success: boolean; error?: string }>;
 }> {
   try {
-    const response = await fetch('/.netlify/functions/delete-image', {
+    const response = await fetch('/delete-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

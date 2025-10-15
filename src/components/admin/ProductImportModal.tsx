@@ -81,7 +81,7 @@ const useProductImport = () => {
 
       // Try to use server-side function first (for production)
       try {
-        const response = await fetch('/.netlify/functions/download-image', {
+        const response = await fetch('/download-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -194,7 +194,7 @@ const useProductImport = () => {
 
       // Try to use server-side function first (for production)
       try {
-        const response = await fetch('/.netlify/functions/download-image', {
+        const response = await fetch('/download-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
