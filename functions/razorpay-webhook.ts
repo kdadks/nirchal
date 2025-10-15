@@ -8,7 +8,7 @@
 interface Env {
   // Supabase
   SUPABASE_URL: string;
-  SUPABASE_ANON_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
   
   // Razorpay Webhook Secret
   RAZORPAY_WEBHOOK_SECRET: string;
@@ -48,7 +48,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
-    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Database not configured' }),
@@ -159,8 +159,8 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?payment_id=eq.${payment.id}&select=id,order_number,payment_status`,
       {
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
         }
       }
     );
@@ -182,8 +182,8 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?razorpay_order_id=eq.${payment.order_id}&select=*`,
       {
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
         }
       }
     );
@@ -218,8 +218,8 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
@@ -253,8 +253,8 @@ async function handlePaymentFailed(env: Env, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?razorpay_order_id=eq.${payment.order_id}&select=*`,
       {
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
         }
       }
     );
@@ -278,8 +278,8 @@ async function handlePaymentFailed(env: Env, payment: any) {
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
@@ -313,8 +313,8 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?razorpay_order_id=eq.${order.id}&select=*`,
       {
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
         }
       }
     );
@@ -339,8 +339,8 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
         {
           method: 'PATCH',
           headers: {
-            'apikey': env.SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },
