@@ -71,23 +71,50 @@ const CheckoutPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [currentStep] = useState(1);
-  const [debugMode] = useState(() => {
+  const [debugMode, setDebugMode] = useState(() => {
     if (typeof window === 'undefined') {
       return false;
     }
 
     try {
       const params = new URLSearchParams(window.location.search);
-      const mode = params.get('debugCheckout') === 'true';
-      if (mode) {
-        console.warn('CheckoutPage: Debug mode active — automatic redirects disabled to preserve console logs');
+      if (params.has('debugCheckout')) {
+        const flag = params.get('debugCheckout') === 'true';
+        sessionStorage.setItem('checkout_debug_mode', flag ? 'true' : 'false');
+        console.warn('CheckoutPage: Debug mode updated via query param', { flag });
+        return flag;
       }
-      return mode;
+
+      return sessionStorage.getItem('checkout_debug_mode') === 'true';
     } catch (error) {
-      console.error('CheckoutPage: Failed to read debugCheckout query param', error);
+      console.error('CheckoutPage: Failed to determine initial debug mode state', error);
       return false;
     }
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('debugCheckout')) {
+        const flag = params.get('debugCheckout') === 'true';
+        sessionStorage.setItem('checkout_debug_mode', flag ? 'true' : 'false');
+        console.warn('CheckoutPage: Debug mode updated via query param', { flag });
+      }
+
+      const storedFlag = sessionStorage.getItem('checkout_debug_mode');
+      const debugEnabled = storedFlag === 'true';
+      setDebugMode(debugEnabled);
+      if (debugEnabled) {
+        console.warn('CheckoutPage: Debug mode active — automatic redirects disabled to preserve console logs');
+      }
+    } catch (error) {
+      console.error('CheckoutPage: Failed to resolve debug mode state', error);
+    }
+  }, []);
   const [form, setForm] = useState<CheckoutForm>({
     // Contact Information
     firstName: '',
