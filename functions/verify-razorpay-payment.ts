@@ -198,10 +198,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         },
         body: JSON.stringify({
           payment_status: 'paid',
-          payment_id: razorpay_payment_id,
+          razorpay_payment_id: razorpay_payment_id,
           razorpay_order_id: razorpay_order_id,
           razorpay_signature: razorpay_signature,
-          payment_verified_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
       }
