@@ -1,6 +1,7 @@
 # Force HTTPS redirect for all HTTP requests
-http://nirchal.netlify.app/* https://nirchal.netlify.app/:splat 301!
-http://your-custom-domain.com/* https://your-custom-domain.com/:splat 301!
+http://nirchal.netlify.app/* https://nirchal.netlify.app/:splat 301
+http://nirchal.com/* https://nirchal.com/:splat 301
+http://www.nirchal.com/* https://nirchal.com/:splat 301
 
 # SPA fallback
-/*    /index.html   200
+/* /index.html 200
