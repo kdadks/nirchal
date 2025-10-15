@@ -210,6 +210,13 @@ export const useRazorpay = (): UseRazorpayReturn => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Payment verification failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData.error,
+          details: errorData.details,
+          serverStatus: errorData.status
+        });
         throw new Error(errorData.error || 'Payment verification failed');
       }
 
