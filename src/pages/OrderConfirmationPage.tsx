@@ -12,65 +12,23 @@ const OrderConfirmationPage: React.FC = () => {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
-  const debugMode = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('debugOrder') === 'true';
-    } catch (error) {
-      console.error('OrderConfirmationPage: Failed to parse debug query param', error);
-      return false;
-    }
-  }, []);
-
   const { orderNumber, email, tempPassword } = useMemo(() => {
-    try {
-      const on = sessionStorage.getItem('last_order_number') || '';
-      const em = sessionStorage.getItem('last_order_email') || '';
-      const tp = sessionStorage.getItem('new_customer_temp_password') || '';
-
-      let decryptedTempPassword = '';
-      if (tp) {
-        try {
-          decryptedTempPassword = SecurityUtils.decryptTempData(tp);
-        } catch (decryptError) {
-          console.error('OrderConfirmationPage: Failed to decrypt temp password from session storage', decryptError);
-        }
-      }
-
-      const payload = { orderNumber: on, email: em, tempPassword: decryptedTempPassword };
-      console.log('OrderConfirmationPage: Loaded session data', {
-        hasOrderNumber: !!on,
-        email: em,
-        hasTempPassword: !!decryptedTempPassword,
-        debugMode
-      });
-      return payload;
-    } catch (storageError) {
-      console.error('OrderConfirmationPage: Failed to read session storage values', storageError);
-      return { orderNumber: '', email: '', tempPassword: '' };
-    }
+    const on = sessionStorage.getItem('last_order_number') || '';
+    const em = sessionStorage.getItem('last_order_email') || '';
+    const tp = sessionStorage.getItem('new_customer_temp_password') || '';
+    
+    return { orderNumber: on, email: em, tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '' };
   }, []);
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
     if (!orderNumber) {
-      if (debugMode) {
-        console.warn('OrderConfirmationPage: Missing order number but staying put because debug mode is active');
-        setShouldRedirect(false);
-      } else {
-        setShouldRedirect(true);
-        console.warn('OrderConfirmationPage: Missing order number, redirecting back to cart');
-      }
+      setShouldRedirect(true);
     } else {
       setShouldRedirect(false);
-      console.log('OrderConfirmationPage: Order number present, rendering confirmation screen', { orderNumber, debugMode });
     }
     setHasCheckedRedirect(true);
-  }, [orderNumber, debugMode]);
+  }, [orderNumber]);
 
   // Show password change notification for new customers - REMOVED AUTO-MODAL
   // Users will see notification on account page instead
@@ -99,7 +57,7 @@ const OrderConfirmationPage: React.FC = () => {
   }
 
   // Render redirect if needed
-  if (shouldRedirect && !debugMode) {
+  if (shouldRedirect) {
     return <Navigate to="/cart" replace />;
   }
 

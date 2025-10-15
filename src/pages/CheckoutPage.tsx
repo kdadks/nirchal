@@ -71,50 +71,6 @@ const CheckoutPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [currentStep] = useState(1);
-  const [debugMode, setDebugMode] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.has('debugCheckout')) {
-        const flag = params.get('debugCheckout') === 'true';
-        sessionStorage.setItem('checkout_debug_mode', flag ? 'true' : 'false');
-        console.warn('CheckoutPage: Debug mode updated via query param', { flag });
-        return flag;
-      }
-
-      return sessionStorage.getItem('checkout_debug_mode') === 'true';
-    } catch (error) {
-      console.error('CheckoutPage: Failed to determine initial debug mode state', error);
-      return false;
-    }
-  });
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.has('debugCheckout')) {
-        const flag = params.get('debugCheckout') === 'true';
-        sessionStorage.setItem('checkout_debug_mode', flag ? 'true' : 'false');
-        console.warn('CheckoutPage: Debug mode updated via query param', { flag });
-      }
-
-      const storedFlag = sessionStorage.getItem('checkout_debug_mode');
-      const debugEnabled = storedFlag === 'true';
-      setDebugMode(debugEnabled);
-      if (debugEnabled) {
-        console.warn('CheckoutPage: Debug mode active — automatic redirects disabled to preserve console logs');
-      }
-    } catch (error) {
-      console.error('CheckoutPage: Failed to resolve debug mode state', error);
-    }
-  }, []);
   const [form, setForm] = useState<CheckoutForm>({
     // Contact Information
     firstName: '',
@@ -493,6 +449,24 @@ const CheckoutPage: React.FC = () => {
             }
           });
 
+          // 🔥 CRITICAL: Save razorpay_order_id immediately so webhook can find the order
+          const { error: updateOrderError } = await supabase
+            .from('orders')
+            .update({ 
+              razorpay_order_id: razorpayOrderData.order.id 
+            })
+            .eq('id', order.id);
+
+          if (updateOrderError) {
+            console.error('Failed to update order with razorpay_order_id:', updateOrderError);
+            throw new Error('Failed to link payment order. Please try again.');
+          }
+
+          console.log('✅ Saved razorpay_order_id to database:', {
+            order_id: order.id,
+            razorpay_order_id: razorpayOrderData.order.id
+          });
+
           // Open Razorpay checkout
           openRazorpayCheckout({
             key: razorpayOrderData.checkout_config.key,
@@ -673,12 +647,7 @@ const CheckoutPage: React.FC = () => {
       // Check if order was actually created despite the error
       const orderNumber = sessionStorage.getItem('last_order_number');
       if (orderNumber) {
-        console.warn('CheckoutPage: Order number exists after error, evaluating redirect', { orderNumber, debugMode });
-        if (debugMode) {
-          console.warn('CheckoutPage: Debug mode enabled — not redirecting so you can inspect errors');
-        } else {
-          window.location.href = '/order-confirmation';
-        }
+        window.location.href = '/order-confirmation';
         return;
       }
       
@@ -803,22 +772,11 @@ const CheckoutPage: React.FC = () => {
     try {
       clearCart();
       localStorage.removeItem('cart');
-      console.log('CheckoutPage: Cart cleared after successful order placement', {
-        orderNumber: order?.order_number,
-        itemCountBeforeClear: items.length
-      });
     } catch (cartError) {
       console.error('CheckoutPage: Failed to clear cart after order placement', cartError);
     }
 
-    if (debugMode) {
-      console.warn('CheckoutPage: Debug mode enabled — skipping redirect to order confirmation page');
-      console.warn('CheckoutPage: Manually navigate to /order-confirmation when ready to continue');
-    } else {
-      console.log('CheckoutPage: Redirecting to order confirmation page');
-      window.location.href = '/order-confirmation';
-    }
-
+    window.location.href = '/order-confirmation';
     setIsSubmitting(false);
   };
 

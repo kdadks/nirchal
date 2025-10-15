@@ -3,9 +3,8 @@ class NetlifyEmailService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NODE_ENV === 'production' 
-      ? '/.netlify/functions' 
-      : 'http://localhost:8888/.netlify/functions';
+    // Service no longer used - migrated to Cloudflare Pages Functions
+    this.baseUrl = '';
   }
 
   // Send contact form email
