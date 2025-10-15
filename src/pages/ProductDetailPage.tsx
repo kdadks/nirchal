@@ -114,7 +114,7 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [product, selectedColor, hasUserInteractedWithColor]);
 
-  // Handle keyboard events for image modal
+  // Handle keyboard events for image modal and body scroll lock
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isImageModalOpen || !product) return;
@@ -132,8 +132,16 @@ const ProductDetailPage: React.FC = () => {
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    // Lock body scroll when modal is open (especially important for mobile)
+    if (isImageModalOpen) {
+      document.body.classList.add('modal-open');
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.body.classList.remove('modal-open');
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isImageModalOpen, product?.images?.length]);
 
   if (loading) {
@@ -1030,8 +1038,9 @@ const ProductDetailPage: React.FC = () => {
       {/* Full Screen Image Modal */}
       {isImageModalOpen && (
         <div 
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4"
+          className="fixed inset-0 bg-black/95 z-[10100] flex items-center justify-center p-2 sm:p-4 mobile-fullscreen"
           onClick={closeImageModal}
+          style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
         >
           {/* Close Button */}
           <button
@@ -1039,7 +1048,7 @@ const ProductDetailPage: React.FC = () => {
               e.stopPropagation();
               closeImageModal();
             }}
-            className="absolute top-2 sm:top-4 right-2 sm:right-4 z-60 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
+            className="absolute top-2 sm:top-4 right-2 sm:right-4 z-[10101] w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200 safe-top"
           >
             <X size={20} className="sm:w-6 sm:h-6" />
           </button>
@@ -1051,7 +1060,7 @@ const ProductDetailPage: React.FC = () => {
                 e.stopPropagation();
                 prevImageInModal();
               }}
-              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-60 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
+              className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-[10101] w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
             >
               <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
             </button>
@@ -1064,7 +1073,7 @@ const ProductDetailPage: React.FC = () => {
                 e.stopPropagation();
                 nextImageInModal();
               }}
-              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-60 w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-[10101] w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200"
             >
               <ChevronRight size={20} className="sm:w-6 sm:h-6" />
             </button>

@@ -8,15 +8,15 @@ export const AIAssistantButton: React.FC = () => {
   return (
     <>
       {/* Floating AI Assistant Button */}
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999]">
         <button
           onClick={() => setIsAssistantOpen(true)}
-          className="group relative bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse"
+          className="group relative bg-gradient-to-r from-pink-500 to-purple-600 text-white p-3 sm:p-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 animate-pulse"
           aria-label="Open Nirchal AI Assistant"
         >
           <div className="relative">
-            <Bot className="w-6 h-6" />
-            <Sparkles className="w-3 h-3 absolute -top-1 -right-1 text-yellow-300" />
+            <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
+            <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 absolute -top-1 -right-1 text-yellow-300" />
           </div>
           
           {/* Pulse Effect */}

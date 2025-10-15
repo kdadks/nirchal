@@ -21,11 +21,18 @@ export const NirchalAIAssistant: React.FC<NirchalAIAssistantProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Focus input when assistant opens
+  // Focus input when assistant opens and lock body scroll
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
     }
+    
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
   }, [isOpen]);
 
   const handleSendMessage = async () => {
@@ -64,11 +71,11 @@ export const NirchalAIAssistant: React.FC<NirchalAIAssistantProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-end justify-end p-4">
+    <div className="fixed inset-0 z-[10200] bg-black bg-opacity-50 flex items-end sm:items-end sm:justify-end">
       {/* AI Assistant Chat Window */}
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md h-[600px] flex flex-col overflow-hidden border border-gray-200">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md h-[calc(100vh-env(safe-area-inset-top))] sm:h-[600px] sm:m-4 flex flex-col overflow-hidden border-t border-gray-200 sm:border">
         {/* Header */}
-        <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center justify-between safe-top">
           <div className="flex items-center gap-3">
             <div className="relative">
               <Bot className="w-8 h-8" />
