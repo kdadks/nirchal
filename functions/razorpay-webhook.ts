@@ -234,9 +234,13 @@ async function handlePaymentCaptured(env: Env, payment: any) {
 
     if (!updateResponse.ok) {
       console.error('Failed to update order status');
-    } else {
-      console.log('✅ Order status updated to paid:', order.order_number);
+      return;
     }
+
+    console.log('✅ Order status updated to paid:', order.order_number);
+
+    // ✅ NOW UPDATE INVENTORY: Payment is confirmed, decrement stock
+    await updateInventoryForOrder(env, order.id);
 
   } catch (error) {
     console.error('Error handling payment.captured:', error);
@@ -362,6 +366,123 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
 
   } catch (error) {
     console.error('Error handling order.paid:', error);
+  }
+}
+
+// Update inventory after payment confirmation
+async function updateInventoryForOrder(env: Env, orderId: string) {
+  try {
+    console.log('📦 Updating inventory for order:', orderId);
+
+    // Get order items
+    const itemsResponse = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/order_items?order_id=eq.${orderId}&select=*`,
+      {
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+        }
+      }
+    );
+
+    if (!itemsResponse.ok) {
+      console.error('Failed to fetch order items');
+      return;
+    }
+
+    const items = await itemsResponse.json();
+
+    for (const item of items) {
+      try {
+        // Find inventory record for this product/variant
+        let inventoryUrl = `${env.SUPABASE_URL}/rest/v1/inventory?product_id=eq.${item.product_id}`;
+        
+        if (item.product_variant_id) {
+          inventoryUrl += `&variant_id=eq.${item.product_variant_id}`;
+        } else {
+          inventoryUrl += `&variant_id=is.null`;
+        }
+
+        const inventoryResponse = await fetch(inventoryUrl, {
+          headers: {
+            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          }
+        });
+
+        if (!inventoryResponse.ok) {
+          console.error(`Failed to fetch inventory for product ${item.product_id}`);
+          continue;
+        }
+
+        const inventoryRecords = await inventoryResponse.json();
+
+        if (!inventoryRecords || inventoryRecords.length === 0) {
+          console.warn(`No inventory record found for product ${item.product_id}`);
+          continue;
+        }
+
+        const inventoryRecord = inventoryRecords[0];
+        const oldQuantity = inventoryRecord.quantity;
+        const newQuantity = Math.max(0, oldQuantity - item.quantity);
+
+        // Update inventory quantity
+        const updateResponse = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/inventory?id=eq.${inventoryRecord.id}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              quantity: newQuantity,
+              updated_at: new Date().toISOString()
+            })
+          }
+        );
+
+        if (!updateResponse.ok) {
+          console.error(`Failed to update inventory for product ${item.product_id}`);
+          continue;
+        }
+
+        // Create inventory history record
+        await fetch(
+          `${env.SUPABASE_URL}/rest/v1/inventory_history`,
+          {
+            method: 'POST',
+            headers: {
+              'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              inventory_id: inventoryRecord.id,
+              previous_quantity: oldQuantity,
+              new_quantity: newQuantity,
+              change_type: 'STOCK_OUT',
+              reason: `Order ${orderId} - Payment Confirmed`,
+              created_by: null,
+              created_at: new Date().toISOString()
+            })
+          }
+        );
+
+        console.log(`✅ Inventory updated: ${item.product_name} (${oldQuantity} → ${newQuantity})`);
+
+      } catch (error) {
+        console.error(`Error processing inventory for item:`, error);
+      }
+    }
+
+    console.log('✅ Inventory update completed for order:', orderId);
+
+  } catch (error) {
+    console.error('Error updating inventory:', error);
   }
 }
 
