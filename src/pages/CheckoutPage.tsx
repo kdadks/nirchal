@@ -1588,10 +1588,16 @@ const CheckoutPage: React.FC = () => {
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => {
-                    // Trigger the form submission
+                    // Trigger the form submission using requestSubmit() which respects onSubmit handler
                     const form = document.querySelector('form');
-                    if (form) {
-                      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    if (form && form.requestSubmit) {
+                      form.requestSubmit();
+                    } else if (form) {
+                      // Fallback for older browsers
+                      const submitButton = form.querySelector('button[type="submit"]');
+                      if (submitButton) {
+                        (submitButton as HTMLButtonElement).click();
+                      }
                     }
                   }}
                   className={`w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
