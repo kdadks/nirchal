@@ -41,9 +41,8 @@ export class TransactionalEmailService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NODE_ENV === 'production' 
-      ? '/.netlify/functions' 
-      : 'http://localhost:8888/.netlify/functions';
+    // Use Cloudflare Functions (no prefix needed, functions are at root)
+    this.baseUrl = '';
   }
 
   // Send welcome email when user signs up
