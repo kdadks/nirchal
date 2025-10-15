@@ -151,6 +151,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = () => {
     try {
       dispatch({ type: 'CLEAR_CART' });
+      // Persist the empty cart immediately in case navigation happens before the effect runs
+      localStorage.setItem('cart', JSON.stringify(initialState));
     } catch (error) {
       console.error('Error clearing cart:', error);
     }
