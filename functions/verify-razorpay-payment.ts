@@ -8,7 +8,7 @@
 interface Env {
   // Supabase
   SUPABASE_URL: string;
-  SUPABASE_ANON_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
   
   // Razorpay
   RAZORPAY_KEY_SECRET: string;
@@ -62,7 +62,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
-    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Database not configured' }),
@@ -113,8 +113,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         {
           method: 'PATCH',
           headers: {
-            'apikey': env.SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },
@@ -142,8 +142,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}&select=payment_status`,
       {
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
         }
       }
     );
@@ -191,8 +191,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
@@ -208,9 +208,19 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     );
 
     if (!updateResponse.ok) {
-      console.error('Failed to update order');
+      const errorText = await updateResponse.text();
+      console.error('Failed to update order:', {
+        status: updateResponse.status,
+        statusText: updateResponse.statusText,
+        error: errorText,
+        order_id
+      });
       return new Response(
-        JSON.stringify({ error: 'Failed to update order status' }),
+        JSON.stringify({ 
+          error: 'Failed to update order status',
+          details: errorText,
+          status: updateResponse.status
+        }),
         { status: 500, headers: corsHeaders }
       );
     }

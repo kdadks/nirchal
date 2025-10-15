@@ -8,7 +8,7 @@
 interface Env {
   // Supabase
   SUPABASE_URL: string;
-  SUPABASE_ANON_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
   
   // Razorpay (stored as secrets in Cloudflare)
   RAZORPAY_KEY_ID: string;
@@ -68,7 +68,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
-    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Database not configured' }),
@@ -81,8 +81,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       `${env.SUPABASE_URL}/rest/v1/settings?category=eq.payment&key=in.(razorpay_enabled,razorpay_auto_capture,razorpay_company_name,razorpay_company_logo,razorpay_theme_color,razorpay_description,razorpay_timeout)`,
       {
         headers: {
-          'apikey': env.SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
         }
       }
     );
