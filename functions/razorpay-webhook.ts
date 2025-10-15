@@ -102,12 +102,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     const paymentEntity = webhookPayload.payload?.payment?.entity;
     const orderEntity = webhookPayload.payload?.order?.entity;
 
-    console.log('Webhook event:', {
+    console.log('🔔 Webhook event received:', {
       event: eventType,
       paymentId: paymentEntity?.id,
       orderId: paymentEntity?.order_id || orderEntity?.id,
       status: paymentEntity?.status,
-      amount: paymentEntity?.amount
+      amount: paymentEntity?.amount,
+      timestamp: new Date().toISOString()
     });
 
     // Handle different webhook events
@@ -152,7 +153,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 // Handle payment captured event
 async function handlePaymentCaptured(env: Env, payment: any) {
   try {
-    console.log('Processing payment.captured event:', payment.id);
+    console.log('🎯 Processing payment.captured event:', {
+      payment_id: payment.id,
+      order_id: payment.order_id,
+      amount: payment.amount,
+      method: payment.method,
+      status: payment.status
+    });
     
     // 🔒 DUPLICATE PAYMENT PROTECTION: Check if this payment ID is already processed
     const existingPaymentResponse = await fetch(
@@ -213,6 +220,16 @@ async function handlePaymentCaptured(env: Env, payment: any) {
     }
 
     // Update order status to paid
+    console.log('💾 Updating order with payment details:', {
+      order_id: order.id,
+      order_number: order.order_number,
+      updating_payment_id: payment.id,
+      updating_order_id: payment.order_id,
+      payment_details_size: JSON.stringify(payment).length,
+      has_payment_method: !!payment.method,
+      has_payment_amount: !!payment.amount
+    });
+
     const updateResponse = await fetch(
       `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order.id}`,
       {
@@ -234,17 +251,37 @@ async function handlePaymentCaptured(env: Env, payment: any) {
     );
 
     if (!updateResponse.ok) {
-      console.error('Failed to update order status');
+      const errorText = await updateResponse.text();
+      console.error('❌ Failed to update order status:', {
+        status: updateResponse.status,
+        statusText: updateResponse.statusText,
+        error: errorText,
+        order_id: order.id,
+        order_number: order.order_number
+      });
       return;
     }
 
     console.log('✅ Order status updated to paid:', order.order_number);
+    console.log('📝 Payment details saved:', {
+      order_id: order.id,
+      order_number: order.order_number,
+      payment_id: payment.id,
+      payment_method: payment.method,
+      payment_amount: payment.amount,
+      payment_details_type: typeof payment,
+      payment_details_keys: Object.keys(payment).length
+    });
 
     // ✅ NOW UPDATE INVENTORY: Payment is confirmed, decrement stock
     await updateInventoryForOrder(env, order.id);
 
   } catch (error) {
-    console.error('Error handling payment.captured:', error);
+    console.error('❌ Error handling payment.captured:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      payment_id: payment?.id
+    });
   }
 }
 
