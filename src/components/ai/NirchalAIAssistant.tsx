@@ -71,35 +71,51 @@ export const NirchalAIAssistant: React.FC<NirchalAIAssistantProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10200] bg-black bg-opacity-50 flex items-end sm:items-end sm:justify-end">
+    <div 
+      className="fixed inset-0 z-[10200] bg-black bg-opacity-50 flex items-end sm:items-end sm:justify-end"
+      onClick={onClose}
+    >
       {/* AI Assistant Chat Window */}
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md h-[calc(100vh-env(safe-area-inset-top))] sm:h-[600px] sm:m-4 flex flex-col overflow-hidden border-t border-gray-200 sm:border">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4 flex items-center justify-between safe-top">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Bot className="w-8 h-8" />
-              <Sparkles className="w-4 h-4 absolute -top-1 -right-1 text-yellow-300" />
+      <div 
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[92vh] sm:h-[600px] sm:m-4 flex flex-col overflow-hidden border-t border-gray-200 sm:border"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile Drag Handle */}
+        <div className="sm:hidden bg-gradient-to-r from-pink-500 to-purple-600 pt-3 pb-1 flex justify-center">
+          <div className="w-12 h-1 bg-white bg-opacity-40 rounded-full"></div>
+        </div>
+        
+        {/* Header - Extra padding-top on mobile for browser chrome */}
+        <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 pt-3 pb-3 sm:px-4 sm:py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className="relative flex-shrink-0">
+              <Bot className="w-7 h-7 sm:w-8 sm:h-8" />
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 absolute -top-1 -right-1 text-yellow-300" />
             </div>
-            <div>
-              <h3 className="font-bold text-lg">Nirchal AI</h3>
-              <p className="text-sm opacity-90">Your Shopping Assistant</p>
+            <div className="min-w-0">
+              <h3 className="font-bold text-base sm:text-lg truncate">Nirchal AI</h3>
+              <p className="text-xs sm:text-sm opacity-90 truncate">Your Shopping Assistant</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
             <button
               onClick={clearChat}
-              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors flex-shrink-0 hidden sm:flex"
               title="Clear Chat"
+              aria-label="Clear Chat"
             >
               <RefreshCw className="w-5 h-5" />
             </button>
             <button
-              onClick={onClose}
-              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className="p-2.5 sm:p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full sm:rounded-lg transition-colors flex-shrink-0 shadow-lg"
               title="Close Assistant"
+              aria-label="Close Assistant"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6 sm:w-5 sm:h-5 font-bold" strokeWidth={2.5} />
             </button>
           </div>
         </div>
