@@ -441,6 +441,22 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
         paymentDetails = payment;
       }
 
+      const updatePayload = {
+        payment_status: 'paid',
+        razorpay_payment_id: payment?.id || dbOrder.razorpay_payment_id,
+        razorpay_order_id: order?.id || dbOrder.razorpay_order_id,
+        payment_details: paymentDetails || { order, payment },
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('📤 Sending update to database:', {
+        order_id: dbOrder.id,
+        has_payment_details: !!updatePayload.payment_details,
+        payment_details_type: typeof updatePayload.payment_details,
+        payment_details_size: JSON.stringify(updatePayload.payment_details).length,
+        payment_details_keys: Object.keys(updatePayload.payment_details || {}).slice(0, 10)
+      });
+
       const updateResponse = await fetch(
         `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${dbOrder.id}`,
         {
@@ -451,13 +467,7 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },
-          body: JSON.stringify({
-            payment_status: 'paid',
-            razorpay_payment_id: payment?.id || dbOrder.razorpay_payment_id,
-            razorpay_order_id: order?.id || dbOrder.razorpay_order_id,
-            payment_details: paymentDetails || { order, payment },
-            updated_at: new Date().toISOString()
-          })
+          body: JSON.stringify(updatePayload)
         }
       );
 
