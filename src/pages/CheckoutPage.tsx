@@ -71,6 +71,23 @@ const CheckoutPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [currentStep] = useState(1);
+  const [debugMode] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('debugCheckout') === 'true';
+      if (mode) {
+        console.warn('CheckoutPage: Debug mode active — automatic redirects disabled to preserve console logs');
+      }
+      return mode;
+    } catch (error) {
+      console.error('CheckoutPage: Failed to read debugCheckout query param', error);
+      return false;
+    }
+  });
   const [form, setForm] = useState<CheckoutForm>({
     // Contact Information
     firstName: '',
@@ -629,7 +646,12 @@ const CheckoutPage: React.FC = () => {
       // Check if order was actually created despite the error
       const orderNumber = sessionStorage.getItem('last_order_number');
       if (orderNumber) {
-        window.location.href = '/order-confirmation';
+        console.warn('CheckoutPage: Order number exists after error, evaluating redirect', { orderNumber, debugMode });
+        if (debugMode) {
+          console.warn('CheckoutPage: Debug mode enabled — not redirecting so you can inspect errors');
+        } else {
+          window.location.href = '/order-confirmation';
+        }
         return;
       }
       
@@ -762,8 +784,13 @@ const CheckoutPage: React.FC = () => {
       console.error('CheckoutPage: Failed to clear cart after order placement', cartError);
     }
 
-    console.log('CheckoutPage: Redirecting to order confirmation page');
-    window.location.href = '/order-confirmation';
+    if (debugMode) {
+      console.warn('CheckoutPage: Debug mode enabled — skipping redirect to order confirmation page');
+      console.warn('CheckoutPage: Manually navigate to /order-confirmation when ready to continue');
+    } else {
+      console.log('CheckoutPage: Redirecting to order confirmation page');
+      window.location.href = '/order-confirmation';
+    }
 
     setIsSubmitting(false);
   };
