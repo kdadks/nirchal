@@ -168,7 +168,7 @@ export const saveImageToPublicFolder = async (
     });
 
     // Make request to upload endpoint
-    const response = await fetch('/.netlify/functions/upload-image', {
+    const response = await fetch('/upload-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -226,7 +226,7 @@ export const deleteImageFromPublicFolder = async (
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     // Make request to delete endpoint
-    const response = await fetch('/.netlify/functions/delete-image', {
+    const response = await fetch('/delete-image', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
