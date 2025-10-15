@@ -13,19 +13,41 @@ const OrderConfirmationPage: React.FC = () => {
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
   const { orderNumber, email, tempPassword } = useMemo(() => {
-    const on = sessionStorage.getItem('last_order_number') || '';
-    const em = sessionStorage.getItem('last_order_email') || '';
-    const tp = sessionStorage.getItem('new_customer_temp_password') || '';
-    
-    return { orderNumber: on, email: em, tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '' };
+    try {
+      const on = sessionStorage.getItem('last_order_number') || '';
+      const em = sessionStorage.getItem('last_order_email') || '';
+      const tp = sessionStorage.getItem('new_customer_temp_password') || '';
+
+      let decryptedTempPassword = '';
+      if (tp) {
+        try {
+          decryptedTempPassword = SecurityUtils.decryptTempData(tp);
+        } catch (decryptError) {
+          console.error('OrderConfirmationPage: Failed to decrypt temp password from session storage', decryptError);
+        }
+      }
+
+      const payload = { orderNumber: on, email: em, tempPassword: decryptedTempPassword };
+      console.log('OrderConfirmationPage: Loaded session data', {
+        hasOrderNumber: !!on,
+        email: em,
+        hasTempPassword: !!decryptedTempPassword
+      });
+      return payload;
+    } catch (storageError) {
+      console.error('OrderConfirmationPage: Failed to read session storage values', storageError);
+      return { orderNumber: '', email: '', tempPassword: '' };
+    }
   }, []);
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
   useEffect(() => {
     if (!orderNumber) {
       setShouldRedirect(true);
+      console.warn('OrderConfirmationPage: Missing order number, redirecting back to cart');
     } else {
       setShouldRedirect(false);
+      console.log('OrderConfirmationPage: Order number present, rendering confirmation screen', { orderNumber });
     }
     setHasCheckedRedirect(true);
   }, [orderNumber]);

@@ -41,9 +41,13 @@ export class TransactionalEmailService {
   private baseUrl: string;
 
   constructor() {
-    // Use Netlify Functions for email sending (already configured with Zoho SMTP)
-    // Netlify Functions remain active at /.netlify/functions even when frontend is on Cloudflare
-    this.baseUrl = '/.netlify/functions';
+    const envBaseUrl = (import.meta as any)?.env?.VITE_EMAIL_FUNCTION_BASE as string | undefined;
+    if (envBaseUrl) {
+      this.baseUrl = envBaseUrl.replace(/\/?$/, '');
+    } else {
+      // Default to Cloudflare Pages function mounted at /send-email
+      this.baseUrl = '';
+    }
   }
 
   // Send welcome email when user signs up
@@ -66,7 +70,7 @@ export class TransactionalEmailService {
       
 
       
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailPayload)
@@ -95,7 +99,7 @@ export class TransactionalEmailService {
         'https://nirchal.netlify.app'
       );
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -120,7 +124,7 @@ export class TransactionalEmailService {
         'https://nirchal.netlify.app'
       );
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -158,7 +162,7 @@ export class TransactionalEmailService {
       
 
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailPayload)
@@ -201,7 +205,7 @@ export class TransactionalEmailService {
       
 
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailPayload)
@@ -233,7 +237,7 @@ export class TransactionalEmailService {
         'https://nirchal.netlify.app'
       );
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -286,7 +290,7 @@ export class TransactionalEmailService {
 
 
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailPayload)
@@ -333,7 +337,7 @@ export class TransactionalEmailService {
       
 
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailPayload)
@@ -380,7 +384,7 @@ export class TransactionalEmailService {
       
 
 
-      const response = await fetch(`${this.baseUrl}/send-email`, {
+  const response = await fetch(`${this.baseUrl}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailPayload)

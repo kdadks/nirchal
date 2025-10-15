@@ -751,13 +751,19 @@ const CheckoutPage: React.FC = () => {
 
     // Navigate to order confirmation page
     // Using window.location.href for reliable navigation in production
-
-    window.location.href = '/order-confirmation';
-    
-    // Clear cart AFTER navigation to avoid redirect race condition
-    setTimeout(() => {
+    try {
       clearCart();
-    }, 100);
+      localStorage.removeItem('cart');
+      console.log('CheckoutPage: Cart cleared after successful order placement', {
+        orderNumber: order?.order_number,
+        itemCountBeforeClear: items.length
+      });
+    } catch (cartError) {
+      console.error('CheckoutPage: Failed to clear cart after order placement', cartError);
+    }
+
+    console.log('CheckoutPage: Redirecting to order confirmation page');
+    window.location.href = '/order-confirmation';
 
     setIsSubmitting(false);
   };
