@@ -10,7 +10,9 @@ interface Env {
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
   
-  // Razorpay Webhook Secret
+  // Razorpay
+  RAZORPAY_KEY_ID: string;
+  RAZORPAY_KEY_SECRET: string;
   RAZORPAY_WEBHOOK_SECRET: string;
 }
 
@@ -403,14 +405,39 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
         order_number: dbOrder.order_number,
         current_status: dbOrder.payment_status,
         has_payment_details: !!dbOrder.payment_details,
-        will_add_payment_details: !!payment
+        payment_object_exists: !!payment,
+        payment_id: payment?.id
       });
 
-      // Fetch full payment details if we only have payment ID
-      let paymentDetails = payment;
-      if (!paymentDetails && payment?.id) {
-        console.log('📡 Fetching payment details from order.paid event payment_id:', payment.id);
-        // Payment details should be in the webhook payload
+      // Fetch full payment details from Razorpay API
+      let paymentDetails = null;
+      if (payment?.id) {
+        console.log('📡 Fetching full payment details from Razorpay API:', payment.id);
+        try {
+          const auth = Buffer.from(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`).toString('base64');
+          const paymentResponse = await fetch(`https://api.razorpay.com/v1/payments/${payment.id}`, {
+            headers: {
+              'Authorization': `Basic ${auth}`
+            }
+          });
+
+          if (paymentResponse.ok) {
+            paymentDetails = await paymentResponse.json();
+            console.log('✅ Fetched payment details:', {
+              method: paymentDetails.method,
+              amount: paymentDetails.amount,
+              status: paymentDetails.status
+            });
+          } else {
+            console.error('❌ Failed to fetch payment from Razorpay:', await paymentResponse.text());
+            // Fall back to webhook payload
+            paymentDetails = payment;
+          }
+        } catch (error) {
+          console.error('❌ Error fetching payment from Razorpay:', error);
+          paymentDetails = payment;
+        }
+      } else {
         paymentDetails = payment;
       }
 
