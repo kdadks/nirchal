@@ -468,13 +468,13 @@ const SettingsPage: React.FC = React.memo(() => {
               <div className="flex">
                 <input
                   type="text"
-                  value={`${window.location.origin}/.netlify/functions/razorpay-webhook`}
+                  value={`${window.location.origin}/razorpay-webhook`}
                   readOnly
                   className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-l-md focus:outline-none"
                 />
                 <button
                   type="button"
-                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}/.netlify/functions/razorpay-webhook`)}
+                  onClick={() => navigator.clipboard.writeText(`${window.location.origin}/razorpay-webhook`)}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   Copy
