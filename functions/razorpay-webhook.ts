@@ -103,6 +103,10 @@ async function fetchPaymentDetailsFromRazorpay(env: Env, paymentId?: string, ord
     });
   }
 
+  console.warn('⚠️ No payment details returned from Razorpay API after lookup attempts', {
+    paymentId,
+    orderId
+  });
   return null;
 }
 
@@ -312,6 +316,12 @@ async function handlePaymentCaptured(env: Env, payment: any) {
     }
 
     const paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment.id, payment.order_id) || payment;
+    if (!paymentDetails) {
+      console.warn('⚠️ Payment details still missing after Razorpay fetch fallback (payment.captured)', {
+        payment_id: payment.id,
+        order_id: payment.order_id
+      });
+    }
 
     // Update order status to paid
     console.log('💾 Updating order with payment details:', {
@@ -502,6 +512,12 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
       });
 
       const paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment?.id, order?.id) || payment;
+      if (!paymentDetails) {
+        console.warn('⚠️ Payment details still missing after Razorpay fetch fallback (order.paid)', {
+          razorpay_order_id: order?.id,
+          payment_id: payment?.id
+        });
+      }
 
       const updatePayload = {
         payment_status: 'paid',
