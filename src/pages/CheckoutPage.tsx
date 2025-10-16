@@ -102,6 +102,29 @@ const CheckoutPage: React.FC = () => {
   });
 
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
+  const [paymentSplit, setPaymentSplit] = useState<'full' | 'split'>('full'); // full = pay all now, split = products now + services COD
+
+  // Calculate product and service totals separately
+  const calculatePaymentSplit = () => {
+    let productTotal = 0;
+    let serviceTotal = 0;
+
+    items.forEach(item => {
+      const itemTotal = item.price * item.quantity;
+      // Check if item is a service (size is 'Service' or 'Custom')
+      if (item.size === 'Service' || item.size === 'Custom') {
+        serviceTotal += itemTotal;
+      } else {
+        productTotal += itemTotal;
+      }
+    });
+
+    return { productTotal, serviceTotal };
+  };
+
+  const { productTotal, serviceTotal } = calculatePaymentSplit();
+  const hasServices = serviceTotal > 0;
+  const hasProducts = productTotal > 0;
 
   // Load customer addresses if logged in
   useEffect(() => {
@@ -374,7 +397,17 @@ const CheckoutPage: React.FC = () => {
       // Free shipping for all orders in India, international shipping calculated separately
       const deliveryCountry = form.deliveryAddress ? 'India' : 'India'; // Will be updated when country selection is added
       const deliveryCost = deliveryCountry === 'India' ? 0 : 0; // International shipping will be calculated later
-      const finalTotal = total + deliveryCost;
+      // Calculate payment amounts based on split choice
+      const { productTotal, serviceTotal } = calculatePaymentSplit();
+      const isPaymentSplit = paymentSplit === 'split' && serviceTotal > 0;
+      const upfrontPaymentAmount = isPaymentSplit ? productTotal : total;
+      const codPaymentAmount = isPaymentSplit ? serviceTotal : 0;
+      const finalTotal = upfrontPaymentAmount + deliveryCost;
+      
+      // Create payment note to track split payment
+      const paymentNote = isPaymentSplit
+        ? `Split Payment: Products ₹${productTotal} (Paid Online) + Services ₹${serviceTotal} (COD)`
+        : 'Full Payment Online';
       
       const billingAddress = sanitizeOrderAddress({
         first_name: form.billingIsSameAsDelivery ? form.firstName : form.billingFirstName,
@@ -406,7 +439,7 @@ const CheckoutPage: React.FC = () => {
         payment_method: form.paymentMethod,
         subtotal: total,
         shipping_amount: deliveryCost,
-        total_amount: finalTotal,
+        total_amount: finalTotal + codPaymentAmount, // Total includes both online and COD amounts
         billing: billingAddress,
         delivery: deliveryAddress,
         items: items.map(it => ({
@@ -447,7 +480,11 @@ const CheckoutPage: React.FC = () => {
             customer_phone: form.phone,
             notes: {
               order_id: order.id.toString(),
-              customer_name: `${form.firstName} ${form.lastName}`
+              customer_name: `${form.firstName} ${form.lastName}`,
+              payment_split: isPaymentSplit ? 'yes' : 'no',
+              online_amount: finalTotal.toString(),
+              cod_amount: codPaymentAmount.toString(),
+              payment_note: paymentNote
             }
           });
 
@@ -759,6 +796,18 @@ const CheckoutPage: React.FC = () => {
     
     if (order?.order_number) {
       sessionStorage.setItem('last_order_number', order.order_number);
+      
+      // Save payment split information for confirmation page
+      const { serviceTotal: svcTotal } = calculatePaymentSplit();
+      const isSplitPayment = paymentSplit === 'split' && svcTotal > 0;
+      
+      if (isSplitPayment && svcTotal > 0) {
+        sessionStorage.setItem('cod_amount', svcTotal.toString());
+        sessionStorage.setItem('payment_split', 'true');
+      } else {
+        sessionStorage.removeItem('cod_amount');
+        sessionStorage.removeItem('payment_split');
+      }
 
     } else {
       console.error('No order number to save!', order);
@@ -1093,7 +1142,11 @@ const CheckoutPage: React.FC = () => {
 
   // Free shipping for all orders in India
   const deliveryCost = 0; // Free shipping across India, international will be calculated
-  const finalTotal = total + deliveryCost;
+  
+  // Calculate final total based on payment split choice
+  const upfrontAmount = paymentSplit === 'split' && hasServices ? productTotal : total;
+  const codAmount = paymentSplit === 'split' && hasServices ? serviceTotal : 0;
+  const finalTotal = upfrontAmount + deliveryCost;
 
   return (
     <PaymentSecurityWrapper>
@@ -1664,21 +1717,111 @@ const CheckoutPage: React.FC = () => {
                   ))}
                 </div>
 
+                {/* Payment Split Option - Only show if cart has both products and services */}
+                {hasServices && hasProducts && (
+                  <div className="border-t border-gray-200 pt-3 pb-3">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Payment Options</h3>
+                    <div className="space-y-2">
+                      {/* Full Payment Option */}
+                      <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        paymentSplit === 'full' ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-amber-300'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="paymentSplit"
+                          value="full"
+                          checked={paymentSplit === 'full'}
+                          onChange={() => setPaymentSplit('full')}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-gray-900">Pay Full Amount Now</div>
+                          <div className="text-xs text-gray-600 mt-0.5">
+                            Pay ₹{(productTotal + serviceTotal).toLocaleString()} (Products + Services)
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Split Payment Option */}
+                      <label className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        paymentSplit === 'split' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="paymentSplit"
+                          value="split"
+                          checked={paymentSplit === 'split'}
+                          onChange={() => setPaymentSplit('split')}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-gray-900 flex items-center gap-1">
+                            Split Payment
+                            <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">Recommended</span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-0.5">
+                            Pay ₹{productTotal.toLocaleString()} now (Products)<br/>
+                            Pay ₹{serviceTotal.toLocaleString()} on delivery (Services)
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-gray-200 pt-3 space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Subtotal</span>
-                    <span>₹{total.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Delivery</span>
-                    <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
-                      {deliveryCost === 0 ? 'Free' : `₹${deliveryCost}`}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
-                    <span>Total</span>
-                    <span className="text-amber-600">₹{finalTotal.toLocaleString()}</span>
-                  </div>
+                  {/* Show breakdown if split payment is selected */}
+                  {paymentSplit === 'split' && hasServices ? (
+                    <>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Products Subtotal</span>
+                        <span>₹{productTotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Services Subtotal</span>
+                        <span>₹{serviceTotal.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Delivery</span>
+                        <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
+                          {deliveryCost === 0 ? 'Free' : `₹${deliveryCost}`}
+                        </span>
+                      </div>
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
+                        <div className="flex justify-between text-sm font-semibold text-amber-900">
+                          <span>Pay Now (Products)</span>
+                          <span>₹{upfrontAmount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                        <div className="flex justify-between text-sm font-semibold text-green-900">
+                          <span>Pay on Delivery (Services)</span>
+                          <span>₹{codAmount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
+                        <span>Order Total</span>
+                        <span className="text-amber-600">₹{(upfrontAmount + codAmount).toLocaleString()}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Subtotal</span>
+                        <span>₹{total.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Delivery</span>
+                        <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
+                          {deliveryCost === 0 ? 'Free' : `₹${deliveryCost}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
+                        <span>Total</span>
+                        <span className="text-amber-600">₹{finalTotal.toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Security Features */}

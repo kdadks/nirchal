@@ -108,7 +108,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 
       // Send password change confirmation email
       try {
-        await transactionalEmailService.sendPasswordChangeConfirmation({
+        await transactionalEmailService.sendPasswordChangeEmail({
           first_name: customerData.first_name as string,
           last_name: customerData.last_name as string,
           email: email
