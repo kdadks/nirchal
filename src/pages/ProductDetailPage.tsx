@@ -191,7 +191,8 @@ const ProductDetailPage: React.FC = () => {
           image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize || undefined,
           color: selectedColor || product.color,
-          variantId: selectedVariant?.id
+          variantId: selectedVariant?.id,
+          category: product.category // Include category for add-ons detection
         });
       }
 
@@ -216,7 +217,8 @@ const ProductDetailPage: React.FC = () => {
           image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
           size: selectedSize || undefined,
           color: selectedColor || product.color,
-          variantId: selectedVariant?.id
+          variantId: selectedVariant?.id,
+          category: product.category // Include category for add-ons detection
         });
       }
 
@@ -535,7 +537,7 @@ const ProductDetailPage: React.FC = () => {
                 <div className="space-y-2 sm:space-y-3">
                   <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
                     <Truck size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
-                    <span className="text-xs sm:text-sm font-medium">Free shipping on orders above ₹2,999</span>
+                    <span className="text-xs sm:text-sm font-medium">Free shipping on all orders across India 🇮🇳</span>
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
                     <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />

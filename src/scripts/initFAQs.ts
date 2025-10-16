@@ -14,7 +14,7 @@ const faqs = [
   {
     category: 'Orders & Shipping',
     question: 'What are the shipping charges?',
-    answer: 'We offer free standard shipping on orders above ₹2999. For orders below this amount, a flat shipping fee of ₹99 applies. Express delivery is available at an additional cost of ₹199.',
+    answer: 'We offer FREE shipping on all orders across India with no minimum order value! For international orders, shipping charges are calculated based on the destination country and delivery address at checkout.',
     order_num: 2
   },
   {

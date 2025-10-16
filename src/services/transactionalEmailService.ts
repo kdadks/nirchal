@@ -22,6 +22,9 @@ interface OrderData {
     name: string;
     quantity: number;
     price: string;
+    size?: string;
+    color?: string;
+    image?: string;
   }>;
   tracking_number?: string;
   logistics_partner?: {
@@ -151,7 +154,8 @@ export class TransactionalEmailService {
         order.customer_name,
         orderNumber,
         (order.total_amount || 0).toString(),
-        window.location.origin
+        window.location.origin,
+        order.items
       );
 
       const emailPayload = {
@@ -194,7 +198,8 @@ export class TransactionalEmailService {
         order.customer_name,
         orderNumber,
         (order.total_amount || 0).toString(),
-        websiteUrl
+        websiteUrl,
+        order.items
       );
 
       const emailPayload = {

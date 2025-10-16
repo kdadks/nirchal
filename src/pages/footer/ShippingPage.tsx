@@ -37,14 +37,14 @@ const ShippingPage: React.FC = () => {
                     <span className="font-semibold text-gray-800">1-3 business days</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-600">Free Shipping</span>
-                    <span className="font-semibold text-green-600">Orders ₹2,999+</span>
+                    <span className="text-gray-600">Shipping Charges</span>
+                    <span className="font-semibold text-green-600">100% FREE 🇮🇳</span>
                   </div>
                 </div>
                 
                 <div className="mt-6 p-4 bg-green-50 rounded-lg">
                   <p className="text-sm text-green-700">
-                    <strong>Free shipping</strong> on all orders above ₹2,999. For orders below this amount, standard shipping charge is ₹150.
+                    <strong>🎉 Free shipping</strong> on all orders across India! No minimum order value required. International shipping charges calculated based on destination country and address.
                   </p>
                 </div>
               </div>

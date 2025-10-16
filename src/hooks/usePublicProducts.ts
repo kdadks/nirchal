@@ -37,6 +37,7 @@ export const usePublicProducts = (featured?: boolean) => {
         .from('products')
         .select(`
           *,
+          category:categories(name),
           product_images(*),
           product_variants(
             id,
@@ -82,7 +83,7 @@ export const usePublicProducts = (featured?: boolean) => {
           try {
             const fallbackQuery = supabase
               .from('products')
-              .select('*')
+              .select('*, category:categories(name)')
               .eq('is_active', true);
               
             if (featured) {
@@ -108,7 +109,7 @@ export const usePublicProducts = (featured?: boolean) => {
                 ? Math.round(((product.price - product.sale_price) / product.price) * 100)
                 : undefined,
               images: ['/placeholder-product.jpg'], // Fallback image
-              category: 'Products',
+              category: product.category?.name || 'Products',
               subcategory: product.subcategory,
               occasion: [],
               fabric: product.fabric || 'Cotton',
@@ -388,7 +389,7 @@ export const usePublicProducts = (featured?: boolean) => {
           images,
           description: String(product.description ?? ''),
           shortDescription: String(product.short_description ?? ''),
-          category: String(product.category ?? ''),
+          category: String(product.category?.name ?? ''),
           color: String(product.color ?? ''),
           inStock: Boolean(product.in_stock ?? true),
           stockQuantity: (() => {

@@ -371,7 +371,9 @@ const CheckoutPage: React.FC = () => {
       }
 
       // 3) Create order with items
-      const deliveryCost = total >= 2999 ? 0 : 150;
+      // Free shipping for all orders in India, international shipping calculated separately
+      const deliveryCountry = form.deliveryAddress ? 'India' : 'India'; // Will be updated when country selection is added
+      const deliveryCost = deliveryCountry === 'India' ? 0 : 0; // International shipping will be calculated later
       const finalTotal = total + deliveryCost;
       
       const billingAddress = sanitizeOrderAddress({
@@ -710,7 +712,10 @@ const CheckoutPage: React.FC = () => {
           items: items.map(item => ({
             name: item.name,
             quantity: item.quantity,
-            price: (item.price * item.quantity).toFixed(2)
+            price: (item.price * item.quantity).toFixed(2),
+            size: item.size,
+            color: item.color,
+            image: item.image
           }))
         });
 
@@ -1086,7 +1091,8 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
-  const deliveryCost = total >= 2999 ? 0 : 150;
+  // Free shipping for all orders in India
+  const deliveryCost = 0; // Free shipping across India, international will be calculated
   const finalTotal = total + deliveryCost;
 
   return (
@@ -1163,7 +1169,7 @@ const CheckoutPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Form */}
             <div className="lg:col-span-2">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
                 {/* Delivery Information */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-6 border-b border-gray-200">
@@ -1583,24 +1589,26 @@ const CheckoutPage: React.FC = () => {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               {/* Additional Place Order Button - Hidden on Mobile */}
-              <div className="mb-6 hidden lg:block">
+              <div className="mb-4 hidden lg:block">
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => {
-                    // Trigger the form submission using requestSubmit() which respects onSubmit handler
-                    const form = document.querySelector('form');
-                    if (form && form.requestSubmit) {
-                      form.requestSubmit();
-                    } else if (form) {
-                      // Fallback for older browsers
-                      const submitButton = form.querySelector('button[type="submit"]');
-                      if (submitButton) {
-                        (submitButton as HTMLButtonElement).click();
+                    // Trigger the form submission using the form ID
+                    const form = document.getElementById('checkout-form') as HTMLFormElement;
+                    if (form) {
+                      if (form.requestSubmit) {
+                        form.requestSubmit();
+                      } else {
+                        // Fallback for older browsers
+                        const submitButton = form.querySelector('button[type="submit"]');
+                        if (submitButton) {
+                          (submitButton as HTMLButtonElement).click();
+                        }
                       }
                     }
                   }}
-                  className={`w-full flex items-center justify-center gap-3 px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
+                  className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-base font-semibold transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
                     isSubmitting
                       ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                       : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white'
@@ -1608,43 +1616,46 @@ const CheckoutPage: React.FC = () => {
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-gray-200 border-t-transparent rounded-full animate-spin" />
                       Processing Order...
                     </>
                   ) : (
                     <>
-                      <CheckCircle size={20} />
+                      <CheckCircle size={18} />
                       Place Order - ₹{finalTotal.toLocaleString()}
                     </>
                   )}
                 </button>
               </div>
               
-              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 sticky top-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <ShoppingBag size={24} className="text-amber-600" />
+              <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-200 sticky top-8">
+                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <ShoppingBag size={20} className="text-amber-600" />
                   Order Summary
                 </h2>
                 
-                <div className="space-y-4 mb-6">
+                <div className="space-y-2.5 mb-4">
                   {items.map((item) => (
-                    <div key={`${item.id}-${item.variantId}`} className="flex gap-4 p-4 rounded-lg bg-gray-50 border border-gray-100">
+                    <div key={`${item.id}-${item.variantId}`} className="flex gap-2.5 p-2.5 rounded-lg bg-gray-50 border border-gray-100">
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg"
+                        className="w-12 h-12 object-cover rounded flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                        <h3 className="font-semibold text-gray-900 text-xs leading-tight">
                           {item.name}
                         </h3>
-                        <div className="flex gap-2 text-xs text-gray-600 mt-1">
-                          {item.size && <span>Size: {item.size}</span>}
-                          {item.color && <span>Color: {item.color}</span>}
-                        </div>
-                        <div className="flex justify-between items-center mt-2">
+                        {/* Hide size/color for service items */}
+                        {!(item.size === 'Service' || item.size === 'Custom') && (
+                          <div className="flex gap-2 text-xs text-gray-600 mt-0.5">
+                            {item.size && <span>Size: {item.size}</span>}
+                            {item.color && <span>Color: {item.color}</span>}
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center mt-1.5">
                           <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-gray-900 text-sm">
                             ₹{(item.price * item.quantity).toLocaleString()}
                           </span>
                         </div>
@@ -1653,32 +1664,32 @@ const CheckoutPage: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="border-t border-gray-200 pt-4 space-y-3">
-                  <div className="flex justify-between text-gray-600">
+                <div className="border-t border-gray-200 pt-3 space-y-2">
+                  <div className="flex justify-between text-sm text-gray-600">
                     <span>Subtotal</span>
                     <span>₹{total.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between text-sm text-gray-600">
                     <span>Delivery</span>
                     <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
                       {deliveryCost === 0 ? 'Free' : `₹${deliveryCost}`}
                     </span>
                   </div>
-                  <div className="flex justify-between text-xl font-bold text-gray-900 pt-3 border-t border-gray-200">
+                  <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
                     <span>Total</span>
                     <span className="text-amber-600">₹{finalTotal.toLocaleString()}</span>
                   </div>
                 </div>
 
                 {/* Security Features */}
-                <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
-                  <div className="flex items-center gap-3 text-sm text-green-700 bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg border border-green-200">
-                    <Shield size={16} />
+                <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-green-700 bg-gradient-to-r from-green-50 to-blue-50 p-2 rounded-lg border border-green-200">
+                    <Shield size={14} />
                     <span className="font-medium">PCI DSS compliant secure encryption</span>
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                    <Truck size={16} />
-                    <span className="font-medium">Free shipping on orders above ₹2,999</span>
+                  <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded-lg border border-green-200">
+                    <Truck size={14} />
+                    <span className="font-medium">Free shipping on all orders across India 🇮🇳</span>
                   </div>
                 </div>
               </div>
