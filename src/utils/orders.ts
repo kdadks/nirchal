@@ -279,6 +279,10 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
 
     if (itemsError) {
       console.error('createOrderWithItems: inserting items failed:', itemsError);
+      console.error('createOrderWithItems: Error code:', itemsError.code);
+      console.error('createOrderWithItems: Error message:', itemsError.message);
+      console.error('createOrderWithItems: Error details:', itemsError.details);
+      console.error('createOrderWithItems: Error hint:', itemsError.hint);
       console.error('createOrderWithItems: itemsPayload that failed:', itemsPayload);
       // continue; order exists
     } else {
