@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink } from 'lucide-react';
+import { X, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
 import toast from 'react-hot-toast';
+import { useRazorpay } from '../../hooks/useRazorpay';
 
 interface OrderItem {
   id: number;
@@ -70,6 +71,7 @@ interface OrderDetails {
   cod_collected?: boolean;
   online_amount?: number;
   payment_split?: boolean;
+  razorpay_order_id?: string;
 }
 
 interface OrderDetailsModalProps {
@@ -86,6 +88,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [retryingPayment, setRetryingPayment] = useState(false);
+  const { openCheckout, verifyPayment, isLoaded: razorpayLoaded } = useRazorpay();
 
   // Helper function to generate tracking URL
   const getTrackingUrl = (order: OrderDetails): string | null => {
@@ -142,40 +146,66 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         logistics_partners
       } as unknown as OrderDetails;
 
-      // Load order items with product images and variant swatch images
+      // Load order items - first get all items without products join
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select(`
-          *,
-          products(
-            id,
-            name,
-            product_images(image_url, is_primary),
-            product_variants(
-              id,
-              color,
-              size,
-              swatch_image_id,
-              product_images!swatch_image_id(image_url)
-            )
-          )
-        `)
+        .select('*')
         .eq('order_id', orderId)
         .order('id');
 
       if (itemsError) throw itemsError;
 
+      // For items that have product_id, fetch product details separately
+      const itemsWithProducts = await Promise.all(
+        (items || []).map(async (item: any) => {
+          if (!item.product_id) {
+            // Service item - no product to fetch
+            return { ...item, products: null };
+          }
+
+          // Product item - fetch product details
+          try {
+            const { data: product, error: productError } = await supabase
+              .from('products')
+              .select(`
+                id,
+                name,
+                product_images(image_url, is_primary),
+                product_variants(
+                  id,
+                  color,
+                  size,
+                  swatch_image_id,
+                  product_images!swatch_image_id(image_url)
+                )
+              `)
+              .eq('id', item.product_id)
+              .single();
+
+            if (productError) {
+              console.warn(`Failed to load product for item ${item.id}:`, productError);
+              return { ...item, products: null };
+            }
+
+            return { ...item, products: product };
+          } catch (error) {
+            console.warn(`Error fetching product for item ${item.id}:`, error);
+            return { ...item, products: null };
+          }
+        })
+      );
+
       // Debug logging
       if (import.meta.env.DEV) {
         console.log('[OrderDetailsModal] Order items loaded:', {
           orderId,
-          itemsCount: items?.length || 0,
-          items: items
+          itemsCount: itemsWithProducts?.length || 0,
+          items: itemsWithProducts
         });
       }
 
       // Process items to extract product images with variant-specific swatch support
-      const processedItems = (items || []).map((item: any) => {
+      const processedItems = (itemsWithProducts || []).map((item: any) => {
         let productImage: string | undefined;
         let productData = item.products;
         
@@ -248,6 +278,90 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       toast.error('Failed to load order details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRetryPayment = async () => {
+    if (!orderDetails || retryingPayment) return;
+
+    // Check if Razorpay is loaded
+    if (!razorpayLoaded) {
+      toast.error('Payment system is loading. Please try again in a moment.');
+      return;
+    }
+
+    // Check if order has pending payment
+    if (orderDetails.payment_status !== 'pending' && orderDetails.payment_status !== 'failed') {
+      toast.error('This order has already been paid');
+      return;
+    }
+
+    if (!orderDetails.razorpay_order_id) {
+      toast.error('Payment information not found. Please contact support.');
+      return;
+    }
+
+    setRetryingPayment(true);
+
+    try {
+      // Calculate amount to pay
+      const amountToPay = orderDetails.payment_split 
+        ? (orderDetails.online_amount || 0) 
+        : orderDetails.total_amount;
+
+      // Open Razorpay checkout with existing order ID
+      openCheckout({
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: Math.round(amountToPay * 100), // Convert to paise
+        currency: 'INR',
+        name: 'Nirchal Sarees',
+        description: `Payment for Order ${orderDetails.order_number}`,
+        order_id: orderDetails.razorpay_order_id,
+        image: '/logo.png',
+        prefill: {
+          name: `${orderDetails.billing_first_name} ${orderDetails.billing_last_name}`,
+          email: orderDetails.billing_email,
+          contact: orderDetails.billing_phone || ''
+        },
+        theme: {
+          color: '#d97706'
+        },
+        handler: async (response: any) => {
+          try {
+            // Verify payment
+            const verificationResult = await verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              order_id: orderDetails.id.toString()
+            });
+
+            if (verificationResult.verified) {
+              toast.success('✅ Payment successful!', { duration: 4000 });
+              
+              // Reload order details to show updated payment status
+              await loadOrderDetails();
+            } else {
+              toast.error('❌ Payment verification failed. Please contact support.');
+            }
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            toast.error('❌ Payment verification failed. Please contact support.');
+          } finally {
+            setRetryingPayment(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            toast('Payment cancelled', { icon: '⚠️' });
+            setRetryingPayment(false);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error initiating retry payment:', error);
+      toast.error('Failed to initiate payment. Please try again.');
+      setRetryingPayment(false);
     }
   };
 
@@ -514,7 +628,20 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             </span>
                           )}
                         </span>
-                        <span className="font-medium">{formatCurrency(orderDetails.online_amount || 0)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{formatCurrency(orderDetails.online_amount || 0)}</span>
+                          {(orderDetails.payment_status === 'pending' || orderDetails.payment_status === 'failed') && (
+                            <button
+                              onClick={handleRetryPayment}
+                              disabled={retryingPayment}
+                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 rounded transition-colors"
+                              title="Retry Payment"
+                            >
+                              <RefreshCw size={12} className={retryingPayment ? 'animate-spin' : ''} />
+                              {retryingPayment ? 'Processing...' : 'Retry'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {/* COD Payment Status */}
                       <div className="flex justify-between items-center">
@@ -562,7 +689,20 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             </span>
                           )}
                         </span>
-                        <span className="font-medium">{formatCurrency(orderDetails.total_amount)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{formatCurrency(orderDetails.total_amount)}</span>
+                          {(orderDetails.payment_status === 'pending' || orderDetails.payment_status === 'failed') && (
+                            <button
+                              onClick={handleRetryPayment}
+                              disabled={retryingPayment}
+                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 rounded transition-colors"
+                              title="Retry Payment"
+                            >
+                              <RefreshCw size={12} className={retryingPayment ? 'animate-spin' : ''} />
+                              {retryingPayment ? 'Processing...' : 'Retry'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </>
                   )}
