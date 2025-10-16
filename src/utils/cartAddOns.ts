@@ -80,14 +80,6 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
     priority: 1,
     suggestions: [
       {
-        id: 'faal-pico',
-        title: 'Faal & Pico Service',
-        description: 'Professional edge finishing with faal and pico work',
-        type: 'service',
-        price: 150,
-        icon: '✂️'
-      },
-      {
         id: 'custom-blouse',
         title: 'Custom Stitched Choli',
         description: 'Get a choli custom stitched to your measurements',
@@ -140,14 +132,6 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
     priority: 1,
     suggestions: [
       {
-        id: 'faal-pico',
-        title: 'Faal & Pico Service',
-        description: 'Professional edge finishing for your gown',
-        type: 'service',
-        price: 150,
-        icon: '✂️'
-      },
-      {
         id: 'gown-stitching',
         title: 'Custom Stitching & Alterations',
         description: 'Perfect fit with custom stitching service',
@@ -182,14 +166,6 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
     triggerKeywords: ['suit', 'salwar', 'kameez', 'kurti set'],
     priority: 2,
     suggestions: [
-      {
-        id: 'faal-pico',
-        title: 'Faal & Pico Service',
-        description: 'Professional edge finishing for your suit',
-        type: 'service',
-        price: 150,
-        icon: '✂️'
-      },
       {
         id: 'custom-blouse',
         title: 'Custom Stitched Top',
