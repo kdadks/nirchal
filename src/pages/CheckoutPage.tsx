@@ -649,7 +649,7 @@ const CheckoutPage: React.FC = () => {
             },
             modal: {
               ondismiss: async () => {
-
+                console.log('💳 Razorpay modal dismissed - handling order completion');
                 
                 // Send payment failure email for cancelled payments
                 try {
@@ -660,15 +660,46 @@ const CheckoutPage: React.FC = () => {
                     amount: finalTotal,
                     error_reason: 'Payment cancelled by user'
                   });
-
                 } catch (emailError) {
                   console.error('Failed to send payment cancellation email:', emailError);
                 }
                 
-                toast('💳 Payment cancelled. Your order has been saved and you can retry payment later.', {
-                  duration: 4000,
+                // Save order details for confirmation page
+                if (order?.order_number) {
+                  sessionStorage.setItem('last_order_number', order.order_number);
+                  sessionStorage.setItem('payment_status', 'pending');
+                  
+                  // Save payment split information
+                  const { serviceTotal: svcTotal } = calculatePaymentSplit();
+                  const isSplitPayment = paymentSplit === 'split' && svcTotal > 0;
+                  
+                  if (isSplitPayment && svcTotal > 0) {
+                    sessionStorage.setItem('cod_amount', svcTotal.toString());
+                    sessionStorage.setItem('payment_split', 'true');
+                    sessionStorage.setItem('online_paid_amount', finalTotal.toString());
+                  }
+                }
+                
+                if (form?.email) {
+                  sessionStorage.setItem('last_order_email', form.email.trim());
+                }
+                
+                // Clear cart
+                try {
+                  clearCart();
+                  localStorage.removeItem('cart');
+                } catch (cartError) {
+                  console.error('Failed to clear cart:', cartError);
+                }
+                
+                // Show informative toast
+                toast('💳 Payment pending. Please complete payment from your account.', {
+                  duration: 5000,
+                  icon: '⚠️'
                 });
-                setIsSubmitting(false);
+                
+                // Navigate to order confirmation with pending status
+                window.location.href = '/order-confirmation';
               }
             }
           });

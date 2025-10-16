@@ -12,19 +12,21 @@ const OrderConfirmationPage: React.FC = () => {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
-  const { orderNumber, email, tempPassword, codAmount, paymentSplit } = useMemo(() => {
+  const { orderNumber, email, tempPassword, codAmount, paymentSplit, paymentStatus } = useMemo(() => {
     const on = sessionStorage.getItem('last_order_number') || '';
     const em = sessionStorage.getItem('last_order_email') || '';
     const tp = sessionStorage.getItem('new_customer_temp_password') || '';
     const cod = sessionStorage.getItem('cod_amount') || '0';
     const ps = sessionStorage.getItem('payment_split') === 'true';
+    const status = sessionStorage.getItem('payment_status') || 'completed';
     
     return { 
       orderNumber: on, 
       email: em, 
       tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '',
       codAmount: parseFloat(cod),
-      paymentSplit: ps
+      paymentSplit: ps,
+      paymentStatus: status
     };
   }, []);
 
@@ -93,14 +95,52 @@ const OrderConfirmationPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="max-w-2xl mx-auto text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-6">
-          <CheckCircle className="w-8 h-8 text-green-600" />
+        <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-6 ${
+          paymentStatus === 'pending' ? 'bg-orange-100' : 'bg-green-100'
+        }`}>
+          {paymentStatus === 'pending' ? (
+            <svg className="w-8 h-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          ) : (
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          )}
         </div>
 
         <h1 className="text-3xl font-serif font-bold text-gray-900 mb-4">
-          Thank You for Your Order!
+          {paymentStatus === 'pending' ? 'Order Created - Payment Pending' : 'Thank You for Your Order!'}
         </h1>
         
+        {/* Payment Pending Warning */}
+        {paymentStatus === 'pending' && (
+          <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-6 mb-6 text-left">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-lg font-semibold text-orange-900 mb-2">
+                  ⚠️ Payment Not Completed
+                </h3>
+                <p className="text-orange-800 mb-4">
+                  Your order <strong>#{orderNumber}</strong> has been created successfully, but the payment was not completed. 
+                  {' '}Your order will remain in <strong>"Pending Payment"</strong> status until payment is received.
+                </p>
+                <div className="bg-white rounded-lg p-4 border border-orange-200">
+                  <p className="text-sm font-medium text-gray-900 mb-2">📌 What happens next?</p>
+                  <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside">
+                    <li>Your order is saved and reserved for you</li>
+                    <li>Go to <strong>My Account → Orders</strong> to view order details</li>
+                    <li>Click on the order to see full details and <strong className="text-orange-700">retry payment</strong></li>
+                    <li>Complete payment within 24 hours to avoid order cancellation</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Temporary Password Security Warning */}
         {tempPassword && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
@@ -136,7 +176,10 @@ const OrderConfirmationPage: React.FC = () => {
         )}
         
         <p className="text-lg text-gray-600 mb-8">
-          Your order has been successfully placed and will be processed shortly.
+          {paymentStatus === 'pending' 
+            ? 'Please complete payment from your account to confirm your order.'
+            : 'Your order has been successfully placed and will be processed shortly.'
+          }
         </p>
 
         <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
@@ -147,13 +190,36 @@ const OrderConfirmationPage: React.FC = () => {
               <dd className="text-gray-900 font-medium">{orderNumber || '#ORD-LOADING'}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-600">Status</dt>
-              <dd className="text-green-600 font-medium">Confirmed</dd>
+              <dt className="text-gray-600">Payment Status</dt>
+              <dd className={`font-medium ${
+                paymentStatus === 'pending' ? 'text-orange-600' : 'text-green-600'
+              }`}>
+                {paymentStatus === 'pending' ? (
+                  <span className="inline-flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Payment Pending
+                  </span>
+                ) : (
+                  'Payment Confirmed'
+                )}
+              </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-gray-600">Estimated Delivery</dt>
-              <dd className="text-gray-900 font-medium">3-5 Business Days</dd>
+              <dt className="text-gray-600">Order Status</dt>
+              <dd className={`font-medium ${
+                paymentStatus === 'pending' ? 'text-orange-600' : 'text-green-600'
+              }`}>
+                {paymentStatus === 'pending' ? 'Awaiting Payment' : 'Confirmed'}
+              </dd>
             </div>
+            {paymentStatus !== 'pending' && (
+              <div className="flex justify-between">
+                <dt className="text-gray-600">Estimated Delivery</dt>
+                <dd className="text-gray-900 font-medium">3-5 Business Days</dd>
+              </div>
+            )}
           </dl>
         </div>
 
@@ -202,42 +268,80 @@ const OrderConfirmationPage: React.FC = () => {
         )}
 
         <div className="space-y-4">
-          <p className="text-gray-600">
-            We'll send you an email confirmation with order details and tracking information once your order ships.
-          </p>
-          <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded p-4 text-left">
-            <p className="font-medium mb-1">Manage your order</p>
-            <ul className="list-disc list-inside text-sm space-y-1">
-              <li>Use the Account page to view orders and saved addresses.</li>
-              {!customer && (
-                <li>{email ? `Sign in with ${email} to link this order to your account.` : 'Sign in with your email to link this order to your account.'}</li>
-              )}
-            </ul>
-          </div>
-          <p className="text-gray-600">
-            If you have any questions about your order, please contact our customer support.
-          </p>
+          {paymentStatus === 'pending' ? (
+            <div className="bg-blue-50 border-2 border-blue-300 text-blue-900 rounded-lg p-5 text-left">
+              <p className="font-semibold mb-3 text-lg">💡 How to Complete Payment:</p>
+              <ol className="list-decimal list-inside space-y-2 text-sm">
+                <li>Go to <strong>My Account</strong> page (click button below)</li>
+                <li>Navigate to the <strong>"Orders"</strong> tab</li>
+                <li>Find order <strong>#{orderNumber}</strong> and click to view details</li>
+                <li>Click the <strong>"Retry Payment"</strong> button in the order details</li>
+                <li>Complete payment to confirm your order</li>
+              </ol>
+              <p className="mt-4 text-xs text-blue-800 bg-blue-100 p-3 rounded">
+                ⏰ <strong>Note:</strong> Orders with pending payment will be automatically cancelled after 24 hours. 
+                Please complete payment soon to secure your order.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-gray-600">
+                We'll send you an email confirmation with order details and tracking information once your order ships.
+              </p>
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded p-4 text-left">
+                <p className="font-medium mb-1">Manage your order</p>
+                <ul className="list-disc list-inside text-sm space-y-1">
+                  <li>Use the Account page to view orders and saved addresses.</li>
+                  {!customer && (
+                    <li>{email ? `Sign in with ${email} to link this order to your account.` : 'Sign in with your email to link this order to your account.'}</li>
+                  )}
+                </ul>
+              </div>
+              <p className="text-gray-600">
+                If you have any questions about your order, please contact our customer support.
+              </p>
+            </>
+          )}
         </div>
 
         <div className="mt-8 space-x-4">
-          <Link
-            to="/products"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-          >
-            Continue Shopping
-          </Link>
-          <button
-            onClick={handleGoToAccount}
-            className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Go to Account
-          </button>
-          <Link
-            to="/contact"
-            className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Contact Support
-          </Link>
+          {paymentStatus === 'pending' ? (
+            <>
+              <button
+                onClick={handleGoToAccount}
+                className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 shadow-lg"
+              >
+                Go to My Account & Complete Payment
+              </button>
+              <Link
+                to="/contact"
+                className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Contact Support
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/products"
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
+              >
+                Continue Shopping
+              </Link>
+              <button
+                onClick={handleGoToAccount}
+                className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Go to Account
+              </button>
+              <Link
+                to="/contact"
+                className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Contact Support
+              </Link>
+            </>
+          )}
         </div>
         
         {/* Password Change Modal */}
