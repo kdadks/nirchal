@@ -237,6 +237,78 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         icon: '💎'
       }
     ]
+  },
+  
+  // KURTA SETS Add-ons
+  {
+    triggerCategory: 'Kurta Sets',
+    triggerKeywords: ['kurta set', 'kurti set'],
+    priority: 3,
+    suggestions: [
+      {
+        id: 'dupatta',
+        title: 'Dupatta',
+        description: 'Add a dupatta for a complete ethnic look',
+        type: 'product',
+        category: 'Dupattas',
+        priceRange: { min: 199, max: 999 },
+        icon: '🧣'
+      },
+      {
+        id: 'jewelry',
+        title: 'Elegant Jewelry',
+        description: 'Traditional jewelry to complete your look',
+        type: 'product',
+        category: 'Jewelry',
+        priceRange: { min: 199, max: 3999 },
+        icon: '💎'
+      },
+      {
+        id: 'matching-accessories',
+        title: 'Matching Accessories',
+        description: 'Bags, clutches, and other accessories',
+        type: 'product',
+        category: 'Accessories',
+        priceRange: { min: 249, max: 2499 },
+        icon: '👜'
+      }
+    ]
+  },
+  
+  // SKIRTS Add-ons
+  {
+    triggerCategory: 'Skirts',
+    triggerKeywords: ['skirt'],
+    priority: 3,
+    suggestions: [
+      {
+        id: 'top-wear',
+        title: 'Matching Top',
+        description: 'Crop tops, blouses, or kurtis to pair with your skirt',
+        type: 'product',
+        category: 'Tops',
+        priceRange: { min: 399, max: 1999 },
+        icon: '👚'
+      },
+      {
+        id: 'jewelry',
+        title: 'Fashion Jewelry',
+        description: 'Trendy jewelry to complete your outfit',
+        type: 'product',
+        category: 'Jewelry',
+        priceRange: { min: 199, max: 2999 },
+        icon: '💎'
+      },
+      {
+        id: 'belt',
+        title: 'Designer Belt',
+        description: 'Stylish belts to accentuate your look',
+        type: 'product',
+        category: 'Accessories',
+        priceRange: { min: 199, max: 999 },
+        icon: '⚡'
+      }
+    ]
   }
 ];
 
