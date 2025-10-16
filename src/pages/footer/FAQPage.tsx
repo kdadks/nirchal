@@ -33,7 +33,7 @@ const faqs: FAQ[] = [
     id: 4,
     category: 'shipping',
     question: 'What are your shipping charges?',
-    answer: 'We offer free shipping on orders above ₹2,999. For orders below this amount, shipping charges are ₹99 within India. Express delivery is available for an additional ₹199.'
+    answer: 'We offer FREE shipping on all orders across India with no minimum order value! 🇮🇳 For international orders, shipping charges are calculated based on the destination country and delivery address at checkout.'
   },
   {
     id: 5,

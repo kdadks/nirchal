@@ -9,6 +9,7 @@ interface CartItem {
   variantId?: string;
   size?: string;
   color?: string;
+  category?: string; // Product category for add-ons detection
 }
 
 interface CartState {

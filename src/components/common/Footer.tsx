@@ -101,7 +101,7 @@ const Footer: React.FC = () => {
             <div className="flex items-center space-x-4 mt-2 md:mt-0">
               <div className="flex items-center space-x-1">
                 <Truck size={12} className="text-accent-400" />
-                <span className="text-gray-400">Free Shipping ₹2,999+</span>
+                <span className="text-gray-400">Free Shipping Across India 🇮🇳</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Shield size={12} className="text-accent-400" />

@@ -21,9 +21,9 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center space-x-4 text-center">
             <Star className="w-5 h-5" />
-            <span className="font-medium">Free Shipping on orders above ₹2,999</span>
+            <span className="font-medium">Free Shipping on All Orders Across India 🇮🇳</span>
             <span className="hidden md:inline">•</span>
-            <span className="hidden md:inline font-medium">30-day Easy Returns</span>
+            <span className="hidden md:inline font-medium">2-day Easy Returns</span>
             <Star className="w-5 h-5" />
           </div>
         </div>
@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
               {featuredProducts.slice(0, 5).map((product) => (
                 <div key={product.id} className="transform hover:scale-105 transition-transform duration-300">
-                  <ProductCard product={product} />
+                  <ProductCard product={product} showActionButtons={true} />
                 </div>
               ))}
             </div>
@@ -161,7 +161,7 @@ const HomePage: React.FC = () => {
               {
                 icon: <Truck className="w-5 h-5 md:w-8 md:h-8 text-white" />,
                 title: 'Free Shipping',
-                description: 'On orders above ₹2,999',
+                description: 'On all orders across India 🇮🇳',
                 color: 'from-green-500 to-green-600'
               },
               {
@@ -179,9 +179,9 @@ const HomePage: React.FC = () => {
               {
                 icon: <RefreshCw className="w-5 h-5 md:w-8 md:h-8 text-white" />,
                 title: 'Easy Returns',
-                description: '30-day return policy',
-                color: 'from-orange-500 to-orange-600'
-              }
+                description: '2-day return policy',
+                color: 'from-blue-500 to-blue-600'
+              },
             ].map((feature, index) => (
               <div key={index} className="text-center group">
                 <div className={`w-10 h-10 md:w-14 md:h-14 bg-gradient-to-r ${feature.color} rounded-full flex items-center justify-center mx-auto mb-2 md:mb-3 group-hover:scale-110 transition-transform duration-300`}>

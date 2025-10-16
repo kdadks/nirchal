@@ -200,10 +200,10 @@ export const useNirchalAI = () => {
       
       case 'policy_info':
         if (userMessage.toLowerCase().includes('return')) {
-          return "📦 **Return Policy**: We offer a 30-day return policy for all items. Products should be in original condition with tags. Free return pickup for orders above ₹2,999. Would you like details about the return process?";
+          return "📦 **Return Policy**: We offer a 2-day return policy for all items. Products should be in original condition with tags. Free return pickup for all orders across India! Would you like details about the return process?";
         }
         if (userMessage.toLowerCase().includes('shipping')) {
-          return "🚚 **Shipping Info**: Free shipping on orders above ₹2,999. Standard delivery takes 3-7 business days. Express delivery available for ₹99. We deliver pan-India with real-time tracking.";
+          return "🚚 **Shipping Info**: FREE shipping on all orders across India! 🇮🇳 No minimum order value. Standard delivery takes 3-7 business days. We deliver pan-India with real-time tracking. International shipping available with charges calculated at checkout.";
         }
         if (userMessage.toLowerCase().includes('size')) {
           return "📏 **Size Guide**: We provide detailed size charts for all categories. Most items are available in XS to XXL. Custom sizing available for select products. Need help with a specific size?";
@@ -222,7 +222,7 @@ export const useNirchalAI = () => {
                  `• Starting from: ₹${minPrice.toLocaleString()}\n` +
                  `• Up to: ₹${maxPrice.toLocaleString()}\n` +
                  `• Average price: ₹${avgPrice.toLocaleString()}\n\n` +
-                 `We frequently have sales and offers. Currently active: Free shipping above ₹2,999! 🎉`;
+                 `We frequently have sales and offers. Currently active: FREE shipping on all orders across India! 🇮🇳🎉`;
         }
         return "Our prices are very competitive with frequent sales and offers. What's your budget range? I can show you the best options within your price point.";
       }
