@@ -1,43 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
-import { useCart } from '../../contexts/CartContext';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { getProductStockInfo } from '../../utils/inventoryUtils';
-import QuickViewModal from './QuickViewModal';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
+import QuickViewModal from './QuickViewModal';
 import type { Product } from '../../types';
 
 interface ProductCardProps {
   product: Product;
+  showActionButtons?: boolean; // Optional prop to show Choose Options/Buy Now buttons
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
-  product 
+  product,
+  showActionButtons = false // Default to false - only featured products will have this
 }) => {
   const { addToWishlist, isInWishlist } = useWishlist();
-  const { addToCart } = useCart();
-  const navigate = useNavigate();
-  // Use first image (should be primary due to sorting in usePublicProducts)
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
-  const [imageSrc, setImageSrc] = React.useState(primaryImage);
-  const [imageError, setImageError] = React.useState(false);
-  const [showQuickView, setShowQuickView] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imageSrc, setImageSrc] = useState(primaryImage);
+  const [imageError, setImageError] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check if product has any stock available - use useMemo to recalculate when product changes
+  // Check if product has any stock available
   const hasStock = React.useMemo(() => {
     if (product.variants && product.variants.length > 0) {
-      // For products with variants, check if any variant has stock
       const hasVariantStock = product.variants.some(variant => {
         const variantQuantity = variant.quantity || 0;
         return variantQuantity > 0;
       });
       
-      // If no variant has stock, fall back to product-level stock as backup
       if (!hasVariantStock) {
         const stockInfo = getProductStockInfo(product);
         return stockInfo.isInStock;
@@ -45,19 +45,72 @@ const ProductCard: React.FC<ProductCardProps> = ({
       
       return hasVariantStock;
     } else {
-      // For products without variants, use product-level stock
       const stockInfo = getProductStockInfo(product);
       return stockInfo.isInStock;
     }
   }, [product]);
 
+  // Get images for auto-scroll (max 10)
+  const displayImages = React.useMemo(() => {
+    const images = product.images && product.images.length > 0 
+      ? product.images.slice(0, 10) 
+      : ['/placeholder-product.jpg'];
+    return images;
+  }, [product.images]);
+
   // Update image source when product changes
   useEffect(() => {
     const newPrimaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
-    
     setImageSrc(newPrimaryImage);
     setImageError(false);
+    setCurrentImageIndex(0);
+    setImagesPreloaded(false);
   }, [product]);
+
+  // Preload images when hovering to ensure smooth transitions
+  useEffect(() => {
+    if (isHovering && !imagesPreloaded && displayImages.length > 1) {
+      displayImages.forEach((imageSrc) => {
+        const img = new Image();
+        img.src = imageSrc;
+      });
+      setImagesPreloaded(true);
+    }
+  }, [isHovering, imagesPreloaded, displayImages]);
+
+  // Auto-scroll images on hover - only after images are loaded
+  useEffect(() => {
+    if (isHovering && displayImages.length > 1 && isInView) {
+      // Add a small delay before starting the auto-scroll to ensure first image is loaded
+      const startDelay = setTimeout(() => {
+        intervalRef.current = setInterval(() => {
+          setCurrentImageIndex((prevIndex) => {
+            const nextIndex = (prevIndex + 1) % displayImages.length;
+            setImageSrc(displayImages[nextIndex]);
+            return nextIndex;
+          });
+        }, 1500); // 1.5 second interval for smoother experience
+      }, 500); // 500ms delay before starting
+
+      return () => {
+        clearTimeout(startDelay);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      // Reset to first image when not hovering
+      if (!isHovering) {
+        setCurrentImageIndex(0);
+        setImageSrc(displayImages[0]);
+      }
+    }
+  }, [isHovering, displayImages, isInView]);
 
   // Intersection Observer for better lazy loading
   useEffect(() => {
@@ -83,7 +136,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const getDefaultAdjustedPrice = () => {
     if (!product.variants || product.variants.length === 0) return product.price;
-    // Try to find variant for first color/size combo
     const defaultSize = product.sizes[0] || undefined;
     const defaultColor = product.colors[0] || undefined;
     const match = product.variants.find(v => {
@@ -94,34 +146,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     if (match && (match.priceAdjustment || 0) > 0) return match.priceAdjustment!;
     const positiveVariantPrices = product.variants.map(v => v.priceAdjustment || 0).filter(p => p > 0);
     if (positiveVariantPrices.length > 0) return Math.min(...positiveVariantPrices);
-    return product.price; // fallback to sale price
-  };
-
-  const getDefaultVariantId = () => {
-    if (!product.variants || product.variants.length === 0) return undefined;
-    const defaultSize = product.sizes[0] || undefined;
-    const defaultColor = product.colors[0] || undefined;
-    const match = product.variants.find(v => {
-      const colorMatch = defaultColor ? v.color === defaultColor : true;
-      const sizeMatch = defaultSize && defaultSize !== 'Free Size' ? v.size === defaultSize : true;
-      return colorMatch && sizeMatch;
-    });
-    return match?.id;
-  };
-
-  const handleAddToCart = () => {
-    const defaultSize = product.sizes[0] || 'Free Size';
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: getDefaultAdjustedPrice(),
-      image: product.images[0],
-  size: defaultSize,
-  color: product.colors[0],
-  variantId: getDefaultVariantId()
-    });
-    // Navigate to cart page after adding item
-    navigate('/cart');
+    return product.price;
   };
 
   const handleImageError = () => {
@@ -149,36 +174,46 @@ const ProductCard: React.FC<ProductCardProps> = ({
     setShowQuickView(true);
   };
 
-  const truncateTitle = (title: string, maxLength: number = 45) => {
-    if (title.length <= maxLength) return title;
-    return title.substring(0, maxLength).trim() + '...';
-  };
-
   const discountPercentage = product.originalPrice && product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
+
+  // Check if product has variants
+  const hasVariants = React.useMemo(() => {
+    return product.variants && product.variants.length > 0;
+  }, [product.variants]);
+
+  const handleChooseOptions = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowQuickView(true);
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Navigate to product detail page for buy now
+    window.location.href = `/products/${product.slug}`;
+  };
 
   return (
     <>
       <div 
         ref={cardRef}
-        className="group relative bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-200 h-auto flex flex-col"
+        className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
       >
-        <Link to={`/products/${product.slug}`} className="flex-1 flex flex-col">
+        <Link to={`/products/${product.slug}`} className="block">
           {/* Image Container */}
-          <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 flex-shrink-0">
+          <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
             {isInView ? (
               <img
                 src={imageSrc}
-                srcSet={`${imageSrc} 1x, ${imageSrc}?w=800&q=80 2x`}
                 alt={product.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 product-image hw-accelerate"
+                className="w-full h-full object-cover transition-opacity duration-300"
                 onError={handleImageError}
                 loading="lazy"
-                style={{
-                  imageRendering: 'auto',
-                  filter: 'contrast(1.02) saturate(1.01)',
-                }}
               />
             ) : (
               <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
@@ -186,98 +221,128 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
             
-            {/* Stock Status Badge */}
-            {!hasStock && (
-              <div className="absolute top-1 md:top-2 right-1 md:right-2 bg-red-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded text-xs font-medium">
-                Out of Stock
-              </div>
-            )}
-            
-            {/* Low Stock Badge */}
-            {hasStock && product.stockStatus === 'Low Stock' && (
-              <div className="absolute top-1 md:top-2 right-1 md:right-2 bg-orange-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded text-xs font-medium">
-                Low Stock
-              </div>
-            )}
-            
             {/* Discount Badge */}
             {discountPercentage > 0 && (
-              <div className="absolute top-1 md:top-2 left-1 md:left-2 bg-red-500 text-white px-1.5 py-0.5 md:px-2 md:py-1 rounded text-xs font-medium">
+              <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold">
                 {discountPercentage}% OFF
               </div>
             )}
 
-            {/* Action Buttons - Top Right */}
-            <div className="absolute top-1 md:top-2 right-1 md:right-2 flex flex-col gap-1 md:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              {/* Quick View Button - Hidden on mobile */}
+            {/* Action Buttons - Show on hover */}
+            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {/* Quick View Button */}
               <button
                 onClick={handleQuickViewClick}
-                className="hidden md:flex w-8 h-8 bg-white shadow-lg rounded-full items-center justify-center hover:bg-amber-50 hover:shadow-xl transition-all duration-200 z-10"
+                className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-200 z-10"
                 title="Quick View"
               >
-                <Eye className="w-4 h-4 text-gray-700 hover:text-amber-600" />
+                <Eye className="w-5 h-5 text-gray-700" />
               </button>
-              
-              {/* Wishlist Button - Smaller on mobile for compact layout */}
+
+              {/* Wishlist Button */}
               <button
                 onClick={handleWishlistClick}
-                className="w-7 h-7 md:w-8 md:h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors duration-200"
+                className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 z-10"
                 title="Add to Wishlist"
               >
                 <Heart 
-                  className={`w-4 h-4 md:w-4 md:h-4 transition-colors duration-200 ${
+                  className={`w-5 h-5 transition-colors duration-200 ${
                     isInWishlist(product.id)
                       ? 'fill-red-500 text-red-500' 
-                      : 'text-gray-600 hover:text-red-500'
+                      : 'text-gray-700 hover:text-red-500'
                   }`}
                 />
               </button>
             </div>
-          </div>
 
-          {/* Content */}
-          <div className="p-2 md:p-3 flex-1 flex flex-col">
-            {/* Title */}
-            <h3 className="text-xs md:text-sm font-medium text-gray-900 mb-1 md:mb-2 line-clamp-1 flex-shrink-0" title={product.name}>
-              {truncateTitle(product.name)}
-            </h3>
-
-            {/* Rating - Always show */}
-            <div className="flex items-center gap-1 mb-1 flex-shrink-0">
-              <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`w-2.5 h-2.5 md:w-3 md:h-3 ${star <= Math.round(product.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+            {/* Image Progress Indicator - Show on hover if multiple images */}
+            {isHovering && displayImages.length > 1 && (
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
+                {displayImages.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      index === currentImageIndex 
+                        ? 'w-4 bg-white' 
+                        : 'w-1 bg-white/50'
+                    }`}
                   />
                 ))}
               </div>
-              <span className="text-xs text-gray-600">({(product.rating || 0).toFixed(1)})</span>
-            </div>
+            )}
+          </div>
 
-            {/* Price - Only show sale price */}
-            <div className="flex-shrink-0">
-              <span className="text-sm md:text-base font-bold text-gray-900">
+          {/* Content */}
+          <div className="p-3">
+            {/* Product Name */}
+            <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2" title={product.name}>
+              {product.name}
+            </h3>
+
+            {/* Price Section */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-bold text-gray-900">
                 {formatCurrency(getDefaultAdjustedPrice())}
               </span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <>
+                  <span className="text-xs text-gray-500 line-through">
+                    {formatCurrency(product.originalPrice)}
+                  </span>
+                  <span className="text-xs font-semibold text-orange-600">
+                    ({discountPercentage}% OFF)
+                  </span>
+                </>
+              )}
             </div>
 
-            {/* Add to Cart Button - Larger touch target on mobile */}
-            <div className="pt-1.5 md:pt-2.5">
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (hasStock) {
-                    handleAddToCart();
-                  }
-                }}
-                disabled={!hasStock}
-                className="w-full py-2 md:py-3 px-2 md:px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white text-xs md:text-sm font-medium rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-400"
-              >
-                {!hasStock ? 'Out of Stock' : 'Add to Cart'}
-              </button>
+            {/* Rating and Action Button Row */}
+            <div className="flex items-center justify-between gap-2">
+              {/* Rating - Always show with 0 if no rating */}
+              <div className="flex items-center gap-1">
+                <div className="flex items-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`w-3 h-3 ${
+                        star <= Math.round(product.rating || 0) 
+                          ? 'text-yellow-400 fill-yellow-400' 
+                          : 'text-gray-300 fill-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-gray-600">
+                  ({(product.rating || 0).toFixed(1)})
+                </span>
+              </div>
+
+              {/* Choose Options or Buy Now Button - Only for featured products */}
+              {showActionButtons && hasStock && (
+                hasVariants ? (
+                  <button
+                    onClick={handleChooseOptions}
+                    className="text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-600 hover:border-amber-700 px-2 py-1 rounded transition-colors duration-200"
+                  >
+                    Choose Options
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBuyNow}
+                    className="text-xs font-medium text-white bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded transition-colors duration-200"
+                  >
+                    Buy Now
+                  </button>
+                )
+              )}
             </div>
+
+            {/* Stock Status */}
+            {!hasStock && (
+              <div className="mt-2 text-xs text-red-600 font-medium">
+                Out of Stock
+              </div>
+            )}
           </div>
         </Link>
       </div>

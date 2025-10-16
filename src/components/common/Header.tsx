@@ -15,7 +15,7 @@ const promotionalMessages = [
     gradient: "from-yellow-400 via-orange-500 to-red-500"
   },
   {
-    text: "🚚 FREE SHIPPING on orders above ₹999",
+    text: "🚚 FREE SHIPPING on All Orders Across India 🇮🇳",
     icon: Gift,
     gradient: "from-green-400 via-blue-500 to-purple-500"
   },
