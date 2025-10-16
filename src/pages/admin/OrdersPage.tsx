@@ -25,6 +25,11 @@ interface Order {
     name: string;
     tracking_url_template: string;
   }[];
+  // COD fields
+  cod_amount?: number;
+  cod_collected?: boolean;
+  online_amount?: number;
+  payment_split?: boolean;
 }
 import toast from 'react-hot-toast';
 import { transactionalEmailService } from '../../services/transactionalEmailService';
@@ -41,6 +46,7 @@ const OrdersPage: React.FC = () => {
   // Filter states
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
+  const [codFilter, setCodFilter] = useState<string>('all'); // all, pending_cod, collected_cod
 
   const fetchOrders = async () => {
     try {
@@ -62,6 +68,10 @@ const OrdersPage: React.FC = () => {
           logistics_partner_id,
           tracking_number,
           shipped_at,
+          cod_amount,
+          cod_collected,
+          online_amount,
+          payment_split,
           logistics_partners(
             name,
             tracking_url_template
@@ -89,6 +99,14 @@ const OrdersPage: React.FC = () => {
     const orderStatusMatch = orderStatusFilter === 'all' || order.status === orderStatusFilter;
     const paymentStatusMatch = paymentStatusFilter === 'all' || order.payment_status === paymentStatusFilter;
     
+    // COD filter logic
+    let codMatch = true;
+    if (codFilter === 'pending_cod') {
+      codMatch = (order.cod_amount ?? 0) > 0 && !order.cod_collected;
+    } else if (codFilter === 'collected_cod') {
+      codMatch = (order.cod_amount ?? 0) > 0 && order.cod_collected === true;
+    }
+    
     // Search term filter
     let searchMatch = true;
     if (searchTerm) {
@@ -102,7 +120,7 @@ const OrdersPage: React.FC = () => {
       searchMatch = matchesOrderNumber || matchesCustomerName || matchesEmail || matchesPhone || matchesTracking;
     }
     
-    return orderStatusMatch && paymentStatusMatch && searchMatch;
+    return orderStatusMatch && paymentStatusMatch && codMatch && searchMatch;
   });
 
   // Pagination
@@ -232,6 +250,38 @@ const OrdersPage: React.FC = () => {
     fetchOrders(); // Refresh the orders list
   };
 
+  // Mark COD as collected
+  const markCodAsCollected = async (orderId: string) => {
+    if (!window.confirm('Mark COD as collected for this order?')) {
+      return;
+    }
+
+    try {
+      setUpdating(orderId);
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ cod_collected: true })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      setOrders(orders.map(order => 
+        order.id === orderId 
+          ? { ...order, cod_collected: true }
+          : order
+      ));
+      
+      toast.success('✅ COD marked as collected');
+    } catch (err) {
+      console.error('Error marking COD as collected:', err);
+      toast.error('Failed to update COD status');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -290,6 +340,12 @@ const OrdersPage: React.FC = () => {
   const deliveredOrders = orders.filter(order => order.status === 'delivered');
   const cancelledOrders = orders.filter(order => order.status === 'cancelled');
   const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
+
+  // COD Statistics
+  const pendingCodOrders = orders.filter(order => (order.cod_amount ?? 0) > 0 && !order.cod_collected);
+  const collectedCodOrders = orders.filter(order => (order.cod_amount ?? 0) > 0 && order.cod_collected);
+  const totalPendingCod = pendingCodOrders.reduce((sum, order) => sum + (order.cod_amount ?? 0), 0);
+  const totalCollectedCod = collectedCodOrders.reduce((sum, order) => sum + (order.cod_amount ?? 0), 0);
 
   if (loading) {
     return (
@@ -431,6 +487,73 @@ const OrdersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* COD Stats */}
+      {(pendingCodOrders.length > 0 || collectedCodOrders.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-lg shadow-sm border-2 border-emerald-200">
+            <div className="flex items-center">
+              <div className="bg-white p-2 rounded-lg">
+                <IndianRupee className="h-8 w-8 text-emerald-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-emerald-800">Pending COD</p>
+                <p className="text-2xl font-bold text-emerald-900">{formatCurrency(totalPendingCod)}</p>
+                <p className="text-xs text-emerald-700 mt-1">{pendingCodOrders.length} orders</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-green-50 to-teal-50 p-6 rounded-lg shadow-sm border-2 border-green-200">
+            <div className="flex items-center">
+              <div className="bg-white p-2 rounded-lg">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-green-800">Collected COD</p>
+                <p className="text-2xl font-bold text-green-900">{formatCurrency(totalCollectedCod)}</p>
+                <p className="text-xs text-green-700 mt-1">{collectedCodOrders.length} orders</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-lg shadow-sm border-2 border-amber-200">
+            <div className="flex items-center">
+              <div className="bg-white p-2 rounded-lg">
+                <IndianRupee className="h-8 w-8 text-amber-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-amber-800">Total COD Value</p>
+                <p className="text-2xl font-bold text-amber-900">
+                  {formatCurrency(totalPendingCod + totalCollectedCod)}
+                </p>
+                <p className="text-xs text-amber-700 mt-1">
+                  {pendingCodOrders.length + collectedCodOrders.length} orders
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg shadow-sm border-2 border-blue-200">
+            <div className="flex items-center">
+              <div className="bg-white p-2 rounded-lg">
+                <Package className="h-8 w-8 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-blue-800">Collection Rate</p>
+                <p className="text-2xl font-bold text-blue-900">
+                  {pendingCodOrders.length + collectedCodOrders.length > 0 
+                    ? Math.round((collectedCodOrders.length / (pendingCodOrders.length + collectedCodOrders.length)) * 100)
+                    : 0}%
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  {collectedCodOrders.length} of {pendingCodOrders.length + collectedCodOrders.length} collected
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Orders Table */}
       <div className="bg-white shadow-sm rounded-lg border">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -477,10 +600,27 @@ const OrdersPage: React.FC = () => {
                 </select>
               </div>
               
+              <div>
+                <label htmlFor="codFilter" className="block text-sm font-medium text-gray-700 mb-1">
+                  COD Status
+                </label>
+                <select
+                  id="codFilter"
+                  value={codFilter}
+                  onChange={(e) => setCodFilter(e.target.value)}
+                  className="block w-40 rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                >
+                  <option value="all">All Orders</option>
+                  <option value="pending_cod">🟡 Pending COD</option>
+                  <option value="collected_cod">🟢 COD Collected</option>
+                </select>
+              </div>
+              
               <button
                 onClick={() => {
                   setOrderStatusFilter('all');
                   setPaymentStatusFilter('all');
+                  setCodFilter('all');
                 }}
                 className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
               >
@@ -490,7 +630,7 @@ const OrdersPage: React.FC = () => {
           </div>
           
           {/* Filter Results Indicator */}
-          {(orderStatusFilter !== 'all' || paymentStatusFilter !== 'all') && (
+          {(orderStatusFilter !== 'all' || paymentStatusFilter !== 'all' || codFilter !== 'all') && (
             <div className="mt-4 pt-4 border-t border-gray-200">
               <p className="text-sm text-gray-600">
                 Showing {filteredOrders.length} of {orders.length} orders
@@ -502,6 +642,11 @@ const OrdersPage: React.FC = () => {
                 {paymentStatusFilter !== 'all' && (
                   <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Payment: {paymentStatusFilter}
+                  </span>
+                )}
+                {codFilter !== 'all' && (
+                  <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                    COD: {codFilter === 'pending_cod' ? 'Pending' : 'Collected'}
                   </span>
                 )}
               </p>
@@ -534,6 +679,9 @@ const OrdersPage: React.FC = () => {
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-emerald-600 uppercase tracking-wider">
+                    COD
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
@@ -599,6 +747,29 @@ const OrdersPage: React.FC = () => {
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                       {formatCurrency(order.total_amount)}
                     </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {order.cod_amount && order.cod_amount > 0 ? (
+                        <div className="space-y-1">
+                          <div className="text-sm font-semibold text-emerald-700">
+                            {formatCurrency(order.cod_amount)}
+                          </div>
+                          {order.cod_collected ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              🟢 Collected
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              🟡 Pending
+                            </span>
+                          )}
+                          {order.payment_split && (
+                            <div className="text-xs text-gray-500">Split Payment</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                       {formatDate(order.created_at)}
                     </td>
@@ -650,6 +821,17 @@ const OrdersPage: React.FC = () => {
                             className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 disabled:opacity-50 transition-colors w-16 min-w-16"
                           >
                             {updating === order.id ? 'Updating...' : 'Cancel'}
+                          </button>
+                        )}
+                        {/* COD Collection Button */}
+                        {order.cod_amount && order.cod_amount > 0 && !order.cod_collected && (
+                          <button
+                            onClick={() => markCodAsCollected(order.id)}
+                            disabled={updating === order.id}
+                            className="inline-flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-800 hover:bg-emerald-200 disabled:opacity-50 transition-colors whitespace-nowrap"
+                            title="Mark COD as collected"
+                          >
+                            {updating === order.id ? '...' : '💰 Collect'}
                           </button>
                         )}
                       </div>
