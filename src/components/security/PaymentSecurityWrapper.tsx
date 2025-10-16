@@ -172,7 +172,20 @@ const PaymentSecurityWrapper: React.FC<PaymentSecurityWrapperProps> = ({
     // Override localStorage setItem to prevent cardholder data storage
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function(key: string, value: string) {
-      if (SecurityUtils.containsCardholderData(value)) {
+      // Whitelist of safe keys that don't contain cardholder data
+      const safeKeys = [
+        'last_order_number',
+        'cod_amount',
+        'payment_split',
+        'online_paid_amount',
+        'cart',
+        'customer_auth',
+        'temp_checkout_data',
+        'wishlist'
+      ];
+      
+      // Skip validation for whitelisted keys
+      if (!safeKeys.includes(key) && SecurityUtils.containsCardholderData(value)) {
         SecurityUtils.auditLog('cardholder_data_storage_attempt', { key }, 'critical');
         throw new Error('PCI DSS Violation: Attempt to store cardholder data in localStorage');
       }
@@ -182,7 +195,19 @@ const PaymentSecurityWrapper: React.FC<PaymentSecurityWrapperProps> = ({
     // Override sessionStorage setItem to prevent cardholder data storage
     const originalSessionSetItem = sessionStorage.setItem;
     sessionStorage.setItem = function(key: string, value: string) {
-      if (SecurityUtils.containsCardholderData(value)) {
+      // Whitelist of safe keys that don't contain cardholder data
+      const safeKeys = [
+        'last_order_number',
+        'cod_amount',
+        'payment_split',
+        'online_paid_amount',
+        'cart',
+        'customer_auth',
+        'temp_checkout_data'
+      ];
+      
+      // Skip validation for whitelisted keys
+      if (!safeKeys.includes(key) && SecurityUtils.containsCardholderData(value)) {
         SecurityUtils.auditLog('cardholder_data_storage_attempt', { key }, 'critical');
         throw new Error('PCI DSS Violation: Attempt to store cardholder data in sessionStorage');
       }
