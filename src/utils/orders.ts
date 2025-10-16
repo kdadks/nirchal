@@ -272,6 +272,27 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
 
     console.log('[createOrderWithItems] Items payload:', itemsPayload);
 
+    // Log field lengths for debugging
+    if (itemsPayload.length > 0) {
+      console.log('[createOrderWithItems] Field lengths check:');
+      itemsPayload.forEach((item, idx) => {
+        console.log(`Item ${idx + 1}:`, {
+          product_name: item.product_name?.length || 0,
+          product_sku: item.product_sku?.length || 0,
+          variant_size: item.variant_size?.length || 0,
+          variant_color: item.variant_color?.length || 0,
+          variant_material: item.variant_material?.length || 0
+        });
+        
+        // Check for >50 chars
+        Object.entries(item).forEach(([key, value]) => {
+          if (typeof value === 'string' && value.length > 50) {
+            console.warn(`⚠️ Field "${key}" exceeds 50 chars (${value.length}):`, value);
+          }
+        });
+      });
+    }
+
     const { data: insertedItems, error: itemsError } = await supabase
       .from('order_items')
       .insert(itemsPayload)
