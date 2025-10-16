@@ -63,6 +63,10 @@ export type CreateOrderInput = {
     phone?: string;
   };
   items: OrderItemInput[];
+  cod_amount?: number; // Amount to be collected on delivery
+  cod_collected?: boolean; // Whether COD has been collected
+  online_amount?: number; // Amount paid online
+  payment_split?: boolean; // Whether order used split payment
 };
 
 export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: CustomerUpsert): Promise<{ id: string; tempPassword?: string; existingCustomer?: boolean; needsWelcomeEmail?: boolean } | null> {
@@ -231,6 +235,11 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
       shipping_postal_code: input.delivery.postal_code,
       shipping_country: input.delivery.country || 'India',
       shipping_phone: input.delivery.phone,
+      // Split payment fields
+      cod_amount: input.cod_amount || 0,
+      cod_collected: input.cod_collected || false,
+      online_amount: input.online_amount || input.total_amount,
+      payment_split: input.payment_split || false,
     })
     .select('id, order_number')
     .single();

@@ -189,7 +189,10 @@ export const outlookCompatibleOrderConfirmationEmail = (
   orderNumber: string, 
   orderTotal: string, 
   websiteUrl: string,
-  items?: Array<{ name: string; quantity: number; price: string; size?: string; color?: string; image?: string }>
+  items?: Array<{ name: string; quantity: number; price: string; size?: string; color?: string; image?: string }>,
+  codAmount?: number,
+  paymentSplit?: boolean,
+  onlineAmount?: number
 ) => {
   // Build items HTML
   let itemsHtml = '';
@@ -225,18 +228,55 @@ export const outlookCompatibleOrderConfirmationEmail = (
     itemsHtml += '</div></div>';
   }
 
+  // Build payment information HTML
+  let paymentInfoHtml = '';
+  if (paymentSplit && codAmount && codAmount > 0) {
+    paymentInfoHtml = `
+      <div style="margin: 20px 0; padding: 16px; background-color: #d1fae5; border-radius: 8px; border: 2px solid #10b981;">
+        <strong style="color: #065f46; font-size: 16px;">💚 Split Payment - Payment Details</strong>
+        <div style="margin-top: 12px; padding: 12px; background-color: #ffffff; border-radius: 6px;">
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+            <span>✅ <strong>Paid Online (Products)</strong></span>
+            <span style="color: #f59e0b; font-weight: bold;">₹${onlineAmount?.toFixed(2) || '0.00'}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px;">
+            <span>💵 <strong>Pay on Delivery (Services)</strong></span>
+            <span style="color: #10b981; font-weight: bold; font-size: 18px;">₹${codAmount.toFixed(2)}</span>
+          </div>
+        </div>
+        <div style="margin-top: 12px; padding: 10px; background-color: #fef3c7; border-radius: 6px; border: 1px solid #f59e0b;">
+          <span style="color: #92400e; font-size: 14px;">
+            📦 <strong>Important:</strong> Please keep ₹${codAmount.toFixed(2)} ready for payment when your order is delivered. 
+            Our delivery partner will collect this amount for the services.
+          </span>
+        </div>
+      </div>
+    `;
+  }
+
+  const contentItems = [
+    `Thank you for your order! We're excited to confirm that your order <strong>${orderNumber}</strong> has been successfully placed.`,
+    itemsHtml
+  ];
+
+  // Add payment info or regular total
+  if (paymentInfoHtml) {
+    contentItems.push(paymentInfoHtml);
+  } else {
+    contentItems.push(`<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ₹${orderTotal}</strong></div>`);
+  }
+
+  contentItems.push(
+    '<strong>📦 What happens next?</strong><br>• We\'ll process your order within 24 hours<br>• You\'ll receive tracking information once shipped<br>• Estimated delivery: 3-7 business days',
+    'We appreciate your business and look forward to serving you again!'
+  );
+
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Order Confirmation',
     headerText: '✅ Order Confirmed!',
     subHeaderText: `Order ${orderNumber}`,
     customerName,
-    content: [
-      `Thank you for your order! We're excited to confirm that your order <strong>${orderNumber}</strong> has been successfully placed.`,
-      itemsHtml,
-      `<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ₹${orderTotal}</strong></div>`,
-      '<strong>📦 What happens next?</strong><br>• We\'ll process your order within 24 hours<br>• You\'ll receive tracking information once shipped<br>• Estimated delivery: 3-7 business days',
-      'We appreciate your business and look forward to serving you again!'
-    ],
+    content: contentItems,
     ctaText: '📦 Track Your Order',
     ctaUrl: `${websiteUrl}/myaccount`,
     footerText: 'Your Trusted Shopping Destination',
