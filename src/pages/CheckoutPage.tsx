@@ -453,6 +453,11 @@ const CheckoutPage: React.FC = () => {
           variant_size: it.size,
           variant_color: it.color,
         })),
+        // Split payment data
+        cod_amount: codPaymentAmount,
+        cod_collected: false,
+        online_amount: finalTotal,
+        payment_split: isPaymentSplit,
       });
       
       if (!order) {
@@ -552,7 +557,7 @@ const CheckoutPage: React.FC = () => {
                   }
                   
                   // Payment successful - proceed with post-order actions
-                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
                 } else {
                   // Check if this is a duplicate payment attempt
                   if (verificationResult.duplicate_payment || verificationResult.duplicate_payment_id) {
@@ -563,7 +568,7 @@ const CheckoutPage: React.FC = () => {
                       toast.success('✅ This order has already been paid successfully!', {
                         duration: 5000,
                       });
-                      await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                      await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
                       return;
                     }
                     
@@ -600,7 +605,7 @@ const CheckoutPage: React.FC = () => {
                     duration: 4000,
                   });
                   // Redirect to confirmation for already paid orders
-                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
                   return;
                 }
                 
@@ -677,7 +682,7 @@ const CheckoutPage: React.FC = () => {
         }
       } else {
         // For non-Razorpay payments (COD, etc.), proceed as usual
-        await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal);
+        await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
       }
       
     } catch (error) {
@@ -707,7 +712,9 @@ const CheckoutPage: React.FC = () => {
     shouldSendWelcomeEmail: boolean, 
     tempPassword: string | null, 
     customerId: string | null, 
-    finalTotal: number
+    finalTotal: number,
+    codAmount: number = 0,
+    isPaymentSplit: boolean = false
   ) => {
     // Immediately show processing state to prevent cart page flash
     setIsOrderProcessing(true);
@@ -753,7 +760,10 @@ const CheckoutPage: React.FC = () => {
             size: item.size,
             color: item.color,
             image: item.image
-          }))
+          })),
+          cod_amount: codAmount,
+          payment_split: isPaymentSplit,
+          online_amount: finalTotal
         });
 
       } catch (emailError) {
@@ -804,9 +814,11 @@ const CheckoutPage: React.FC = () => {
       if (isSplitPayment && svcTotal > 0) {
         sessionStorage.setItem('cod_amount', svcTotal.toString());
         sessionStorage.setItem('payment_split', 'true');
+        sessionStorage.setItem('online_paid_amount', finalTotal.toString());
       } else {
         sessionStorage.removeItem('cod_amount');
         sessionStorage.removeItem('payment_split');
+        sessionStorage.removeItem('online_paid_amount');
       }
 
     } else {

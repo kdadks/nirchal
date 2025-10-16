@@ -12,12 +12,20 @@ const OrderConfirmationPage: React.FC = () => {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
-  const { orderNumber, email, tempPassword } = useMemo(() => {
+  const { orderNumber, email, tempPassword, codAmount, paymentSplit } = useMemo(() => {
     const on = sessionStorage.getItem('last_order_number') || '';
     const em = sessionStorage.getItem('last_order_email') || '';
     const tp = sessionStorage.getItem('new_customer_temp_password') || '';
+    const cod = sessionStorage.getItem('cod_amount') || '0';
+    const ps = sessionStorage.getItem('payment_split') === 'true';
     
-    return { orderNumber: on, email: em, tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '' };
+    return { 
+      orderNumber: on, 
+      email: em, 
+      tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '',
+      codAmount: parseFloat(cod),
+      paymentSplit: ps
+    };
   }, []);
 
   // Check if we should redirect (do this in useEffect to avoid render issues)
@@ -148,6 +156,50 @@ const OrderConfirmationPage: React.FC = () => {
             </div>
           </dl>
         </div>
+
+        {/* COD Payment Reminder - Only show if split payment was used */}
+        {paymentSplit && codAmount > 0 && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6 mb-8 text-left shadow-md">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4 flex-1">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  💚 Payment Reminder
+                </h3>
+                <p className="text-gray-700 mb-4">
+                  You've chosen our <strong>Split Payment</strong> option! Products have been paid online, 
+                  and services will be collected on delivery.
+                </p>
+                
+                <div className="bg-white rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                    <span className="text-gray-600 font-medium">✅ Paid Online (Products)</span>
+                    <span className="text-amber-600 font-bold text-lg">
+                      ₹{((sessionStorage.getItem('online_paid_amount') || '0') as any) - 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-900 font-semibold">💵 Pay on Delivery (Services)</span>
+                    <span className="text-green-600 font-bold text-xl">
+                      ₹{codAmount.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-4 bg-green-100 border border-green-300 rounded-lg p-3">
+                  <p className="text-sm text-green-800 font-medium">
+                    📦 <strong>Please keep ₹{codAmount.toFixed(2)} ready</strong> for payment when your order arrives. 
+                    Our delivery partner will collect this amount for the services.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           <p className="text-gray-600">
