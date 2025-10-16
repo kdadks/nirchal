@@ -184,7 +184,47 @@ export const outlookCompatibleWelcomeEmail = (customerName: string, websiteUrl: 
   });
 };
 
-export const outlookCompatibleOrderConfirmationEmail = (customerName: string, orderNumber: string, orderTotal: string, websiteUrl: string) => {
+export const outlookCompatibleOrderConfirmationEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  orderTotal: string, 
+  websiteUrl: string,
+  items?: Array<{ name: string; quantity: number; price: string; size?: string; color?: string; image?: string }>
+) => {
+  // Build items HTML
+  let itemsHtml = '';
+  if (items && items.length > 0) {
+    itemsHtml = '<div style="margin: 20px 0;"><strong>📦 Order Items:</strong><div style="margin-top: 10px;">';
+    items.forEach(item => {
+      const details: string[] = [];
+      if (item.size && item.size !== 'Service' && item.size !== 'Custom') {
+        details.push(`Size: ${item.size}`);
+      }
+      if (item.color && item.size !== 'Service' && item.size !== 'Custom') {
+        details.push(`Color: ${item.color}`);
+      }
+      // For service items, show the color field as it contains custom notes/measurements
+      if ((item.size === 'Service' || item.size === 'Custom') && item.color) {
+        details.push(item.color);
+      }
+      
+      const detailsText = details.length > 0 ? `<br><span style="color: #666; font-size: 13px;">${details.join(' | ')}</span>` : '';
+      
+      itemsHtml += `
+        <div style="padding: 12px; margin-bottom: 8px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <strong>${item.name}</strong>${detailsText}
+              <div style="color: #666; font-size: 13px; margin-top: 4px;">Quantity: ${item.quantity}</div>
+            </div>
+            <div style="font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px;">₹${item.price}</div>
+          </div>
+        </div>
+      `;
+    });
+    itemsHtml += '</div></div>';
+  }
+
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Order Confirmation',
     headerText: '✅ Order Confirmed!',
@@ -192,7 +232,8 @@ export const outlookCompatibleOrderConfirmationEmail = (customerName: string, or
     customerName,
     content: [
       `Thank you for your order! We're excited to confirm that your order <strong>${orderNumber}</strong> has been successfully placed.`,
-      `<strong>Order Total:</strong> ₹${orderTotal}`,
+      itemsHtml,
+      `<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ₹${orderTotal}</strong></div>`,
       '<strong>📦 What happens next?</strong><br>• We\'ll process your order within 24 hours<br>• You\'ll receive tracking information once shipped<br>• Estimated delivery: 3-7 business days',
       'We appreciate your business and look forward to serving you again!'
     ],
@@ -203,7 +244,47 @@ export const outlookCompatibleOrderConfirmationEmail = (customerName: string, or
   });
 };
 
-export const outlookCompatibleOrderReceivedEmail = (customerName: string, orderNumber: string, orderTotal: string, websiteUrl: string) => {
+export const outlookCompatibleOrderReceivedEmail = (
+  customerName: string, 
+  orderNumber: string, 
+  orderTotal: string, 
+  websiteUrl: string,
+  items?: Array<{ name: string; quantity: number; price: string; size?: string; color?: string; image?: string }>
+) => {
+  // Build items HTML
+  let itemsHtml = '';
+  if (items && items.length > 0) {
+    itemsHtml = '<div style="margin: 20px 0;"><strong>📦 Order Items:</strong><div style="margin-top: 10px;">';
+    items.forEach(item => {
+      const details: string[] = [];
+      if (item.size && item.size !== 'Service' && item.size !== 'Custom') {
+        details.push(`Size: ${item.size}`);
+      }
+      if (item.color && item.size !== 'Service' && item.size !== 'Custom') {
+        details.push(`Color: ${item.color}`);
+      }
+      // For service items, show the color field as it contains custom notes/measurements
+      if ((item.size === 'Service' || item.size === 'Custom') && item.color) {
+        details.push(item.color);
+      }
+      
+      const detailsText = details.length > 0 ? `<br><span style="color: #666; font-size: 13px;">${details.join(' | ')}</span>` : '';
+      
+      itemsHtml += `
+        <div style="padding: 12px; margin-bottom: 8px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <strong>${item.name}</strong>${detailsText}
+              <div style="color: #666; font-size: 13px; margin-top: 4px;">Quantity: ${item.quantity}</div>
+            </div>
+            <div style="font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px;">₹${item.price}</div>
+          </div>
+        </div>
+      `;
+    });
+    itemsHtml += '</div></div>';
+  }
+
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Order Received',
     headerText: '📨 Order Received!',
@@ -211,7 +292,8 @@ export const outlookCompatibleOrderReceivedEmail = (customerName: string, orderN
     customerName,
     content: [
       `Thank you for placing your order with us! We have successfully received your order <strong>${orderNumber}</strong> and it is now being processed.`,
-      `<strong>Order Total:</strong> ₹${orderTotal}`,
+      itemsHtml,
+      `<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ₹${orderTotal}</strong></div>`,
       '<strong>🔄 What happens next?</strong><br>• Our team will review and process your order<br>• You\'ll receive an order confirmation once processed<br>• We\'ll send tracking details when your order ships',
       'Thank you for choosing us! We\'ll keep you updated on your order status.'
     ],

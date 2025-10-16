@@ -139,7 +139,8 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       image: product.images[currentImageIndex] || product.images[0],
       size: selectedSize || undefined,
       color: selectedColor,
-      variantId: selectedVariant?.id
+      variantId: selectedVariant?.id,
+      category: product.category // Include category for add-ons detection
     });
     onClose();
   };
