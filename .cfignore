@@ -33,8 +33,3 @@ Thumbs.db
 *.tmp
 *.temp
 temp_*
-
-# Documentation and cleanup scripts (not needed for deployment)
-*.md
-cleanup-*.ps1
-find-large-files.ps1
