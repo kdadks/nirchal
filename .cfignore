@@ -1,0 +1,40 @@
+# Cloudflare Pages - Files to ignore during deployment
+# These files don't need to be uploaded as they're either in Git history
+# or not needed for the build process
+
+# Large image directories (already in R2/Supabase Storage)
+public/images/products/
+public/images/categories/
+
+# Development files
+node_modules/
+.vscode/
+.idea/
+*.log
+*.local
+
+# Git directory
+.git/
+
+# Build artifacts that will be rebuilt
+dist/
+dist-ssr/
+
+# Large archives
+*.zip
+*.tar.gz
+*.rar
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+temp_*
+
+# Documentation and cleanup scripts (not needed for deployment)
+*.md
+cleanup-*.ps1
+find-large-files.ps1
