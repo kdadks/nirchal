@@ -250,6 +250,12 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
   }
 
   if (input.items?.length) {
+    console.log('[createOrderWithItems] Inserting order items:', {
+      orderId: order.id,
+      itemsCount: input.items.length,
+      items: input.items
+    });
+
     const itemsPayload = input.items.map(it => ({
       order_id: order.id,
       product_id: it.product_id,
@@ -264,13 +270,19 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
       total_price: it.total_price,
     }));
 
-    const { error: itemsError } = await supabase
+    console.log('[createOrderWithItems] Items payload:', itemsPayload);
+
+    const { data: insertedItems, error: itemsError } = await supabase
       .from('order_items')
-      .insert(itemsPayload);
+      .insert(itemsPayload)
+      .select();
 
     if (itemsError) {
-      console.warn('createOrderWithItems: inserting items failed:', itemsError.message);
+      console.error('createOrderWithItems: inserting items failed:', itemsError);
+      console.error('createOrderWithItems: itemsPayload that failed:', itemsPayload);
       // continue; order exists
+    } else {
+      console.log('[createOrderWithItems] Successfully inserted items:', insertedItems?.length);
     }
     
     // ⚠️ IMPORTANT: Do NOT update inventory here!

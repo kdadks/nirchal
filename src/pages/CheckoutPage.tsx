@@ -434,6 +434,16 @@ const CheckoutPage: React.FC = () => {
         phone: form.phone,
       });
 
+      console.log('[Checkout] Cart items before order creation:', items);
+      console.log('[Checkout] Mapped order items:', items.map(it => ({
+        product_id: it.id,
+        product_variant_id: it.variantId,
+        product_name: it.name,
+        variant_size: it.size,
+        variant_color: it.color,
+        isService: it.size === 'Service' || it.size === 'Custom' || it.id.startsWith('faal-pico-') || it.id.startsWith('custom-blouse-') || it.id.startsWith('stitching-')
+      })));
+
       const order = await createOrderWithItems(supabase, {
         customer_id: customerId,
         payment_method: form.paymentMethod,
@@ -442,17 +452,25 @@ const CheckoutPage: React.FC = () => {
         total_amount: finalTotal + codPaymentAmount, // Total includes both online and COD amounts
         billing: billingAddress,
         delivery: deliveryAddress,
-        items: items.map(it => ({
-          product_id: it.id, // Keep as string UUID, don't convert to number
-          product_variant_id: it.variantId ? it.variantId : null, // Keep as string UUID if exists
-          product_name: it.name,
-          product_sku: undefined,
-          unit_price: it.price,
-          quantity: it.quantity,
-          total_price: it.price * it.quantity,
-          variant_size: it.size,
-          variant_color: it.color,
-        })),
+        items: items.map(it => {
+          // Check if this is a service item (no product_id)
+          const isService = it.size === 'Service' || it.size === 'Custom' || 
+                           it.id.startsWith('faal-pico-') || 
+                           it.id.startsWith('custom-blouse-') || 
+                           it.id.startsWith('stitching-');
+          
+          return {
+            product_id: isService ? null : it.id, // Services don't have product_id
+            product_variant_id: isService ? null : (it.variantId ? it.variantId : null),
+            product_name: it.name,
+            product_sku: undefined,
+            unit_price: it.price,
+            quantity: it.quantity,
+            total_price: it.price * it.quantity,
+            variant_size: it.size,
+            variant_color: it.color,
+          };
+        }),
         // Split payment data
         cod_amount: codPaymentAmount,
         cod_collected: false,
