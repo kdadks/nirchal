@@ -75,6 +75,10 @@ export interface Order {
   date: string;
   total: number;
   shippingAddress: string;
+  cod_amount?: number; // Amount to be collected on delivery
+  cod_collected?: boolean; // Whether COD has been collected
+  online_amount?: number; // Amount paid online
+  payment_split?: boolean; // Whether order used split payment
 }
 
 // Filter and Search Types
