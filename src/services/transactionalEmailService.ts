@@ -53,6 +53,21 @@ export class TransactionalEmailService {
     }
   }
 
+  // Get production website URL - use custom domain to match sending domain
+  private getWebsiteUrl(): string {
+    // Always use the custom domain for consistency with email sending domain
+    // This prevents spam filter issues from domain mismatch
+    const customDomain = 'https://nirchal.com';
+    
+    // In development, use localhost
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      return window.location.origin;
+    }
+    
+    // In production, always use custom domain
+    return customDomain;
+  }
+
   // Send welcome email when user signs up
   async sendWelcomeEmail(customer: CustomerData): Promise<boolean> {
     try {
@@ -60,7 +75,7 @@ export class TransactionalEmailService {
       
       const html = outlookCompatibleWelcomeEmail(
         `${customer.first_name} ${customer.last_name}`,
-        window.location.origin,
+        this.getWebsiteUrl(),
         customer.temp_password // Pass temp password if available
       );
 
@@ -99,7 +114,7 @@ export class TransactionalEmailService {
       const html = outlookCompatiblePasswordResetEmail(
         `${customer.first_name} ${customer.last_name}`,
         resetLink,
-        window.location.origin
+        this.getWebsiteUrl()
       );
 
   const response = await fetch(`${this.baseUrl}/send-email`, {
@@ -119,12 +134,12 @@ export class TransactionalEmailService {
     }
   }
 
-  // Send password change confirmation
-  async sendPasswordChangeConfirmation(customer: CustomerData): Promise<boolean> {
+  // Send password change confirmation email
+  async sendPasswordChangeEmail(customer: CustomerData): Promise<boolean> {
     try {
       const html = outlookCompatiblePasswordChangeEmail(
         `${customer.first_name} ${customer.last_name}`,
-        window.location.origin
+        this.getWebsiteUrl()
       );
 
   const response = await fetch(`${this.baseUrl}/send-email`, {
@@ -154,7 +169,7 @@ export class TransactionalEmailService {
         order.customer_name,
         orderNumber,
         (order.total_amount || 0).toString(),
-        window.location.origin,
+        this.getWebsiteUrl(),
         order.items
       );
 
@@ -189,9 +204,7 @@ export class TransactionalEmailService {
   // Send order received email (when order is first placed)
   async sendOrderReceivedEmail(order: OrderData): Promise<boolean> {
     try {
-      const websiteUrl = typeof window !== 'undefined' 
-        ? window.location.origin 
-        : 'http://localhost:5173';
+      const websiteUrl = this.getWebsiteUrl();
       
       const orderNumber = order.order_number || `ORD${order.id}`;
       const html = outlookCompatibleOrderReceivedEmail(
@@ -239,7 +252,7 @@ export class TransactionalEmailService {
         orderNumber,
         order.status,
         order.tracking_number,
-        window.location.origin
+        this.getWebsiteUrl()
       );
 
   const response = await fetch(`${this.baseUrl}/send-email`, {
@@ -284,7 +297,7 @@ export class TransactionalEmailService {
         order.tracking_number,
         trackingUrl,
         logisticsPartner,
-        window.location.origin
+        this.getWebsiteUrl()
       );
 
       const emailPayload = {
@@ -331,7 +344,7 @@ export class TransactionalEmailService {
         paymentData.order_number,
         paymentData.amount.toString(),
         paymentData.payment_id,
-        window.location.origin
+        this.getWebsiteUrl()
       );
 
       const emailPayload = {
@@ -378,7 +391,7 @@ export class TransactionalEmailService {
         paymentData.order_number,
         paymentData.amount.toString(),
         paymentData.error_reason,
-        window.location.origin
+        this.getWebsiteUrl()
       );
 
       const emailPayload = {
