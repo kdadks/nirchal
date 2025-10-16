@@ -65,6 +65,11 @@ interface OrderDetails {
     tracking_url_template?: string;
     website?: string;
   };
+  // COD Payment fields
+  cod_amount?: number;
+  cod_collected?: boolean;
+  online_amount?: number;
+  payment_split?: boolean;
 }
 
 interface OrderDetailsModalProps {
@@ -160,6 +165,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       if (itemsError) throw itemsError;
 
+      // Debug logging
+      if (import.meta.env.DEV) {
+        console.log('[OrderDetailsModal] Order items loaded:', {
+          orderId,
+          itemsCount: items?.length || 0,
+          items: items
+        });
+      }
+
       // Process items to extract product images with variant-specific swatch support
       const processedItems = (items || []).map((item: any) => {
         let productImage: string | undefined;
@@ -218,6 +232,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           product_image: productImage
         };
       });
+
+      if (import.meta.env.DEV) {
+        console.log('[OrderDetailsModal] Setting order items:', {
+          orderId,
+          processedItemsCount: processedItems.length,
+          processedItems
+        });
+      }
 
       setOrderDetails(typedOrder);
       setOrderItems(processedItems);
@@ -305,114 +327,156 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-5">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
               <span className="ml-2 text-gray-600">Loading order details...</span>
             </div>
           ) : orderDetails ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Order Status */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-gray-50 rounded-lg p-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
                     {getStatusIcon(orderDetails.status)}
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900">Order Status</h3>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(orderDetails.status)}`}>
+                      <h3 className="text-base font-semibold text-gray-900">Order Status</h3>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(orderDetails.status)}`}>
                           {orderDetails.status.charAt(0).toUpperCase() + orderDetails.status.slice(1)}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(orderDetails.payment_status)}`}>
-                          Payment: {orderDetails.payment_status.charAt(0).toUpperCase() + orderDetails.payment_status.slice(1)}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500">Order Date</p>
-                    <p className="font-medium">{formatDate(orderDetails.created_at)}</p>
+                    <p className="text-xs text-gray-500">Order Date</p>
+                    <p className="text-sm font-medium">{formatDate(orderDetails.created_at)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Order Items */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Order Items</h3>
-                <div className="space-y-3">
-                  {orderItems.map((item) => (
-                    <div key={item.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex gap-4">
-                        {/* Product Image */}
-                        <div className="flex-shrink-0">
-                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
-                            {item.product_image ? (
-                              <img
-                                src={item.product_image}
-                                alt={item.product_name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  // Hide the image and show placeholder
-                                  target.style.display = 'none';
-                                  const placeholder = target.nextElementSibling as HTMLElement;
-                                  if (placeholder) placeholder.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div 
-                              className="w-full h-full flex items-center justify-center text-gray-400"
-                              style={{ display: item.product_image ? 'none' : 'flex' }}
-                            >
-                              <Package size={24} />
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Product Details */}
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{item.product_name}</h4>
-                              {item.product_sku && (
-                                <p className="text-sm text-gray-500">SKU: {item.product_sku}</p>
-                              )}
-                              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600">
-                                {item.variant_size && <span>Size: {item.variant_size}</span>}
-                                {item.variant_color && <span>Color: {item.variant_color}</span>}
-                                {item.variant_material && <span>Material: {item.variant_material}</span>}
+                <h3 className="text-base font-semibold text-gray-900 mb-3">Order Items</h3>
+                {import.meta.env.DEV && (
+                  <p className="text-xs text-gray-500 mb-2">Debug: {orderItems.length} items in state</p>
+                )}
+                <div className="space-y-2">
+                  {orderItems.map((item) => {
+                    // Detect if this is a service item
+                    const isService = item.variant_size === 'Service' || item.variant_size === 'Custom';
+                    
+                    return (
+                      <div key={item.id} className="border border-gray-200 rounded-lg p-3">
+                        <div className="flex gap-3">
+                          {/* Product Image */}
+                          <div className="flex-shrink-0">
+                            <div className="w-12 h-12 rounded-md bg-gray-100 flex items-center justify-center overflow-hidden">
+                              {item.product_image ? (
+                                <img
+                                  src={item.product_image}
+                                  alt={item.product_name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const placeholder = target.nextElementSibling as HTMLElement;
+                                    if (placeholder) placeholder.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
+                              <div 
+                                className="w-full h-full flex items-center justify-center text-gray-400"
+                                style={{ display: item.product_image ? 'none' : 'flex' }}
+                              >
+                                <Package size={18} />
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-medium">{formatCurrency(item.unit_price)} × {item.quantity}</p>
-                              <p className="text-lg font-semibold text-primary-600">
-                                {formatCurrency(item.total_price)}
-                              </p>
+                          </div>
+                          
+                          {/* Product Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium text-gray-900 line-clamp-2">{item.product_name}</h4>
+                                {item.product_sku && (
+                                  <p className="text-xs text-gray-500">SKU: {item.product_sku}</p>
+                                )}
+                                {/* Only show size/color/material for non-service items */}
+                                {!isService && (
+                                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-600">
+                                    {item.variant_size && <span>Size: {item.variant_size}</span>}
+                                    {item.variant_color && <span>Color: {item.variant_color}</span>}
+                                    {item.variant_material && <span>Material: {item.variant_material}</span>}
+                                  </div>
+                                )}
+                                {/* Show service badge */}
+                                {isService && (
+                                  <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                    Service
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-xs text-gray-600">{formatCurrency(item.unit_price)} × {item.quantity}</p>
+                                <p className="text-sm font-semibold text-primary-600">
+                                  {formatCurrency(item.total_price)}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Order Summary */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <h3 className="text-base font-semibold text-gray-900 mb-3">Order Summary</h3>
+                <div className="space-y-1.5 text-sm">
+                  {/* Product/Service Breakdown */}
+                  {(() => {
+                    const productItems = orderItems.filter(item => 
+                      item.variant_size !== 'Service' && item.variant_size !== 'Custom'
+                    );
+                    const serviceItems = orderItems.filter(item => 
+                      item.variant_size === 'Service' || item.variant_size === 'Custom'
+                    );
+                    const productsTotal = productItems.reduce((sum, item) => sum + item.total_price, 0);
+                    const servicesTotal = serviceItems.reduce((sum, item) => sum + item.total_price, 0);
+
+                    return (
+                      <>
+                        {productItems.length > 0 && (
+                          <div className="flex justify-between text-gray-700">
+                            <span>Products ({productItems.length})</span>
+                            <span>{formatCurrency(productsTotal)}</span>
+                          </div>
+                        )}
+                        {serviceItems.length > 0 && (
+                          <div className="flex justify-between text-gray-700">
+                            <span>Services ({serviceItems.length})</span>
+                            <span>{formatCurrency(servicesTotal)}</span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                  
+                  <div className="flex justify-between text-gray-700">
                     <span>Subtotal</span>
                     <span>{formatCurrency(orderDetails.subtotal)}</span>
                   </div>
                   {orderDetails.tax_amount > 0 && (
-                    <div className="flex justify-between">
+                    <div className="flex justify-between text-gray-700">
                       <span>Tax</span>
                       <span>{formatCurrency(orderDetails.tax_amount)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-gray-700">
                     <span>Shipping</span>
                     <span>{formatCurrency(orderDetails.shipping_amount)}</span>
                   </div>
@@ -422,7 +486,88 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       <span>-{formatCurrency(orderDetails.discount_amount)}</span>
                     </div>
                   )}
-                  <div className="border-t border-gray-200 pt-2 flex justify-between font-semibold text-lg">
+                  
+                  {/* Payment Split Details */}
+                  {orderDetails.payment_split ? (
+                    <>
+                      <div className="border-t border-gray-300 pt-1.5 mt-1.5"></div>
+                      {/* Online Payment Status */}
+                      <div className="flex justify-between items-center">
+                        <span className="flex items-center gap-1.5">
+                          <span>💳 Paid Online</span>
+                          {orderDetails.payment_status === 'paid' && (
+                            <span className="flex items-center gap-0.5 text-green-600 text-xs">
+                              <CheckCircle size={14} className="fill-current" />
+                              <span className="font-medium">Paid</span>
+                            </span>
+                          )}
+                          {orderDetails.payment_status === 'pending' && (
+                            <span className="flex items-center gap-0.5 text-amber-600 text-xs">
+                              <Clock size={14} />
+                              <span className="font-medium">Pending</span>
+                            </span>
+                          )}
+                          {orderDetails.payment_status === 'failed' && (
+                            <span className="flex items-center gap-0.5 text-red-600 text-xs">
+                              <AlertCircle size={14} />
+                              <span className="font-medium">Failed</span>
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-medium">{formatCurrency(orderDetails.online_amount || 0)}</span>
+                      </div>
+                      {/* COD Payment Status */}
+                      <div className="flex justify-between items-center">
+                        <span className="flex items-center gap-1.5">
+                          <span>💰 Cash on Delivery</span>
+                          {orderDetails.cod_collected && (
+                            <span className="flex items-center gap-0.5 text-green-600 text-xs">
+                              <CheckCircle size={14} className="fill-current" />
+                              <span className="font-medium">Collected</span>
+                            </span>
+                          )}
+                          {!orderDetails.cod_collected && (orderDetails.cod_amount || 0) > 0 && (
+                            <span className="flex items-center gap-0.5 text-amber-600 text-xs">
+                              <Clock size={14} />
+                              <span className="font-medium">Pending</span>
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-medium">{formatCurrency(orderDetails.cod_amount || 0)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    /* Single Payment (non-split) */
+                    <>
+                      <div className="border-t border-gray-300 pt-1.5 mt-1.5"></div>
+                      <div className="flex justify-between items-center">
+                        <span className="flex items-center gap-1.5">
+                          <span>💳 Payment Status</span>
+                          {orderDetails.payment_status === 'paid' && (
+                            <span className="flex items-center gap-0.5 text-green-600 text-xs">
+                              <CheckCircle size={14} className="fill-current" />
+                              <span className="font-medium">Paid</span>
+                            </span>
+                          )}
+                          {orderDetails.payment_status === 'pending' && (
+                            <span className="flex items-center gap-0.5 text-amber-600 text-xs">
+                              <Clock size={14} />
+                              <span className="font-medium">Pending</span>
+                            </span>
+                          )}
+                          {orderDetails.payment_status === 'failed' && (
+                            <span className="flex items-center gap-0.5 text-red-600 text-xs">
+                              <AlertCircle size={14} />
+                              <span className="font-medium">Failed</span>
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-medium">{formatCurrency(orderDetails.total_amount)}</span>
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between font-semibold text-base">
                     <span>Total</span>
                     <span>{formatCurrency(orderDetails.total_amount)}</span>
                   </div>
@@ -430,11 +575,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </div>
 
               {/* Addresses */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Billing Address */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Billing Address</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Billing Address</h3>
+                  <div className="bg-gray-50 rounded-lg p-3 text-sm">
                     <p className="font-medium">
                       {orderDetails.billing_first_name} {orderDetails.billing_last_name}
                     </p>
@@ -458,8 +603,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
                 {/* Shipping Address */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Shipping Address</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Shipping Address</h3>
+                  <div className="bg-gray-50 rounded-lg p-3 text-sm">
                     <p className="font-medium">
                       {orderDetails.shipping_first_name} {orderDetails.shipping_last_name}
                     </p>
@@ -483,11 +628,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
               {/* Payment Information */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Payment Information</h3>
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="text-base font-semibold text-gray-900 mb-2">Payment Information</h3>
+                <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <p className="text-sm text-gray-500">Payment Method</p>
+                      <p className="text-xs text-gray-500">Payment Method</p>
                       <p className="font-medium">
                         {orderDetails.payment_method ? 
                           orderDetails.payment_method.charAt(0).toUpperCase() + orderDetails.payment_method.slice(1) 
@@ -496,8 +641,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     </div>
                     {orderDetails.payment_transaction_id && (
                       <div>
-                        <p className="text-sm text-gray-500">Transaction ID</p>
-                        <p className="font-medium font-mono text-sm">{orderDetails.payment_transaction_id}</p>
+                        <p className="text-xs text-gray-500">Transaction ID</p>
+                        <p className="font-medium font-mono text-xs">{orderDetails.payment_transaction_id}</p>
                       </div>
                     )}
                   </div>
@@ -507,9 +652,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               {/* Tracking Information */}
               {(orderDetails.shipped_at || orderDetails.delivered_at || orderDetails.tracking_number) && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Tracking Information</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="space-y-3">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Tracking Information</h3>
+                  <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                    <div className="space-y-2">
                       {/* Logistics Partner */}
                       {orderDetails.logistics_partners && (
                         <div className="flex justify-between items-center">
@@ -522,7 +667,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       {orderDetails.tracking_number && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Tracking Number</span>
-                          <span className="font-mono text-sm font-medium bg-white px-2 py-1 rounded border">
+                          <span className="font-mono text-xs font-medium bg-white px-2 py-1 rounded border">
                             {orderDetails.tracking_number}
                           </span>
                         </div>
@@ -536,17 +681,17 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             href={getTrackingUrl(orderDetails)!}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-1.5 bg-primary-600 text-white text-xs font-medium rounded hover:bg-primary-700 transition-colors"
                           >
-                            <Truck size={16} />
+                            <Truck size={14} />
                             Track Order
-                            <ExternalLink size={14} />
+                            <ExternalLink size={12} />
                           </a>
                         </div>
                       )}
 
                       {/* Timeline */}
-                      <div className="border-t pt-3 space-y-2">
+                      <div className="border-t pt-2 space-y-1.5">
                         {orderDetails.shipped_at && (
                           <div className="flex justify-between">
                             <span className="text-gray-600">Shipped At</span>
@@ -568,8 +713,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               {/* Notes */}
               {orderDetails.notes && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-3">Order Notes</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Order Notes</h3>
+                  <div className="bg-gray-50 rounded-lg p-3 text-sm">
                     <p className="text-gray-600">{orderDetails.notes}</p>
                   </div>
                 </div>
