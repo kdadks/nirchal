@@ -31,6 +31,9 @@ interface OrderData {
     name: string;
     tracking_url_template?: string;
   };
+  cod_amount?: number; // Amount to be collected on delivery
+  payment_split?: boolean; // Whether order used split payment
+  online_amount?: number; // Amount paid online
 }
 
 interface CustomerData {
@@ -170,7 +173,10 @@ export class TransactionalEmailService {
         orderNumber,
         (order.total_amount || 0).toString(),
         this.getWebsiteUrl(),
-        order.items
+        order.items,
+        order.cod_amount,
+        order.payment_split,
+        order.online_amount
       );
 
       const emailPayload = {
