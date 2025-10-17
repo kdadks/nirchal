@@ -184,11 +184,37 @@ export const useNirchalAI = () => {
                           userMessage.toLowerCase().includes('popular') || 
                           userMessage.toLowerCase().includes('featured');
         
-        const products = await fetchProducts(userMessage, category, 5, isTrending);
+        // Try to find products with the search query
+        let products = await fetchProducts(userMessage, category, 5, isTrending);
+        
+        // If no products found and we have a category, try without search query (show all from category)
+        if (products.length === 0 && category) {
+          products = await fetchProducts('', category, 5, false);
+        }
+        
+        // If still no products, try featured products from that category
+        if (products.length === 0 && category) {
+          products = await fetchProducts('', category, 5, true);
+        }
+        
+        // If still nothing and no category specified, try featured products overall
+        if (products.length === 0 && !category) {
+          products = await fetchProducts('', undefined, 5, true);
+        }
+        
         if (products.length > 0) {
-          let response = isTrending 
-            ? `Here are our featured ${category || 'products'} for you:\n\n`
-            : `I found ${products.length} great ${category || 'products'} for you:\n\n`;
+          let response = '';
+          
+          // Personalized message based on what was found
+          if (isTrending) {
+            response = `Here are our featured ${category || 'products'} for you:\n\n`;
+          } else if (category && userMessage.length > category.length + 5) {
+            // User had specific search terms
+            response = `I found ${products.length} ${category || 'products'} that might interest you:\n\n`;
+          } else {
+            response = `Here are some great ${category || 'products'} from our collection:\n\n`;
+          }
+          
           products.forEach((product, index) => {
             const price = product.sale_price > 0 ? product.sale_price : product.price;
             response += `${index + 1}. **${product.name}**\n`;
@@ -199,7 +225,18 @@ export const useNirchalAI = () => {
           response += "Would you like me to show you more details about any of these items?";
           return response;
         } else {
-          return `I couldn't find any ${category || 'products'} matching your search. Try browsing our categories: Sarees, Kurtas, Lehengas, Blouses, or Accessories. What type of ethnic wear interests you?`;
+          // Last resort - show available categories with stock
+          const availableCategories = ['Womens Sarees', 'Womens Kurtis', 'Womens Lehenga Choli', 'Blouses'];
+          const categoryPromises = availableCategories.map(cat => fetchProducts('', cat, 1, false));
+          const categoryResults = await Promise.all(categoryPromises);
+          
+          const availableWithStock = availableCategories.filter((_, index) => categoryResults[index].length > 0);
+          
+          if (availableWithStock.length > 0) {
+            return `I'd love to help you find the perfect ethnic wear! Here are our available collections:\n\n${availableWithStock.map(cat => `• ${cat}`).join('\n')}\n\nWhich collection would you like to explore?`;
+          }
+          
+          return `I'm here to help you find beautiful ethnic wear! Could you tell me more about what you're looking for? For example:\n• What occasion? (Wedding, Festival, Daily wear)\n• Color preference?\n• Any specific style in mind?\n\nOr I can show you our featured collection!`;
         }
       }
       
@@ -238,7 +275,29 @@ export const useNirchalAI = () => {
         return "Our prices are very competitive with frequent sales and offers. What's your budget range? I can show you the best options within your price point.";
       }
       
-      default:
+      default: {
+        // Even for general queries, try to be helpful with products
+        const generalProducts = await fetchProducts('', category, 3, true);
+        
+        if (generalProducts.length > 0) {
+          let response = category 
+            ? `I'd be happy to help you with ${category}! Here are some of our featured items:\n\n`
+            : "Let me show you some of our featured products:\n\n";
+          
+          generalProducts.forEach((product, index) => {
+            const price = product.sale_price > 0 ? product.sale_price : product.price;
+            response += `${index + 1}. **${product.name}** - ₹${price.toLocaleString()}\n`;
+          });
+          
+          response += "\nI can also help you with:\n" +
+                     "• Finding specific styles or colors\n" +
+                     "• Size recommendations\n" +
+                     "• Checking stock availability\n" +
+                     "• Price ranges and offers\n\n" +
+                     "What would you like to know?";
+          return response;
+        }
+        
         return "I'm here to help you with anything related to ethnic wear shopping! You can ask me about:\n\n" +
                "• Product recommendations and availability\n" +
                "• Size and fit guidance\n" +
@@ -246,6 +305,7 @@ export const useNirchalAI = () => {
                "• Shipping and return policies\n" +
                "• Style suggestions\n\n" +
                "What would you like to know about?";
+      }
     }
   };
 
