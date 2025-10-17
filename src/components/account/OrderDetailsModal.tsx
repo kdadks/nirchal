@@ -307,17 +307,17 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       // Fetch Razorpay settings to get the key
       const { data: settings, error: settingsError } = await supabase
         .from('razorpay_settings')
-        .select('key_id')
+        .select('key')
         .single();
 
-      if (settingsError || !settings || !settings.key_id) {
+      if (settingsError || !settings || !settings.key) {
         console.error('Failed to fetch Razorpay settings:', settingsError);
         toast.error('Payment configuration error. Please contact support.');
         setRetryingPayment(false);
         return;
       }
 
-      const razorpayKey = settings.key_id as string;
+      const razorpayKey = settings.key as string;
 
       // Calculate amount to pay
       const amountToPay = orderDetails.payment_split 
