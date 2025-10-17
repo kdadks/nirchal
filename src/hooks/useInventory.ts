@@ -125,33 +125,8 @@ export const useInventory = (): UseInventoryReturn => {
       // - If a product has variants, show only variant stock
       // - If a product has no variants, show only default stock (variant_id = null)
       
-      // Group inventory by product_id to analyze variant structure
-      const productGroups = inventoryData.reduce((groups: { [key: string]: any[] }, item) => {
-        if (!groups[item.product_id]) {
-          groups[item.product_id] = [];
-        }
-        groups[item.product_id].push(item);
-        return groups;
-      }, {});
-
-      const filteredInventoryData: any[] = [];
-
-      Object.entries(productGroups).forEach(([, items]) => {
-        // Check if this product has any variants
-        const hasVariants = items.some(item => item.variant_id !== null);
-        
-        if (hasVariants) {
-          // Product has variants - only show variant stock (variant_id !== null)
-          const variantItems = items.filter(item => item.variant_id !== null);
-          filteredInventoryData.push(...variantItems);
-        } else {
-          // Product has no variants - only show default stock (variant_id === null)
-          const defaultItems = items.filter(item => item.variant_id === null);
-          filteredInventoryData.push(...defaultItems);
-        }
-      });
-
-      setInventory(filteredInventoryData);
+      // Show all inventory items without filtering
+      setInventory(inventoryData);
     } catch (error) {
       console.error('[useInventory] Error fetching inventory:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch inventory');
