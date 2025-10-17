@@ -121,12 +121,36 @@ export const useInventory = (): UseInventoryReturn => {
         updated_at: item.updated_at
       }));
 
-      // Filter inventory based on variant logic:
-      // - If a product has variants, show only variant stock
-      // - If a product has no variants, show only default stock (variant_id = null)
+      // Smart filtering to avoid showing duplicate/incorrect inventory:
+      // - If a product has variants in the database, only show variant-level inventory (variant_id != null)
+      // - If a product has no variants, only show product-level inventory (variant_id = null)
       
-      // Show all inventory items without filtering
-      setInventory(inventoryData);
+      // First, fetch which products have variants
+      const productIds = Array.from(new Set(inventoryData.map(item => item.product_id)));
+      const { data: variantsData } = await supabase
+        .from('product_variants')
+        .select('product_id')
+        .in('product_id', productIds);
+      
+      // Create a Set of product IDs that have variants
+      const productsWithVariants = new Set(
+        (variantsData || []).map((v: any) => v.product_id)
+      );
+      
+      // Filter inventory based on whether product has variants
+      const filteredInventory = inventoryData.filter((item: any) => {
+        const hasVariants = productsWithVariants.has(item.product_id);
+        
+        if (hasVariants) {
+          // Product has variants - only show variant-specific inventory
+          return item.variant_id !== null;
+        } else {
+          // Product has no variants - only show product-level inventory
+          return item.variant_id === null;
+        }
+      });
+      
+      setInventory(filteredInventory);
     } catch (error) {
       console.error('[useInventory] Error fetching inventory:', error);
       setError(error instanceof Error ? error.message : 'Failed to fetch inventory');

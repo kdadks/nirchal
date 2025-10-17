@@ -211,20 +211,42 @@ const AccountPage: React.FC = () => {
         confirmMessage = 'This address is associated with your past orders but the order information is safely stored. Are you sure you want to delete this address from your saved addresses?';
       }
 
-      const confirmDelete = window.confirm(confirmMessage);
-      if (!confirmDelete) return;
+      // Show confirmation via toast
+      await new Promise<void>((resolve, reject) => {
+  toast((t) => (
+          <div className="flex flex-col space-y-2">
+            <div className="text-sm">{confirmMessage}</div>
+            <div className="flex space-x-2">
+              <button
+                className="px-3 py-1 bg-red-600 text-white rounded"
+                onClick={async () => {
+                  toast.dismiss(t.id);
+                  try {
+                    const { error } = await supabase
+                      .from('customer_addresses')
+                      .delete()
+                      .eq('id', addressId)
+                      .eq('customer_id', customer.id);
 
-      // Delete the address
-      const { error } = await supabase
-        .from('customer_addresses')
-        .delete()
-        .eq('id', addressId)
-        .eq('customer_id', customer.id);
+                    if (error) throw error;
 
-      if (error) throw error;
-
-      setAddresses(prev => prev.filter(addr => addr.id !== addressId));
-      toast.success('Address deleted successfully!');
+                    setAddresses(prev => prev.filter(addr => addr.id !== addressId));
+                    toast.success('Address deleted successfully!');
+                    resolve();
+                  } catch (err) {
+                    console.error('Error deleting address:', err);
+                    toast.error('Failed to delete address. Please try again.');
+                    reject(err);
+                  }
+                }}
+              >
+                Delete
+              </button>
+              <button className="px-3 py-1 bg-gray-200 rounded" onClick={() => toast.dismiss(t.id)}>Cancel</button>
+            </div>
+          </div>
+        ), { duration: 10000 });
+      });
     } catch (error) {
       console.error('Error deleting address:', error);
       toast.error('Failed to delete address. Please try again.');
