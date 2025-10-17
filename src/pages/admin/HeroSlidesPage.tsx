@@ -48,21 +48,33 @@ const HeroSlidesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (slide: HeroSlide) => {
-    if (window.confirm(`Are you sure you want to delete "${slide.title}"?`)) {
-      try {
-        const result = await deleteHeroSlide(slide.id);
-        if (result.error) {
-          throw new Error(result.error);
-        }
-        toast.success('Hero slide deleted successfully');
-        setDeletingSlide(null);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to delete hero slide';
-        console.error('Delete error:', error);
-        toast.error(errorMessage);
-      }
-    }
+  const handleDelete = (slide: HeroSlide) => {
+    toast((t) => (
+      <div className="flex flex-col space-y-2">
+        <div className="text-sm">Are you sure you want to delete "{slide.title}"?</div>
+        <div className="flex space-x-2">
+          <button
+            className="px-3 py-1 bg-red-600 text-white rounded"
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                const result = await deleteHeroSlide(slide.id);
+                if (result.error) throw new Error(result.error);
+                toast.success('Hero slide deleted successfully');
+                setDeletingSlide(null);
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to delete hero slide';
+                console.error('Delete error:', error);
+                toast.error(errorMessage);
+              }
+            }}
+          >
+            Delete
+          </button>
+          <button className="px-3 py-1 bg-gray-200 rounded" onClick={() => toast.dismiss(t.id)}>Cancel</button>
+        </div>
+      </div>
+    ), { duration: 8000 });
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

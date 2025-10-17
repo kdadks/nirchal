@@ -137,6 +137,90 @@ const OrdersPage: React.FC = () => {
     defaultItemsPerPage: 50,
   });
 
+  // Restore inventory when order is cancelled
+  const restoreInventoryForOrder = async (orderId: string) => {
+    try {
+      console.log('🔄 Restoring inventory for cancelled order:', orderId);
+
+      // Get order items
+      const { data: items, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', orderId);
+
+      if (itemsError) throw itemsError;
+
+      for (const item of (items || []) as any[]) {
+        try {
+          // Find inventory record for this product/variant
+          let inventoryQuery = supabase
+            .from('inventory')
+            .select('*')
+            .eq('product_id', item.product_id);
+          
+          if (item.product_variant_id) {
+            inventoryQuery = inventoryQuery.eq('variant_id', item.product_variant_id);
+          } else {
+            inventoryQuery = inventoryQuery.is('variant_id', null);
+          }
+
+          const { data: inventoryRecords, error: inventoryError } = await inventoryQuery;
+
+          if (inventoryError) {
+            console.error(`Failed to fetch inventory for product ${item.product_id}:`, inventoryError);
+            continue;
+          }
+
+          if (!inventoryRecords || inventoryRecords.length === 0) {
+            console.warn(`No inventory record found for product ${item.product_id}`);
+            continue;
+          }
+
+          const inventoryRecord = inventoryRecords[0] as any;
+          const oldQuantity = Number(inventoryRecord.quantity || 0);
+          const newQuantity = oldQuantity + Number(item.quantity || 0);
+
+          // Update inventory quantity
+          const { error: updateError } = await supabase
+            .from('inventory')
+            .update({
+              quantity: newQuantity,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', inventoryRecord.id);
+
+          if (updateError) {
+            console.error(`Failed to update inventory for product ${item.product_id}:`, updateError);
+            continue;
+          }
+
+          // Create inventory history record
+          await supabase
+            .from('inventory_history')
+            .insert({
+              inventory_id: inventoryRecord.id,
+              previous_quantity: oldQuantity,
+              new_quantity: newQuantity,
+              change_type: 'STOCK_IN',
+              reason: `Order ${orderId} - Cancelled (Inventory Restored)`,
+              created_by: null
+            });
+
+          console.log(`✅ Inventory restored: Product ${item.product_id} (${oldQuantity} → ${newQuantity})`);
+
+        } catch (error) {
+          console.error(`Error processing inventory restoration for item:`, error);
+        }
+      }
+
+      console.log('✅ Inventory restoration completed for order:', orderId);
+
+    } catch (error) {
+      console.error('Error restoring inventory:', error);
+      toast.error('Failed to restore inventory');
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       setUpdating(orderId);
@@ -153,6 +237,7 @@ const OrdersPage: React.FC = () => {
           total_amount,
           created_at,
           tracking_number,
+          status,
           logistics_partner_id,
           logistics_partners(
             name,
@@ -163,6 +248,13 @@ const OrdersPage: React.FC = () => {
         .single();
 
       if (orderError) throw orderError;
+
+      const oldStatus = (orderData as any).status;
+
+      // If cancelling an order, restore inventory
+      if (newStatus === 'cancelled' && oldStatus !== 'cancelled') {
+        await restoreInventoryForOrder(orderId);
+      }
 
       // Update order status
       const { error } = await supabase
@@ -250,36 +342,44 @@ const OrdersPage: React.FC = () => {
     fetchOrders(); // Refresh the orders list
   };
 
-  // Mark COD as collected
-  const markCodAsCollected = async (orderId: string) => {
-    if (!window.confirm('Mark COD as collected for this order?')) {
-      return;
-    }
+  // Mark COD as collected (confirm via toast actions)
+  const markCodAsCollected = (orderId: string) => {
+    toast((t) => (
+      <div className="flex flex-col space-y-2">
+        <div className="text-sm">Mark COD as collected for this order?</div>
+        <div className="flex space-x-2">
+          <button
+            className="px-3 py-1 bg-green-600 text-white rounded"
+            onClick={async () => {
+              try {
+                toast.dismiss(t.id);
+                setUpdating(orderId);
+                const { error } = await supabase
+                  .from('orders')
+                  .update({ cod_collected: true })
+                  .eq('id', orderId);
 
-    try {
-      setUpdating(orderId);
-      
-      const { error } = await supabase
-        .from('orders')
-        .update({ cod_collected: true })
-        .eq('id', orderId);
+                if (error) throw error;
 
-      if (error) throw error;
+                setOrders((prev) => prev.map(order => 
+                  order.id === orderId ? { ...order, cod_collected: true } : order
+                ));
 
-      // Update local state
-      setOrders(orders.map(order => 
-        order.id === orderId 
-          ? { ...order, cod_collected: true }
-          : order
-      ));
-      
-      toast.success('✅ COD marked as collected');
-    } catch (err) {
-      console.error('Error marking COD as collected:', err);
-      toast.error('Failed to update COD status');
-    } finally {
-      setUpdating(null);
-    }
+                toast.success('✅ COD marked as collected');
+              } catch (err) {
+                console.error('Error marking COD as collected:', err);
+                toast.error('Failed to mark COD as collected');
+              } finally {
+                setUpdating(null);
+              }
+            }}
+          >
+            Yes
+          </button>
+          <button className="px-3 py-1 bg-gray-200 rounded" onClick={() => toast.dismiss(t.id)}>No</button>
+        </div>
+      </div>
+    ), { duration: 8000 });
   };
 
   const getStatusColor = (status: string) => {
@@ -457,18 +557,17 @@ const OrdersPage: React.FC = () => {
               <p className="text-xs font-medium text-gray-600">Pending Revenue</p>
               <p className="text-lg font-bold text-gray-900">
                 {formatCurrency(
-                  // Only count what's actually pending to be collected
-                  pendingOrders.reduce((sum, order) => {
-                    if (order.payment_split) {
-                      // Split payment: only COD amount is pending
-                      return sum + (order.cod_amount || 0);
-                    } else if (order.cod_amount && order.cod_amount === order.total_amount) {
-                      // Full COD: entire amount pending
-                      return sum + order.total_amount;
-                    } else {
-                      // Online payment: nothing pending
-                      return sum;
+                  // Calculate pending revenue including service items
+                  orders.reduce((sum, order) => {
+                    // Skip cancelled orders
+                    if (order.status === 'cancelled') return sum;
+                    
+                    // If order has COD amount and it's not collected, count it as pending
+                    if ((order.cod_amount ?? 0) > 0 && !order.cod_collected) {
+                      return sum + (order.cod_amount ?? 0);
                     }
+                    
+                    return sum;
                   }, 0)
                 )}
               </p>
