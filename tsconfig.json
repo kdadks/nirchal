@@ -21,9 +21,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Suppress deprecation warnings for baseUrl */
-    "ignoreDeprecations": "5.0",
-
     /* Path aliases */
     "baseUrl": ".",
     "paths": {

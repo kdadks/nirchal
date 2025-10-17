@@ -452,11 +452,25 @@ const OrdersPage: React.FC = () => {
         
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex items-center gap-2">
-            <IndianRupee className="h-6 w-6 text-blue-600 flex-shrink-0" />
+            <IndianRupee className="h-6 w-6 text-orange-600 flex-shrink-0" />
             <div>
               <p className="text-xs font-medium text-gray-600">Pending Revenue</p>
               <p className="text-lg font-bold text-gray-900">
-                {formatCurrency(pendingOrders.reduce((sum, order) => sum + order.total_amount, 0))}
+                {formatCurrency(
+                  // Only count what's actually pending to be collected
+                  pendingOrders.reduce((sum, order) => {
+                    if (order.payment_split) {
+                      // Split payment: only COD amount is pending
+                      return sum + (order.cod_amount || 0);
+                    } else if (order.cod_amount && order.cod_amount === order.total_amount) {
+                      // Full COD: entire amount pending
+                      return sum + order.total_amount;
+                    } else {
+                      // Online payment: nothing pending
+                      return sum;
+                    }
+                  }, 0)
+                )}
               </p>
             </div>
           </div>
@@ -490,24 +504,20 @@ const OrdersPage: React.FC = () => {
       {/* Payment Stats - What's Paid vs Pending */}
       {(pendingCodOrders.length > 0 || collectedCodOrders.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-lg shadow-sm border-2 border-emerald-200">
+          <div className="bg-white p-3 rounded-lg shadow-sm border-2 border-orange-300">
             <div className="flex items-center gap-2">
-              <div className="bg-white p-2 rounded-lg">
-                <IndianRupee className="h-6 w-6 text-emerald-600" />
-              </div>
+              <IndianRupee className="h-5 w-5 text-orange-600 flex-shrink-0" />
               <div>
-                <p className="text-xs font-medium text-emerald-800">Pending COD</p>
-                <p className="text-lg font-bold text-emerald-900">{formatCurrency(totalPendingCod)}</p>
-                <p className="text-xs text-emerald-700">{pendingCodOrders.length} orders</p>
+                <p className="text-xs font-medium text-orange-800">Pending COD</p>
+                <p className="text-lg font-bold text-orange-900">{formatCurrency(totalPendingCod)}</p>
+                <p className="text-xs text-orange-700">{pendingCodOrders.length} orders</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-green-50 to-teal-50 p-4 rounded-lg shadow-sm border-2 border-green-200">
+          <div className="bg-white p-3 rounded-lg shadow-sm border-2 border-green-300">
             <div className="flex items-center gap-2">
-              <div className="bg-white p-2 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
+              <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
               <div>
                 <p className="text-xs font-medium text-green-800">Collected COD</p>
                 <p className="text-lg font-bold text-green-900">{formatCurrency(totalCollectedCod)}</p>
@@ -516,11 +526,9 @@ const OrdersPage: React.FC = () => {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg shadow-sm border-2 border-blue-200">
+          <div className="bg-white p-3 rounded-lg shadow-sm border-2 border-blue-300">
             <div className="flex items-center gap-2">
-              <div className="bg-white p-2 rounded-lg">
-                <IndianRupee className="h-6 w-6 text-blue-600" />
-              </div>
+              <IndianRupee className="h-5 w-5 text-blue-600 flex-shrink-0" />
               <div>
                 <p className="text-xs font-medium text-blue-800">Online Paid</p>
                 <p className="text-lg font-bold text-blue-900">
@@ -744,20 +752,17 @@ const OrdersPage: React.FC = () => {
                     <td className="px-3 py-2 whitespace-nowrap">
                       {order.cod_amount && order.cod_amount > 0 ? (
                         <div className="space-y-1">
-                          <div className="text-sm font-semibold text-emerald-700">
+                          <div className={`text-sm font-semibold ${order.cod_collected ? 'text-green-700' : 'text-orange-700'}`}>
                             {formatCurrency(order.cod_amount)}
                           </div>
                           {order.cod_collected ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              🟢 Collected
+                              ✓ Collected
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              🟡 Pending
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              ⏳ Pending
                             </span>
-                          )}
-                          {order.payment_split && (
-                            <div className="text-xs text-gray-500">Split Payment</div>
                           )}
                         </div>
                       ) : (
