@@ -375,111 +375,111 @@ const OrdersPage: React.FC = () => {
 
   return (
     <div>
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <Package className="h-8 w-8 text-blue-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
+      {/* Stats - Compact Version */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <Package className="h-6 w-6 text-blue-500 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Total Orders</p>
+              <p className="text-xl font-bold text-gray-900">{totalItems}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <Clock className="h-8 w-8 text-yellow-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-gray-900">{pendingOrders.length}</p>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <Clock className="h-6 w-6 text-yellow-500 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Pending</p>
+              <p className="text-xl font-bold text-gray-900">{pendingOrders.length}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <PlayCircle className="h-8 w-8 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Processing</p>
-              <p className="text-2xl font-bold text-gray-900">{processingOrders.length}</p>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <PlayCircle className="h-6 w-6 text-blue-600 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Processing</p>
+              <p className="text-xl font-bold text-gray-900">{processingOrders.length}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <Truck className="h-8 w-8 text-purple-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Shipped</p>
-              <p className="text-2xl font-bold text-gray-900">{shippedOrders.length}</p>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <Truck className="h-6 w-6 text-purple-500 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Shipped</p>
+              <p className="text-xl font-bold text-gray-900">{shippedOrders.length}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <CheckCircle className="h-8 w-8 text-green-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Delivered</p>
-              <p className="text-2xl font-bold text-gray-900">{deliveredOrders.length}</p>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Delivered</p>
+              <p className="text-xl font-bold text-gray-900">{deliveredOrders.length}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <XCircle className="h-8 w-8 text-red-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Cancelled</p>
-              <p className="text-2xl font-bold text-gray-900">{cancelledOrders.length}</p>
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <XCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Cancelled</p>
+              <p className="text-xl font-bold text-gray-900">{cancelledOrders.length}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Revenue Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <IndianRupee className="h-8 w-8 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+      {/* Revenue Stats - Compact */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <IndianRupee className="h-6 w-6 text-green-600 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Total Revenue</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <IndianRupee className="h-8 w-8 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <IndianRupee className="h-6 w-6 text-blue-600 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Pending Revenue</p>
+              <p className="text-lg font-bold text-gray-900">
                 {formatCurrency(pendingOrders.reduce((sum, order) => sum + order.total_amount, 0))}
               </p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <IndianRupee className="h-8 w-8 text-green-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Delivered Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <IndianRupee className="h-6 w-6 text-green-500 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Delivered Revenue</p>
+              <p className="text-lg font-bold text-gray-900">
                 {formatCurrency(deliveredOrders.reduce((sum, order) => sum + order.total_amount, 0))}
               </p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <div className="flex items-center">
-            <IndianRupee className="h-8 w-8 text-gray-500" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-              <p className="text-2xl font-bold text-gray-900">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-2">
+            <IndianRupee className="h-6 w-6 text-gray-500 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-gray-600">Avg Order Value</p>
+              <p className="text-lg font-bold text-gray-900">
                 {orders.length > 0 ? formatCurrency(totalRevenue / orders.length) : formatCurrency(0)}
               </p>
             </div>
@@ -487,66 +487,60 @@ const OrdersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* COD Stats */}
+      {/* Payment Stats - What's Paid vs Pending */}
       {(pendingCodOrders.length > 0 || collectedCodOrders.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-6 rounded-lg shadow-sm border-2 border-emerald-200">
-            <div className="flex items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+          <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-lg shadow-sm border-2 border-emerald-200">
+            <div className="flex items-center gap-2">
               <div className="bg-white p-2 rounded-lg">
-                <IndianRupee className="h-8 w-8 text-emerald-600" />
+                <IndianRupee className="h-6 w-6 text-emerald-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-emerald-800">Pending COD</p>
-                <p className="text-2xl font-bold text-emerald-900">{formatCurrency(totalPendingCod)}</p>
-                <p className="text-xs text-emerald-700 mt-1">{pendingCodOrders.length} orders</p>
+              <div>
+                <p className="text-xs font-medium text-emerald-800">Pending COD</p>
+                <p className="text-lg font-bold text-emerald-900">{formatCurrency(totalPendingCod)}</p>
+                <p className="text-xs text-emerald-700">{pendingCodOrders.length} orders</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-green-50 to-teal-50 p-6 rounded-lg shadow-sm border-2 border-green-200">
-            <div className="flex items-center">
+          <div className="bg-gradient-to-br from-green-50 to-teal-50 p-4 rounded-lg shadow-sm border-2 border-green-200">
+            <div className="flex items-center gap-2">
               <div className="bg-white p-2 rounded-lg">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-green-800">Collected COD</p>
-                <p className="text-2xl font-bold text-green-900">{formatCurrency(totalCollectedCod)}</p>
-                <p className="text-xs text-green-700 mt-1">{collectedCodOrders.length} orders</p>
+              <div>
+                <p className="text-xs font-medium text-green-800">Collected COD</p>
+                <p className="text-lg font-bold text-green-900">{formatCurrency(totalCollectedCod)}</p>
+                <p className="text-xs text-green-700">{collectedCodOrders.length} orders</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-6 rounded-lg shadow-sm border-2 border-amber-200">
-            <div className="flex items-center">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg shadow-sm border-2 border-blue-200">
+            <div className="flex items-center gap-2">
               <div className="bg-white p-2 rounded-lg">
-                <IndianRupee className="h-8 w-8 text-amber-600" />
+                <IndianRupee className="h-6 w-6 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-amber-800">Total COD Value</p>
-                <p className="text-2xl font-bold text-amber-900">
-                  {formatCurrency(totalPendingCod + totalCollectedCod)}
+              <div>
+                <p className="text-xs font-medium text-blue-800">Online Paid</p>
+                <p className="text-lg font-bold text-blue-900">
+                  {formatCurrency(orders.reduce((sum, order) => {
+                    // Calculate online paid amount
+                    if (order.payment_split && order.online_amount) {
+                      // Split payment: only online_amount was paid online
+                      return sum + order.online_amount;
+                    } else if (!order.cod_amount || order.cod_amount === 0) {
+                      // Full online payment: total_amount is paid
+                      return sum + order.total_amount;
+                    }
+                    return sum;
+                  }, 0))}
                 </p>
-                <p className="text-xs text-amber-700 mt-1">
-                  {pendingCodOrders.length + collectedCodOrders.length} orders
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg shadow-sm border-2 border-blue-200">
-            <div className="flex items-center">
-              <div className="bg-white p-2 rounded-lg">
-                <Package className="h-8 w-8 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-blue-800">Collection Rate</p>
-                <p className="text-2xl font-bold text-blue-900">
-                  {pendingCodOrders.length + collectedCodOrders.length > 0 
-                    ? Math.round((collectedCodOrders.length / (pendingCodOrders.length + collectedCodOrders.length)) * 100)
-                    : 0}%
-                </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  {collectedCodOrders.length} of {pendingCodOrders.length + collectedCodOrders.length} collected
+                <p className="text-xs text-blue-700">
+                  {orders.filter(order => 
+                    (order.payment_split && order.online_amount) || 
+                    (!order.cod_amount || order.cod_amount === 0)
+                  ).length} orders
                 </p>
               </div>
             </div>
