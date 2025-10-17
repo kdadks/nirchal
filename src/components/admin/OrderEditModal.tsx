@@ -754,11 +754,25 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                               
                               {/* Product Name */}
                               <div className="flex-1">
-                                <span className="text-sm text-gray-900">{item.product_name || 'Unknown Product'}</span>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-sm text-gray-900">{item.product_name || 'Unknown Product'}</span>
+                                  {/* Show variant color for services */}
+                                  {item.variant_color && (item.variant_size === 'Service' || item.variant_size === 'Custom') && (
+                                    <span className="text-xs font-medium text-gray-600">{item.variant_color}</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">-</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {item.variant_size === 'Service' || item.variant_size === 'Custom' ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {item.variant_size}
+                              </span>
+                            ) : (
+                              item.variant_size || '-'
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{formatCurrency(item.total_price / item.quantity)}</td>
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">
