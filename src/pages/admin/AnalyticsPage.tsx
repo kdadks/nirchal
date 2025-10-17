@@ -232,15 +232,21 @@ const AnalyticsPage: React.FC = () => {
           product_name,
           quantity,
           total_price,
-          product_id
+          product_id,
+          variant_size
         `);
 
       if (orderItemsError) throw orderItemsError;
 
-      // Calculate top products
+      // Calculate top products (excluding service items)
       const productSales = new Map();
       
       (orderItemsData || []).forEach(item => {
+        // Skip service items
+        if (item.variant_size === 'Service' || item.variant_size === 'Custom') {
+          return;
+        }
+        
         const key = item.product_name || `Product ${item.product_id}`;
         if (productSales.has(key)) {
           const existing = productSales.get(key);
