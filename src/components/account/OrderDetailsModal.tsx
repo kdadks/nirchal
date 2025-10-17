@@ -304,20 +304,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     setRetryingPayment(true);
 
     try {
-      // Fetch Razorpay settings to get the key
-      const { data: settings, error: settingsError } = await supabase
-        .from('razorpay_settings')
-        .select('key')
-        .single();
+      // Fetch Razorpay settings from settings table
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('settings')
+        .select('key, value')
+        .eq('category', 'payment')
+        .eq('key', 'razorpay_key_id');
 
-      if (settingsError || !settings || !settings.key) {
+      if (settingsError || !settingsData || settingsData.length === 0) {
         console.error('Failed to fetch Razorpay settings:', settingsError);
         toast.error('Payment configuration error. Please contact support.');
         setRetryingPayment(false);
         return;
       }
 
-      const razorpayKey = settings.key as string;
+      const razorpayKey = settingsData[0].value as string;
 
       // Calculate amount to pay
       const amountToPay = orderDetails.payment_split 
