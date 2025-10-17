@@ -36,7 +36,7 @@ export const useNirchalAI = () => {
       content: 'Hello! I\'m Nirchal AI, your personal shopping assistant. I can help you find products, check availability, get size recommendations, and answer questions about our collections. How can I assist you today?',
       timestamp: new Date(),
       suggestions: [
-        'Show me trending sarees',
+        'Show me featured sarees',
         'What\'s available in my size?',
         'Check stock for kurtas',
         'Tell me about your return policy'
@@ -71,7 +71,7 @@ export const useNirchalAI = () => {
   };
 
   // Fetch product data based on query
-  const fetchProducts = useCallback(async (query: string, category?: string, limit: number = 5) => {
+  const fetchProducts = useCallback(async (query: string, category?: string, limit: number = 5, featured: boolean = false) => {
     try {
       let dbQuery = supabase
         .from('products')
@@ -94,7 +94,11 @@ export const useNirchalAI = () => {
         dbQuery = dbQuery.eq('category', category);
       }
 
-      if (query) {
+      if (featured) {
+        dbQuery = dbQuery.eq('is_featured', true);
+      }
+
+      if (query && !featured) {
         dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
       }
 
@@ -175,9 +179,16 @@ export const useNirchalAI = () => {
         return "Hello! Welcome to Nirchal! I'm here to help you find the perfect ethnic wear. Whether you're looking for sarees, kurtas, lehengas, or any traditional outfit, I can assist you with product recommendations, availability, and more. What are you shopping for today?";
       
       case 'product_search': {
-        const products = await fetchProducts(userMessage, category);
+        // Check if user is asking for trending/featured products
+        const isTrending = userMessage.toLowerCase().includes('trending') || 
+                          userMessage.toLowerCase().includes('popular') || 
+                          userMessage.toLowerCase().includes('featured');
+        
+        const products = await fetchProducts(userMessage, category, 5, isTrending);
         if (products.length > 0) {
-          let response = `I found ${products.length} great ${category || 'products'} for you:\n\n`;
+          let response = isTrending 
+            ? `Here are our featured ${category || 'products'} for you:\n\n`
+            : `I found ${products.length} great ${category || 'products'} for you:\n\n`;
           products.forEach((product, index) => {
             const price = product.sale_price > 0 ? product.sale_price : product.price;
             response += `${index + 1}. **${product.name}**\n`;
@@ -200,7 +211,7 @@ export const useNirchalAI = () => {
       
       case 'policy_info':
         if (userMessage.toLowerCase().includes('return')) {
-          return "📦 **Return Policy**: We offer a 2-day return policy for all items. Products should be in original condition with tags. Free return pickup for all orders across India! Would you like details about the return process?";
+          return "📦 **Return Policy**: We offer a 2-day return policy for all items. Products should be in original condition with tags. Return pickup charges may apply. Would you like details about the return process?";
         }
         if (userMessage.toLowerCase().includes('shipping')) {
           return "🚚 **Shipping Info**: FREE shipping on all orders across India! 🇮🇳 No minimum order value. Standard delivery takes 3-7 business days. We deliver pan-India with real-time tracking. International shipping available with charges calculated at checkout.";
@@ -264,7 +275,7 @@ export const useNirchalAI = () => {
     if (intent === 'product_search') {
       suggestions = ['Show me more options', 'Check availability', 'What sizes are available?', 'Any offers on these?'];
     } else if (intent === 'policy_info') {
-      suggestions = ['Show trending products', 'Check my size', 'What\'s new today?', 'Help me choose colors'];
+      suggestions = ['Show featured products', 'Check my size', 'What\'s new today?', 'Help me choose colors'];
     } else {
       suggestions = ['Show me sarees', 'Latest kurtas', 'Check lehenga collection', 'Kids ethnic wear'];
     }
@@ -289,7 +300,7 @@ export const useNirchalAI = () => {
         content: 'Hello! I\'m Nirchal AI, your personal shopping assistant. How can I help you find the perfect ethnic wear today?',
         timestamp: new Date(),
         suggestions: [
-          'Show me trending sarees',
+          'Show me featured sarees',
           'What\'s available in my size?',
           'Check stock for kurtas',
           'Tell me about your return policy'
