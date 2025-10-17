@@ -126,16 +126,22 @@ export const useInventory = (): UseInventoryReturn => {
       // - If a product has no variants, only show product-level inventory (variant_id = null)
       
       // First, fetch which products have variants
+      // Instead of fetching all variant records (which hits Supabase 1000-row limit),
+      // batch check products for variants to ensure we get all results
       const productIds = Array.from(new Set(inventoryData.map(item => item.product_id)));
-      const { data: variantsData } = await supabase
-        .from('product_variants')
-        .select('product_id')
-        .in('product_id', productIds);
+      const productsWithVariants = new Set<string>();
       
-      // Create a Set of product IDs that have variants
-      const productsWithVariants = new Set(
-        (variantsData || []).map((v: any) => v.product_id)
-      );
+      // Process in batches of 50 product IDs to avoid hitting limits
+      for (let i = 0; i < productIds.length; i += 50) {
+        const batch = productIds.slice(i, i + 50);
+        const { data: batchVariants } = await supabase
+          .from('product_variants')
+          .select('product_id')
+          .in('product_id', batch);
+        
+        // Add unique product IDs to the set
+        (batchVariants || []).forEach((v: any) => productsWithVariants.add(v.product_id));
+      }
       
       // Filter inventory based on whether product has variants
       const filteredInventory = inventoryData.filter((item: any) => {
