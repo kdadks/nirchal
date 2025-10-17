@@ -102,25 +102,11 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
         throw orderError;
       }
 
-      // Fetch order items with product images and variant swatch images
+      // Fetch order items - first get all items without products join
       console.log('Fetching order items for order ID:', orderId);
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select(`
-          *,
-          products(
-            id,
-            name,
-            product_images(image_url, is_primary),
-            product_variants(
-              id,
-              color,
-              size,
-              swatch_image_id,
-              product_images!swatch_image_id(image_url)
-            )
-          )
-        `)
+        .select('*')
         .eq('order_id', orderId);
 
       if (itemsError) {
@@ -132,9 +118,42 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
         console.log('Order items fetched successfully:', items);
         console.log('Sample item structure:', items?.[0]);
       }
+      
+      // For items that have product_id, fetch product details separately
+      const itemsWithProductDetails = await Promise.all(
+        (items || []).map(async (item: any) => {
+          // If no product_id (e.g., service items), return item as-is
+          if (!item.product_id) {
+            return item;
+          }
+          
+          // Fetch product details with images and variants
+          const { data: productData } = await supabase
+            .from('products')
+            .select(`
+              id,
+              name,
+              product_images(image_url, is_primary),
+              product_variants(
+                id,
+                color,
+                size,
+                swatch_image_id,
+                product_images!swatch_image_id(image_url)
+              )
+            `)
+            .eq('id', item.product_id)
+            .single();
+          
+          return {
+            ...item,
+            products: productData
+          };
+        })
+      );
 
       // Process items to extract product images with variant-specific swatch support
-      const processedItems = (items || []).map((item: any) => {
+      const processedItems = (itemsWithProductDetails || []).map((item: any) => {
         let productImage: string | undefined;
         let productData = item.products;
         
