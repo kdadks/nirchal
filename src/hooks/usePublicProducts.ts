@@ -393,42 +393,18 @@ export const usePublicProducts = (featured?: boolean) => {
           color: String(product.color ?? ''),
           inStock: Boolean(product.in_stock ?? true),
           stockQuantity: (() => {
-            // Calculate the actual stock quantity from inventory data
+            // Calculate total stock from all inventory records
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {
-              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
-              const relevantInventory = product.inventory.filter((inv: any) => {
-                if (hasVariants) {
-                  // For products with variants, only count variant-specific inventory
-                  return inv.variant_id !== null;
-                } else {
-                  // For products without variants, only count product-level inventory
-                  return inv.variant_id === null;
-                }
-              });
-              
-              return relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              return product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
             }
             return 0;
           })(),
           stockStatus: (() => {
-            // Calculate stock status based on inventory data
+            // Calculate stock status from total inventory
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {
-              // If product has variants, only count variant-level inventory (variant_id !== null)
-              // If product has no variants, only count product-level inventory (variant_id === null)
-              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
-              const relevantInventory = product.inventory.filter((inv: any) => {
-                if (hasVariants) {
-                  // For products with variants, only count variant-specific inventory
-                  return inv.variant_id !== null;
-                } else {
-                  // For products without variants, only count product-level inventory
-                  return inv.variant_id === null;
-                }
-              });
-              
-              const totalQuantity = relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
-              const minThreshold = relevantInventory.length > 0 
-                ? Math.min(...relevantInventory.map((inv: any) => inv.low_stock_threshold || 10))
+              const totalQuantity = product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              const minThreshold = product.inventory.length > 0 
+                ? Math.min(...product.inventory.map((inv: any) => inv.low_stock_threshold || 10))
                 : 10;
               
               if (totalQuantity === 0) {
