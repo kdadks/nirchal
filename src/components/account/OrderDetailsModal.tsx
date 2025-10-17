@@ -304,6 +304,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     setRetryingPayment(true);
 
     try {
+      // Fetch Razorpay settings to get the key
+      const { data: settings, error: settingsError } = await supabase
+        .from('razorpay_settings')
+        .select('key_id')
+        .single();
+
+      if (settingsError || !settings || !settings.key_id) {
+        console.error('Failed to fetch Razorpay settings:', settingsError);
+        toast.error('Payment configuration error. Please contact support.');
+        setRetryingPayment(false);
+        return;
+      }
+
+      const razorpayKey = settings.key_id as string;
+
       // Calculate amount to pay
       const amountToPay = orderDetails.payment_split 
         ? (orderDetails.online_amount || 0) 
@@ -311,7 +326,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       // Open Razorpay checkout with existing order ID
       openCheckout({
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: razorpayKey,
         amount: Math.round(amountToPay * 100), // Convert to paise
         currency: 'INR',
         name: 'Nirchal Sarees',
