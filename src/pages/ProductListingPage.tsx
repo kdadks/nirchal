@@ -55,6 +55,20 @@ const ProductListingPage: React.FC = () => {
     }
   }, [searchParams]); // Remove filters.search from dependencies to prevent loops
 
+  // Handle category from query parameter (?category=name)
+  useEffect(() => {
+    const categoryFromUrl = searchParams.get('category');
+    
+    // Only update if there's a difference and we're not using categorySlug
+    if (!categorySlug && categoryFromUrl !== filters.category) {
+      setFilters(prev => ({
+        ...prev,
+        category: categoryFromUrl || undefined
+      }));
+      setCurrentPage(1); // Reset to first page when category changes
+    }
+  }, [searchParams, categorySlug]); // Watch for query parameter changes
+
   // Handle category slug changes when navigating between category pages
   useEffect(() => {
     if (categorySlug !== filters.category) {
@@ -69,11 +83,14 @@ const ProductListingPage: React.FC = () => {
   // Determine if we're on a category-specific page
   const isCategoryPage = !!categorySlug;
   
+  // Check for minimal view mode (from breadcrumb navigation)
+  const isMinimalView = searchParams.get('view') === 'minimal';
+  
   // Memoize pagination to prevent unnecessary re-renders
   const paginationOptions = useMemo(() => ({
     page: currentPage,
-    limit: isCategoryPage ? 25 : 20  // 25 products per page for category pages, 20 for general products
-  }), [currentPage, isCategoryPage]);
+    limit: isCategoryPage || isMinimalView ? 30 : 20  // 30 products per page for category/minimal pages, 20 for general products
+  }), [currentPage, isCategoryPage, isMinimalView]);
 
   // Fetch data from database
   const { products, loading: productsLoading, totalPages, totalCount, error } = useProductsWithFilters(
@@ -214,7 +231,8 @@ const ProductListingPage: React.FC = () => {
       </div>
       */}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Add top padding on mobile to avoid header overlap */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 sm:pt-8">
         {/* Breadcrumb */}
         {filters.category && (
           <nav className="mb-6">
@@ -228,9 +246,9 @@ const ProductListingPage: React.FC = () => {
           </nav>
         )}
         
-        <div className={isCategoryPage ? "w-full" : "flex gap-8"}>
-          {/* Desktop Filters Sidebar - Only show on general products page */}
-          {!isCategoryPage && (
+        <div className={(isCategoryPage || isMinimalView) ? "w-full" : "flex gap-8"}>
+          {/* Desktop Filters Sidebar - Only show on general products page (not category or minimal view) */}
+          {!isCategoryPage && !isMinimalView && (
             <aside className="hidden lg:block w-72 flex-shrink-0">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
@@ -412,10 +430,12 @@ const ProductListingPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className={`grid gap-6 ${viewMode === 'grid' 
-                  ? isCategoryPage 
-                    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                    : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                <div className={`grid gap-4 ${viewMode === 'grid' 
+                  ? isMinimalView
+                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                    : isCategoryPage 
+                      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                      : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
                   : 'grid-cols-1'
                 }`}>
                   {products.map((product) => (
@@ -432,7 +452,7 @@ const ProductListingPage: React.FC = () => {
                     <Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}
-                      itemsPerPage={isCategoryPage ? 25 : 20}
+                      itemsPerPage={isCategoryPage || isMinimalView ? 30 : 20}
                       totalItems={totalCount}
                       onPageChange={setCurrentPage}
                       onItemsPerPageChange={() => {}} // No-op since server controls page size

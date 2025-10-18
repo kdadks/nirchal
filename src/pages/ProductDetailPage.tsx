@@ -7,6 +7,7 @@ import { useCart } from '../contexts/CartContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { useCategories } from '../hooks/useCategories';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 import ProductCard from '../components/product/ProductCard';
 import { format } from 'date-fns';
@@ -56,8 +57,14 @@ const ProductDetailPage: React.FC = () => {
   const [hasUserInteractedWithColor, setHasUserInteractedWithColor] = useState(false);
 
   const product = products.find(p => p.slug === slug);
+  const { categories } = useCategories();
   const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
   const { suggestions } = useProductSuggestions({ currentProduct: product || null });
+
+  // Get category slug from database
+  const categorySlug = product?.category 
+    ? categories.find(cat => cat.name === product.category)?.slug || product.category.toLowerCase().replace(/\s+/g, '-')
+    : '';
 
   useEffect(() => {
     if (product?.id) fetchReviews();
@@ -79,17 +86,50 @@ const ProductDetailPage: React.FC = () => {
       : [];
     const availableSizes = getAvailableSizes(product); // Don't filter by selectedColor initially
     
-    // Preselect first available size and color
+    // Preselect first available size
     if (availableSizes.length > 0) {
       setSelectedSize(availableSizes[0]!);
     }
+    
+    // Preselect first color that has a swatch image (to avoid non-image variants in cart)
+    let selectedColorValue = '';
     if (availableColors.length > 0) {
-      setSelectedColor(availableColors[0]!);
+      // Try to find the first color variant with a swatch image
+      const colorWithSwatch = availableColors.find(color => {
+        const variant = product.variants?.find(v => v.color === color);
+        return variant && (variant.swatchImage || variant.swatchImageId);
+      });
+      
+      // Use color with swatch if found, otherwise fall back to first available color
+      selectedColorValue = colorWithSwatch || availableColors[0]!;
+      setSelectedColor(selectedColorValue);
     }
 
-    // Always set to primary image (index 0) when product first loads
-    // Primary image should be at index 0 due to sorting in usePublicProducts
-    if (product.images && product.images.length > 0) {
+    // Set the selected image based on the chosen color's swatch
+    if (selectedColorValue && product.variants) {
+      const colorVariant = product.variants.find(v => v.color === selectedColorValue);
+      if (colorVariant && (colorVariant.swatchImage || colorVariant.swatchImageId)) {
+        const swatchUrl = colorVariant.swatchImage;
+        const swatchId = colorVariant.swatchImageId;
+        
+        // Try exact URL match first
+        let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
+        if (idx === -1 && swatchId) {
+          const idNoDash = swatchId.replace(/-/g, '');
+          idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
+        }
+        if (idx >= 0) {
+          setSelectedImage(idx);
+        } else if (product.images && product.images.length > 0) {
+          // Fallback to first image if swatch not found
+          setSelectedImage(0);
+        }
+      } else if (product.images && product.images.length > 0) {
+        // Always set to primary image (index 0) when no swatch is available
+        setSelectedImage(0);
+      }
+    } else if (product.images && product.images.length > 0) {
+      // Always set to primary image (index 0) when product first loads
       setSelectedImage(0);
     }
   }, [product]);
@@ -416,13 +456,24 @@ const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
-          <button onClick={() => navigate('/')} className="hover:text-amber-600 transition-colors">Home</button>
-          <span>/</span>
-          <button onClick={() => navigate('/products')} className="hover:text-amber-600 transition-colors">Products</button>
-          <span>/</span>
+      {/* Breadcrumb - with top padding for mobile to avoid header overlap */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pt-20 sm:pt-6">
+        <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 overflow-x-auto whitespace-nowrap">
+          <button onClick={() => navigate('/')} className="hover:text-amber-600 transition-colors flex-shrink-0">Home</button>
+          <span className="flex-shrink-0">/</span>
+          <button onClick={() => navigate('/products')} className="hover:text-amber-600 transition-colors flex-shrink-0">Products</button>
+          {product.category && categorySlug && (
+            <>
+              <span className="flex-shrink-0">/</span>
+              <button 
+                onClick={() => navigate(`/category/${categorySlug}`)} 
+                className="hover:text-amber-600 transition-colors flex-shrink-0"
+              >
+                {product.category}
+              </button>
+            </>
+          )}
+          <span className="flex-shrink-0">/</span>
           <span className="text-gray-900 font-medium truncate">{product.name}</span>
         </nav>
       </div>

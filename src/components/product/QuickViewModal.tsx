@@ -75,11 +75,50 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
         setSelectedSize('');
       }
       
-      // Only show colors if there are actual variants with color differences
-      setSelectedColor(colors[0] || '');
+      // Prioritize colors with swatch images (to avoid non-image variants in cart)
+      let selectedColorValue = '';
+      if (colors.length > 0) {
+        // Try to find the first color variant with a swatch image
+        const colorWithSwatch = colors.find(color => {
+          const variant = product.variants?.find(v => v.color === color);
+          return variant && (variant.swatchImage || variant.swatchImageId);
+        });
+        
+        // Use color with swatch if found, otherwise fall back to first available color
+        selectedColorValue = colorWithSwatch || colors[0] || '';
+        setSelectedColor(selectedColorValue);
+      } else {
+        setSelectedColor('');
+      }
       
-      // Start with primary image (index 0) instead of swatch image
-      setCurrentImageIndex(0);
+      // Set the selected image based on the chosen color's swatch
+      if (selectedColorValue && product.variants) {
+        const colorVariant = product.variants.find(v => v.color === selectedColorValue);
+        if (colorVariant && (colorVariant.swatchImage || colorVariant.swatchImageId)) {
+          const swatchUrl = colorVariant.swatchImage;
+          const swatchId = colorVariant.swatchImageId;
+          
+          // Try exact URL match first
+          let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
+          if (idx === -1 && swatchId) {
+            const idNoDash = swatchId.replace(/-/g, '');
+            idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
+          }
+          if (idx >= 0) {
+            setCurrentImageIndex(idx);
+          } else {
+            // Fallback to first image if swatch not found
+            setCurrentImageIndex(0);
+          }
+        } else {
+          // Start with primary image (index 0) when no swatch is available
+          setCurrentImageIndex(0);
+        }
+      } else {
+        // Start with primary image (index 0) when no color is selected
+        setCurrentImageIndex(0);
+      }
+      
       // Reset user interaction flag when modal opens
       setUserInteractedWithColor(false);
     }
