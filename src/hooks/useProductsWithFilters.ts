@@ -312,34 +312,19 @@ export const useProductsWithFilters = (
               // First priority: Check if the swatch image was joined directly
               if (variant.swatch_image?.image_url) {
                 swatchImageUrl = getStorageImageUrl(variant.swatch_image.image_url);
-                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] joined swatch URL:', swatchImageUrl);
               }
               // Second priority: Look in the main product images array
               else if (variant.swatch_image_id && Array.isArray(product.product_images)) {
-                if (import.meta.env.DEV) console.debug('[useProductsWithFilters] search swatch in product_images:', {
-                  searchingFor: variant.swatch_image_id,
-                  searchingForType: typeof variant.swatch_image_id,
-                  availableImageIds: product.product_images.map((img: any) => ({
-                    id: img.id,
-                    type: typeof img.id,
-                    image_url: img.image_url
-                  })),
-                  // Show first few actual IDs for comparison
-                  actualIds: product.product_images.slice(0, 3).map((img: any) => img.id)
-                });
-                
                 const swatchImage = product.product_images.find((img: any) => 
                   img.id === variant.swatch_image_id || String(img.id) === String(variant.swatch_image_id)
                 );
                 
                 if (swatchImage?.image_url) {
                   swatchImageUrl = getStorageImageUrl(swatchImage.image_url);
-                  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] found swatch URL in product_images:', swatchImageUrl);
-                } else {
-                  if (import.meta.env.DEV) console.debug('[useProductsWithFilters] no swatch in product_images for ID:', variant.swatch_image_id);
                 }
               }
               
+              // Log missing swatch images only in development
               if (import.meta.env.DEV && variant.swatch_image_id && !swatchImageUrl) {
                 console.warn('[useProductsWithFilters] Missing swatch image:', {
                   variantId: variant.id,
@@ -347,12 +332,6 @@ export const useProductsWithFilters = (
                   swatchImageId: variant.swatch_image_id
                 });
               }
-              
-              if (import.meta.env.DEV) console.debug('[useProductsWithFilters] Final swatch result:', {
-                variantId: variant.id,
-                color: variant.color,
-                finalSwatchImageUrl: swatchImageUrl
-              });
               
               // Normalize color_hex to #RRGGBB if provided
               let normalizedHex: string | undefined;
