@@ -113,34 +113,24 @@ export const useProductSearch = (searchQuery: string, limit: number = 8) => {
           }
         }
         
-        // Calculate price logic:
-        // 1. Use sale_price if available and > 0
-        // 2. Use price if available and > 0  
-        // 3. Use base price + first variant's price_adjustment
-        // 4. Default to 0
+        // Calculate price using the same logic as usePublicProducts and useProductsWithFilters:
+        // 1. If variants exist with positive price_adjustment → use minimum positive price_adjustment
+        // 2. If no variants → use sale_price only (no fallback to price to help identify products with missing pricing)
         let finalPrice = 0;
         
-        if (product.sale_price && product.sale_price > 0) {
-          finalPrice = product.sale_price;
-        } else if (product.price && product.price > 0) {
-          finalPrice = product.price;
-        } else if (product.product_variants && product.product_variants.length > 0) {
-          // Use base price (or 0) + first variant's price adjustment
-          const basePrice = product.price || product.sale_price || 0;
-          const firstVariant = product.product_variants[0];
-          const priceAdjustment = firstVariant.price_adjustment || 0;
-          finalPrice = basePrice + priceAdjustment;
-        }
+        const variantPrices = Array.isArray(product.product_variants) && product.product_variants.length > 0
+          ? product.product_variants.map((v: any) => v.price_adjustment || 0)
+          : [];
+        const hasVariants = variantPrices.length > 0;
+        const positiveVariantPrices = variantPrices.filter((p: number) => p > 0);
+        const minPositiveVariantPrice = positiveVariantPrices.length > 0 ? Math.min(...positiveVariantPrices) : undefined;
         
-        // Debug logging for price issues
-        if (finalPrice === 0) {
-          console.log('[useProductSearch] Product with 0 price after variant check:', {
-            name: product.name,
-            sale_price: product.sale_price,
-            price: product.price,
-            variants: product.product_variants,
-            calculated_price: finalPrice
-          });
+        if (hasVariants && Number.isFinite(minPositiveVariantPrice as number)) {
+          // Use minimum positive variant price
+          finalPrice = minPositiveVariantPrice as number;
+        } else {
+          // Use sale_price only (no fallback to help identify products with missing pricing)
+          finalPrice = Number(product.sale_price ?? 0);
         }
         
         return {
