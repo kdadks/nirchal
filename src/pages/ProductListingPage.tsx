@@ -32,7 +32,8 @@ const ProductListingPage: React.FC = () => {
       // Route parameter takes priority: /category/slug-name
       categoryToSet = categorySlug;
     } else if (categoryFromUrl) {
-      // Query parameter fallback: /products?category=name
+      // Query parameter: /products?category=slug-or-name
+      // This will be used as-is, getCachedCategoryId will handle slug/name conversion
       categoryToSet = categoryFromUrl;
     }
     
@@ -55,30 +56,48 @@ const ProductListingPage: React.FC = () => {
     }
   }, [searchParams]); // Remove filters.search from dependencies to prevent loops
 
-  // Handle category from query parameter (?category=name)
+  // Handle category from query parameter (?category=name-or-slug)
   useEffect(() => {
-    const categoryFromUrl = searchParams.get('category');
+    // Skip if using route parameter (route takes priority)
+    if (categorySlug) return;
     
-    // Only update if there's a difference and we're not using categorySlug
-    if (!categorySlug && categoryFromUrl !== filters.category) {
-      setFilters(prev => ({
+    const categoryFromUrl = searchParams.get('category') || undefined;
+    
+    setFilters(prev => {
+      // Only update if actually different
+      if (categoryFromUrl === prev.category) {
+        return prev;
+      }
+      
+      // Reset to first page when category changes
+      setCurrentPage(1);
+      
+      return {
         ...prev,
-        category: categoryFromUrl || undefined
-      }));
-      setCurrentPage(1); // Reset to first page when category changes
-    }
-  }, [searchParams, categorySlug]); // Watch for query parameter changes
+        category: categoryFromUrl
+      };
+    });
+  }, [searchParams, categorySlug]); // Watch for query parameter changes (removed filters.category to prevent loops)
 
   // Handle category slug changes when navigating between category pages
   useEffect(() => {
-    if (categorySlug !== filters.category) {
-      setFilters(prev => ({
+    setFilters(prev => {
+      const newCategory = categorySlug || undefined;
+      
+      // Only update if actually different
+      if (newCategory === prev.category) {
+        return prev;
+      }
+      
+      // Reset to first page when category changes
+      setCurrentPage(1);
+      
+      return {
         ...prev,
-        category: categorySlug || undefined
-      }));
-      setCurrentPage(1); // Reset to first page when category changes
-    }
-  }, [categorySlug]); // Watch for category slug changes
+        category: newCategory
+      };
+    });
+  }, [categorySlug]); // Only watch categorySlug, not filters.category
 
   // Determine if we're on a category-specific page
   const isCategoryPage = !!categorySlug;
@@ -246,11 +265,11 @@ const ProductListingPage: React.FC = () => {
           </nav>
         )}
         
-        <div className={(isCategoryPage || isMinimalView) ? "w-full overflow-x-hidden" : "flex gap-8 overflow-x-hidden"}>
+        <div className={(isCategoryPage || isMinimalView) ? "w-full overflow-x-hidden" : "flex items-start gap-8 overflow-x-hidden"}>
           {/* Desktop Filters Sidebar - Only show on general products page (not category or minimal view) */}
           {!isCategoryPage && !isMinimalView && (
             <aside className="hidden lg:block w-72 flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
                 <button
