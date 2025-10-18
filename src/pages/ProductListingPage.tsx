@@ -232,10 +232,10 @@ const ProductListingPage: React.FC = () => {
       */}
 
       {/* Add top padding on mobile to avoid header overlap */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20 sm:pt-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-8 pt-20 sm:pt-8">
         {/* Breadcrumb */}
         {filters.category && (
-          <nav className="mb-6">
+          <nav className="mb-6 px-2 sm:px-0">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Link to="/" className="hover:text-amber-600 transition-colors">Home</Link>
               <span>›</span>
@@ -430,13 +430,13 @@ const ProductListingPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className={`grid gap-4 ${viewMode === 'grid' 
+                <div className={`grid ${viewMode === 'grid' 
                   ? isMinimalView
-                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4'
                     : isCategoryPage 
-                      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                      : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                  : 'grid-cols-1'
+                      ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6'
+                      : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6'
+                  : 'grid-cols-1 gap-4'
                 }`}>
                   {products.map((product) => (
                     <ProductCard
