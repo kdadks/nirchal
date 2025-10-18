@@ -14,10 +14,6 @@ export const usePublicProducts = (featured?: boolean) => {
       setLoading(true);
       setError(null);
       
-      if (import.meta.env.DEV) {
-        console.debug('[usePublicProducts] start fetch, mock products:', mockProducts.length, 'first variants:', mockProducts[0]?.variants?.length || 0);
-      }
-      
       // TEMPORARY: Force mock data to test swatches
       const USE_MOCK_DATA = false; // Set to false to use database
       
@@ -183,18 +179,6 @@ export const usePublicProducts = (featured?: boolean) => {
 
       // Transform to our Product interface
       const transformedProducts = (data || []).map((product: any) => {
-        // Debug: Log raw product data to see the structure
-  if (import.meta.env.DEV) console.debug('[usePublicProducts] raw product data', {
-          productId: product.id,
-          productName: product.name,
-          variantsCount: product.product_variants?.length || 0,
-          imagesCount: product.product_images?.length || 0,
-          allImageIds: product.product_images?.map((img: any) => img.id) || [],
-          allVariantSwatchIds: product.product_variants?.map((v: any) => v.swatch_image_id).filter(Boolean) || [],
-          sampleVariant: product.product_variants?.[0],
-          sampleImage: product.product_images?.[0]
-        });
-        
         // Map product_images to public URLs from Supabase storage
         let images: string[] = [];
         
@@ -243,54 +227,26 @@ export const usePublicProducts = (featured?: boolean) => {
           
             // Process variants with swatch images and inventory
             variants = product.product_variants.map((variant: any) => {
-              if (import.meta.env.DEV) console.debug('[usePublicProducts] processing variant', {
-                id: variant.id,
-                color: variant.color,
-                swatchImageId: variant.swatch_image_id,
-                swatchImageJoined: variant.swatch_image,
-                productImagesCount: product.product_images?.length || 0
-              });
-              
               let swatchImageUrl = null;
-              
-              // Debug: Check what we have available
-              if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch debug', {
-                variantId: variant.id,
-                swatchImageId: variant.swatch_image_id,
-                hasDirectJoin: !!variant.swatch_image,
-                directJoinData: variant.swatch_image,
-                availableProductImages: product.product_images?.map((img: any) => ({ id: img.id, image_url: img.image_url }))
-              });
               
               // First try to use the directly joined swatch image
               if (variant.swatch_image?.image_url) {
                 swatchImageUrl = getStorageImageUrl(variant.swatch_image.image_url);
-                if (import.meta.env.DEV) console.debug('[usePublicProducts] joined swatch URL', swatchImageUrl);
               }
               // Try to find the specific swatch image by ID in product_images array
               else if (variant.swatch_image_id && Array.isArray(product.product_images)) {
-                if (import.meta.env.DEV) {
-                  console.debug('[usePublicProducts] searching swatch in product_images');
-                  console.debug('[usePublicProducts] available images', product.product_images.map((img: any) => ({ id: img.id, image_url: img.image_url })));
-                  console.debug('[usePublicProducts] swatch_image_id', variant.swatch_image_id);
-                }
-                
                 const swatchImage = product.product_images.find((img: any) => {
                   // Try both string and direct comparison
                   return img.id === variant.swatch_image_id || String(img.id) === String(variant.swatch_image_id);
                 });
                 
-                if (import.meta.env.DEV) console.debug('[usePublicProducts] found swatch image record', swatchImage);
                 if (swatchImage?.image_url) {
                   swatchImageUrl = getStorageImageUrl(swatchImage.image_url);
-                  if (import.meta.env.DEV) console.debug('[usePublicProducts] swatch URL from record', swatchImageUrl);
-                } else {
-                  if (import.meta.env.DEV) console.debug('[usePublicProducts] no specific swatch image found');
                 }
               }
 
-              // If still no swatch image found, log the issue
-              if (!swatchImageUrl && variant.swatch_image_id) {
+              // If still no swatch image found, log the issue in development only
+              if (!swatchImageUrl && variant.swatch_image_id && import.meta.env.DEV) {
                 console.warn('[usePublicProducts] ⚠️ Swatch image not found for variant:', {
                   variantId: variant.id,
                   color: variant.color,
@@ -298,13 +254,6 @@ export const usePublicProducts = (featured?: boolean) => {
                   message: 'The swatch_image_id exists but no corresponding image was found in product_images'
                 });
               }
-              
-              if (import.meta.env.DEV) console.debug('[usePublicProducts] final swatch result', {
-                variantId: variant.id,
-                color: variant.color,
-                swatchImageId: variant.swatch_image_id,
-                finalSwatchImageUrl: swatchImageUrl
-              });
               
               // Normalize hex value to #RRGGBB if possible
               let normalizedHex: string | undefined;

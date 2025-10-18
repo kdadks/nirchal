@@ -200,23 +200,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <>
       <div 
         ref={cardRef}
-        className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full"
+        className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full max-w-full"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
         <Link to={`/products/${product.slug}`} className="block">
           {/* Image Container - optimized for mobile */}
-          <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 w-full">
+          <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 w-full max-w-full">
             {isInView ? (
               <img
                 src={imageSrc}
                 alt={product.name}
-                className="w-full h-full object-cover transition-opacity duration-300"
+                className="w-full h-full object-cover transition-opacity duration-300 max-w-full"
                 onError={handleImageError}
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center">
+              <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center max-w-full">
                 <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
               </div>
             )}

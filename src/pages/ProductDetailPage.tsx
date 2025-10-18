@@ -1068,12 +1068,12 @@ const ProductDetailPage: React.FC = () => {
 
         </div>
 
-        {/* You May Like Section */}
+        {/* You May Also Like Section */}
         {suggestions.length > 0 && (
           <div className="mt-2 md:mt-4">
             <div className="text-center mb-3 md:mb-6">
               <h2 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 sm:mb-1 md:mb-2 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
-                You May Like
+                You May Also Like
               </h2>
               <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-xl md:max-w-2xl mx-auto leading-relaxed px-4">
                 More beautiful pieces selected for you

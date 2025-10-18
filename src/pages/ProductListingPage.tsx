@@ -213,7 +213,7 @@ const ProductListingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 overflow-x-hidden">
       {/* Hero Section - Commented out */}
       {/*
       <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">
@@ -232,10 +232,10 @@ const ProductListingPage: React.FC = () => {
       */}
 
       {/* Add top padding on mobile to avoid header overlap */}
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-8 pt-20 sm:pt-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-8 pt-20 sm:pt-8">
         {/* Breadcrumb */}
         {filters.category && (
-          <nav className="mb-6 px-2 sm:px-0">
+          <nav className="mb-6">
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Link to="/" className="hover:text-amber-600 transition-colors">Home</Link>
               <span>›</span>
@@ -246,7 +246,7 @@ const ProductListingPage: React.FC = () => {
           </nav>
         )}
         
-        <div className={(isCategoryPage || isMinimalView) ? "w-full" : "flex gap-8"}>
+        <div className={(isCategoryPage || isMinimalView) ? "w-full overflow-x-hidden" : "flex gap-8 overflow-x-hidden"}>
           {/* Desktop Filters Sidebar - Only show on general products page (not category or minimal view) */}
           {!isCategoryPage && !isMinimalView && (
             <aside className="hidden lg:block w-72 flex-shrink-0">
@@ -352,7 +352,7 @@ const ProductListingPage: React.FC = () => {
           )}
 
           {/* Main Content */}
-          <main className={isCategoryPage ? "w-full" : "flex-1"}>
+          <main className={isCategoryPage ? "w-full" : "flex-1 min-w-0 overflow-x-hidden"}>
             {/* Mobile Filters Button - Only show on general products page */}
             {!isCategoryPage && (
               <div className="lg:hidden mb-4">
@@ -430,7 +430,7 @@ const ProductListingPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className={`grid ${viewMode === 'grid' 
+                <div className={`grid w-full max-w-full ${viewMode === 'grid' 
                   ? isMinimalView
                     ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4'
                     : isCategoryPage 
