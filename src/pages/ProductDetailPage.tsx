@@ -209,11 +209,10 @@ const ProductDetailPage: React.FC = () => {
 
   // Filter gallery images to show only non-swatch images
   // This ensures the gallery only shows product photography, not color swatches
+  // If all images are assigned as swatches, gallery will be empty
   const galleryImages = useMemo(() => {
     if (uniqueProductImages.length === 0) return [] as string[];
-    const filtered = uniqueProductImages.filter(img => !swatchImageUrls.has(img));
-    // If all images are swatches (shouldn't happen), show at least the first image
-    return filtered.length > 0 ? filtered : [uniqueProductImages[0]];
+    return uniqueProductImages.filter(img => !swatchImageUrls.has(img));
   }, [uniqueProductImages, swatchImageUrls]);
 
   if (loading) {
