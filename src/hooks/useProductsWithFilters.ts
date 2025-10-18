@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../config/supabase';
-import { getStorageImageUrl } from '../utils/storageUtils';
+import { getStorageImageUrl, getProductImageUrls } from '../utils/storageUtils';
 import { getCachedCategoryId } from '../utils/categoryCache';
 import type { Product } from '../types';
 
@@ -231,55 +231,69 @@ export const useProductsWithFilters = (
 
       // Transform to our Product interface
       const transformedProducts = await Promise.all(data.map(async (product: any) => {
-        // Handle product images with fallback for permission issues
-        let images: string[] = [];
-        
+        const imageEntries: { url: string; id?: string }[] = [];
+        const swatchImageUrls: string[] = [];
+        const swatchImageIds = new Set<string>();
+
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
-          // Sort images by is_primary field (primary images first)
           const sortedImages = [...product.product_images].sort((a: any, b: any) => {
             if (a.is_primary && !b.is_primary) return -1;
             if (!a.is_primary && b.is_primary) return 1;
+            if (a.created_at && b.created_at) {
+              return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            }
             return 0;
           });
-          
-          images = sortedImages
-            .map((img: any) => {
-              const imageUrl = img.image_url;
-              return imageUrl ? getStorageImageUrl(imageUrl) : null;
-            })
-            .filter((url: string | null): url is string => Boolean(url));
+
+          for (const img of sortedImages) {
+            const rawUrl = (img.image_url || img.image_path) as string | null;
+            const url = rawUrl ? getStorageImageUrl(String(rawUrl)) : '';
+            if (!url) continue;
+            imageEntries.push({
+              url,
+              id: img.id ? String(img.id) : undefined
+            });
+          }
         } else {
-          // Try to fetch images separately if not included in main query
           try {
             const { data: productImages } = await supabase
               .from('product_images')
-              .select('image_url, is_primary')
+              .select('id, image_url, image_path, is_primary, created_at')
               .eq('product_id', product.id)
               .order('is_primary', { ascending: false });
-              
+
             if (productImages && productImages.length > 0) {
-              // Sort images by is_primary field (primary images first)
               const sortedImages = [...productImages].sort((a: any, b: any) => {
                 if (a.is_primary && !b.is_primary) return -1;
                 if (!a.is_primary && b.is_primary) return 1;
+                if (a.created_at && b.created_at) {
+                  return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                }
                 return 0;
               });
-              
-              images = sortedImages
-                .map((img: any) => {
-                  const imageUrl = img.image_url;
-                  return imageUrl ? getStorageImageUrl(imageUrl) : null;
-                })
-                .filter((url: string | null): url is string => Boolean(url));
+
+              for (const img of sortedImages) {
+                const rawUrl = (img.image_url || img.image_path) as string | null;
+                const url = rawUrl ? getStorageImageUrl(String(rawUrl)) : '';
+                if (!url) continue;
+                imageEntries.push({
+                  url,
+                  id: img.id ? String(img.id) : undefined
+                });
+              }
             }
           } catch (imgError) {
             console.warn(`[useProductsWithFilters] Could not fetch images for product ${product.id}:`, imgError);
           }
         }
-        
-        // If still no images, use placeholder
-        if (images.length === 0) {
-          images = ['/placeholder-product.jpg'];
+
+        if (imageEntries.length === 0) {
+          const fallbackUrls = getProductImageUrls(product.id);
+          fallbackUrls.forEach(url => {
+            if (url) {
+              imageEntries.push({ url });
+            }
+          });
         }
 
   // Ratings from aggregated map
@@ -324,7 +338,7 @@ export const useProductsWithFilters = (
           if (Array.isArray(product.product_variants) && product.product_variants.length > 0) {
             return product.product_variants.map((variant: any) => {
               // Handle swatch image processing...
-              let swatchImageUrl = null;
+              let swatchImageUrl: string | null = null;
               
               // First priority: Check if the swatch image was joined directly
               if (variant.swatch_image?.image_url) {
@@ -360,6 +374,13 @@ export const useProductsWithFilters = (
                 }
               }
 
+              if (swatchImageUrl) {
+                swatchImageUrls.push(swatchImageUrl);
+              }
+              if (variant.swatch_image_id) {
+                swatchImageIds.add(String(variant.swatch_image_id));
+              }
+
               return {
                 id: variant.id,
                 sku: variant.sku,
@@ -378,6 +399,42 @@ export const useProductsWithFilters = (
           }
           return [];
         })();
+
+        // Deduplicate images and fall back to swatch images so gallery never empties
+        const swatchImageUrlSet = new Set(swatchImageUrls);
+        const uniqueImages: string[] = [];
+        const seenImages = new Set<string>();
+        const addImage = (url?: string | null) => {
+          if (!url) return;
+          if (seenImages.has(url)) return;
+          seenImages.add(url);
+          uniqueImages.push(url);
+        };
+
+        const galleryCandidates: string[] = [];
+        const swatchCandidates: string[] = [];
+
+        for (const entry of imageEntries) {
+          const isSwatch = (entry.id && swatchImageIds.has(entry.id)) || swatchImageUrlSet.has(entry.url);
+          if (isSwatch) {
+            swatchCandidates.push(entry.url);
+          } else {
+            galleryCandidates.push(entry.url);
+          }
+        }
+
+        // Add gallery images first, then swatches
+        galleryCandidates.forEach(addImage);
+        swatchCandidates.forEach(addImage);
+        
+        // If still no images, add from swatchImageUrls array (fallback)
+        if (uniqueImages.length === 0) {
+          swatchImageUrls.forEach(addImage);
+        }
+
+        if (uniqueImages.length === 0) {
+          addImage('/placeholder-product.jpg');
+        }
 
         // New pricing rule:
         // - If variants exist, set display price to min variant priceAdjustment; ignore sale/cost
@@ -411,7 +468,7 @@ export const useProductsWithFilters = (
           price: displayPrice,
           originalPrice,
           discountPercentage,
-          images,
+          images: uniqueImages,
           category: 'Category ' + (product.category_id || '1'), // Temporary category mapping
           subcategory: product.subcategory,
           occasion: (() => {

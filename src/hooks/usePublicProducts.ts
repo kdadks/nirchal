@@ -179,36 +179,41 @@ export const usePublicProducts = (featured?: boolean) => {
 
       // Transform to our Product interface
       const transformedProducts = (data || []).map((product: any) => {
-        // Map product_images to public URLs from Supabase storage
-        let images: string[] = [];
-        
+        const imageEntries: { url: string; id?: string }[] = [];
+        const swatchImageUrls: string[] = [];
+        const swatchImageIds = new Set<string>();
+
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
-          // Sort images so primary image comes first, with fallback sorting
           const sortedImages = [...product.product_images].sort((a: any, b: any) => {
-            // Primary images come first
             if (a.is_primary && !b.is_primary) return -1;
             if (!a.is_primary && b.is_primary) return 1;
-            
-            // If neither or both are primary, sort by created date (oldest first) as fallback
             if (a.created_at && b.created_at) {
               return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
             }
-            
-            // Final fallback: maintain original order
             return 0;
           });
-          
-          images = sortedImages.map((img: any) => {
-            if (img.image_url) {
-              return getStorageImageUrl(img.image_url);
-            }
-            return getStorageImageUrl(img.image_path);
-          }).filter(Boolean);
+
+          for (const img of sortedImages) {
+            const rawUrl = img.image_url || img.image_path;
+            const url = rawUrl ? getStorageImageUrl(rawUrl) : '';
+            if (!url) continue;
+            imageEntries.push({
+              url,
+              id: img.id ? String(img.id) : undefined
+            });
+          }
         } else if (product.image_url) {
-          images = [getStorageImageUrl(product.image_url)];
+          const url = getStorageImageUrl(product.image_url);
+          if (url) {
+            imageEntries.push({ url });
+          }
         } else {
-          // Try to get images by product ID pattern
-          images = getProductImageUrls(product.id);
+          const fallbackUrls = getProductImageUrls(product.id);
+          fallbackUrls.forEach(url => {
+            if (url) {
+              imageEntries.push({ url });
+            }
+          });
         }
 
         // Map variants with swatch information
@@ -227,7 +232,7 @@ export const usePublicProducts = (featured?: boolean) => {
           
             // Process variants with swatch images and inventory
             variants = product.product_variants.map((variant: any) => {
-              let swatchImageUrl = null;
+              let swatchImageUrl: string | null = null;
               
               // First try to use the directly joined swatch image
               if (variant.swatch_image?.image_url) {
@@ -274,6 +279,13 @@ export const usePublicProducts = (featured?: boolean) => {
                 variantQuantity = variantInventory?.quantity || 0;
               }
 
+              if (swatchImageUrl) {
+                swatchImageUrls.push(swatchImageUrl);
+              }
+              if (variant.swatch_image_id) {
+                swatchImageIds.add(String(variant.swatch_image_id));
+              }
+
               return {
                 id: variant.id,
                 sku: variant.sku,
@@ -294,6 +306,42 @@ export const usePublicProducts = (featured?: boolean) => {
         // If no variants exist at all, show "Free Size"
         if (sizes.length === 0) {
           sizes = ['Free Size'];
+        }
+
+        // Deduplicate images and ensure swatch fallbacks keep gallery populated
+        const swatchImageUrlSet = new Set(swatchImageUrls);
+        const uniqueImages: string[] = [];
+        const seenImages = new Set<string>();
+        const addImage = (url?: string | null) => {
+          if (!url) return;
+          if (seenImages.has(url)) return;
+          seenImages.add(url);
+          uniqueImages.push(url);
+        };
+
+        const galleryCandidates: string[] = [];
+        const swatchCandidates: string[] = [];
+
+        for (const entry of imageEntries) {
+          const isSwatch = (entry.id && swatchImageIds.has(entry.id)) || swatchImageUrlSet.has(entry.url);
+          if (isSwatch) {
+            swatchCandidates.push(entry.url);
+          } else {
+            galleryCandidates.push(entry.url);
+          }
+        }
+
+        // Add gallery images first, then swatches
+        galleryCandidates.forEach(addImage);
+        swatchCandidates.forEach(addImage);
+        
+        // If still no images, add from swatchImageUrls array (fallback)
+        if (uniqueImages.length === 0) {
+          swatchImageUrls.forEach(addImage);
+        }
+
+        if (uniqueImages.length === 0) {
+          addImage('/placeholder-product.jpg');
         }
 
   // Use aggregated ratings from product_reviews
@@ -335,7 +383,7 @@ export const usePublicProducts = (featured?: boolean) => {
           price: displayPrice,
           originalPrice,
           discountPercentage,
-          images,
+          images: uniqueImages,
           description: String(product.description ?? ''),
           shortDescription: String(product.short_description ?? ''),
           category: String(product.category?.name ?? ''),

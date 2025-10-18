@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useProductReviews } from '../hooks/useProductReviews';
 import { useProductSuggestions } from '../hooks/useProductSuggestions';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -184,6 +184,38 @@ const ProductDetailPage: React.FC = () => {
     };
   }, [isImageModalOpen, product?.images?.length]);
 
+  // Get all swatch image URLs from variants
+  const swatchImageUrls = useMemo(() => {
+    if (!product?.variants) return new Set<string>();
+    const swatchUrls = new Set<string>();
+    product.variants.forEach(v => {
+      if (v.swatchImage) {
+        swatchUrls.add(v.swatchImage);
+      }
+    });
+    return swatchUrls;
+  }, [product?.variants]);
+
+  const uniqueProductImages = useMemo(() => {
+    if (!product?.images) return [] as string[];
+    const seen = new Set<string>();
+    return product.images.filter(img => {
+      if (!img) return false;
+      if (seen.has(img)) return false;
+      seen.add(img);
+      return true;
+    });
+  }, [product?.images]);
+
+  // Filter gallery images to show only non-swatch images
+  // This ensures the gallery only shows product photography, not color swatches
+  const galleryImages = useMemo(() => {
+    if (uniqueProductImages.length === 0) return [] as string[];
+    const filtered = uniqueProductImages.filter(img => !swatchImageUrls.has(img));
+    // If all images are swatches (shouldn't happen), show at least the first image
+    return filtered.length > 0 ? filtered : [uniqueProductImages[0]];
+  }, [uniqueProductImages, swatchImageUrls]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
@@ -295,14 +327,6 @@ const ProductDetailPage: React.FC = () => {
     ? getAvailableColors(product, selectedSize)
     : [];
 
-  // Get all swatch image URLs
-  const swatchImageUrls = product.variants 
-    ? product.variants.map(v => v.swatchImage).filter(Boolean) as string[]
-    : [];
-
-  // Filter gallery images to exclude swatch images
-  const galleryImages = product.images.filter(img => !swatchImageUrls.includes(img));
-  
   // Create mapping from gallery image index to original image index
   const galleryToOriginalIndex = (galleryIndex: number): number => {
     const galleryImage = galleryImages[galleryIndex];
@@ -552,7 +576,7 @@ const ProductDetailPage: React.FC = () => {
               </div>
 
               {/* Thumbnail Images - Show only non-swatch images */}
-              {galleryImages.length > 1 && (
+              {galleryImages.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3">
                   {galleryImages.map((image, galleryIndex) => {
                     const originalIndex = galleryToOriginalIndex(galleryIndex);
