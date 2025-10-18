@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../config/supabase';
 import { getStorageImageUrl } from '../utils/storageUtils';
 import { getCachedCategoryId } from '../utils/categoryCache';
@@ -27,9 +27,18 @@ export const useProductsWithFilters = (
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  // Incrementing id to ignore stale fetch results
+  const fetchIdRef = useRef(0);
 
   const fetchProducts = useCallback(async () => {
+    // Mark this fetch with a unique id so that we can ignore stale responses
+    const myFetchId = ++fetchIdRef.current;
+    const isStale = () => myFetchId !== fetchIdRef.current;
+
     try {
+      // If a newer fetch started, abort early
+      if (isStale()) return;
+
       setLoading(true);
       setError(null);
       
@@ -70,6 +79,7 @@ export const useProductsWithFilters = (
           } else {
             // If category filter was specified but no category was found, return empty results
             console.warn('[useProductsWithFilters] Category not found:', filters.category);
+            if (isStale()) return;
             setProducts([]);
             setTotalCount(0);
             setTotalPages(0);
@@ -79,6 +89,7 @@ export const useProductsWithFilters = (
         } catch (err) {
           console.warn('[useProductsWithFilters] Could not apply category filter:', err);
           // If there's an error finding the category, return empty results rather than all products
+          if (isStale()) return;
           setProducts([]);
           setTotalCount(0);
           setTotalPages(0);
@@ -142,9 +153,11 @@ export const useProductsWithFilters = (
       
       // First try to get products with images and all filters
       try {
-        const result = await query;
-        data = result.data;
-        error = result.error;
+  const result = await query;
+  // If a newer fetch started while we were waiting for DB, abort
+  if (isStale()) return;
+  data = result.data;
+  error = result.error;
         count = result.count;
         
         // Handle specific database column errors
@@ -155,6 +168,7 @@ export const useProductsWithFilters = (
         
       } catch (err: any) {
         console.error('[useProductsWithFilters] Query failed:', err);
+        if (isStale()) return;
         setError(err instanceof Error ? err.message : 'Failed to fetch products');
         setProducts([]);
         setTotalCount(0);
@@ -165,6 +179,7 @@ export const useProductsWithFilters = (
       
       if (error) {
         console.error('[useProductsWithFilters] Database error:', error);
+        if (isStale()) return;
         const msg = (error as any).message || 'Database error';
         setError(msg);
         setProducts([]);
@@ -174,10 +189,12 @@ export const useProductsWithFilters = (
         return;
       }
 
-      setTotalCount(count || 0);
-      setTotalPages(Math.ceil((count || 0) / pagination.limit));
+  if (isStale()) return;
+  setTotalCount(count || 0);
+  setTotalPages(Math.ceil((count || 0) / pagination.limit));
 
       if (!data || data.length === 0) {
+        if (isStale()) return;
         setProducts([]);
         return;
       }
@@ -465,13 +482,16 @@ export const useProductsWithFilters = (
         };
       }));
 
+      if (isStale()) return;
       setProducts(transformedProducts as Product[]);
     } catch (err) {
+      if (isStale()) return;
       console.error('[useProductsWithFilters] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch products');
       setProducts([]);
     } finally {
-      setLoading(false);
+      // Only clear loading for the latest fetch
+      if (!isStale()) setLoading(false);
     }
   }, [
     filters.category,
