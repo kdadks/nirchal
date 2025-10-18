@@ -42,7 +42,7 @@ const HomePage: React.FC = () => {
           </div>
           
           {featuredLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="animate-pulse">
                   <div className="bg-gray-200 aspect-[3/4] rounded-lg md:rounded-2xl mb-2 md:mb-4"></div>
@@ -52,7 +52,7 @@ const HomePage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
               {featuredProducts.slice(0, 5).map((product) => (
                 <div key={product.id} className="transform hover:scale-105 transition-transform duration-300">
                   <ProductCard product={product} showActionButtons={true} />
@@ -85,7 +85,7 @@ const HomePage: React.FC = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
             {categoriesLoading ? (
               // Loading skeleton
               Array.from({ length: 5 }).map((_, index) => (
@@ -156,7 +156,7 @@ const HomePage: React.FC = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {[
               {
                 icon: <Truck className="w-5 h-5 md:w-8 md:h-8 text-white" />,
