@@ -248,7 +248,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               </div>
 
               {/* Thumbnail Images - Show only non-swatch images */}
-              {galleryImages.length > 1 && (
+              {galleryImages.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
                   {galleryImages.map((image, galleryIndex) => {
                     const originalIndex = galleryToOriginalIndex(galleryIndex);
