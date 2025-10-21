@@ -32,7 +32,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Faal & Pico Service',
         description: 'Professional saree edge finishing with faal and pico work',
         type: 'service',
-        price: 150,
+        price: 250,
         icon: '✂️'
       },
       {
@@ -49,7 +49,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Custom Stitched Blouse',
         description: 'Get a blouse custom stitched to your measurements',
         type: 'custom',
-        priceRange: { min: 799, max: 3999 },
+        priceRange: { min: 650, max: 3999 },
         icon: '📏'
       },
       {
@@ -372,7 +372,27 @@ export const getCartAddOnSuggestions = (cartItems: CartItemForSuggestions[]): Ad
   });
   
   // Sort by priority
-  return suggestions.sort((a, b) => a.priority - b.priority);
+  const sortedSuggestions = suggestions.sort((a, b) => a.priority - b.priority);
+  
+  // Deduplicate suggestions by ID (e.g., multiple jewelry suggestions)
+  // Keep track of seen suggestion IDs to avoid duplicates
+  const seenIds = new Set<string>();
+  const deduplicatedSuggestions = sortedSuggestions.map(suggestion => {
+    const uniqueSuggestions = suggestion.suggestions.filter(item => {
+      if (seenIds.has(item.id)) {
+        return false; // Skip if we've already seen this ID
+      }
+      seenIds.add(item.id);
+      return true;
+    });
+    
+    return {
+      ...suggestion,
+      suggestions: uniqueSuggestions
+    };
+  }).filter(suggestion => suggestion.suggestions.length > 0); // Remove empty suggestion groups
+  
+  return deduplicatedSuggestions;
 };
 
 // Format price range display

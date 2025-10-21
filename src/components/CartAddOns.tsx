@@ -290,10 +290,22 @@ const FaalPicoService: React.FC<{
       return;
     }
 
+    // Check if faal-pico service already exists for this item by comparing image URLs
+    // Services use the same image as the item they're associated with
+    const existingService = cartItems.find(item => 
+      item.name === 'Faal & Pico Service' && 
+      item.image === selectedItem.image
+    );
+
+    if (existingService) {
+      toast.error('Faal & Pico service already added for this item!');
+      return;
+    }
+
     addToCart({
       id: `faal-pico-${selectedItem.id}-${Date.now()}`,
       name: 'Faal & Pico Service',
-      price: 150,
+      price: 250,
       image: selectedItem.image,
       size: 'Service',
       color: notes || 'Standard finishing'
@@ -414,10 +426,56 @@ const ProductSelectionModal: React.FC<{
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [selectedTab, setSelectedTab] = useState<string>('all');
 
-  const filteredProducts = products.filter(p => 
-    p.category?.toLowerCase() === category.toLowerCase()
-  );
+  // Define tabs for jewelry category
+  const jewelryTabs = [
+    { id: 'all', label: 'All Jewelry' },
+    { id: 'traditional', label: 'Traditional' },
+    { id: 'matching', label: 'Matching' },
+    { id: 'elegant', label: 'Elegant' },
+    { id: 'casual', label: 'Casual' },
+  ];
+
+  const isJewelryCategory = category.toLowerCase() === 'jewelry';
+
+  // Flexible category matching to handle singular/plural variations
+  const filteredProducts = products.filter(p => {
+    if (!p.category) return false;
+    const productCategory = p.category.toLowerCase();
+    const searchCategory = category.toLowerCase();
+    // Handle plural/singular variations (e.g., "Dupattas" vs "Dupatta")
+    const singularSearch = searchCategory.endsWith('s') ? searchCategory.slice(0, -1) : searchCategory;
+    const pluralSearch = searchCategory.endsWith('s') ? searchCategory : searchCategory + 's';
+    
+    const matchesCategory = productCategory === searchCategory || 
+                           productCategory === singularSearch || 
+                           productCategory === pluralSearch;
+    
+    if (!matchesCategory) return false;
+
+    // For jewelry, filter by tab selection if not "all"
+    if (isJewelryCategory && selectedTab !== 'all') {
+      const productName = p.name.toLowerCase();
+      const productDesc = (p.description || '').toLowerCase();
+      const searchText = productName + ' ' + productDesc;
+      
+      switch (selectedTab) {
+        case 'traditional':
+          return searchText.includes('traditional') || searchText.includes('ethnic') || searchText.includes('temple');
+        case 'matching':
+          return searchText.includes('matching') || searchText.includes('coordinating');
+        case 'elegant':
+          return searchText.includes('elegant') || searchText.includes('contemporary') || searchText.includes('modern');
+        case 'casual':
+          return searchText.includes('casual') || searchText.includes('everyday') || searchText.includes('lightweight');
+        default:
+          return true;
+      }
+    }
+    
+    return true;
+  });
 
   const handleAddToCart = () => {
     if (!selectedProduct) {
@@ -425,11 +483,19 @@ const ProductSelectionModal: React.FC<{
       return;
     }
 
+    // Find the selected variant to get the correct swatch image
+    const selectedVariant = selectedColor 
+      ? selectedProduct.variants?.find(v => v.color === selectedColor)
+      : null;
+    
+    // Use swatch image if available, otherwise fall back to first product image
+    const imageToUse = selectedVariant?.swatchImage || selectedProduct.images?.[0] || '';
+
     addToCart({
       id: selectedProduct.id,
       name: selectedProduct.name,
       price: selectedProduct.price,
-      image: selectedProduct.images?.[0] || '',
+      image: imageToUse,
       size: selectedSize || selectedProduct.sizes?.[0] || 'One Size',
       color: selectedColor || selectedProduct.colors?.[0] || 'Default'
     });
@@ -463,6 +529,28 @@ const ProductSelectionModal: React.FC<{
 
   return (
     <div className="space-y-3">
+      {/* Tabs for Jewelry Category */}
+      {isJewelryCategory && (
+        <div className="flex gap-1.5 overflow-x-auto pb-2 border-b">
+          {jewelryTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setSelectedTab(tab.id);
+                setSelectedProduct(null); // Reset selection when changing tabs
+              }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all ${
+                selectedTab === tab.id
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-80 overflow-y-auto p-0.5">
         {filteredProducts.slice(0, 12).map((product) => (
           <div
@@ -591,6 +679,21 @@ const CustomStitchingForm: React.FC<{
   onClose: () => void;
   addToCart: (item: any) => void;
 }> = ({ cartItems, onClose, addToCart }) => {
+  // Filter out services and sarees from cart items
+  const stitchableItems = cartItems.filter(item => {
+    // Exclude services (items with "Service" in name or size)
+    if (item.name.toLowerCase().includes('service') || 
+        item.size?.toLowerCase().includes('service')) {
+      return false;
+    }
+    // Exclude sarees (check category or name)
+    if (item.category?.toLowerCase().includes('saree') || 
+        item.name.toLowerCase().includes('saree')) {
+      return false;
+    }
+    return true;
+  });
+
   const [selectedItem, setSelectedItem] = useState('');
   const [measurements, setMeasurements] = useState({
     bust: '',
@@ -603,7 +706,7 @@ const CustomStitchingForm: React.FC<{
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const item = cartItems.find(i => i.id === selectedItem);
+    const item = stitchableItems.find(i => i.id === selectedItem);
     if (!item) return;
 
     const measurementText = `Bust: ${measurements.bust}", Waist: ${measurements.waist}", Hips: ${measurements.hips}", Length: ${measurements.length}"`;
@@ -621,6 +724,20 @@ const CustomStitchingForm: React.FC<{
     onClose();
   };
 
+  if (stitchableItems.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <p className="text-sm text-gray-600 mb-3">No items available for custom stitching. Please add eligible items to your cart first.</p>
+        <button
+          onClick={onClose}
+          className="px-4 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-2.5">
       <div>
@@ -634,7 +751,7 @@ const CustomStitchingForm: React.FC<{
           required
         >
           <option value="">Choose an item...</option>
-          {cartItems.map((item) => (
+          {stitchableItems.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
             </option>
@@ -737,15 +854,39 @@ const CustomBlouseForm: React.FC<{
   onClose: () => void;
   addToCart: (item: any) => void;
 }> = ({ cartItems, triggerCategory, onClose, addToCart }) => {
-  const [blouseDesign, setBlouseDesign] = useState('');
+  const [blousePattern, setBlousePattern] = useState('');
   const [measurements, setMeasurements] = useState({
+    backLength: '',
+    chest: '',
+    neck: '',
     bust: '',
     waist: '',
     shoulder: '',
+    shoulderToApex: '',
+    apexToApex: '',
+    shoulderToFrontLength: '',
     sleeveLength: '',
+    sleeveFitness: '',
   });
   const [fabricChoice, setFabricChoice] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Dynamic pricing based on blouse pattern
+  const getBlousePrice = (pattern: string): number | string => {
+    const priceMap: { [key: string]: number | string } = {
+      'Simple Round Neck': 650,
+      'Boat Neck': 850,
+      'Sweetheart Neck': 850,
+      'Backless': 1200,
+      'Choli Cut': 950,
+      'Princess Cut': 1050,
+      'Raglan Cut': 1100,
+      'Custom': 'Price On Request',
+    };
+    return priceMap[pattern] || 650; // Default to Simple Round Neck price
+  };
+
+  const blousePrice = getBlousePrice(blousePattern);
 
   // Get all relevant items based on trigger category - using actual product category from database
   // Use flexible matching to handle categories like "Womens Sarees", "Designer Sarees", etc.
@@ -775,13 +916,15 @@ const CustomBlouseForm: React.FC<{
       return;
     }
 
-    const measurementText = `Bust: ${measurements.bust}", Waist: ${measurements.waist}", Shoulder: ${measurements.shoulder}", Sleeve: ${measurements.sleeveLength}"`;
-    const detailsText = `Design: ${blouseDesign} | Fabric: ${fabricChoice} | ${measurementText}${notes ? ` | Notes: ${notes}` : ''}`;
+    const measurementText = `Back Length: ${measurements.backLength}", Chest: ${measurements.chest}", Neck: ${measurements.neck}", Bust: ${measurements.bust}", Waist: ${measurements.waist}", Shoulder: ${measurements.shoulder}", Shoulder to Apex: ${measurements.shoulderToApex}", Apex to Apex: ${measurements.apexToApex}", Shoulder to Front Length: ${measurements.shoulderToFrontLength}", Sleeve Length: ${measurements.sleeveLength}", Sleeve Fitness: ${measurements.sleeveFitness}`;
+    const detailsText = `Pattern: ${blousePattern} | Fabric: ${fabricChoice} | ${measurementText}${notes ? ` | Notes: ${notes}` : ''}`;
+    
+    const finalPrice = typeof blousePrice === 'number' ? blousePrice : 0;
     
     addToCart({
       id: `custom-blouse-${selectedItem.id}-${Date.now()}`,
       name: 'Custom Blouse Stitching Service',
-      price: 1299,
+      price: finalPrice,
       image: selectedItem.image,
       size: 'Custom',
       color: detailsText
@@ -846,26 +989,29 @@ const CustomBlouseForm: React.FC<{
             <img src={selectedItem.image} alt={selectedItem.name} className="w-12 h-12 object-cover rounded" />
             <div>
               <p className="text-sm font-medium text-gray-900">{selectedItem.name}</p>
-              <p className="text-xs text-gray-600">Custom Stitched Blouse - ₹1,299</p>
+              <p className="text-xs text-gray-600">Custom Stitched Blouse - ₹650 - ₹3,999</p>
             </div>
           </div>
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1.5">Blouse Design</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">Blouse Pattern</label>
         <select
-          value={blouseDesign}
-          onChange={(e) => setBlouseDesign(e.target.value)}
+          value={blousePattern}
+          onChange={(e) => setBlousePattern(e.target.value)}
           className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
           required
         >
-          <option value="">Select design...</option>
-          <option value="Simple Round Neck">Simple Round Neck</option>
-          <option value="Boat Neck">Boat Neck</option>
-          <option value="Sweetheart Neck">Sweetheart Neck</option>
-          <option value="Backless">Backless</option>
-          <option value="Designer Custom">Designer (Custom)</option>
+          <option value="">Select pattern...</option>
+          <option value="Simple Round Neck">Simple Round Neck - ₹650</option>
+          <option value="Boat Neck">Boat Neck - ₹850</option>
+          <option value="Sweetheart Neck">Sweetheart Neck - ₹850</option>
+          <option value="Backless">Backless - ₹1,200</option>
+          <option value="Choli Cut">Choli Cut - ₹950</option>
+          <option value="Princess Cut">Princess Cut - ₹1,050</option>
+          <option value="Raglan Cut">Raglan Cut - ₹1,100</option>
+          <option value="Custom">Custom - Price On Request</option>
         </select>
       </div>
 
@@ -888,15 +1034,47 @@ const CustomBlouseForm: React.FC<{
 
       <div className="grid grid-cols-2 gap-2">
         <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Back Length (inches)</label>
+          <input
+            type="number"
+            step="0.5"
+            value={measurements.backLength}
+            onChange={(e) => setMeasurements({ ...measurements, backLength: e.target.value })}
+            placeholder="15"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Chest (inches)</label>
+          <input
+            type="number"
+            step="0.5"
+            value={measurements.chest}
+            onChange={(e) => setMeasurements({ ...measurements, chest: e.target.value })}
+            placeholder="36"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Neck (inches)</label>
+          <input
+            type="number"
+            step="0.5"
+            value={measurements.neck}
+            onChange={(e) => setMeasurements({ ...measurements, neck: e.target.value })}
+            placeholder="14"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+        <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Bust (inches)</label>
           <input
             type="number"
             step="0.5"
             value={measurements.bust}
             onChange={(e) => setMeasurements({ ...measurements, bust: e.target.value })}
-            placeholder="36"
+            placeholder="38"
             className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            required
           />
         </div>
         <div>
@@ -908,7 +1086,6 @@ const CustomBlouseForm: React.FC<{
             onChange={(e) => setMeasurements({ ...measurements, waist: e.target.value })}
             placeholder="30"
             className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            required
           />
         </div>
         <div>
@@ -920,11 +1097,54 @@ const CustomBlouseForm: React.FC<{
             onChange={(e) => setMeasurements({ ...measurements, shoulder: e.target.value })}
             placeholder="15"
             className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Shoulder to Apex (inches) <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            value={measurements.shoulderToApex}
+            onChange={(e) => setMeasurements({ ...measurements, shoulderToApex: e.target.value })}
+            placeholder="8"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             required
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Sleeve Length</label>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Apex to Apex (inches) <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            value={measurements.apexToApex}
+            onChange={(e) => setMeasurements({ ...measurements, apexToApex: e.target.value })}
+            placeholder="7"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Shoulder to Front Length (inches) <span className="text-red-600">*</span>
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            value={measurements.shoulderToFrontLength}
+            onChange={(e) => setMeasurements({ ...measurements, shoulderToFrontLength: e.target.value })}
+            placeholder="14"
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Sleeve Length (inches) <span className="text-red-600">*</span>
+          </label>
           <input
             type="number"
             step="0.5"
@@ -934,6 +1154,21 @@ const CustomBlouseForm: React.FC<{
             className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             required
           />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Sleeve Fitness <span className="text-red-600">*</span>
+          </label>
+          <select
+            value={measurements.sleeveFitness}
+            onChange={(e) => setMeasurements({ ...measurements, sleeveFitness: e.target.value })}
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+            required
+          >
+            <option value="">Select...</option>
+            <option value="Armhole">Armhole</option>
+            <option value="Tight">Tight</option>
+          </select>
         </div>
       </div>
 
@@ -951,7 +1186,9 @@ const CustomBlouseForm: React.FC<{
       <div className="bg-purple-50 border border-purple-200 rounded-md p-2">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-700">Blouse Stitching:</span>
-          <span className="font-semibold text-purple-600">₹1,299</span>
+          <span className="font-semibold text-purple-600">
+            {typeof blousePrice === 'number' ? `₹${blousePrice.toLocaleString()}` : blousePrice}
+          </span>
         </div>
       </div>
 
