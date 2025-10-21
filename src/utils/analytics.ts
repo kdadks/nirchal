@@ -1,11 +1,12 @@
 /**
- * Google Analytics 4 (GA4) Tracking Utility
+ * Google Analytics 4 (GA4) & Facebook Pixel Tracking Utility
  * 
  * Setup Instructions:
  * 1. Create GA4 property at https://analytics.google.com/
  * 2. Get your Measurement ID (G-XXXXXXXXXX)
- * 3. Add to .env file: VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX
- * 4. Initialize in App.tsx or main.tsx
+ * 3. Create Facebook Pixel at https://business.facebook.com/events_manager
+ * 4. Get your Pixel ID (15-16 digits)
+ * 5. Add tracking IDs in Admin Settings > SEO Settings
  */
 
 // Type definitions for GA4 events
@@ -13,6 +14,8 @@ declare global {
   interface Window {
     gtag?: (...args: any[]) => void;
     dataLayer?: any[];
+    fbq?: (...args: any[]) => void;
+    _fbq?: (...args: any[]) => void;
   }
 }
 
@@ -69,6 +72,46 @@ export const initGA4 = (measurementId: string): void => {
 };
 
 /**
+ * Initialize Facebook Pixel
+ * Call this once in your app's entry point (main.tsx or App.tsx)
+ */
+export const initFacebookPixel = (pixelId: string): void => {
+  if (!pixelId) {
+    console.warn('Facebook Pixel ID not provided');
+    return;
+  }
+
+  // Check if already initialized
+  if (window.fbq) {
+    console.log('Facebook Pixel already initialized');
+    return;
+  }
+
+  // Facebook Pixel Code
+  (function(f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
+    if (f.fbq) return;
+    n = f.fbq = function() {
+      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+    };
+    if (!f._fbq) f._fbq = n;
+    n.push = n;
+    n.loaded = !0;
+    n.version = '2.0';
+    n.queue = [];
+    t = b.createElement(e);
+    t.async = !0;
+    t.src = v;
+    s = b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t, s);
+  })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+  window.fbq!('init', pixelId);
+  window.fbq!('track', 'PageView');
+
+  console.log('Facebook Pixel initialized with ID:', pixelId);
+};
+
+/**
  * Track page views
  */
 export const trackPageView = (path: string, title?: string): void => {
@@ -99,19 +142,32 @@ export const trackProductView = (product: {
   price: number;
   brand?: string;
 }): void => {
-  if (!window.gtag) return;
+  // GA4 tracking
+  if (window.gtag) {
+    window.gtag('event', 'view_item', {
+      currency: 'INR',
+      value: product.price,
+      items: [{
+        item_id: product.id,
+        item_name: product.name,
+        item_category: product.category,
+        item_brand: product.brand || 'Nirchal',
+        price: product.price,
+      }],
+    });
+  }
 
-  window.gtag('event', 'view_item', {
-    currency: 'INR',
-    value: product.price,
-    items: [{
-      item_id: product.id,
-      item_name: product.name,
-      item_category: product.category,
-      item_brand: product.brand || 'Nirchal',
-      price: product.price,
-    }],
-  });
+  // Facebook Pixel tracking
+  if (window.fbq) {
+    window.fbq('track', 'ViewContent', {
+      content_ids: [product.id],
+      content_name: product.name,
+      content_type: 'product',
+      content_category: product.category,
+      value: product.price,
+      currency: 'INR',
+    });
+  }
 };
 
 /**
@@ -125,20 +181,33 @@ export const trackAddToCart = (product: {
   quantity: number;
   variant?: string;
 }): void => {
-  if (!window.gtag) return;
+  // GA4 tracking
+  if (window.gtag) {
+    window.gtag('event', 'add_to_cart', {
+      currency: 'INR',
+      value: product.price * product.quantity,
+      items: [{
+        item_id: product.id,
+        item_name: product.name,
+        item_category: product.category,
+        item_variant: product.variant,
+        price: product.price,
+        quantity: product.quantity,
+      }],
+    });
+  }
 
-  window.gtag('event', 'add_to_cart', {
-    currency: 'INR',
-    value: product.price * product.quantity,
-    items: [{
-      item_id: product.id,
-      item_name: product.name,
-      item_category: product.category,
-      item_variant: product.variant,
-      price: product.price,
-      quantity: product.quantity,
-    }],
-  });
+  // Facebook Pixel tracking
+  if (window.fbq) {
+    window.fbq('track', 'AddToCart', {
+      content_ids: [product.id],
+      content_name: product.name,
+      content_type: 'product',
+      content_category: product.category,
+      value: product.price * product.quantity,
+      currency: 'INR',
+    });
+  }
 };
 
 /**
@@ -168,13 +237,28 @@ export const trackRemoveFromCart = (product: {
  * Track begin checkout
  */
 export const trackBeginCheckout = (items: GA4EcommerceItem[], totalValue: number): void => {
-  if (!window.gtag) return;
+  // GA4 tracking
+  if (window.gtag) {
+    window.gtag('event', 'begin_checkout', {
+      currency: 'INR',
+      value: totalValue,
+      items: items,
+    });
+  }
 
-  window.gtag('event', 'begin_checkout', {
-    currency: 'INR',
-    value: totalValue,
-    items: items,
-  });
+  // Facebook Pixel tracking
+  if (window.fbq) {
+    window.fbq('track', 'InitiateCheckout', {
+      content_ids: items.map(item => item.item_id),
+      contents: items.map(item => ({
+        id: item.item_id,
+        quantity: item.quantity || 1,
+      })),
+      value: totalValue,
+      currency: 'INR',
+      num_items: items.length,
+    });
+  }
 };
 
 /**
@@ -187,27 +271,50 @@ export const trackPurchase = (
   tax?: number,
   shipping?: number
 ): void => {
-  if (!window.gtag) return;
+  // GA4 tracking
+  if (window.gtag) {
+    window.gtag('event', 'purchase', {
+      transaction_id: orderId,
+      currency: 'INR',
+      value: totalValue,
+      tax: tax || 0,
+      shipping: shipping || 0,
+      items: items,
+    });
+  }
 
-  window.gtag('event', 'purchase', {
-    transaction_id: orderId,
-    currency: 'INR',
-    value: totalValue,
-    tax: tax || 0,
-    shipping: shipping || 0,
-    items: items,
-  });
+  // Facebook Pixel tracking
+  if (window.fbq) {
+    window.fbq('track', 'Purchase', {
+      content_ids: items.map(item => item.item_id),
+      contents: items.map(item => ({
+        id: item.item_id,
+        quantity: item.quantity || 1,
+      })),
+      value: totalValue,
+      currency: 'INR',
+      num_items: items.length,
+    });
+  }
 };
 
 /**
  * Track search
  */
 export const trackSearch = (searchTerm: string): void => {
-  if (!window.gtag) return;
+  // GA4 tracking
+  if (window.gtag) {
+    window.gtag('event', 'search', {
+      search_term: searchTerm,
+    });
+  }
 
-  window.gtag('event', 'search', {
-    search_term: searchTerm,
-  });
+  // Facebook Pixel tracking
+  if (window.fbq) {
+    window.fbq('track', 'Search', {
+      search_string: searchTerm,
+    });
+  }
 };
 
 /**
@@ -269,6 +376,7 @@ export const trackCategoryView = (categoryName: string, itemCount?: number): voi
 
 export default {
   initGA4,
+  initFacebookPixel,
   trackPageView,
   trackEvent,
   trackProductView,

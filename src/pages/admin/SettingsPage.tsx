@@ -887,7 +887,10 @@ const SettingsPage: React.FC = React.memo(() => {
         <h3 className="text-lg font-semibold text-gray-900 mb-6">Analytics & Tracking</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Google Analytics ID</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Google Analytics 4 ID
+              <span className="ml-2 text-xs text-gray-500">(GA4)</span>
+            </label>
             <input
               type="text"
               value={tabSettings.seo?.google_analytics_id || ''}
@@ -895,10 +898,14 @@ const SettingsPage: React.FC = React.memo(() => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="G-XXXXXXXXXX"
             />
+            <p className="text-xs text-gray-500 mt-1">Get from Google Analytics 4</p>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Facebook Pixel ID</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Facebook Pixel ID
+              <span className="ml-2 text-xs text-gray-500">(Meta Pixel)</span>
+            </label>
             <input
               type="text"
               value={tabSettings.seo?.facebook_pixel_id || ''}
@@ -906,6 +913,46 @@ const SettingsPage: React.FC = React.memo(() => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="123456789012345"
             />
+            <p className="text-xs text-gray-500 mt-1">Get from Facebook Events Manager</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Instagram Business ID
+              <span className="ml-2 text-xs text-gray-500">(Optional)</span>
+            </label>
+            <input
+              type="text"
+              value={tabSettings.seo?.instagram_business_id || ''}
+              onChange={(e) => handleTabSettingChange('seo', 'instagram_business_id', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="17841XXXXXXXXXX"
+            />
+            <p className="text-xs text-gray-500 mt-1">Get from Instagram Business Account settings</p>
+          </div>
+        </div>
+
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-900 mb-1">Auto-Publishing Setup</h4>
+              <p className="text-sm text-blue-700 mb-2">
+                To automatically publish products to Facebook and Instagram when created:
+              </p>
+              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+                <li>Add your Facebook Pixel ID above</li>
+                <li>Connect your Facebook Business account in Meta Business Suite</li>
+                <li>Set up Facebook Catalog with product feed</li>
+                <li>Link Instagram Shopping to your Facebook Catalog</li>
+                <li>Products will auto-sync via Facebook Catalog API</li>
+              </ol>
+              <p className="text-xs text-blue-600 mt-2">
+                📘 <a href="https://developers.facebook.com/docs/marketing-api/catalog" target="_blank" rel="noopener noreferrer" className="underline">
+                  Learn more about Facebook Catalog API
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>

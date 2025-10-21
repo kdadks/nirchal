@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
@@ -12,7 +12,8 @@ import { AIAssistantButton } from './components/ai/AIAssistantButton';
 import { preloadCategories } from './utils/categoryCache';
 import AppRoutes from './routes';
 import VisitorTracker from './components/VisitorTracker';
-import { initGA4 } from './utils/analytics';
+import { initGA4, initFacebookPixel } from './utils/analytics';
+import { supabase } from './config/supabase';
 
 const router = createBrowserRouter([
   {
@@ -22,15 +23,72 @@ const router = createBrowserRouter([
 ]);
 
 const App: React.FC = () => {
-  // Initialize Google Analytics 4
+  const [seoSettings, setSeoSettings] = useState({
+    site_title: 'Nirchal - Indian Ethnic Wear',
+    meta_description: 'Discover authentic Indian ethnic wear at Nirchal. Shop our curated collection of traditional and contemporary designs.',
+    meta_keywords: '',
+    google_analytics_id: '',
+    facebook_pixel_id: '',
+    instagram_business_id: '',
+  });
+
+  // Load SEO settings from database
   useEffect(() => {
-    const ga4MeasurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
-    if (ga4MeasurementId) {
-      initGA4(ga4MeasurementId);
-    } else {
-      console.warn('[GA4] Measurement ID not found. Add VITE_GA4_MEASUREMENT_ID to .env file');
-    }
+    const loadSEOSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('key, value')
+          .eq('category', 'seo');
+
+        if (error) {
+          console.warn('[SEO Settings] Failed to load:', error.message);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const settings: any = {};
+          data.forEach((setting: any) => {
+            settings[setting.key] = setting.value || '';
+          });
+
+          setSeoSettings(prev => ({
+            ...prev,
+            site_title: settings.site_title || prev.site_title,
+            meta_description: settings.meta_description || prev.meta_description,
+            meta_keywords: settings.meta_keywords || prev.meta_keywords,
+            google_analytics_id: settings.google_analytics_id || prev.google_analytics_id,
+            facebook_pixel_id: settings.facebook_pixel_id || prev.facebook_pixel_id,
+            instagram_business_id: settings.instagram_business_id || prev.instagram_business_id,
+          }));
+        }
+      } catch (err) {
+        console.warn('[SEO Settings] Error loading settings:', err);
+      }
+    };
+
+    loadSEOSettings();
   }, []);
+
+  // Initialize Google Analytics 4 and Facebook Pixel
+  useEffect(() => {
+    // Try database settings first, fallback to env variable
+    const ga4Id = seoSettings.google_analytics_id || import.meta.env.VITE_GA4_MEASUREMENT_ID;
+    
+    if (ga4Id) {
+      initGA4(ga4Id);
+      console.log('[GA4] Initialized with ID:', ga4Id);
+    } else {
+      console.warn('[GA4] Measurement ID not found. Add it in Admin Settings > SEO Settings');
+    }
+
+    // Initialize Facebook Pixel
+    const fbPixelId = seoSettings.facebook_pixel_id;
+    if (fbPixelId) {
+      initFacebookPixel(fbPixelId);
+      console.log('[Facebook Pixel] Initialized with ID:', fbPixelId);
+    }
+  }, [seoSettings]);
 
   // Preload category cache on app startup
   useEffect(() => {
@@ -42,11 +100,14 @@ const App: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Nirchal - Indian Ethnic Wear</title>
+        <title>{seoSettings.site_title}</title>
         <meta
           name="description"
-          content="Discover authentic Indian ethnic wear at Nirchal. Shop our curated collection of traditional and contemporary designs."
+          content={seoSettings.meta_description}
         />
+        {seoSettings.meta_keywords && (
+          <meta name="keywords" content={seoSettings.meta_keywords} />
+        )}
       </Helmet>
       <AuthProvider>
         <CustomerAuthProvider>
