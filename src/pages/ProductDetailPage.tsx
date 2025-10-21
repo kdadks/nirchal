@@ -21,6 +21,9 @@ import {
 } from '../utils/inventoryUtils';
 import { getSortedProductSizes } from '../utils/sizeUtils';
 import type { Product } from '../types';
+import SEO from '../components/SEO';
+import { generateProductSchema, generateBreadcrumbSchema, renderJsonLd } from '../utils/structuredData';
+import { trackProductView } from '../utils/analytics';
 
 // Custom SVG Icons
 const TelegramIcon = ({ size = 20 }: { size?: number }) => (
@@ -67,7 +70,18 @@ const ProductDetailPage: React.FC = () => {
     : '';
 
   useEffect(() => {
-    if (product?.id) fetchReviews();
+    if (product?.id) {
+      fetchReviews();
+      
+      // Track product view in GA4
+      trackProductView({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        brand: 'Nirchal',
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
@@ -477,8 +491,78 @@ const ProductDetailPage: React.FC = () => {
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
+  // SEO Data
+  const baseUrl = import.meta.env.VITE_BASE_URL || 'https://nirchal.com';
+  const productUrl = `/products/${product.slug}`;
+  const canonicalUrl = productUrl;
+  
+  // Product description for SEO (strip HTML and limit length)
+  const seoDescription = product.description 
+    ? product.description.replace(/<[^>]*>/g, '').substring(0, 160) + '...'
+    : `Buy ${product.name} online at Nirchal. ${product.category ? `Shop ${product.category} products.` : ''} Free shipping available.`;
+
+  // Calculate average rating
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+    : undefined;
+
+  // Product structured data
+  const productSchema = generateProductSchema({
+    id: product.id,
+    name: product.name,
+    description: seoDescription,
+    price: adjustedPrice,
+    currency: 'INR',
+    image: product.images[0] || '',
+    sku: product.id, // Using product ID as SKU
+    brand: 'Nirchal',
+    availability: stockInfo.isAvailable ? 'InStock' : 'OutOfStock',
+    rating: avgRating ? { value: avgRating, count: reviews.length } : undefined,
+    slug: product.slug
+  }, baseUrl);
+
+  // Breadcrumb structured data
+  const breadcrumbItems = [
+    { name: 'Home', url: '/' },
+    { name: 'Products', url: '/products' },
+  ];
+  
+  if (product.category && categorySlug) {
+    breadcrumbItems.push({ name: product.category, url: `/category/${categorySlug}` });
+  }
+  
+  breadcrumbItems.push({ name: product.name, url: productUrl });
+  
+  const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbItems, baseUrl);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+      {/* SEO Meta Tags */}
+      <SEO
+        title={product.meta_title || product.name}
+        description={product.meta_description || seoDescription}
+        canonical={canonicalUrl}
+        keywords={`${product.name}, ${product.category || 'clothing'}, buy ${product.name}, ${product.category || 'fashion'} online`}
+        ogType="product"
+        ogImage={product.images[0]}
+        productData={{
+          price: adjustedPrice,
+          currency: 'INR',
+          availability: stockInfo.isAvailable ? 'InStock' : 'OutOfStock',
+          brand: 'Nirchal'
+        }}
+      />
+
+      {/* Structured Data (JSON-LD) */}
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: renderJsonLd(productSchema) }} 
+      />
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: renderJsonLd(breadcrumbSchema) }} 
+      />
+
       {/* Breadcrumb - with top padding for mobile to avoid header overlap */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pt-20 sm:pt-6">
         <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 overflow-x-auto whitespace-nowrap">
@@ -517,9 +601,10 @@ const ProductDetailPage: React.FC = () => {
                 <img
                   src={product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
                   srcSet={`${product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'} 1x, ${product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=2400&q=85'} 2x`}
-                  alt={product.name}
+                  alt={`${product.name}${selectedColor ? ` in ${selectedColor}` : ''}${selectedSize ? ` - ${selectedSize}` : ''} | ${product.category || 'Fashion'} | Buy Online at Nirchal`}
                   className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer product-image hw-accelerate"
-                  loading="lazy"
+                  loading="eager"
+                  {...({ fetchpriority: 'high' } as any)}
                   style={{
                     imageRendering: 'auto',
                     filter: 'contrast(1.03) saturate(1.02) brightness(1.01)',

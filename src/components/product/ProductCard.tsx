@@ -210,7 +210,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {isInView ? (
               <img
                 src={imageSrc}
-                alt={product.name}
+                alt={`${product.name} - ${product.category || 'Fashion'} | Buy Online at Nirchal`}
                 className="w-full h-full object-cover transition-opacity duration-300 max-w-full"
                 onError={handleImageError}
                 loading="lazy"

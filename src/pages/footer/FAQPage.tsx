@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp, Search, HelpCircle, Package, CreditCard, Truck, RefreshCw } from 'lucide-react';
+import { generateFAQSchema, renderJsonLd } from '../../utils/structuredData';
 
 interface FAQ {
   id: number;
@@ -102,6 +103,14 @@ const FAQPage: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
+  // Generate FAQ structured data for all FAQs
+  const faqSchema = generateFAQSchema(
+    faqs.map(faq => ({
+      question: faq.question,
+      answer: faq.answer,
+    }))
+  );
+
   return (
     <>
       <Helmet>
@@ -111,6 +120,12 @@ const FAQPage: React.FC = () => {
           content="Find answers to common questions about Nirchal's ethnic wear collection, shipping, returns, and more."
         />
       </Helmet>
+
+      {/* FAQ Structured Data (JSON-LD) */}
+      <script 
+        type="application/ld+json" 
+        dangerouslySetInnerHTML={{ __html: renderJsonLd(faqSchema) }} 
+      />
 
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-12 md:py-16">
         <div className="container mx-auto px-4 max-w-3xl">

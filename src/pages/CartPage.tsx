@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trash2, ShoppingBag, Plus, Minus, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import CartAddOns from '../components/CartAddOns';
+import SEO from '../components/SEO';
 
 const CartPage: React.FC = () => {
   const { state: { items, total }, updateQuantity, removeFromCart } = useCart();
@@ -10,6 +11,14 @@ const CartPage: React.FC = () => {
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+        {/* SEO - noindex for cart page */}
+        <SEO
+          title="Shopping Cart"
+          description="Your shopping cart"
+          noindex={true}
+          nofollow={true}
+        />
+        
         {/* Empty Cart Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -39,6 +48,14 @@ const CartPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+      {/* SEO - noindex for cart page */}
+      <SEO
+        title="Shopping Cart"
+        description="Review your shopping cart items"
+        noindex={true}
+        nofollow={true}
+      />
+      
       {/* Cart Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -10,6 +10,7 @@ import AddressModal from '../components/account/AddressModal';
 import EditProfileModal from '../components/account/EditProfileModal';
 import OrderDetailsModal from '../components/account/OrderDetailsModal';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
+import SEO from '../components/SEO';
 import { 
   Heart, 
   ShoppingBag, 
@@ -354,6 +355,14 @@ const AccountPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* SEO - noindex for account page */}
+      <SEO
+        title="My Account"
+        description="Manage your account, orders, and wishlist"
+        noindex={true}
+        nofollow={true}
+      />
+      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">My Account</h1>

@@ -13,7 +13,9 @@ import HeroSlidesPage from '../pages/admin/HeroSlidesPage';
 import SettingsPage from '../pages/admin/SettingsPage';
 import SecurityPage from '../pages/admin/SecurityPage';
 import OrdersPage from '../pages/admin/OrdersPage';
+import AbandonedCartsPage from '../pages/admin/AbandonedCartsPage';
 import UsersPage from '../pages/admin/UsersPage';
+import GuestVisitorsPage from '../pages/admin/GuestVisitorsPage';
 import AnalyticsPage from '../pages/admin/AnalyticsPage';
 import OptimizedAdminTest from '../components/admin/OptimizedAdminTest';
 import ProtectedRoute from '../components/common/ProtectedRoute';
@@ -38,7 +40,9 @@ const AdminRoutes: React.FC = () => {
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/performance-test" element={<OptimizedAdminTest />} />
               <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/abandoned-carts" element={<AbandonedCartsPage />} />
               <Route path="/users" element={<UsersPage />} />
+              <Route path="/guest-visitors" element={<GuestVisitorsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/security" element={<SecurityPage />} />
               <Route path="/settings" element={<SettingsPage />} />

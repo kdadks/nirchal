@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Crown, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +38,14 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50/30 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {/* SEO - noindex for admin login */}
+      <SEO
+        title="Admin Login"
+        description="Admin access only"
+        noindex={true}
+        nofollow={true}
+      />
+      
       {/* Background Pattern */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-gradient-to-br from-primary-100 to-accent-100 opacity-20 blur-3xl"></div>

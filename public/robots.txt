@@ -1,0 +1,67 @@
+# Robots.txt for Nirchal E-commerce
+# Allow crawling of product pages, categories, and static pages
+# Block admin, auth, cart, checkout, and user-specific pages
+
+User-agent: *
+
+# Allow all products and categories
+Allow: /products/
+Allow: /category/
+Allow: /categories/
+
+# Allow static/informational pages
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /shipping
+Allow: /returns
+Allow: /faq
+
+# Block admin area (save crawl budget)
+Disallow: /admin/
+Disallow: /admin
+
+# Block authentication pages
+Disallow: /login
+Disallow: /register
+Disallow: /reset-password
+Disallow: /forgot-password
+
+# Block user account pages
+Disallow: /account/
+Disallow: /profile/
+Disallow: /my-orders
+Disallow: /wishlist
+
+# Block cart and checkout (not indexable)
+Disallow: /cart
+Disallow: /checkout
+
+# Block search results and filters (avoid duplicate content)
+Disallow: /search?
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Disallow: /*?*page=
+
+# Block API endpoints
+Disallow: /api/
+Disallow: /.netlify/
+
+# Block tracking and analytics URLs
+Disallow: /*?utm_
+Disallow: /*?ref=
+Disallow: /*?fbclid=
+
+# Allow CSS, JS, and images for rendering
+Allow: /*.css
+Allow: /*.js
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.png
+Allow: /*.webp
+Allow: /*.svg
+Allow: /*.gif
+
+# Sitemap location (update when deploying to production)
+Sitemap: https://nirchal.com/sitemap.xml

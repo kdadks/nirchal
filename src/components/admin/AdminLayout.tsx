@@ -21,7 +21,11 @@ import {
   Truck,
   Shield,
   Boxes,
-  Image
+  Image,
+  ShoppingCart,
+  ChevronDown,
+  ChevronRight,
+  UserCheck
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -34,12 +38,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<{ [key: string]: boolean }>({ orders: true, users: true });
   
   // Get search context
   const { searchTerm, setSearchTerm, setCurrentPage } = useAdminSearch();
   
   // Get counts from AdminContext
   const { counts, refreshCounts } = useAdminContext();
+
+  const toggleSubmenu = (menuKey: string) => {
+    setExpandedMenus(prev => ({ ...prev, [menuKey]: !prev[menuKey] }));
+  };
 
   const navigationItems = useMemo(() => [
     {
@@ -88,7 +97,20 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Orders',
       path: '/admin/orders',
       icon: <FileText className="admin-nav-icon" />,
-      badge: counts.orders?.toString() || '0'
+      badge: counts.orders?.toString() || '0',
+      submenu: [
+        {
+          name: 'All Orders',
+          path: '/admin/orders',
+          icon: <FileText className="admin-nav-icon" />,
+          badge: counts.orders?.toString() || '0'
+        },
+        {
+          name: 'Abandoned Carts',
+          path: '/admin/abandoned-carts',
+          icon: <ShoppingCart className="admin-nav-icon" />,
+        }
+      ]
     },
     {
       name: 'Analytics',
@@ -100,7 +122,20 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Users',
       path: '/admin/users',
       icon: <Users className="admin-nav-icon" />,
-      badge: counts.users?.toString() || '0'
+      badge: counts.users?.toString() || '0',
+      submenu: [
+        {
+          name: 'All Users',
+          path: '/admin/users',
+          icon: <Users className="admin-nav-icon" />,
+          badge: counts.users?.toString() || '0'
+        },
+        {
+          name: 'Guest Visitors',
+          path: '/admin/guest-visitors',
+          icon: <UserCheck className="admin-nav-icon" />,
+        }
+      ]
     },
     {
       name: 'Security',
@@ -124,7 +159,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     if (path.includes('/categories')) return 'categories';
     if (path.includes('/vendors')) return 'vendors';
     if (path.includes('/logistics-partners')) return 'logistics';
+    if (path.includes('/abandoned-carts')) return 'abandoned-carts';
     if (path.includes('/orders')) return 'orders';
+    if (path.includes('/guest-visitors')) return 'guest-visitors';
     if (path.includes('/users')) return 'users';
     if (path.includes('/analytics')) return 'analytics';
     if (path.includes('/security')) return 'security';
@@ -193,18 +230,60 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Navigation */}
         <nav className="admin-nav">
           {navigationItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`admin-nav-item ${isActive(item.path) ? 'active' : ''}`}
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {item.icon}
-              <span>{item.name}</span>
-              {item.badge && (
-                <span className="admin-nav-badge">{item.badge}</span>
+            <div key={item.path}>
+              {item.submenu ? (
+                // Parent item with submenu
+                <div>
+                  <button
+                    onClick={() => toggleSubmenu(item.path)}
+                    className={`admin-nav-item ${isActive(item.path) ? 'active' : ''} w-full`}
+                    style={{ cursor: 'pointer', border: 'none', background: 'none', textAlign: 'left' }}
+                  >
+                    {item.icon}
+                    <span className="flex-1">{item.name}</span>
+                    {expandedMenus[item.path] ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </button>
+                  
+                  {/* Submenu items */}
+                  {expandedMenus[item.path] && (
+                    <div className="ml-4">
+                      {item.submenu.map((subItem) => (
+                        <Link
+                          key={subItem.path}
+                          to={subItem.path}
+                          className={`admin-nav-item ${isActive(subItem.path) ? 'active' : ''}`}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          style={{ fontSize: '0.875rem' }}
+                        >
+                          {subItem.icon}
+                          <span>{subItem.name}</span>
+                          {subItem.badge && (
+                            <span className="admin-nav-badge">{subItem.badge}</span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Regular nav item without submenu
+                <Link
+                  to={item.path}
+                  className={`admin-nav-item ${isActive(item.path) ? 'active' : ''}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                  {item.badge && (
+                    <span className="admin-nav-badge">{item.badge}</span>
+                  )}
+                </Link>
               )}
-            </Link>
+            </div>
           ))}
         </nav>
 
@@ -265,7 +344,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                              currentPage === 'categories' ? 'categories...' : 
                              currentPage === 'vendors' ? 'vendors...' :
                              currentPage === 'logistics' ? 'logistics partners...' :
+                             currentPage === 'abandoned-carts' ? 'abandoned carts...' :
                              currentPage === 'orders' ? 'orders...' : 
+                             currentPage === 'guest-visitors' ? 'guest visitors...' :
                              currentPage === 'users' ? 'users...' : 
                              'items...'}`}
                 className="admin-search pl-10 w-full"

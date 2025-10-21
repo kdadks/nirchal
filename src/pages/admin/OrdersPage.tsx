@@ -439,13 +439,30 @@ const OrdersPage: React.FC = () => {
   const shippedOrders = orders.filter(order => order.status === 'shipped');
   const deliveredOrders = orders.filter(order => order.status === 'delivered');
   const cancelledOrders = orders.filter(order => order.status === 'cancelled');
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
+  
+  // Calculate total revenue (excluding cancelled orders)
+  const totalRevenue = orders.reduce((sum, order) => {
+    if (order.status === 'cancelled') return sum;
+    return sum + order.total_amount;
+  }, 0);
 
   // COD Statistics
   const pendingCodOrders = orders.filter(order => (order.cod_amount ?? 0) > 0 && !order.cod_collected);
   const collectedCodOrders = orders.filter(order => (order.cod_amount ?? 0) > 0 && order.cod_collected);
   const totalPendingCod = pendingCodOrders.reduce((sum, order) => sum + (order.cod_amount ?? 0), 0);
   const totalCollectedCod = collectedCodOrders.reduce((sum, order) => sum + (order.cod_amount ?? 0), 0);
+
+  // Calculate pending revenue (COD amounts not collected from non-cancelled orders)
+  const pendingRevenue = orders.reduce((sum, order) => {
+    if (order.status === 'cancelled') return sum;
+    if ((order.cod_amount ?? 0) > 0 && !order.cod_collected) {
+      return sum + (order.cod_amount ?? 0);
+    }
+    return sum;
+  }, 0);
+
+  // Calculate delivered revenue (Total Revenue - Pending Revenue)
+  const deliveredRevenue = totalRevenue - pendingRevenue;
 
   if (loading) {
     return (
@@ -556,20 +573,7 @@ const OrdersPage: React.FC = () => {
             <div>
               <p className="text-xs font-medium text-gray-600">Pending Revenue</p>
               <p className="text-lg font-bold text-gray-900">
-                {formatCurrency(
-                  // Calculate pending revenue including service items
-                  orders.reduce((sum, order) => {
-                    // Skip cancelled orders
-                    if (order.status === 'cancelled') return sum;
-                    
-                    // If order has COD amount and it's not collected, count it as pending
-                    if ((order.cod_amount ?? 0) > 0 && !order.cod_collected) {
-                      return sum + (order.cod_amount ?? 0);
-                    }
-                    
-                    return sum;
-                  }, 0)
-                )}
+                {formatCurrency(pendingRevenue)}
               </p>
             </div>
           </div>
@@ -581,7 +585,7 @@ const OrdersPage: React.FC = () => {
             <div>
               <p className="text-xs font-medium text-gray-600">Delivered Revenue</p>
               <p className="text-lg font-bold text-gray-900">
-                {formatCurrency(deliveredOrders.reduce((sum, order) => sum + order.total_amount, 0))}
+                {formatCurrency(deliveredRevenue)}
               </p>
             </div>
           </div>
@@ -922,7 +926,7 @@ const OrdersPage: React.FC = () => {
                           </button>
                         )}
                         {/* COD Collection Button */}
-                        {order.cod_amount && order.cod_amount > 0 && !order.cod_collected && (
+                        {(order.cod_amount ?? 0) > 0 && !order.cod_collected && (
                           <button
                             onClick={() => markCodAsCollected(order.id)}
                             disabled={updating === order.id}

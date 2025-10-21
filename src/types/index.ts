@@ -43,6 +43,8 @@ export interface Product {
   };
   reviews: Review[];
   variants?: ProductVariant[];
+  meta_title?: string | null;
+  meta_description?: string | null;
 }
 
 export interface Category {

@@ -11,6 +11,8 @@ import { WishlistProvider } from './contexts/WishlistContext';
 import { AIAssistantButton } from './components/ai/AIAssistantButton';
 import { preloadCategories } from './utils/categoryCache';
 import AppRoutes from './routes';
+import VisitorTracker from './components/VisitorTracker';
+import { initGA4 } from './utils/analytics';
 
 const router = createBrowserRouter([
   {
@@ -20,6 +22,16 @@ const router = createBrowserRouter([
 ]);
 
 const App: React.FC = () => {
+  // Initialize Google Analytics 4
+  useEffect(() => {
+    const ga4MeasurementId = import.meta.env.VITE_GA4_MEASUREMENT_ID;
+    if (ga4MeasurementId) {
+      initGA4(ga4MeasurementId);
+    } else {
+      console.warn('[GA4] Measurement ID not found. Add VITE_GA4_MEASUREMENT_ID to .env file');
+    }
+  }, []);
+
   // Preload category cache on app startup
   useEffect(() => {
     preloadCategories().catch(error => {
@@ -40,35 +52,37 @@ const App: React.FC = () => {
         <CustomerAuthProvider>
           <CartProvider>
             <WishlistProvider>
-              <RouterProvider router={router} />
-              <AIAssistantButton />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#ffffff',
-                    color: '#1f2937',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  },
-                  success: {
+              <VisitorTracker>
+                <RouterProvider router={router} />
+                <AIAssistantButton />
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
                     style: {
-                      background: '#f0fdf4',
-                      color: '#166534',
-                      border: '1px solid #bbf7d0',
+                      background: '#ffffff',
+                      color: '#1f2937',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                     },
-                  },
-                  error: {
-                    style: {
-                      background: '#fef2f2',
-                      color: '#dc2626',
-                      border: '1px solid #fecaca',
+                    success: {
+                      style: {
+                        background: '#f0fdf4',
+                        color: '#166534',
+                        border: '1px solid #bbf7d0',
+                      },
                     },
-                  },
-                }}
-              />
+                    error: {
+                      style: {
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        border: '1px solid #fecaca',
+                      },
+                    },
+                  }}
+                />
+              </VisitorTracker>
             </WishlistProvider>
           </CartProvider>
         </CustomerAuthProvider>

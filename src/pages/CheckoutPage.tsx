@@ -14,6 +14,8 @@ import SecurePaymentForm from '../components/security/SecurePaymentForm';
 import StateDropdown from '../components/common/StateDropdown';
 import CityDropdown from '../components/common/CityDropdown';
 import { SecurityUtils } from '../utils/securityUtils';
+import SEO from '../components/SEO';
+import { trackBeginCheckout } from '../utils/analytics';
 
 interface CheckoutForm {
   // Contact Information
@@ -128,6 +130,21 @@ const CheckoutPage: React.FC = () => {
 
   // Load customer addresses if logged in
   useEffect(() => {
+    // Track begin checkout event in GA4
+    if (items.length > 0) {
+      trackBeginCheckout(
+        items.map(item => ({
+          item_id: item.id,
+          item_name: item.name,
+          item_category: item.category,
+          item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        total
+      );
+    }
+    
     const loadCustomerAddresses = async () => {
       if (!customer?.id) return;
       
@@ -1212,6 +1229,14 @@ const CheckoutPage: React.FC = () => {
   return (
     <PaymentSecurityWrapper>
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 relative">
+        {/* SEO - noindex for checkout page */}
+        <SEO
+          title="Checkout"
+          description="Complete your purchase"
+          noindex={true}
+          nofollow={true}
+        />
+        
         {/* Order Processing Overlay - positioned to cover only main content area */}
         {isOrderProcessing && (
           <div className="absolute inset-0 bg-white bg-opacity-95 backdrop-blur-sm z-50 flex items-center justify-center">

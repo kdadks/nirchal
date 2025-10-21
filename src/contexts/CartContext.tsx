@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { useCartAbandonment } from '../hooks/useCartAbandonment';
+import { trackAddToCart, trackRemoveFromCart } from '../utils/analytics';
 
 interface CartItem {
   id: string;
@@ -114,10 +117,18 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 }
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [state, dispatch] = useReducer(cartReducer, initialState, () => {
     // Load cart from localStorage on init
     const savedCart = localStorage.getItem('cart');
     return savedCart ? JSON.parse(savedCart) : initialState;
+  });
+
+  // Initialize cart abandonment tracking
+  useCartAbandonment({
+    cartItems: state.items,
+    isAuthenticated: !!user,
+    userId: user?.id,
   });
 
   // Save cart to localStorage whenever it changes
@@ -127,7 +138,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addItem = (item: Omit<CartItem, 'quantity'>) => {
     try {
+      // Add item directly - no modal popup
+      // Guest info will be captured at checkout
       dispatch({ type: 'ADD_ITEM', payload: { ...item, quantity: 1 } });
+      
+      // Track add to cart event in GA4
+      trackAddToCart({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        quantity: 1,
+        variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color || undefined,
+      });
     } catch (error) {
       console.error('Error adding item to cart:', error);
     }
@@ -135,7 +158,22 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeItem = (id: string, variantId?: string) => {
     try {
+      // Find the item before removing to track it
+      const itemToRemove = state.items.find(item => 
+        item.id === id && (variantId ? item.variantId === variantId : true)
+      );
+      
       dispatch({ type: 'REMOVE_ITEM', payload: { id, variantId } });
+      
+      // Track remove from cart event in GA4
+      if (itemToRemove) {
+        trackRemoveFromCart({
+          id: itemToRemove.id,
+          name: itemToRemove.name,
+          price: itemToRemove.price,
+          quantity: itemToRemove.quantity,
+        });
+      }
     } catch (error) {
       console.error('Error removing item from cart:', error);
     }

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Footer from '../common/Footer_new';
 import Header from '../common/Header';
+import usePageTracking from '../../hooks/usePageTracking';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,9 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+
+  // Track page views for Google Analytics
+  usePageTracking();
 
   // Scroll to top on route change
   useEffect(() => {
