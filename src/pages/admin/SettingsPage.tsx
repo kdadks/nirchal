@@ -15,9 +15,12 @@ import {
   Linkedin,
   MessageCircle,
   Mail,
-  CheckCircle
+  CheckCircle,
+  RefreshCw,
+  Download
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import { generateSitemap, getSitemapMetadata } from '../../services/sitemapService';
 
 interface TabState {
   [key: string]: Record<string, any>;
@@ -47,6 +50,18 @@ const SettingsPage: React.FC = React.memo(() => {
     paypal_client_secret: false,
     smtp_password: false,
   });
+  
+  // Sitemap generation states
+  const [generatingSitemap, setGeneratingSitemap] = useState(false);
+  const [sitemapMetadata, setSitemapMetadata] = useState<{
+    lastGeneration: string | null;
+    urlCount: number | null;
+  }>({ lastGeneration: null, urlCount: null });
+  const [showToast, setShowToast] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({ show: false, message: '', type: 'success' });
 
   const tabs = [
     { id: 'shop', label: 'Shop Settings', icon: <Store className="w-4 h-4" /> },
@@ -74,6 +89,15 @@ const SettingsPage: React.FC = React.memo(() => {
       setTabChanges({});
     }
   }, [loading, settings]);
+
+  // Load sitemap metadata
+  useEffect(() => {
+    const loadSitemapMetadata = async () => {
+      const metadata = await getSitemapMetadata();
+      setSitemapMetadata(metadata);
+    };
+    loadSitemapMetadata();
+  }, []);
 
   // Handle setting change for specific tab
   const handleTabSettingChange = (tabId: string, key: string, value: any) => {
@@ -144,6 +168,57 @@ const SettingsPage: React.FC = React.memo(() => {
       ...prev,
       [field]: !prev[field as keyof typeof prev]
     }));
+  };
+
+  // Handle sitemap generation
+  const handleGenerateSitemap = async () => {
+    setGeneratingSitemap(true);
+    try {
+      const result = await generateSitemap();
+      
+      if (result.success && result.xml) {
+        // Download the sitemap file
+        const blob = new Blob([result.xml], { type: 'application/xml' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'sitemap.xml';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        // Refresh metadata
+        const metadata = await getSitemapMetadata();
+        setSitemapMetadata(metadata);
+
+        // Show success toast
+        setShowToast({
+          show: true,
+          message: result.message,
+          type: 'success'
+        });
+      } else {
+        setShowToast({
+          show: true,
+          message: result.message,
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      setShowToast({
+        show: true,
+        message: 'Failed to generate sitemap',
+        type: 'error'
+      });
+    } finally {
+      setGeneratingSitemap(false);
+      
+      // Auto-hide toast after 5 seconds
+      setTimeout(() => {
+        setShowToast({ show: false, message: '', type: 'success' });
+      }, 5000);
+    }
   };
 
   if (loading) {
@@ -953,6 +1028,68 @@ const SettingsPage: React.FC = React.memo(() => {
           </div>
         </div>
       </div>
+
+      {/* Sitemap Generation */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Sitemap Management</h3>
+        
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm text-gray-600 mb-4">
+                Generate an XML sitemap for search engines like Google. This helps search engines discover and index all pages on your website.
+              </p>
+              
+              {sitemapMetadata.lastGeneration && (
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span>Last Generated:</span>
+                    <span className="font-medium">
+                      {new Date(sitemapMetadata.lastGeneration).toLocaleString()}
+                    </span>
+                  </div>
+                  {sitemapMetadata.urlCount && (
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <span className="ml-6">Total URLs:</span>
+                      <span className="font-medium">{sitemapMetadata.urlCount}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleGenerateSitemap}
+              disabled={generatingSitemap}
+              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md transition-colors duration-200 ${
+                generatingSitemap
+                  ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                  : 'text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+              }`}
+            >
+              {generatingSitemap ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Generate Sitemap
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-xs text-yellow-800">
+              <strong>Note:</strong> After generating, upload the downloaded sitemap.xml file to your website's public folder. 
+              Then submit the sitemap URL to Google Search Console: <code className="bg-yellow-100 px-1 rounded">https://nirchal.com/sitemap.xml</code>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -1038,6 +1175,34 @@ const SettingsPage: React.FC = React.memo(() => {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {showToast.show && (
+        <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+          <div className={`rounded-lg shadow-lg p-4 flex items-center gap-3 ${
+            showToast.type === 'success' 
+              ? 'bg-green-50 border border-green-200' 
+              : 'bg-red-50 border border-red-200'
+          }`}>
+            {showToast.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            )}
+            <p className={`text-sm font-medium ${
+              showToast.type === 'success' ? 'text-green-800' : 'text-red-800'
+            }`}>
+              {showToast.message}
+            </p>
+            <button
+              onClick={() => setShowToast({ show: false, message: '', type: 'success' })}
+              className="ml-2 text-gray-400 hover:text-gray-600"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
