@@ -13,20 +13,20 @@ interface UseInvoicesResult {
   raising: boolean;
   downloading: boolean;
   error: string | null;
-  generateInvoiceForOrder: (orderId: number) => Promise<{
+  generateInvoiceForOrder: (orderId: string) => Promise<{
     success: boolean;
     invoiceId?: string;
     invoiceNumber?: string;
   }>;
-  generateBulkInvoices: (orderIds: number[]) => Promise<{
+  generateBulkInvoices: (orderIds: string[]) => Promise<{
     success: boolean;
     count: number;
-    results?: Array<{ orderId: number; success: boolean; invoiceNumber?: string; message?: string }>;
+    results?: Array<{ orderId: string; success: boolean; invoiceNumber?: string; message?: string }>;
   }>;
   raiseInvoiceById: (invoiceId: string) => Promise<boolean>;
   raiseBulkInvoices: (invoiceIds: string[]) => Promise<{ success: boolean; count: number }>;
-  downloadInvoiceById: (invoiceId: string, orderId?: number) => Promise<string | null>;
-  checkInvoiceForOrder: (orderId: number) => Promise<{
+  downloadInvoiceById: (invoiceId: string, orderId?: string) => Promise<string | null>;
+  checkInvoiceForOrder: (orderId: string) => Promise<{
     id: string;
     invoice_number: string;
     status: string;
@@ -41,7 +41,7 @@ export function useInvoices(): UseInvoicesResult {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generateInvoiceForOrder = async (orderId: number) => {
+  const generateInvoiceForOrder = async (orderId: string) => {
     setGenerating(true);
     setError(null);
     try {
@@ -63,7 +63,7 @@ export function useInvoices(): UseInvoicesResult {
     }
   };
 
-  const generateBulkInvoices = async (orderIds: number[]) => {
+  const generateBulkInvoices = async (orderIds: string[]) => {
     setGenerating(true);
     setError(null);
     try {
@@ -124,7 +124,7 @@ export function useInvoices(): UseInvoicesResult {
     }
   };
 
-  const downloadInvoiceById = async (invoiceId: string, orderId?: number): Promise<string | null> => {
+  const downloadInvoiceById = async (invoiceId: string, orderId?: string): Promise<string | null> => {
     setDownloading(true);
     setError(null);
     try {
@@ -143,7 +143,7 @@ export function useInvoices(): UseInvoicesResult {
     }
   };
 
-  const checkInvoiceForOrder = async (orderId: number) => {
+  const checkInvoiceForOrder = async (orderId: string) => {
     try {
       return await getInvoiceByOrderId(orderId);
     } catch (err) {

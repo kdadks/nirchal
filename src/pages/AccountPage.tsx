@@ -36,7 +36,7 @@ import toast from 'react-hot-toast';
 import { formatDisplayDate } from '../utils/formatDate';
 
 type OrderRow = {
-  id: number;
+  id: string;  // UUID type from orders table
   order_number: string;
   status: string;
   total_amount: number;
@@ -81,8 +81,8 @@ const AccountPage: React.FC = () => {
   const [deletingAddress, setDeletingAddress] = useState<number | null>(null);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<Set<number>>(new Set());
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);  // UUID type
+  const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<Set<string>>(new Set());  // UUID type
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings'>('profile');
   const location = useLocation();
 
@@ -284,7 +284,7 @@ const AccountPage: React.FC = () => {
     setShowOrderDetailsModal(true);
   };
 
-  const togglePaymentDetails = (orderId: number) => {
+  const togglePaymentDetails = (orderId: string) => {  // UUID type
     setExpandedPaymentDetails(prev => {
       const newSet = new Set(prev);
       if (newSet.has(orderId)) {

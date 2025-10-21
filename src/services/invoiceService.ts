@@ -1,8 +1,8 @@
-import { supabase } from '../config/supabase';
+import { supabase, supabaseAdmin } from '../config/supabase';
 import jsPDF from 'jspdf';
 
 interface OrderData {
-  id: number;
+  id: string;  // UUID type
   order_number: string;
   status: string;
   payment_status: string;
@@ -132,7 +132,7 @@ async function getCompanySettings(): Promise<CompanySettings> {
 /**
  * Fetch order details with items
  */
-async function getOrderDetails(orderId: number): Promise<OrderData | null> {
+async function getOrderDetails(orderId: string): Promise<OrderData | null> {
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select('*')
@@ -227,10 +227,29 @@ function formatInvoiceData(order: OrderData, company: CompanySettings, invoiceNu
 /**
  * Generate PDF invoice
  */
-function generateInvoicePDF(data: InvoiceData): string {
+async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, footerImageUrl?: string): Promise<string> {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   let yPos = 20;
+
+  // Helper function to load image as base64
+  const loadImageAsBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.warn('Failed to load image:', url, error);
+      return null;
+    }
+  };
 
   // Helper function to add text
   const addText = (text: string, x: number, fontSize: number = 10, style: string = 'normal') => {
@@ -240,15 +259,42 @@ function generateInvoicePDF(data: InvoiceData): string {
     yPos += fontSize * 0.5;
   };
 
-  // Header - Company Info
-  doc.setFillColor(79, 70, 229); // Indigo
-  doc.rect(0, 0, pageWidth, 40, 'F');
-  doc.setTextColor(255, 255, 255);
-  addText(data.company.store_name, 20, 20, 'bold');
-  addText(data.company.store_address, 20, 10);
-  addText(`Phone: ${data.company.store_phone} | Email: ${data.company.store_email}`, 20, 9);
-  if (data.company.gst_number) {
-    addText(`GSTIN: ${data.company.gst_number}`, 20, 9);
+  // Load header image if provided
+  let headerImageData: string | null = null;
+  if (headerImageUrl) {
+    headerImageData = await loadImageAsBase64(headerImageUrl);
+  }
+
+  // Header section with optional image
+  if (headerImageData) {
+    try {
+      // Add header image (adjust dimensions as needed)
+      doc.addImage(headerImageData, 'JPEG', 10, 5, pageWidth - 20, 30);
+      yPos = 40; // Start content after header image
+    } catch (error) {
+      console.warn('Failed to add header image:', error);
+      // Fallback to default header
+      doc.setFillColor(79, 70, 229); // Indigo
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      addText(data.company.store_name, 20, 20, 'bold');
+      addText(data.company.store_address, 20, 10);
+      addText(`Phone: ${data.company.store_phone} | Email: ${data.company.store_email}`, 20, 9);
+      if (data.company.gst_number) {
+        addText(`GSTIN: ${data.company.gst_number}`, 20, 9);
+      }
+    }
+  } else {
+    // Default header - Company Info
+    doc.setFillColor(79, 70, 229); // Indigo
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    addText(data.company.store_name, 20, 20, 'bold');
+    addText(data.company.store_address, 20, 10);
+    addText(`Phone: ${data.company.store_phone} | Email: ${data.company.store_email}`, 20, 9);
+    if (data.company.gst_number) {
+      addText(`GSTIN: ${data.company.gst_number}`, 20, 9);
+    }
   }
 
   yPos = 50;
@@ -373,18 +419,47 @@ function generateInvoicePDF(data: InvoiceData): string {
   doc.text('Total:', totalsX, yPos);
   doc.text(`₹${data.totalAmount.toFixed(2)}`, pageWidth - 22, yPos, { align: 'right' });
 
-  // Footer
-  yPos = doc.internal.pageSize.getHeight() - 30;
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Terms & Conditions:', 20, yPos);
-  yPos += 5;
-  doc.setFontSize(8);
-  doc.text('1. This is a computer-generated invoice and does not require a signature.', 20, yPos);
-  yPos += 4;
-  doc.text('2. Please check the items at the time of delivery.', 20, yPos);
-  yPos += 4;
-  doc.text('3. For any queries, please contact us at ' + data.company.store_email, 20, yPos);
+  // Footer section with optional image
+  
+  // Load footer image if provided
+  let footerImageData: string | null = null;
+  if (footerImageUrl) {
+    footerImageData = await loadImageAsBase64(footerImageUrl);
+  }
+
+  if (footerImageData) {
+    try {
+      // Add footer image
+      doc.addImage(footerImageData, 'JPEG', 10, pageHeight - 40, pageWidth - 20, 25);
+    } catch (error) {
+      console.warn('Failed to add footer image:', error);
+      // Fallback to default footer
+      yPos = pageHeight - 30;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Terms & Conditions:', 20, yPos);
+      yPos += 5;
+      doc.setFontSize(8);
+      doc.text('1. This is a computer-generated invoice and does not require a signature.', 20, yPos);
+      yPos += 4;
+      doc.text('2. Please check the items at the time of delivery.', 20, yPos);
+      yPos += 4;
+      doc.text('3. For any queries, please contact us at ' + data.company.store_email, 20, yPos);
+    }
+  } else {
+    // Default text footer
+    yPos = pageHeight - 30;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Terms & Conditions:', 20, yPos);
+    yPos += 5;
+    doc.setFontSize(8);
+    doc.text('1. This is a computer-generated invoice and does not require a signature.', 20, yPos);
+    yPos += 4;
+    doc.text('2. Please check the items at the time of delivery.', 20, yPos);
+    yPos += 4;
+    doc.text('3. For any queries, please contact us at ' + data.company.store_email, 20, yPos);
+  }
 
   // Generate base64
   return doc.output('dataurlstring');
@@ -393,7 +468,7 @@ function generateInvoicePDF(data: InvoiceData): string {
 /**
  * Generate and save invoice for an order
  */
-export async function generateInvoice(orderId: number): Promise<{
+export async function generateInvoice(orderId: string): Promise<{
   success: boolean;
   message: string;
   invoiceId?: string;
@@ -429,8 +504,9 @@ export async function generateInvoice(orderId: number): Promise<{
     // Get company settings
     const companySettings = await getCompanySettings();
 
-    // Generate invoice number
-    const { data: invoiceNumData, error: invoiceNumError } = await supabase
+    // Generate invoice number - use admin client for privileged operations
+    const client = supabaseAdmin || supabase;
+    const { data: invoiceNumData, error: invoiceNumError } = await client
       .rpc('generate_invoice_number');
 
     if (invoiceNumError || !invoiceNumData) {
@@ -442,14 +518,18 @@ export async function generateInvoice(orderId: number): Promise<{
     // Format invoice data
     const invoiceData = formatInvoiceData(orderData, companySettings, invoiceNumber);
 
-    // Generate PDF
-    const pdfBase64 = generateInvoicePDF(invoiceData);
+    // Generate PDF with optional header/footer images
+    // TODO: Add settings to configure header/footer image URLs
+    const headerImageUrl = undefined; // Can be configured from settings
+    const footerImageUrl = undefined; // Can be configured from settings
+    const pdfBase64 = await generateInvoicePDF(invoiceData, headerImageUrl, footerImageUrl);
 
-    // Save invoice to database
-    const { data: invoice, error: saveError } = await supabase
+    // Save invoice to database - use admin client for privileged operations
+    const { data: invoice, error: saveError } = await client
       .from('invoices')
       .insert({
         order_id: orderId,
+        order_number: invoiceData.orderNumber,
         invoice_number: invoiceNumber,
         status: 'generated',
         pdf_base64: pdfBase64,
@@ -480,7 +560,8 @@ export async function generateInvoice(orderId: number): Promise<{
       .single();
 
     if (saveError || !invoice) {
-      throw new Error('Failed to save invoice');
+      console.error('Save invoice error:', saveError);
+      throw new Error(`Failed to save invoice: ${saveError?.message || 'Unknown error'}`);
     }
 
     return {
@@ -503,7 +584,8 @@ export async function generateInvoice(orderId: number): Promise<{
  */
 export async function raiseInvoice(invoiceId: string): Promise<{ success: boolean; message: string }> {
   try {
-    const { error } = await supabase
+    const client = supabaseAdmin || supabase;
+    const { error } = await client
       .from('invoices')
       .update({
         status: 'raised',
@@ -560,9 +642,38 @@ export async function bulkRaiseInvoices(invoiceIds: string[]): Promise<{ success
 }
 
 /**
+ * Preview invoice PDF (without changing status)
+ */
+export async function previewInvoice(invoiceId: string): Promise<{ success: boolean; message: string; pdf?: string }> {
+  try {
+    const { data: invoice, error } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('id', invoiceId)
+      .single();
+
+    if (error || !invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    return {
+      success: true,
+      message: 'Invoice retrieved successfully',
+      pdf: typeof invoice.pdf_base64 === 'string' ? invoice.pdf_base64 : undefined,
+    };
+  } catch (error) {
+    console.error('Error previewing invoice:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to preview invoice',
+    };
+  }
+}
+
+/**
  * Download invoice PDF
  */
-export async function downloadInvoice(invoiceId: string, orderId?: number): Promise<{ success: boolean; message: string; pdf?: string }> {
+export async function downloadInvoice(invoiceId: string, orderId?: string): Promise<{ success: boolean; message: string; pdf?: string }> {
   try {
     let query = supabase
       .from('invoices')
@@ -580,8 +691,9 @@ export async function downloadInvoice(invoiceId: string, orderId?: number): Prom
       throw new Error('Invoice not found or not available');
     }
 
-    // Update downloaded status
-    await supabase
+    // Update downloaded status - use admin client for privileged operations
+    const client = supabaseAdmin || supabase;
+    await client
       .from('invoices')
       .update({
         status: 'downloaded',
@@ -607,7 +719,7 @@ export async function downloadInvoice(invoiceId: string, orderId?: number): Prom
 /**
  * Get invoice by order ID
  */
-export async function getInvoiceByOrderId(orderId: number): Promise<{
+export async function getInvoiceByOrderId(orderId: string): Promise<{
   id: string;
   invoice_number: string;
   status: string;
@@ -642,10 +754,10 @@ export async function getInvoiceByOrderId(orderId: number): Promise<{
 /**
  * Bulk generate invoices for eligible orders
  */
-export async function bulkGenerateInvoices(orderIds: number[]): Promise<{
+export async function bulkGenerateInvoices(orderIds: string[]): Promise<{
   success: boolean;
   message: string;
-  results?: Array<{ orderId: number; success: boolean; invoiceNumber?: string; message?: string }>;
+  results?: Array<{ orderId: string; success: boolean; invoiceNumber?: string; message?: string }>;
 }> {
   const results = [];
 

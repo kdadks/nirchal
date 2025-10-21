@@ -25,7 +25,8 @@ import {
   ShoppingCart,
   ChevronDown,
   ChevronRight,
-  UserCheck
+  UserCheck,
+  Receipt
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -111,6 +112,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           icon: <ShoppingCart className="admin-nav-icon" />,
         }
       ]
+    },
+    {
+      name: 'Invoices',
+      path: '/admin/invoices',
+      icon: <Receipt className="admin-nav-icon" />,
+      badge: null
     },
     {
       name: 'Analytics',

@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Send, CheckCircle, Clock, Search } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useInvoices } from '../../hooks/useInvoices';
+import InvoiceGenerationModal from './InvoiceGenerationModal';
+import { InvoicePDFPreviewModal } from './InvoicePDFPreviewModal';
+import { previewInvoice } from '../../services/invoiceService';
 import toast from 'react-hot-toast';
 
 interface Order {
-  id: number;
+  id: string;  // UUID type
   order_number: string;
   customer_name: string;
   total_amount: number;
@@ -15,9 +18,9 @@ interface Order {
 }
 
 interface Invoice {
-  id: number;
+  id: number;  // BIGSERIAL type
   invoice_number: string;
-  order_id: number;
+  order_id: string;  // UUID type (references orders.id)
   status: string;
   total_amount: number;
   gst_amount: number;
@@ -34,10 +37,17 @@ const InvoiceManagementPanel: React.FC = () => {
   const [eligibleOrders, setEligibleOrders] = useState<Order[]>([]);
   const [generatedInvoices, setGeneratedInvoices] = useState<Invoice[]>([]);
   const [raisedInvoices, setRaisedInvoices] = useState<Invoice[]>([]);
-  const [selectedOrders, setSelectedOrders] = useState<Set<number>>(new Set());
-  const [selectedInvoices, setSelectedInvoices] = useState<Set<number>>(new Set());
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());  // UUID type
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<number>>(new Set());  // BIGSERIAL type
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [ordersToGenerate, setOrdersToGenerate] = useState<Order[]>([]);
+  
+  // PDF Preview Modal state
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [previewPDFData, setPreviewPDFData] = useState<string | null>(null);
+  const [previewInvoiceNumber, setPreviewInvoiceNumber] = useState('');
   
   const { 
     generateBulkInvoices, 
@@ -67,11 +77,11 @@ const InvoiceManagementPanel: React.FC = () => {
 
   const loadEligibleOrders = async () => {
     try {
-      // Get orders with completed payment that don't have invoices yet
+      // Get orders with delivered status that don't have invoices yet
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('id, order_number, billing_first_name, billing_last_name, total_amount, payment_status, status, created_at')
-        .in('payment_status', ['completed', 'paid'])
+        .eq('status', 'delivered')
         .order('created_at', { ascending: false });
 
       if (ordersError) throw ordersError;
@@ -86,9 +96,9 @@ const InvoiceManagementPanel: React.FC = () => {
       const orderIdsWithInvoices = new Set(existingInvoices?.map(inv => inv.order_id) || []);
       
       const eligible = (orders || [])
-        .filter(order => !orderIdsWithInvoices.has(order.id as number))
+        .filter(order => !orderIdsWithInvoices.has(order.id))
         .map(order => ({
-          id: order.id as number,
+          id: String(order.id),  // UUID type
           order_number: String(order.order_number),
           customer_name: `${order.billing_first_name} ${order.billing_last_name}`,
           total_amount: Number(order.total_amount),
@@ -126,9 +136,9 @@ const InvoiceManagementPanel: React.FC = () => {
       if (error) throw error;
 
       const typedInvoices = (invoices || []).map(inv => ({
-        id: inv.id as number,
+        id: Number(inv.id),  // BIGSERIAL type
         invoice_number: String(inv.invoice_number),
-        order_id: inv.order_id as number,
+        order_id: String(inv.order_id),  // UUID type
         status: String(inv.status),
         total_amount: Number(inv.total_amount),
         gst_amount: Number(inv.gst_amount),
@@ -167,9 +177,9 @@ const InvoiceManagementPanel: React.FC = () => {
       if (error) throw error;
 
       const typedInvoices = (invoices || []).map(inv => ({
-        id: inv.id as number,
+        id: Number(inv.id),  // BIGSERIAL type
         invoice_number: String(inv.invoice_number),
-        order_id: inv.order_id as number,
+        order_id: String(inv.order_id),  // UUID type
         status: String(inv.status),
         total_amount: Number(inv.total_amount),
         gst_amount: Number(inv.gst_amount),
@@ -202,7 +212,7 @@ const InvoiceManagementPanel: React.FC = () => {
     }
   };
 
-  const handleSelectOrder = (orderId: number) => {
+  const handleSelectOrder = (orderId: string) => {
     const newSelected = new Set(selectedOrders);
     if (newSelected.has(orderId)) {
       newSelected.delete(orderId);
@@ -228,7 +238,13 @@ const InvoiceManagementPanel: React.FC = () => {
       return;
     }
 
-    const orderIds = Array.from(selectedOrders);
+    // Get full order objects for selected IDs
+    const orders = eligibleOrders.filter(order => selectedOrders.has(order.id));
+    setOrdersToGenerate(orders);
+    setShowGenerateModal(true);
+  };
+
+  const handleConfirmGenerate = async (orderIds: string[]) => {
     const result = await generateBulkInvoices(orderIds);
     
     if (result.results) {
@@ -244,7 +260,10 @@ const InvoiceManagementPanel: React.FC = () => {
     }
 
     setSelectedOrders(new Set());
+    setShowGenerateModal(false);
+    setOrdersToGenerate([]);
     await loadEligibleOrders();
+    await loadGeneratedInvoices();
   };
 
   const handleRaiseInvoices = async () => {
@@ -264,6 +283,27 @@ const InvoiceManagementPanel: React.FC = () => {
 
     setSelectedInvoices(new Set());
     await loadGeneratedInvoices();
+  };
+
+  const handlePreviewPDF = async (invoiceId: number, invoiceNumber: string) => {
+    try {
+      setPreviewInvoiceNumber(invoiceNumber);
+      setPreviewPDFData(null);
+      setShowPDFPreview(true);
+      
+      const result = await previewInvoice(invoiceId.toString());
+      
+      if (result.success && result.pdf) {
+        setPreviewPDFData(result.pdf);
+      } else {
+        toast.error(result.message || 'Failed to load PDF preview');
+        setShowPDFPreview(false);
+      }
+    } catch (error) {
+      console.error('Error previewing PDF:', error);
+      toast.error('Failed to preview invoice');
+      setShowPDFPreview(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -548,8 +588,14 @@ const InvoiceManagementPanel: React.FC = () => {
                             className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                           />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium text-primary-600">
-                          {invoice.invoice_number}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium">
+                          <button
+                            onClick={() => handlePreviewPDF(invoice.id, invoice.invoice_number)}
+                            className="text-primary-600 hover:text-primary-800 hover:underline focus:outline-none focus:underline"
+                            title="Click to preview PDF"
+                          >
+                            {invoice.invoice_number}
+                          </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {invoice.order_number}
@@ -611,8 +657,14 @@ const InvoiceManagementPanel: React.FC = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredRaisedInvoices.map(invoice => (
                       <tr key={invoice.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium text-primary-600">
-                          {invoice.invoice_number}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium">
+                          <button
+                            onClick={() => handlePreviewPDF(invoice.id, invoice.invoice_number)}
+                            className="text-primary-600 hover:text-primary-800 hover:underline focus:outline-none focus:underline"
+                            title="Click to preview PDF"
+                          >
+                            {invoice.invoice_number}
+                          </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {invoice.order_number}
@@ -644,6 +696,29 @@ const InvoiceManagementPanel: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Invoice Generation Modal */}
+      <InvoiceGenerationModal
+        isOpen={showGenerateModal}
+        onClose={() => {
+          setShowGenerateModal(false);
+          setOrdersToGenerate([]);
+        }}
+        orders={ordersToGenerate}
+        onGenerate={handleConfirmGenerate}
+      />
+
+      {/* PDF Preview Modal */}
+      <InvoicePDFPreviewModal
+        isOpen={showPDFPreview}
+        onClose={() => {
+          setShowPDFPreview(false);
+          setPreviewPDFData(null);
+          setPreviewInvoiceNumber('');
+        }}
+        pdfDataUrl={previewPDFData}
+        invoiceNumber={previewInvoiceNumber}
+      />
     </div>
   );
 };

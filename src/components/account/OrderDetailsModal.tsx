@@ -21,7 +21,7 @@ interface OrderItem {
 }
 
 interface OrderDetails {
-  id: number;
+  id: string;  // UUID type
   order_number: string;
   status: string;
   payment_status: string;
@@ -78,7 +78,7 @@ interface OrderDetails {
 interface OrderDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  orderId: number | null;
+  orderId: string | null;  // UUID type
 }
 
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
