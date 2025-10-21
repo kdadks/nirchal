@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { X, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink, RefreshCw, FileText, Download } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
 import toast from 'react-hot-toast';
 import { useRazorpay } from '../../hooks/useRazorpay';
+import { useInvoices } from '../../hooks/useInvoices';
 
 interface OrderItem {
   id: number;
@@ -89,7 +90,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [retryingPayment, setRetryingPayment] = useState(false);
+  const [invoice, setInvoice] = useState<any>(null);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const { openCheckout, verifyPayment, isLoaded: razorpayLoaded } = useRazorpay();
+  const { checkInvoiceForOrder, downloadInvoiceById } = useInvoices();
 
   // Helper function to generate tracking URL
   const getTrackingUrl = (order: OrderDetails): string | null => {
@@ -108,6 +112,62 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       loadOrderDetails();
     }
   }, [isOpen, orderId]);
+
+  // Check for invoice availability when order is delivered
+  useEffect(() => {
+    const checkInvoice = async () => {
+      if (orderDetails && orderDetails.status === 'delivered') {
+        try {
+          const invoiceData = await checkInvoiceForOrder(orderDetails.id);
+          setInvoice(invoiceData);
+        } catch (error) {
+          console.error('Error checking invoice:', error);
+        }
+      }
+    };
+
+    checkInvoice();
+  }, [orderDetails?.id, orderDetails?.status]);
+
+  const handleDownloadInvoice = async () => {
+    if (!invoice || !orderDetails) return;
+
+    setDownloadingInvoice(true);
+    try {
+      const pdfBase64 = await downloadInvoiceById(invoice.id, orderDetails.id);
+      
+      if (!pdfBase64) {
+        toast.error('Invoice PDF not found');
+        return;
+      }
+
+      // Convert base64 to blob and download
+      const byteCharacters = atob(pdfBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Invoice_${invoice.invoice_number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Invoice downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      toast.error('Failed to download invoice');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   const loadOrderDetails = async () => {
     if (!orderId) return;
@@ -804,6 +864,43 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {/* Invoice Information */}
+              {orderDetails.status === 'delivered' && invoice && (
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-2">Invoice</h3>
+                  <div className="bg-gradient-to-br from-primary-50 to-amber-50 rounded-lg p-4 border border-primary-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-primary-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-1">Invoice Available</h4>
+                          <p className="text-sm text-gray-600 mb-1">
+                            Invoice Number: <span className="font-mono font-medium text-primary-700">{invoice.invoice_number}</span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Generated on {new Date(invoice.created_at).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleDownloadInvoice}
+                        disabled={downloadingInvoice}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
+                      >
+                        <Download className={`w-4 h-4 ${downloadingInvoice ? 'animate-bounce' : ''}`} />
+                        {downloadingInvoice ? 'Downloading...' : 'Download'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Tracking Information */}
               {(orderDetails.shipped_at || orderDetails.delivered_at || orderDetails.tracking_number) && (

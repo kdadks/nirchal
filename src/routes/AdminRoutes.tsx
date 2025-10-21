@@ -18,6 +18,7 @@ import UsersPage from '../pages/admin/UsersPage';
 import GuestVisitorsPage from '../pages/admin/GuestVisitorsPage';
 import AnalyticsPage from '../pages/admin/AnalyticsPage';
 import OptimizedAdminTest from '../components/admin/OptimizedAdminTest';
+import InvoiceManagementPanel from '../components/admin/InvoiceManagementPanel';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import { AdminProvider } from '../contexts/AdminContext';
 import { AdminSearchProvider } from '../contexts/AdminSearchContext';
@@ -40,6 +41,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/performance-test" element={<OptimizedAdminTest />} />
               <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/invoices" element={<InvoiceManagementPanel />} />
               <Route path="/abandoned-carts" element={<AbandonedCartsPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/guest-visitors" element={<GuestVisitorsPage />} />
