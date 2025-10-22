@@ -141,8 +141,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         return;
       }
 
+      // Clean the base64 string (remove any data URL prefix if present)
+      const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
+      
       // Convert base64 to blob and download
-      const byteCharacters = atob(pdfBase64);
+      const byteCharacters = atob(cleanBase64);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
@@ -525,6 +528,39 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </div>
           ) : orderDetails ? (
             <div className="space-y-4">
+              {/* Invoice Information */}
+              {orderDetails.status === 'delivered' && invoice && (
+                <div className="bg-gradient-to-br from-primary-50 to-amber-50 rounded-lg p-3 border border-primary-200">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-shrink-0 w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-primary-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          Invoice: <span className="font-mono text-primary-700">{invoice.invoice_number}</span>
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(invoice.created_at).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleDownloadInvoice}
+                      disabled={downloadingInvoice}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <Download className={`w-3.5 h-3.5 ${downloadingInvoice ? 'animate-bounce' : ''}`} />
+                      {downloadingInvoice ? 'Downloading...' : 'Download'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Order Status */}
               <div className="bg-gray-50 rounded-lg p-3">
                 <div className="flex items-center justify-between">
@@ -864,43 +900,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Invoice Information */}
-              {orderDetails.status === 'delivered' && invoice && (
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-2">Invoice</h3>
-                  <div className="bg-gradient-to-br from-primary-50 to-amber-50 rounded-lg p-4 border border-primary-200">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-primary-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-1">Invoice Available</h4>
-                          <p className="text-sm text-gray-600 mb-1">
-                            Invoice Number: <span className="font-mono font-medium text-primary-700">{invoice.invoice_number}</span>
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Generated on {new Date(invoice.created_at).toLocaleDateString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={handleDownloadInvoice}
-                        disabled={downloadingInvoice}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors shadow-sm hover:shadow-md"
-                      >
-                        <Download className={`w-4 h-4 ${downloadingInvoice ? 'animate-bounce' : ''}`} />
-                        {downloadingInvoice ? 'Downloading...' : 'Download'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Tracking Information */}
               {(orderDetails.shipped_at || orderDetails.delivered_at || orderDetails.tracking_number) && (

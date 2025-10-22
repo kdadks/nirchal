@@ -6,12 +6,14 @@ import {
   bulkRaiseInvoices,
   downloadInvoice,
   getInvoiceByOrderId,
+  deleteInvoice,
 } from '../services/invoiceService';
 
 interface UseInvoicesResult {
   generating: boolean;
   raising: boolean;
   downloading: boolean;
+  deleting: boolean;
   error: string | null;
   generateInvoiceForOrder: (orderId: string) => Promise<{
     success: boolean;
@@ -26,11 +28,12 @@ interface UseInvoicesResult {
   raiseInvoiceById: (invoiceId: string) => Promise<boolean>;
   raiseBulkInvoices: (invoiceIds: string[]) => Promise<{ success: boolean; count: number }>;
   downloadInvoiceById: (invoiceId: string, orderId?: string) => Promise<string | null>;
+  deleteInvoiceById: (invoiceId: string) => Promise<boolean>;
   checkInvoiceForOrder: (orderId: string) => Promise<{
     id: string;
     invoice_number: string;
     status: string;
-    generated_at: string;
+    created_at: string;
     raised_at: string | null;
   } | null>;
 }
@@ -39,6 +42,7 @@ export function useInvoices(): UseInvoicesResult {
   const [generating, setGenerating] = useState(false);
   const [raising, setRaising] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const generateInvoiceForOrder = async (orderId: string) => {
@@ -152,16 +156,36 @@ export function useInvoices(): UseInvoicesResult {
     }
   };
 
+  const deleteInvoiceById = async (invoiceId: string): Promise<boolean> => {
+    setDeleting(true);
+    setError(null);
+    try {
+      const result = await deleteInvoice(invoiceId);
+      if (!result.success) {
+        setError(result.message);
+      }
+      return result.success;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete invoice';
+      setError(message);
+      return false;
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return {
     generating,
     raising,
     downloading,
+    deleting,
     error,
     generateInvoiceForOrder,
     generateBulkInvoices,
     raiseInvoiceById,
     raiseBulkInvoices,
     downloadInvoiceById,
+    deleteInvoiceById,
     checkInvoiceForOrder,
   };
 }

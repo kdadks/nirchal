@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Send, CheckCircle, Clock, Search } from 'lucide-react';
+import { FileText, Send, CheckCircle, Clock, Search, Trash2 } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useInvoices } from '../../hooks/useInvoices';
-import InvoiceGenerationModal from './InvoiceGenerationModal';
-import { InvoicePDFPreviewModal } from './InvoicePDFPreviewModal';
 import { previewInvoice } from '../../services/invoiceService';
 import toast from 'react-hot-toast';
 
@@ -41,20 +39,21 @@ const InvoiceManagementPanel: React.FC = () => {
   const [selectedInvoices, setSelectedInvoices] = useState<Set<number>>(new Set());  // BIGSERIAL type
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [ordersToGenerate, setOrdersToGenerate] = useState<Order[]>([]);
-  
-  // PDF Preview Modal state
-  const [showPDFPreview, setShowPDFPreview] = useState(false);
-  const [previewPDFData, setPreviewPDFData] = useState<string | null>(null);
-  const [previewInvoiceNumber, setPreviewInvoiceNumber] = useState('');
   
   const { 
     generateBulkInvoices, 
     raiseBulkInvoices,
+    deleteInvoiceById,
     generating,
     raising 
   } = useInvoices();
+
+  useEffect(() => {
+    // Load all data on mount for badge counts
+    loadEligibleOrders();
+    loadGeneratedInvoices();
+    loadRaisedInvoices();
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -238,13 +237,8 @@ const InvoiceManagementPanel: React.FC = () => {
       return;
     }
 
-    // Get full order objects for selected IDs
-    const orders = eligibleOrders.filter(order => selectedOrders.has(order.id));
-    setOrdersToGenerate(orders);
-    setShowGenerateModal(true);
-  };
-
-  const handleConfirmGenerate = async (orderIds: string[]) => {
+    // Directly generate invoices without modal confirmation
+    const orderIds = Array.from(selectedOrders);
     const result = await generateBulkInvoices(orderIds);
     
     if (result.results) {
@@ -260,8 +254,6 @@ const InvoiceManagementPanel: React.FC = () => {
     }
 
     setSelectedOrders(new Set());
-    setShowGenerateModal(false);
-    setOrdersToGenerate([]);
     await loadEligibleOrders();
     await loadGeneratedInvoices();
   };
@@ -283,26 +275,96 @@ const InvoiceManagementPanel: React.FC = () => {
 
     setSelectedInvoices(new Set());
     await loadGeneratedInvoices();
+    await loadRaisedInvoices();
+  };
+
+  const handleDeleteInvoice = async (invoiceId: number, invoiceNumber: string) => {
+    // Show confirmation toast with action buttons
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <p className="font-medium">Delete invoice {invoiceNumber}?</p>
+        <p className="text-sm text-gray-600">This action cannot be undone.</p>
+        <div className="flex gap-2 justify-end">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              const loadingToast = toast.loading('Deleting invoice...');
+              const success = await deleteInvoiceById(invoiceId.toString());
+              toast.dismiss(loadingToast);
+              
+              if (success) {
+                toast.success('Invoice deleted successfully');
+                await loadGeneratedInvoices();
+                await loadEligibleOrders();
+              } else {
+                toast.error('Failed to delete invoice');
+              }
+            }}
+            className="px-3 py-1 text-sm bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 10000,
+      position: 'top-center',
+    });
   };
 
   const handlePreviewPDF = async (invoiceId: number, invoiceNumber: string) => {
     try {
-      setPreviewInvoiceNumber(invoiceNumber);
-      setPreviewPDFData(null);
-      setShowPDFPreview(true);
+      // Show loading toast
+      const loadingToast = toast.loading(`Loading invoice ${invoiceNumber}...`);
       
       const result = await previewInvoice(invoiceId.toString());
       
       if (result.success && result.pdf) {
-        setPreviewPDFData(result.pdf);
+        // Convert data URL to blob and open directly
+        try {
+          console.log('PDF generation timestamp:', new Date().toISOString());
+          console.log('PDF data length:', result.pdf.length);
+          
+          const base64Data = result.pdf.split(',')[1];
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          
+          console.log('Opening PDF in new window...');
+          
+          // Force new window with unique name to prevent caching
+          const timestamp = new Date().getTime();
+          const windowName = `invoice_${timestamp}`;
+          window.open(url, windowName);
+          
+          // Clean up the blob URL after a delay
+          setTimeout(() => {
+            URL.revokeObjectURL(url);
+          }, 5000);
+          
+          toast.success(`Invoice ${invoiceNumber} opened`, { id: loadingToast });
+        } catch (blobError) {
+          console.error('Error creating blob:', blobError);
+          toast.error('Failed to open PDF', { id: loadingToast });
+        }
       } else {
-        toast.error(result.message || 'Failed to load PDF preview');
-        setShowPDFPreview(false);
+        toast.error(result.message || 'Failed to load invoice PDF', { id: loadingToast });
       }
     } catch (error) {
       console.error('Error previewing PDF:', error);
       toast.error('Failed to preview invoice');
-      setShowPDFPreview(false);
     }
   };
 
@@ -575,6 +637,9 @@ const InvoiceManagementPanel: React.FC = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Generated On
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -611,6 +676,15 @@ const InvoiceManagementPanel: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {formatDate(invoice.created_at)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          <button
+                            onClick={() => handleDeleteInvoice(invoice.id, invoice.invoice_number)}
+                            className="text-red-600 hover:text-red-800 transition-colors"
+                            title="Delete invoice"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -696,29 +770,6 @@ const InvoiceManagementPanel: React.FC = () => {
           )}
         </>
       )}
-
-      {/* Invoice Generation Modal */}
-      <InvoiceGenerationModal
-        isOpen={showGenerateModal}
-        onClose={() => {
-          setShowGenerateModal(false);
-          setOrdersToGenerate([]);
-        }}
-        orders={ordersToGenerate}
-        onGenerate={handleConfirmGenerate}
-      />
-
-      {/* PDF Preview Modal */}
-      <InvoicePDFPreviewModal
-        isOpen={showPDFPreview}
-        onClose={() => {
-          setShowPDFPreview(false);
-          setPreviewPDFData(null);
-          setPreviewInvoiceNumber('');
-        }}
-        pdfDataUrl={previewPDFData}
-        invoiceNumber={previewInvoiceNumber}
-      />
     </div>
   );
 };

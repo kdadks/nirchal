@@ -1,5 +1,9 @@
 import { supabase, supabaseAdmin } from '../config/supabase';
-import jsPDF from 'jspdf';
+import pdfMake from 'pdfmake/build/pdfmake';
+import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+
+// Initialize pdfMake with fonts
+(pdfMake as any).vfs = pdfFonts;
 
 interface OrderData {
   id: string;  // UUID type
@@ -51,6 +55,42 @@ interface CompanySettings {
   store_email: string;
   store_address: string;
   gst_number: string;
+  pan_number?: string;
+}
+
+/**
+ * Helper function to fetch settings from key-value settings table
+ */
+async function getSettingsFromKeyValue(): Promise<CompanySettings | null> {
+  try {
+    const { data: settings, error } = await supabase
+      .from('settings')
+      .select('key, value, category')
+      .in('category', ['shop', 'billing']);
+
+    if (error || !settings) {
+      console.warn('Failed to fetch settings from key-value table:', error);
+      return null;
+    }
+
+    // Convert array to key-value map
+    const settingsMap: Record<string, string> = {};
+    settings.forEach((setting: any) => {
+      settingsMap[setting.key] = setting.value || '';
+    });
+
+    return {
+      store_name: settingsMap['store_name'] || settingsMap['company_name'] || 'Company Name',
+      store_address: settingsMap['store_address'] || settingsMap['billing_address'] || '',
+      store_phone: settingsMap['store_phone'] || '',
+      store_email: settingsMap['store_email'] || settingsMap['contact_email'] || '',
+      gst_number: settingsMap['gst_number'] || '',
+      pan_number: settingsMap['pan_number'] || '',
+    };
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    return null;
+  }
 }
 
 interface InvoiceData {
@@ -67,6 +107,8 @@ interface InvoiceData {
   };
   billingAddress: string;
   shippingAddress: string;
+  shippingName: string;
+  shippingPhone?: string;
   items: Array<{
     description: string;
     sku?: string;
@@ -163,7 +205,25 @@ async function getOrderDetails(orderId: string): Promise<OrderData | null> {
 /**
  * Format invoice data from order
  */
-function formatInvoiceData(order: OrderData, company: CompanySettings, invoiceNumber: string): InvoiceData {
+async function formatInvoiceData(order: OrderData, company: CompanySettings, invoiceNumber: string): Promise<InvoiceData> {
+  // Fetch GST settings from settings table
+  const { data: gstSettings } = await supabase
+    .from('settings')
+    .select('key, value')
+    .in('key', ['tax_rate', 'gst_enabled'])
+    .in('category', ['billing']);
+
+  const settingsMap: Record<string, string> = {};
+  gstSettings?.forEach((setting: any) => {
+    settingsMap[setting.key] = setting.value || '';
+  });
+
+  // Use settings values directly without defaults
+  const gstEnabled = settingsMap['gst_enabled'] === 'true';
+  const taxRate = gstEnabled && settingsMap['tax_rate'] ? Number(settingsMap['tax_rate']) : 0;
+  
+  console.log('GST Settings:', { gstEnabled, taxRate, settingsMap });
+
   const billingAddress = [
     order.billing_address_line_1,
     order.billing_address_line_2,
@@ -177,6 +237,9 @@ function formatInvoiceData(order: OrderData, company: CompanySettings, invoiceNu
     `${order.shipping_city}, ${order.shipping_state} ${order.shipping_postal_code}`,
     order.shipping_country,
   ].filter(Boolean).join('\n');
+
+  const shippingName = `${order.shipping_first_name} ${order.shipping_last_name}`;
+  const shippingPhone = order.shipping_phone;
 
   const items = order.order_items.map(item => {
     let description = item.product_name;
@@ -198,7 +261,7 @@ function formatInvoiceData(order: OrderData, company: CompanySettings, invoiceNu
   });
 
   const subtotal = order.subtotal;
-  const gstAmount = calculateGST(subtotal);
+  const gstAmount = gstEnabled ? calculateGST(subtotal, taxRate) : 0;
 
   return {
     invoiceNumber,
@@ -214,9 +277,11 @@ function formatInvoiceData(order: OrderData, company: CompanySettings, invoiceNu
     },
     billingAddress,
     shippingAddress,
+    shippingName,
+    shippingPhone,
     items,
     subtotal,
-    gstRate: GST_RATE,
+    gstRate: taxRate,
     gstAmount,
     shippingAmount: order.shipping_amount,
     discountAmount: order.discount_amount,
@@ -225,14 +290,15 @@ function formatInvoiceData(order: OrderData, company: CompanySettings, invoiceNu
 }
 
 /**
- * Generate PDF invoice
+ * Generate PDF invoice using pdfMake
  */
 async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, footerImageUrl?: string): Promise<string> {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  let yPos = 20;
-
+  console.log('PDF Generation with pdfMake - Version 2.0', {
+    margins: '40pt (1.4cm)',
+    tableWidths: ['*', 35, 70, 70],
+    timestamp: new Date().toISOString()
+  });
+  
   // Helper function to load image as base64
   const loadImageAsBase64 = async (url: string): Promise<string | null> => {
     try {
@@ -251,218 +317,237 @@ async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, fo
     }
   };
 
-  // Helper function to add text
-  const addText = (text: string, x: number, fontSize: number = 10, style: string = 'normal') => {
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', style);
-    doc.text(text, x, yPos);
-    yPos += fontSize * 0.5;
-  };
+  // Load images if provided
+  const headerImageData = headerImageUrl ? await loadImageAsBase64(headerImageUrl) : null;
+  const footerImageData = footerImageUrl ? await loadImageAsBase64(footerImageUrl) : null;
 
-  // Load header image if provided
-  let headerImageData: string | null = null;
-  if (headerImageUrl) {
-    headerImageData = await loadImageAsBase64(headerImageUrl);
-  }
+  // Prepare table rows
+  const tableBody: any[] = [
+    // Header row
+    [
+      { text: 'Description', style: 'tableHeader', bold: true },
+      { text: 'Qty', style: 'tableHeader', bold: true, alignment: 'center' },
+      { text: 'Unit Price', style: 'tableHeader', bold: true, alignment: 'right' },
+      { text: 'Amount', style: 'tableHeader', bold: true, alignment: 'right' }
+    ]
+  ];
 
-  // Header section with optional image
-  if (headerImageData) {
-    try {
-      // Add header image (adjust dimensions as needed)
-      doc.addImage(headerImageData, 'JPEG', 10, 5, pageWidth - 20, 30);
-      yPos = 40; // Start content after header image
-    } catch (error) {
-      console.warn('Failed to add header image:', error);
-      // Fallback to default header
-      doc.setFillColor(79, 70, 229); // Indigo
-      doc.rect(0, 0, pageWidth, 40, 'F');
-      doc.setTextColor(255, 255, 255);
-      addText(data.company.store_name, 20, 20, 'bold');
-      addText(data.company.store_address, 20, 10);
-      addText(`Phone: ${data.company.store_phone} | Email: ${data.company.store_email}`, 20, 9);
-      if (data.company.gst_number) {
-        addText(`GSTIN: ${data.company.gst_number}`, 20, 9);
-      }
-    }
-  } else {
-    // Default header - Company Info
-    doc.setFillColor(79, 70, 229); // Indigo
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    addText(data.company.store_name, 20, 20, 'bold');
-    addText(data.company.store_address, 20, 10);
-    addText(`Phone: ${data.company.store_phone} | Email: ${data.company.store_email}`, 20, 9);
-    if (data.company.gst_number) {
-      addText(`GSTIN: ${data.company.gst_number}`, 20, 9);
-    }
-  }
-
-  yPos = 50;
-  doc.setTextColor(0, 0, 0);
-
-  // Invoice Title
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text('TAX INVOICE', pageWidth / 2, yPos, { align: 'center' });
-  yPos += 15;
-
-  // Invoice Details
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Invoice No: ${data.invoiceNumber}`, 20, yPos);
-  doc.text(`Invoice Date: ${data.invoiceDate}`, pageWidth - 20, yPos, { align: 'right' });
-  yPos += 6;
-  doc.text(`Order No: ${data.orderNumber}`, 20, yPos);
-  doc.text(`Order Date: ${data.orderDate}`, pageWidth - 20, yPos, { align: 'right' });
-  yPos += 12;
-
-  // Bill To and Ship To
-  const colWidth = (pageWidth - 40) / 2;
-  
-  doc.setFont('helvetica', 'bold');
-  doc.text('Bill To:', 20, yPos);
-  doc.text('Ship To:', 20 + colWidth + 10, yPos);
-  yPos += 6;
-
-  doc.setFont('helvetica', 'normal');
-  const billLines = [
-    data.customer.name,
-    ...data.billingAddress.split('\n'),
-    data.customer.phone ? `Phone: ${data.customer.phone}` : '',
-    `Email: ${data.customer.email}`,
-  ].filter(Boolean);
-
-  const shipLines = [
-    data.shippingAddress.includes(data.customer.name) ? '' : data.customer.name,
-    ...data.shippingAddress.split('\n'),
-  ].filter(Boolean);
-
-  const maxLines = Math.max(billLines.length, shipLines.length);
-  for (let i = 0; i < maxLines; i++) {
-    if (billLines[i]) doc.text(billLines[i], 20, yPos, { maxWidth: colWidth - 5 });
-    if (shipLines[i]) doc.text(shipLines[i], 20 + colWidth + 10, yPos, { maxWidth: colWidth - 5 });
-    yPos += 5;
-  }
-  yPos += 10;
-
-  // Table Header
-  doc.setFillColor(240, 240, 240);
-  doc.rect(20, yPos - 6, pageWidth - 40, 8, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.text('Description', 22, yPos);
-  doc.text('Qty', pageWidth - 100, yPos, { align: 'center' });
-  doc.text('Unit Price', pageWidth - 70, yPos, { align: 'right' });
-  doc.text('Amount', pageWidth - 22, yPos, { align: 'right' });
-  yPos += 10;
-
-  // Table Items
-  doc.setFont('helvetica', 'normal');
-  data.items.forEach((item) => {
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-
-    const lines = doc.splitTextToSize(item.description, 100);
-    lines.forEach((line: string, lineIndex: number) => {
-      doc.text(line, 22, yPos);
-      if (lineIndex === 0) {
-        doc.text(item.quantity.toString(), pageWidth - 100, yPos, { align: 'center' });
-        doc.text(`₹${item.unitPrice.toFixed(2)}`, pageWidth - 70, yPos, { align: 'right' });
-        doc.text(`₹${item.amount.toFixed(2)}`, pageWidth - 22, yPos, { align: 'right' });
-      }
-      yPos += 5;
-    });
-
+  // Add items
+  data.items.forEach(item => {
+    const descriptionParts: any[] = [{ text: item.description, fontSize: 9, lineHeight: 1.3 }];
     if (item.sku) {
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(`SKU: ${item.sku}`, 22, yPos);
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      yPos += 6;
+      descriptionParts.push({ text: `\nSKU: ${item.sku}`, fontSize: 8, color: '#666666' });
     }
+
+    // Format currency without extra spaces
+    const formatCurrency = (amount: number) => `₹ ${amount.toFixed(2)}`;
+
+    tableBody.push([
+      descriptionParts,
+      { text: item.quantity.toString(), alignment: 'center', fontSize: 9 },
+      { text: formatCurrency(item.unitPrice), alignment: 'right', fontSize: 9, noWrap: true },
+      { text: formatCurrency(item.amount), alignment: 'right', fontSize: 9, noWrap: true }
+    ]);
   });
 
-  yPos += 5;
-  doc.line(20, yPos, pageWidth - 20, yPos);
-  yPos += 8;
+  // Document definition
+  const docDefinition: any = {
+    pageSize: 'A4',
+    pageMargins: [40, 40, 40, 40], // Standard 40 points margin (approx 1.4cm)
+    
+    header: headerImageData ? {
+      image: headerImageData,
+      width: 515, // A4 width (595) minus margins (80)
+      margin: [40, 20, 40, 0]
+    } : undefined,
 
-  // Totals
-  const totalsX = pageWidth - 90;
-  doc.text('Subtotal:', totalsX, yPos);
-  doc.text(`₹${data.subtotal.toFixed(2)}`, pageWidth - 22, yPos, { align: 'right' });
-  yPos += 6;
+    footer: footerImageData ? (_currentPage: number, _pageCount: number) => {
+      return {
+        image: footerImageData,
+        width: 515,
+        margin: [40, 0, 40, 20]
+      };
+    } : (_currentPage: number, _pageCount: number) => {
+      return {
+        columns: [
+          {
+            text: [
+              { text: 'Terms & Conditions:\n', fontSize: 9, bold: true },
+              { text: '1. This is a computer-generated invoice and does not require a signature.\n', fontSize: 8 },
+              { text: '2. Please check the items at the time of delivery.\n', fontSize: 8 },
+              { text: `3. For any queries, please contact us at ${data.company.store_email}`, fontSize: 8 }
+            ],
+            margin: [40, 10, 40, 20]
+          }
+        ]
+      };
+    },
 
-  doc.text(`GST (${data.gstRate}%):`, totalsX, yPos);
-  doc.text(`₹${data.gstAmount.toFixed(2)}`, pageWidth - 22, yPos, { align: 'right' });
-  yPos += 6;
+    content: [
+      // Header section (if no image)
+      ...(!headerImageData ? [{
+        table: {
+          widths: ['*'],
+          body: [[
+            {
+              stack: [
+                { text: data.company.store_name, fontSize: 18, bold: true, color: 'white' },
+                { text: data.company.store_address, fontSize: 9, color: 'white', margin: [0, 3, 0, 0] },
+                { text: `Phone: ${data.company.store_phone} | Email: ${data.company.store_email}`, fontSize: 9, color: 'white', margin: [0, 2, 0, 0] },
+                ...(data.company.gst_number ? [{ text: `GSTIN: ${data.company.gst_number}`, fontSize: 9, color: 'white', margin: [0, 2, 0, 0] }] : [])
+              ],
+              fillColor: '#4F46E5',
+              border: [false, false, false, false],
+              margin: [10, 10, 10, 10]
+            }
+          ]]
+        },
+        layout: 'noBorders',
+        margin: [0, 0, 0, 15]
+      }] : []),
 
-  if (data.shippingAmount > 0) {
-    doc.text('Shipping:', totalsX, yPos);
-    doc.text(`₹${data.shippingAmount.toFixed(2)}`, pageWidth - 22, yPos, { align: 'right' });
-    yPos += 6;
-  }
+      // Invoice title
+      { text: 'TAX INVOICE', fontSize: 24, bold: true, alignment: 'center', margin: [0, headerImageData ? 10 : 0, 0, 15] },
 
-  if (data.discountAmount > 0) {
-    doc.text('Discount:', totalsX, yPos);
-    doc.text(`-₹${data.discountAmount.toFixed(2)}`, pageWidth - 22, yPos, { align: 'right' });
-    yPos += 6;
-  }
+      // Invoice and Order details
+      {
+        columns: [
+          {
+            width: '*',
+            stack: [
+              { text: `Invoice No: ${data.invoiceNumber}`, fontSize: 10 },
+              { text: `Order No: ${data.orderNumber}`, fontSize: 10, margin: [0, 4, 0, 0] }
+            ]
+          },
+          {
+            width: '*',
+            stack: [
+              { text: `Invoice Date: ${data.invoiceDate}`, fontSize: 10, alignment: 'right' },
+              { text: `Order Date: ${data.orderDate}`, fontSize: 10, alignment: 'right', margin: [0, 4, 0, 0] }
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 12]
+      },
 
-  doc.setLineWidth(0.5);
-  doc.line(totalsX, yPos, pageWidth - 20, yPos);
-  yPos += 7;
+      // Bill To and Ship To
+      {
+        columns: [
+          {
+            width: '*',
+            stack: [
+              { text: 'Bill To:', fontSize: 11, bold: true, margin: [0, 0, 0, 4] },
+              { text: data.customer.name, fontSize: 9 },
+              { text: data.billingAddress, fontSize: 9, margin: [0, 2, 0, 0] },
+              ...(data.customer.phone ? [{ text: `Phone: ${data.customer.phone}`, fontSize: 9, margin: [0, 2, 0, 0] }] : []),
+              { text: `Email: ${data.customer.email}`, fontSize: 9, margin: [0, 2, 0, 0] }
+            ]
+          },
+          {
+            width: '*',
+            stack: [
+              { text: 'Ship To:', fontSize: 11, bold: true, margin: [0, 0, 0, 4] },
+              { text: data.shippingName, fontSize: 9 },
+              { text: data.shippingAddress, fontSize: 9, margin: [0, 2, 0, 0] },
+              ...(data.shippingPhone ? [{ text: `Phone: ${data.shippingPhone}`, fontSize: 9, margin: [0, 2, 0, 0] }] : [])
+            ]
+          }
+        ],
+        margin: [0, 0, 0, 15]
+      },
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text('Total:', totalsX, yPos);
-  doc.text(`₹${data.totalAmount.toFixed(2)}`, pageWidth - 22, yPos, { align: 'right' });
+      // Items table
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', 35, 70, 70], // Better column distribution
+          body: tableBody
+        },
+        layout: {
+          fillColor: (rowIndex: number) => (rowIndex === 0 ? '#F0F0F0' : null),
+          hLineWidth: () => 0.5,
+          vLineWidth: () => 0.5,
+          hLineColor: () => '#CCCCCC',
+          vLineColor: () => '#CCCCCC',
+          paddingLeft: () => 8,
+          paddingRight: () => 8,
+          paddingTop: () => 6,
+          paddingBottom: () => 6
+        },
+        margin: [0, 0, 0, 10]
+      },
 
-  // Footer section with optional image
-  
-  // Load footer image if provided
-  let footerImageData: string | null = null;
-  if (footerImageUrl) {
-    footerImageData = await loadImageAsBase64(footerImageUrl);
-  }
-
-  if (footerImageData) {
-    try {
-      // Add footer image
-      doc.addImage(footerImageData, 'JPEG', 10, pageHeight - 40, pageWidth - 20, 25);
-    } catch (error) {
-      console.warn('Failed to add footer image:', error);
-      // Fallback to default footer
-      yPos = pageHeight - 30;
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Terms & Conditions:', 20, yPos);
-      yPos += 5;
-      doc.setFontSize(8);
-      doc.text('1. This is a computer-generated invoice and does not require a signature.', 20, yPos);
-      yPos += 4;
-      doc.text('2. Please check the items at the time of delivery.', 20, yPos);
-      yPos += 4;
-      doc.text('3. For any queries, please contact us at ' + data.company.store_email, 20, yPos);
+      // Totals
+      {
+        columns: [
+          { width: '*', text: '' },
+          {
+            width: 220,
+            stack: [
+              {
+                columns: [
+                  { width: '*', text: 'Subtotal:', fontSize: 10 },
+                  { width: 90, text: `₹ ${data.subtotal.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                ],
+                margin: [0, 0, 0, 5]
+              },
+              {
+                columns: [
+                  { width: '*', text: `GST (${data.gstRate}%):`, fontSize: 10 },
+                  { width: 90, text: `₹ ${data.gstAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                ],
+                margin: [0, 0, 0, 5]
+              },
+              ...(data.shippingAmount > 0 ? [{
+                columns: [
+                  { width: '*', text: 'Shipping:', fontSize: 10 },
+                  { width: 90, text: `₹ ${data.shippingAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                ],
+                margin: [0, 0, 0, 5]
+              }] : []),
+              ...(data.discountAmount > 0 ? [{
+                columns: [
+                  { width: '*', text: 'Discount:', fontSize: 10 },
+                  { width: 90, text: `-₹ ${data.discountAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                ],
+                margin: [0, 0, 0, 5]
+              }] : []),
+              {
+                canvas: [{ type: 'line', x1: 0, y1: 0, x2: 220, y2: 0, lineWidth: 1 }],
+                margin: [0, 5, 0, 8]
+              },
+              {
+                columns: [
+                  { width: '*', text: 'Total Amount:', fontSize: 12, bold: true },
+                  { width: 90, text: `₹ ${data.totalAmount.toFixed(2)}`, fontSize: 12, bold: true, alignment: 'right', noWrap: true }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    
+    styles: {
+      tableHeader: {
+        fontSize: 10,
+        fillColor: '#F0F0F0'
+      }
     }
-  } else {
-    // Default text footer
-    yPos = pageHeight - 30;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Terms & Conditions:', 20, yPos);
-    yPos += 5;
-    doc.setFontSize(8);
-    doc.text('1. This is a computer-generated invoice and does not require a signature.', 20, yPos);
-    yPos += 4;
-    doc.text('2. Please check the items at the time of delivery.', 20, yPos);
-    yPos += 4;
-    doc.text('3. For any queries, please contact us at ' + data.company.store_email, 20, yPos);
-  }
+  };
 
-  // Generate base64
-  return doc.output('dataurlstring');
+  // Generate PDF and return as base64 data URL
+  return new Promise((resolve, reject) => {
+    try {
+      const pdfDocGenerator = pdfMake.createPdf(docDefinition);
+      pdfDocGenerator.getBase64((base64) => {
+        resolve(`data:application/pdf;base64,${base64}`);
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      reject(error);
+    }
+  });
 }
 
 /**
@@ -501,8 +586,13 @@ export async function generateInvoice(orderId: string): Promise<{
       };
     }
 
-    // Get company settings
-    const companySettings = await getCompanySettings();
+    // Get company settings from key-value settings table
+    let companySettings = await getSettingsFromKeyValue();
+    
+    // Fallback to old company_settings table if key-value settings not available
+    if (!companySettings) {
+      companySettings = await getCompanySettings();
+    }
 
     // Generate invoice number - use admin client for privileged operations
     const client = supabaseAdmin || supabase;
@@ -515,8 +605,8 @@ export async function generateInvoice(orderId: string): Promise<{
 
     const invoiceNumber = invoiceNumData as string;
 
-    // Format invoice data
-    const invoiceData = formatInvoiceData(orderData, companySettings, invoiceNumber);
+    // Format invoice data (now async to fetch GST settings)
+    const invoiceData = await formatInvoiceData(orderData, companySettings, invoiceNumber);
 
     // Generate PDF with optional header/footer images
     // TODO: Add settings to configure header/footer image URLs
@@ -554,6 +644,8 @@ export async function generateInvoice(orderId: string): Promise<{
           items: invoiceData.items,
           order_number: invoiceData.orderNumber,
           order_date: invoiceData.orderDate,
+          shipping_name: invoiceData.shippingName,
+          shipping_phone: invoiceData.shippingPhone,
         },
       })
       .select()
@@ -613,7 +705,8 @@ export async function raiseInvoice(invoiceId: string): Promise<{ success: boolea
  */
 export async function bulkRaiseInvoices(invoiceIds: string[]): Promise<{ success: boolean; message: string; count?: number }> {
   try {
-    const { data, error } = await supabase
+    const client = supabaseAdmin || supabase;
+    const { data, error } = await client
       .from('invoices')
       .update({
         status: 'raised',
@@ -646,6 +739,9 @@ export async function bulkRaiseInvoices(invoiceIds: string[]): Promise<{ success
  */
 export async function previewInvoice(invoiceId: string): Promise<{ success: boolean; message: string; pdf?: string }> {
   try {
+    console.log('Preview invoice called for ID:', invoiceId);
+    
+    // Get invoice details
     const { data: invoice, error } = await supabase
       .from('invoices')
       .select('*')
@@ -656,10 +752,57 @@ export async function previewInvoice(invoiceId: string): Promise<{ success: bool
       throw new Error('Invoice not found');
     }
 
+    // Get company settings from key-value settings table
+    let companySettings = await getSettingsFromKeyValue();
+    
+    // Fallback to invoice's stored company data if settings not available
+    if (!companySettings) {
+      companySettings = {
+        store_name: String(invoice.company_name || 'Company Name'),
+        store_address: String(invoice.company_address || ''),
+        store_phone: String(invoice.company_phone || ''),
+        store_email: String(invoice.company_email || ''),
+        gst_number: String(invoice.company_gst_number || ''),
+      };
+    }
+
+    // Reconstruct invoice data from stored metadata
+    const metadata = invoice.metadata as any;
+    const items = metadata?.items || [];
+    const invoiceData: InvoiceData = {
+      invoiceNumber: String(invoice.invoice_number),
+      invoiceDate: new Date(invoice.created_at as string).toLocaleDateString('en-IN'),
+      orderNumber: String(invoice.order_number),
+      orderDate: metadata?.order_date || new Date(invoice.created_at as string).toLocaleDateString('en-IN'),
+      company: companySettings,
+      customer: {
+        name: String(invoice.customer_name),
+        email: String(invoice.customer_email || ''),
+        phone: String(invoice.customer_phone || ''),
+      },
+      billingAddress: String(invoice.billing_address),
+      shippingAddress: String(invoice.shipping_address),
+      shippingName: String(metadata?.shipping_name || ''),
+      shippingPhone: String(metadata?.shipping_phone || ''),
+      items: items,
+      subtotal: Number(invoice.subtotal),
+      gstRate: Number(invoice.gst_rate),
+      gstAmount: Number(invoice.gst_amount),
+      shippingAmount: Number(invoice.shipping_amount || 0),
+      discountAmount: Number(invoice.discount_amount || 0),
+      totalAmount: Number(invoice.total_amount),
+    };
+
+    // Regenerate PDF with current pdfMake implementation
+    console.log('Regenerating PDF with pdfMake...');
+    const headerImageUrl = undefined; // Can be configured from settings
+    const footerImageUrl = undefined; // Can be configured from settings
+    const pdfBase64 = await generateInvoicePDF(invoiceData, headerImageUrl, footerImageUrl);
+
     return {
       success: true,
-      message: 'Invoice retrieved successfully',
-      pdf: typeof invoice.pdf_base64 === 'string' ? invoice.pdf_base64 : undefined,
+      message: 'Invoice preview generated successfully',
+      pdf: pdfBase64,
     };
   } catch (error) {
     console.error('Error previewing invoice:', error);
@@ -679,7 +822,7 @@ export async function downloadInvoice(invoiceId: string, orderId?: string): Prom
       .from('invoices')
       .select('*')
       .eq('id', invoiceId)
-      .eq('status', 'raised');
+      .in('status', ['raised', 'downloaded']);
 
     if (orderId) {
       query = query.eq('order_id', orderId);
@@ -691,16 +834,18 @@ export async function downloadInvoice(invoiceId: string, orderId?: string): Prom
       throw new Error('Invoice not found or not available');
     }
 
-    // Update downloaded status - use admin client for privileged operations
-    const client = supabaseAdmin || supabase;
-    await client
-      .from('invoices')
-      .update({
-        status: 'downloaded',
-        downloaded_at: new Date().toISOString(),
-      })
-      .eq('id', invoiceId)
-      .eq('status', 'raised');
+    // Update downloaded status only if it's currently 'raised' - use admin client for privileged operations
+    if (invoice.status === 'raised') {
+      const client = supabaseAdmin || supabase;
+      await client
+        .from('invoices')
+        .update({
+          status: 'downloaded',
+          downloaded_at: new Date().toISOString(),
+        })
+        .eq('id', invoiceId)
+        .eq('status', 'raised');
+    }
 
     return {
       success: true,
@@ -723,15 +868,17 @@ export async function getInvoiceByOrderId(orderId: string): Promise<{
   id: string;
   invoice_number: string;
   status: string;
-  generated_at: string;
+  created_at: string;
   raised_at: string | null;
 } | null> {
   try {
     const { data, error } = await supabase
       .from('invoices')
-      .select('id, invoice_number, status, generated_at, raised_at')
+      .select('id, invoice_number, status, created_at, raised_at')
       .eq('order_id', orderId)
-      .eq('status', 'raised')
+      .in('status', ['raised', 'downloaded'])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
 
     if (error || !data) {
@@ -742,7 +889,7 @@ export async function getInvoiceByOrderId(orderId: string): Promise<{
       id: String(data.id),
       invoice_number: String(data.invoice_number),
       status: String(data.status),
-      generated_at: String(data.generated_at),
+      created_at: String(data.created_at),
       raised_at: data.raised_at ? String(data.raised_at) : null,
     };
   } catch (error) {
@@ -778,4 +925,45 @@ export async function bulkGenerateInvoices(orderIds: string[]): Promise<{
     message: `${successCount} of ${orderIds.length} invoices generated successfully`,
     results,
   };
+}
+
+/**
+ * Delete a generated invoice
+ */
+export async function deleteInvoice(invoiceId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const client = supabaseAdmin || supabase;
+    
+    // Check if invoice is in 'generated' status (can only delete generated invoices, not raised ones)
+    const { data: invoice, error: fetchError } = await supabase
+      .from('invoices')
+      .select('status')
+      .eq('id', invoiceId)
+      .single();
+
+    if (fetchError || !invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    if (invoice.status !== 'generated') {
+      throw new Error('Can only delete invoices in "generated" status');
+    }
+
+    const { error } = await client
+      .from('invoices')
+      .delete()
+      .eq('id', invoiceId);
+
+    if (error) {
+      throw error;
+    }
+
+    return { success: true, message: 'Invoice deleted successfully' };
+  } catch (error) {
+    console.error('Error deleting invoice:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to delete invoice',
+    };
+  }
 }
