@@ -375,6 +375,15 @@ const InvoiceManagementPanel: React.FC = () => {
     }).format(amount);
   };
 
+  const formatCurrencyWhole = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -669,10 +678,10 @@ const InvoiceManagementPanel: React.FC = () => {
                           {invoice.customer_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {formatCurrency(invoice.total_amount)}
+                          {formatCurrencyWhole(invoice.total_amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {formatCurrency(invoice.gst_amount)}
+                          {formatCurrencyWhole(invoice.gst_amount)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {formatDate(invoice.created_at)}

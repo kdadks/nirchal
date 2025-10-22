@@ -127,10 +127,19 @@ interface InvoiceData {
 const GST_RATE = 18; // 18% GST
 
 /**
- * Calculate GST amount from subtotal
+ * Calculate GST amount from subtotal (Exclusive - GST added on top)
  */
 export function calculateGST(subtotal: number, rate: number = GST_RATE): number {
   return (subtotal * rate) / 100;
+}
+
+/**
+ * Calculate GST amount from total (Inclusive - GST is part of total)
+ */
+export function calculateGSTInclusive(totalAmount: number, rate: number = GST_RATE): number {
+  // If total includes GST, the formula is: GST = Total - (Total / (1 + rate/100))
+  // Or simplified: GST = (Total * rate) / (100 + rate)
+  return (totalAmount * rate) / (100 + rate);
 }
 
 /**
@@ -262,8 +271,12 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
     };
   });
 
+  // For inclusive GST calculation:
+  // If GST is enabled, the order.subtotal already includes GST
+  // We need to extract the GST amount from the subtotal
   const subtotal = order.subtotal;
-  const gstAmount = gstEnabled ? calculateGST(subtotal, taxRate) : 0;
+  const gstAmount = gstEnabled ? calculateGSTInclusive(subtotal, taxRate) : 0;
+  const subtotalBeforeGST = gstEnabled ? subtotal - gstAmount : subtotal;
 
   return {
     invoiceNumber,
@@ -282,12 +295,12 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
     shippingName,
     shippingPhone,
     items,
-    subtotal,
+    subtotal: subtotalBeforeGST,
     gstRate: taxRate,
     gstAmount,
     shippingAmount: order.shipping_amount,
     discountAmount: order.discount_amount,
-    totalAmount: subtotal + gstAmount + order.shipping_amount - order.discount_amount,
+    totalAmount: subtotal + order.shipping_amount - order.discount_amount,
   };
 }
 
@@ -529,6 +542,16 @@ async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, fo
         ]
       }
     ],
+    
+    watermark: {
+      text: 'Delivered',
+      color: '#9ACD32', // Olive light green (YellowGreen)
+      opacity: 0.15,
+      bold: true,
+      italics: false,
+      fontSize: 80,
+      angle: -45
+    },
     
     styles: {
       tableHeader: {
