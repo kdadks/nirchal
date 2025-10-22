@@ -119,6 +119,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       if (orderDetails && orderDetails.status === 'delivered') {
         try {
           const invoiceData = await checkInvoiceForOrder(orderDetails.id);
+          console.log('Invoice data for order:', orderDetails.id, invoiceData);
           setInvoice(invoiceData);
         } catch (error) {
           console.error('Error checking invoice:', error);

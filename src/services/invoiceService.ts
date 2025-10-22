@@ -209,9 +209,11 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
   // Fetch GST settings from settings table
   const { data: gstSettings } = await supabase
     .from('settings')
-    .select('key, value')
-    .in('key', ['tax_rate', 'gst_enabled'])
-    .in('category', ['billing']);
+    .select('key, value, category')
+    .eq('category', 'billing')
+    .in('key', ['tax_rate', 'enable_gst']);
+
+  console.log('Raw GST settings from DB:', gstSettings);
 
   const settingsMap: Record<string, string> = {};
   gstSettings?.forEach((setting: any) => {
@@ -219,7 +221,7 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
   });
 
   // Use settings values directly without defaults
-  const gstEnabled = settingsMap['gst_enabled'] === 'true';
+  const gstEnabled = settingsMap['enable_gst'] === 'true';
   const taxRate = gstEnabled && settingsMap['tax_rate'] ? Number(settingsMap['tax_rate']) : 0;
   
   console.log('GST Settings:', { gstEnabled, taxRate, settingsMap });
