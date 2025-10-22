@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../config/supabase';
 
+interface LocationInfo {
+  ip_address?: string;
+  city?: string;
+  country?: string;
+  country_code?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 interface VisitorInfo {
   visitor_id: string;
   browser: string;
@@ -8,6 +18,7 @@ interface VisitorInfo {
   device_type: string;
   screen_resolution: string;
   referrer: string;
+  location?: LocationInfo;
 }
 
 const VISITOR_COOKIE_NAME = 'nirchal_visitor_id';
@@ -76,6 +87,39 @@ const getReferrer = (): string => {
   return document.referrer || 'Direct';
 };
 
+// Check if running on localhost or development environment
+const isLocalhost = (): boolean => {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || 
+         hostname === '127.0.0.1' || 
+         hostname === '[::1]' ||
+         hostname.startsWith('192.168.') ||
+         hostname.startsWith('10.') ||
+         hostname.endsWith('.local');
+};
+
+// Fetch IP and location data from ipapi.co (free tier: 1000 requests/day)
+const fetchLocationData = async (): Promise<LocationInfo | null> => {
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    return {
+      ip_address: data.ip,
+      city: data.city,
+      country: data.country_name,
+      country_code: data.country_code,
+      region: data.region,
+      latitude: data.latitude,
+      longitude: data.longitude
+    };
+  } catch (error) {
+    console.warn('Failed to fetch location data:', error);
+    return null;
+  }
+};
+
 export const useVisitorTracking = () => {
   const visitorIdRef = useRef<string | null>(null);
   const [visitorId, setVisitorId] = useState<string | null>(null);
@@ -84,27 +128,36 @@ export const useVisitorTracking = () => {
   const hasTrackedRef = useRef<boolean>(false);
 
   useEffect(() => {
+    // Don't track if on localhost or development environment
+    if (isLocalhost()) {
+      console.log('Visitor tracking disabled on localhost');
+      return;
+    }
+
     // Get or create visitor ID
     visitorIdRef.current = getVisitorId();
     setVisitorId(visitorIdRef.current); // Set state to trigger re-render
 
-    // Gather visitor info
-    const visitorInfo: VisitorInfo = {
-      visitor_id: visitorIdRef.current,
-      browser: detectBrowser(),
-      os: detectOS(),
-      device_type: detectDeviceType(),
-      screen_resolution: getScreenResolution(),
-      referrer: getReferrer()
-    };
+    // Fetch location data and gather visitor info
+    const initTracking = async () => {
+      const locationData = await fetchLocationData();
+      
+      const visitorInfo: VisitorInfo = {
+        visitor_id: visitorIdRef.current!,
+        browser: detectBrowser(),
+        os: detectOS(),
+        device_type: detectDeviceType(),
+        screen_resolution: getScreenResolution(),
+        referrer: getReferrer(),
+        location: locationData || undefined
+      };
 
-    // Track initial visit
-    const trackVisit = async () => {
+      // Track initial visit
       if (hasTrackedRef.current) return;
 
       try {
         // Check if visitor exists
-        const { data: existingVisitor, error: fetchError } = await supabase
+        const { data: existingVisitor, error: fetchError} = await supabase
           .from('guest_visitors')
           .select('id, pages_visited, time_spent, visit_count')
           .eq('visitor_id', visitorInfo.visitor_id)
@@ -118,36 +171,62 @@ export const useVisitorTracking = () => {
         }
 
         if (existingVisitor) {
-          // Update existing visitor
+          // Update existing visitor with location data
+          const updateData: any = {
+            last_visit: new Date().toISOString(),
+            pages_visited: (Number(existingVisitor.pages_visited) || 0) + 1,
+            visit_count: (Number(existingVisitor.visit_count) || 0) + 1,
+            browser: visitorInfo.browser,
+            os: visitorInfo.os,
+            device_type: visitorInfo.device_type,
+            screen_resolution: visitorInfo.screen_resolution
+          };
+
+          // Add location data if available
+          if (visitorInfo.location) {
+            updateData.ip_address = visitorInfo.location.ip_address;
+            updateData.city = visitorInfo.location.city;
+            updateData.country = visitorInfo.location.country;
+            updateData.country_code = visitorInfo.location.country_code;
+            updateData.region = visitorInfo.location.region;
+            updateData.latitude = visitorInfo.location.latitude;
+            updateData.longitude = visitorInfo.location.longitude;
+          }
+
           await supabase
             .from('guest_visitors')
-            .update({
-              last_visit: new Date().toISOString(),
-              pages_visited: (Number(existingVisitor.pages_visited) || 0) + 1,
-              visit_count: (Number(existingVisitor.visit_count) || 0) + 1,
-              browser: visitorInfo.browser,
-              os: visitorInfo.os,
-              device_type: visitorInfo.device_type,
-              screen_resolution: visitorInfo.screen_resolution
-            })
+            .update(updateData)
             .eq('visitor_id', visitorInfo.visitor_id);
         } else {
-          // Create new visitor
+          // Create new visitor with location data
+          const insertData: any = {
+            visitor_id: visitorInfo.visitor_id,
+            browser: visitorInfo.browser,
+            os: visitorInfo.os,
+            device_type: visitorInfo.device_type,
+            screen_resolution: visitorInfo.screen_resolution,
+            referrer: visitorInfo.referrer,
+            pages_visited: 1,
+            visit_count: 1,
+            time_spent: 0,
+            first_visit: new Date().toISOString(),
+            last_visit: new Date().toISOString()
+          };
+
+          // Add location data if available
+          if (visitorInfo.location) {
+            insertData.ip_address = visitorInfo.location.ip_address;
+            insertData.city = visitorInfo.location.city;
+            insertData.country = visitorInfo.location.country;
+            insertData.country_code = visitorInfo.location.country_code;
+            insertData.region = visitorInfo.location.region;
+            insertData.latitude = visitorInfo.location.latitude;
+            insertData.longitude = visitorInfo.location.longitude;
+          }
+
           const { error: insertError } = await supabase
             .from('guest_visitors')
-            .insert({
-              visitor_id: visitorInfo.visitor_id,
-              browser: visitorInfo.browser,
-              os: visitorInfo.os,
-              device_type: visitorInfo.device_type,
-              screen_resolution: visitorInfo.screen_resolution,
-              referrer: visitorInfo.referrer,
-              pages_visited: 1,
-              visit_count: 1,
-              time_spent: 0,
-              first_visit: new Date().toISOString(),
-              last_visit: new Date().toISOString()
-            });
+            .insert(insertData);
 
           if (insertError) {
             // Silent fail - don't show errors to users
@@ -161,7 +240,7 @@ export const useVisitorTracking = () => {
       }
     };
 
-    trackVisit();
+    initTracking();
 
     // Track page views
     pageViewsRef.current++;

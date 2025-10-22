@@ -24,6 +24,9 @@ interface GuestVisitor {
   last_visit: string;
   info_captured: boolean;
   created_at: string;
+  city: string | null;
+  country: string | null;
+  ip_address: string | null;
 }
 
 const GuestVisitorsPage: React.FC = () => {
@@ -54,9 +57,12 @@ const GuestVisitorsPage: React.FC = () => {
           first_visit,
           last_visit,
           info_captured,
-          created_at
+          created_at,
+          city,
+          country,
+          ip_address
         `)
-        .order('last_visit', { ascending: false });
+        .order('last_visit', { ascending: false});
 
       if (error) throw error;
 
@@ -278,6 +284,11 @@ const GuestVisitorsPage: React.FC = () => {
                         <div className="text-xs text-gray-500">
                           {visitor.os} • {visitor.screen_resolution}
                         </div>
+                        {(visitor.city || visitor.country) && (
+                          <div className="text-xs text-gray-600 font-medium mt-1">
+                            📍 {[visitor.city, visitor.country].filter(Boolean).join(', ')}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
