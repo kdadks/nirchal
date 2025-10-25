@@ -256,10 +256,18 @@ const OrdersPage: React.FC = () => {
         await restoreInventoryForOrder(orderId);
       }
 
+      // Prepare update data
+      const updateData: any = { status: newStatus };
+      
+      // Set delivered_at timestamp when marking as delivered
+      if (newStatus === 'delivered') {
+        updateData.delivered_at = new Date().toISOString();
+      }
+
       // Update order status
       const { error } = await supabase
         .from('orders')
-        .update({ status: newStatus })
+        .update(updateData)
         .eq('id', orderId);
 
       if (error) throw error;
@@ -315,7 +323,11 @@ const OrdersPage: React.FC = () => {
       // Update local state
       setOrders(orders.map(order => 
         order.id === orderId 
-          ? { ...order, status: newStatus }
+          ? { 
+              ...order, 
+              status: newStatus,
+              ...(newStatus === 'delivered' ? { delivered_at: new Date().toISOString() } : {})
+            }
           : order
       ));
       

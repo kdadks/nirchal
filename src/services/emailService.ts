@@ -1,5 +1,12 @@
 import nodemailer from 'nodemailer';
 import { emailConfig } from '../config/email';
+import { ReturnRequestWithItems, RazorpayRefundTransaction } from '../types/return.types';
+import {
+  generateReturnAddressEmail,
+  generateReturnReceivedEmail,
+  generateInspectionCompleteEmail,
+  generateRefundProcessedEmail,
+} from '../templates/emails';
 
 // Email service for sending emails via Zoho SMTP
 class EmailService {
@@ -383,6 +390,187 @@ class EmailService {
       </body>
       </html>
     `;
+  }
+
+  // ============================================================================
+  // RETURN MANAGEMENT EMAILS
+  // ============================================================================
+
+  /**
+   * Send return address email to customer
+   */
+  async sendReturnAddressEmail(
+    returnRequest: ReturnRequestWithItems,
+    customerEmail: string,
+    customerName: string
+  ): Promise<boolean> {
+    const html = generateReturnAddressEmail({
+      returnRequest,
+      customerName,
+    });
+
+    return this.sendEmail({
+      to: customerEmail,
+      subject: `Return Shipping Address - Return #${returnRequest.return_number}`,
+      html,
+    });
+  }
+
+  /**
+   * Send return received confirmation email
+   */
+  async sendReturnReceivedEmail(
+    returnRequest: ReturnRequestWithItems,
+    customerEmail: string,
+    customerName: string,
+    receivedBy: string,
+    receivedDate: string
+  ): Promise<boolean> {
+    const html = generateReturnReceivedEmail({
+      returnRequest,
+      customerName,
+      receivedBy,
+      receivedDate,
+    });
+
+    return this.sendEmail({
+      to: customerEmail,
+      subject: `Return Package Received - Return #${returnRequest.return_number}`,
+      html,
+    });
+  }
+
+  /**
+   * Send inspection complete email with refund details
+   */
+  async sendInspectionCompleteEmail(
+    returnRequest: ReturnRequestWithItems,
+    customerEmail: string,
+    customerName: string,
+    inspectionDate: string,
+    inspectorNotes?: string
+  ): Promise<boolean> {
+    const html = generateInspectionCompleteEmail({
+      returnRequest,
+      customerName,
+      inspectionDate,
+      inspectorNotes,
+    });
+
+    const isApproved = returnRequest.status === 'approved';
+    const subject = isApproved
+      ? `Return Approved - Refund Processing - Return #${returnRequest.return_number}`
+      : `Inspection Complete - Return #${returnRequest.return_number}`;
+
+    return this.sendEmail({
+      to: customerEmail,
+      subject,
+      html,
+    });
+  }
+
+  /**
+   * Send refund processed confirmation email
+   */
+  async sendRefundProcessedEmail(
+    returnRequest: ReturnRequestWithItems,
+    customerEmail: string,
+    customerName: string,
+    refundTransaction: RazorpayRefundTransaction,
+    refundDate: string
+  ): Promise<boolean> {
+    const html = generateRefundProcessedEmail({
+      returnRequest,
+      customerName,
+      refundTransaction,
+      refundDate,
+    });
+
+    return this.sendEmail({
+      to: customerEmail,
+      subject: `Refund Processed - ₹${refundTransaction.refund_amount.toFixed(2)} Credited`,
+      html,
+    });
+  }
+
+  /**
+   * Helper: Send email for a specific return status change
+   * Automatically determines which email to send based on status
+   */
+  async sendReturnStatusChangeEmail(
+    returnRequest: ReturnRequestWithItems,
+    newStatus: string,
+    additionalData?: {
+      receivedBy?: string;
+      receivedDate?: string;
+      inspectionDate?: string;
+      inspectorNotes?: string;
+      refundTransaction?: RazorpayRefundTransaction;
+      refundDate?: string;
+    }
+  ): Promise<boolean> {
+    const customerEmail = returnRequest.customer_email || '';
+    const customerName = `${returnRequest.customer_first_name || ''} ${returnRequest.customer_last_name || ''}`.trim() || 'Customer';
+
+    if (!customerEmail) {
+      console.error('No customer email available for return notification');
+      return false;
+    }
+
+    try {
+      switch (newStatus) {
+        case 'pending_shipment':
+          // Send return address email (when admin adds address)
+          if (returnRequest.return_address_line1) {
+            return this.sendReturnAddressEmail(returnRequest, customerEmail, customerName);
+          }
+          console.warn('Return address not set, skipping email');
+          return false;
+
+        case 'received':
+          // Send received confirmation
+          return this.sendReturnReceivedEmail(
+            returnRequest,
+            customerEmail,
+            customerName,
+            additionalData?.receivedBy || 'Warehouse Team',
+            additionalData?.receivedDate || new Date().toLocaleDateString()
+          );
+
+        case 'approved':
+        case 'partially_approved':
+        case 'rejected':
+          // Send inspection results
+          return this.sendInspectionCompleteEmail(
+            returnRequest,
+            customerEmail,
+            customerName,
+            additionalData?.inspectionDate || new Date().toLocaleDateString(),
+            additionalData?.inspectorNotes
+          );
+
+        case 'refund_completed':
+          // Send refund confirmation
+          if (additionalData?.refundTransaction) {
+            return this.sendRefundProcessedEmail(
+              returnRequest,
+              customerEmail,
+              customerName,
+              additionalData.refundTransaction,
+              additionalData?.refundDate || new Date().toLocaleDateString()
+            );
+          }
+          console.warn('Refund transaction data not provided, skipping email');
+          return false;
+
+        default:
+          // No email for this status
+          return true;
+      }
+    } catch (error) {
+      console.error('Error sending return status change email:', error);
+      return false;
+    }
   }
 }
 

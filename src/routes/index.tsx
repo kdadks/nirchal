@@ -28,6 +28,7 @@ const CheckoutPage = lazyWithRetry(() => import('../pages/CheckoutPage'));
 const OrderConfirmationPage = lazyWithRetry(() => import('../pages/OrderConfirmationPage'));
 const AccountPage = lazyWithRetry(() => import('../pages/AccountPage'));
 const ResetPasswordPage = lazyWithRetry(() => import('../pages/ResetPasswordPage'));
+const ReturnRequestPage = lazyWithRetry(() => import('../pages/ReturnRequestPage'));
 
 // Footer Pages - Lazy loaded with error handling
 const AboutPage = lazyWithRetry(() => import('../pages/footer/AboutPage'));
@@ -58,6 +59,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
         <Route path="/myaccount" element={<AccountPage />} />
+        <Route path="/return-request" element={<ReturnRequestPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/auth-debug" element={<AuthDebug />} />
 

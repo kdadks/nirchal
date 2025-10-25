@@ -26,7 +26,8 @@ import {
   ChevronDown,
   ChevronRight,
   UserCheck,
-  Receipt
+  Receipt,
+  RotateCcw
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -120,6 +121,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       badge: null
     },
     {
+      name: 'Returns',
+      path: '/admin/returns',
+      icon: <RotateCcw className="admin-nav-icon" />,
+      badge: null
+    },
+    {
       name: 'Analytics',
       path: '/admin/analytics',
       icon: <BarChart3 className="admin-nav-icon" />,
@@ -168,6 +175,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     if (path.includes('/logistics-partners')) return 'logistics';
     if (path.includes('/abandoned-carts')) return 'abandoned-carts';
     if (path.includes('/orders')) return 'orders';
+    if (path.includes('/invoices')) return 'invoices';
+    if (path.includes('/returns')) return 'returns';
     if (path.includes('/guest-visitors')) return 'guest-visitors';
     if (path.includes('/users')) return 'users';
     if (path.includes('/analytics')) return 'analytics';

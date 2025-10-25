@@ -42,9 +42,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     }
 
     // Validate folder
-    if (!['products', 'categories'].includes(folder)) {
+    if (!['products', 'categories', 'returns'].includes(folder)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid folder. Must be "products" or "categories"' }),
+        JSON.stringify({ error: 'Invalid folder. Must be "products", "categories", or "returns"' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

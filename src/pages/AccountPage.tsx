@@ -10,6 +10,8 @@ import AddressModal from '../components/account/AddressModal';
 import EditProfileModal from '../components/account/EditProfileModal';
 import OrderDetailsModal from '../components/account/OrderDetailsModal';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
+import { ReturnRequestForm } from '../components/returns/ReturnRequestForm';
+import { CustomerReturnsTab } from '../components/account/CustomerReturnsTab';
 import SEO from '../components/SEO';
 import { 
   Heart, 
@@ -30,7 +32,8 @@ import {
   XCircle,
   Clock,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { formatDisplayDate } from '../utils/formatDate';
@@ -41,10 +44,12 @@ type OrderRow = {
   status: string;
   total_amount: number;
   created_at: string;
+  delivered_at?: string | null;
   payment_status?: string;
   razorpay_payment_id?: string;
   razorpay_order_id?: string;
   payment_details?: any;
+  has_return_request?: boolean; // Track if return request exists
 };
 
 type AddressRow = {
@@ -83,58 +88,79 @@ const AccountPage: React.FC = () => {
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);  // UUID type
   const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<Set<string>>(new Set());  // UUID type
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings'>('profile');
+  const [expandedReturnForms, setExpandedReturnForms] = useState<Set<string>>(new Set());  // UUID type for return forms
+  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'returns' | 'settings'>('profile');
   const location = useLocation();
 
   // Check URL parameters for tab selection
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tabParam = searchParams.get('tab');
-    if (tabParam && ['profile', 'orders', 'wishlist', 'reviews', 'addresses', 'settings'].includes(tabParam)) {
-      setActiveTab(tabParam as 'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'settings');
+    if (tabParam && ['profile', 'orders', 'wishlist', 'reviews', 'addresses', 'returns', 'settings'].includes(tabParam)) {
+      setActiveTab(tabParam as 'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'returns' | 'settings');
     }
   }, [location.search]);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!customer?.email) { 
-        setLoading(false); 
-        return; 
-      }
+  // Extract load function so it can be reused
+  const loadAccountData = async () => {
+    if (!customer?.email) { 
+      setLoading(false); 
+      return; 
+    }
 
-      try {
-        // Filter orders and addresses by current customer ID
-        const [ordersResult, addressesResult] = await Promise.all([
-          supabase.from('orders')
-            .select('id, order_number, status, total_amount, created_at, payment_status, razorpay_payment_id, razorpay_order_id, payment_details')
-            .eq('customer_id', customer.id)
-            .order('created_at', { ascending: false }),
-          supabase.from('customer_addresses')
-            .select('id, first_name, last_name, company, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, is_shipping, is_billing')
-            .eq('customer_id', customer.id)
-            .order('is_default', { ascending: false })
-        ]);
-        
-        if (ordersResult.error) {
-          console.error('Error loading orders:', ordersResult.error);
-          toast.error('Failed to load orders');
-        } else {
-          setOrders((ordersResult.data as any) || []);
-        }
-        
-        if (addressesResult.error) {
-          console.error('Error loading addresses:', addressesResult.error);
-          toast.error('Failed to load addresses');
-        } else {
-          setAddresses((addressesResult.data as any) || []);
-        }
-      } catch (error) {
-        console.error('Error loading account data:', error);
-        toast.error('Failed to load account data');
+    try {
+      // Filter orders and addresses by current customer ID
+      const [ordersResult, addressesResult] = await Promise.all([
+        supabase.from('orders')
+          .select(`
+            id, 
+            order_number, 
+            status, 
+            total_amount, 
+            created_at, 
+            delivered_at, 
+            payment_status, 
+            razorpay_payment_id, 
+            razorpay_order_id, 
+            payment_details,
+            return_requests!order_id(id)
+          `)
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false }),
+        supabase.from('customer_addresses')
+          .select('id, first_name, last_name, company, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, is_shipping, is_billing')
+          .eq('customer_id', customer.id)
+          .order('is_default', { ascending: false })
+      ]);
+      
+      if (ordersResult.error) {
+        console.error('Error loading orders:', ordersResult.error);
+        toast.error('Failed to load orders');
+      } else {
+        // Map the data to include has_return_request flag
+        const ordersWithReturnFlag = (ordersResult.data || []).map((order: any) => ({
+          ...order,
+          has_return_request: order.return_requests && order.return_requests.length > 0,
+          return_requests: undefined // Remove the nested data
+        }));
+        setOrders(ordersWithReturnFlag);
       }
-      setLoading(false);
-    };
-    load();
+      
+      if (addressesResult.error) {
+        console.error('Error loading addresses:', addressesResult.error);
+        toast.error('Failed to load addresses');
+      } else {
+        setAddresses((addressesResult.data as any) || []);
+      }
+    } catch (error) {
+      console.error('Error loading account data:', error);
+      toast.error('Failed to load account data');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadAccountData();
   }, [customer?.email, customer?.id]);
 
   const handleAddressEdit = (address: AddressRow) => {
@@ -296,6 +322,24 @@ const AccountPage: React.FC = () => {
     });
   };
 
+  const toggleReturnForm = (orderId: string) => {  // UUID type
+    setExpandedReturnForms(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleReturnSuccess = () => {
+    toast.success('Return request submitted successfully');
+    setExpandedReturnForms(new Set()); // Close all return forms
+    loadAccountData(); // Reload orders
+  };
+
   const handleEditProfile = () => {
     setShowEditProfileModal(true);
   };
@@ -347,6 +391,7 @@ const AccountPage: React.FC = () => {
   const sidebarItems = [
     { id: 'profile' as const, label: 'Profile', icon: User },
     { id: 'orders' as const, label: 'Orders', icon: Package, badge: orders.length },
+    { id: 'returns' as const, label: 'Returns', icon: RotateCcw },
     { id: 'wishlist' as const, label: 'Wishlist', icon: Heart, badge: wishlist.length },
     { id: 'reviews' as const, label: 'Reviews & Ratings', icon: Star, badge: totalReviews },
     { id: 'addresses' as const, label: 'Addresses', icon: MapPin },
@@ -619,6 +664,27 @@ const AccountPage: React.FC = () => {
                                     {order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}
                                   </span>
                                 )}
+                                {/* Request Return Button - Desktop */}
+                                {order.status === 'delivered' && order.payment_status === 'paid' && order.delivered_at && (
+                                  order.has_return_request ? (
+                                    <span className="px-2 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-600 flex items-center gap-1">
+                                      <CheckCircle size={10} />
+                                      Return Requested
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => toggleReturnForm(order.id)}
+                                      className={`px-2 py-1 text-xs font-medium rounded-md flex items-center gap-1 transition-colors ${
+                                        expandedReturnForms.has(order.id)
+                                          ? 'bg-orange-100 text-orange-800'
+                                          : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                                      }`}
+                                    >
+                                      <RotateCcw size={10} />
+                                      Return
+                                    </button>
+                                  )
+                                )}
                               </div>
                             </div>
 
@@ -662,7 +728,47 @@ const AccountPage: React.FC = () => {
                                   ₹{order.total_amount?.toLocaleString()}
                                 </span>
                               </div>
+                              {/* Request Return Button - Mobile */}
+                              {order.status === 'delivered' && order.payment_status === 'paid' && order.delivered_at && (
+                                order.has_return_request ? (
+                                  <div className="w-full px-3 py-1.5 text-xs font-medium rounded-md flex items-center justify-center gap-1 bg-gray-100 text-gray-600">
+                                    <CheckCircle size={12} />
+                                    Return Requested
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => toggleReturnForm(order.id)}
+                                    className={`w-full px-3 py-1.5 text-xs font-medium rounded-md flex items-center justify-center gap-1 transition-colors ${
+                                      expandedReturnForms.has(order.id)
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                                    }`}
+                                  >
+                                    <RotateCcw size={12} />
+                                    Request Return
+                                  </button>
+                                )
+                              )}
                             </div>
+
+                            {/* Return Request Form - Inline */}
+                            {expandedReturnForms.has(order.id) && order.delivered_at && customer && !order.has_return_request && (
+                              <div className="mt-4 border-t pt-4">
+                                <ReturnRequestForm
+                                  isOpen={true}
+                                  onClose={() => toggleReturnForm(order.id)}
+                                  order={{
+                                    id: order.id,
+                                    order_number: order.order_number,
+                                    total_amount: order.total_amount,
+                                    delivered_at: order.delivered_at,
+                                    order_items: []
+                                  }}
+                                  onSuccess={handleReturnSuccess}
+                                  inline={true}
+                                />
+                              </div>
+                            )}
 
                             {/* Payment History Section */}
                             {(order.payment_status || order.razorpay_payment_id) && (
@@ -985,6 +1091,13 @@ const AccountPage: React.FC = () => {
                         ))}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Returns Tab */}
+                {activeTab === 'returns' && (
+                  <div className="p-6">
+                    <CustomerReturnsTab />
                   </div>
                 )}
 

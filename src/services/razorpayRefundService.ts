@@ -1,0 +1,444 @@
+/**
+ * Razorpay Refund Service
+ * 
+ * This service handles automatic refund processing via Razorpay API
+ * for approved return requests.
+ * 
+ * Features:
+ * - Create full or partial refunds
+ * - Check refund status
+ * - Handle refund webhooks
+ * - Update database with refund details
+ */
+
+import { supabase } from '../config/supabase';
+import type { RazorpayRefundResponse } from '../types/razorpay-refund.types';
+
+// Refund status type based on database schema
+type RefundStatus = 'pending' | 'initiated' | 'processed' | 'failed';
+
+// Database transaction type based on schema
+interface RazorpayRefundTransaction {
+  id: string;
+  return_request_id: string;
+  order_id: string;
+  transaction_number: string;
+  refund_amount: number;
+  razorpay_payment_id: string;
+  razorpay_refund_id: string | null;
+  razorpay_order_id: string | null;
+  status: RefundStatus;
+  razorpay_response: any;
+  razorpay_speed: string | null;
+  razorpay_status: string | null;
+  initiated_at: string | null;
+  processed_at: string | null;
+  failed_at: string | null;
+  failure_reason: string | null;
+  initiated_by: string | null;
+  original_amount: number;
+  deduction_amount: number;
+  deduction_details: any;
+  notes: string | null;
+  created_at: string;
+}
+
+interface CreateRefundParams {
+  returnRequestId: string;
+  paymentId: string;
+  amount: number; // Amount in rupees
+  notes?: Record<string, string>;
+}
+
+interface RefundStatusResponse {
+  status: RefundStatus;
+  refundId?: string;
+  amount?: number;
+  createdAt?: string;
+  error?: string;
+}
+
+/**
+ * Create a refund via Razorpay API (called via serverless function)
+ */
+export async function createRefund(params: CreateRefundParams): Promise<{
+  success: boolean;
+  refundId?: string;
+  transactionNumber?: string;
+  error?: string;
+}> {
+  const { returnRequestId, paymentId, amount, notes } = params;
+
+  try {
+    console.log(`[Refund Service] Creating refund for return: ${returnRequestId}`);
+
+    // Get return request details to get order_id
+    const { data: returnRequest, error: fetchError } = await supabase
+      .from('return_requests')
+      .select('order_id, original_amount')
+      .eq('id', returnRequestId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Convert rupees to paise (Razorpay uses smallest currency unit)
+    const amountInPaise = Math.round(amount * 100);
+
+    // Call serverless function to create refund
+    const response = await fetch('/functions/create-razorpay-refund', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        payment_id: paymentId,
+        amount: amountInPaise,
+        notes: {
+          return_request_id: returnRequestId,
+          ...notes,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create refund');
+    }
+
+    const data: RazorpayRefundResponse = await response.json();
+
+    // Calculate deduction
+    const originalAmount = (returnRequest.original_amount as number) || amount;
+    const deductionAmount = originalAmount - amount;
+
+    // Get current user ID for initiated_by
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Save refund transaction to database (let DB generate transaction_number)
+    const { data: transaction, error: dbError } = await supabase
+      .from('razorpay_refund_transactions')
+      .insert({
+        return_request_id: returnRequestId,
+        order_id: returnRequest.order_id,
+        razorpay_payment_id: paymentId,
+        razorpay_refund_id: data.id,
+        refund_amount: amount,
+        status: data.status === 'pending' ? 'initiated' : data.status,
+        razorpay_response: data,
+        razorpay_status: data.status,
+        razorpay_speed: data.speed_requested,
+        initiated_at: new Date().toISOString(),
+        initiated_by: user?.id || null,
+        original_amount: originalAmount,
+        deduction_amount: deductionAmount,
+        notes: notes ? JSON.stringify(notes) : null,
+      })
+      .select('transaction_number')
+      .single();
+
+    if (dbError) {
+      console.error('[Refund Service] Failed to save refund transaction:', dbError);
+      // Don't throw error - refund was created, just log the DB error
+    }
+
+    // Update return request status
+    const { error: updateError } = await supabase
+      .from('return_requests')
+      .update({
+        status: 'refund_initiated',
+        razorpay_refund_id: data.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', returnRequestId);
+
+    if (updateError) {
+      console.error('[Refund Service] Failed to update return request:', updateError);
+    }
+
+    // Add status history
+    await supabase.from('return_status_history').insert({
+      return_request_id: returnRequestId,
+      status: 'refund_initiated',
+      notes: `Refund initiated: ${transaction?.transaction_number || data.id}`,
+      created_by: user?.id || null,
+    });
+
+    console.log(`[Refund Service] Refund created successfully: ${data.id}`);
+
+    return {
+      success: true,
+      refundId: data.id,
+      transactionNumber: transaction?.transaction_number as string | undefined,
+    };
+  } catch (error) {
+    console.error('[Refund Service] Error creating refund:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create refund',
+    };
+  }
+}
+
+/**
+ * Get refund status from database
+ */
+export async function getRefundStatus(returnRequestId: string): Promise<RefundStatusResponse> {
+  try {
+    const { data, error } = await supabase
+      .from('razorpay_refund_transactions')
+      .select('status, razorpay_refund_id, refund_amount, created_at')
+      .eq('return_request_id', returnRequestId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No refund found
+        return {
+          status: 'pending',
+          error: 'No refund transaction found',
+        };
+      }
+      throw error;
+    }
+
+    return {
+      status: data.status as RefundStatus,
+      refundId: (data.razorpay_refund_id as string | null) || undefined,
+      amount: data.refund_amount as number,
+      createdAt: data.created_at as string,
+    };
+  } catch (error) {
+    console.error('[Refund Service] Error getting refund status:', error);
+    return {
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Failed to get refund status',
+    };
+  }
+}
+
+/**
+ * Check refund status from Razorpay API
+ */
+export async function checkRefundStatusFromRazorpay(
+  paymentId: string,
+  refundId: string
+): Promise<RefundStatusResponse> {
+  try {
+    const response = await fetch(`/functions/check-razorpay-refund-status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        payment_id: paymentId,
+        refund_id: refundId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to check refund status');
+    }
+
+    const data = await response.json();
+
+    return {
+      status: data.status,
+      refundId: data.id,
+      amount: data.amount / 100, // Convert paise to rupees
+      createdAt: new Date(data.created_at * 1000).toISOString(),
+    };
+  } catch (error) {
+    console.error('[Refund Service] Error checking refund status:', error);
+    return {
+      status: 'failed',
+      error: error instanceof Error ? error.message : 'Failed to check refund status',
+    };
+  }
+}
+
+/**
+ * Handle refund webhook from Razorpay
+ * This should be called from the webhook handler
+ */
+export async function handleRefundWebhook(webhookData: {
+  event: string;
+  payload: {
+    refund: {
+      entity: {
+        id: string;
+        payment_id: string;
+        amount: number;
+        status: string;
+        created_at: number;
+        notes?: Record<string, string>;
+      };
+    };
+  };
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { event, payload } = webhookData;
+    const refund = payload.refund.entity;
+
+    console.log(`[Refund Webhook] Received event: ${event} for refund: ${refund.id}`);
+
+    // Get return request ID from notes
+    const returnRequestId = refund.notes?.return_request_id;
+    if (!returnRequestId) {
+      console.error('[Refund Webhook] No return_request_id in refund notes');
+      return {
+        success: false,
+        error: 'Missing return_request_id in refund notes',
+      };
+    }
+
+    // Update refund transaction status in database
+    const { error: updateError } = await supabase
+      .from('razorpay_refund_transactions')
+      .update({
+        status: refund.status as RefundStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('razorpay_refund_id', refund.id);
+
+    if (updateError) {
+      console.error('[Refund Webhook] Failed to update refund transaction:', updateError);
+      throw updateError;
+    }
+
+    // Update return request status based on refund status
+    let returnStatus: string | undefined;
+    if (refund.status === 'processed') {
+      returnStatus = 'refund_completed';
+    } else if (refund.status === 'failed') {
+      returnStatus = 'approved'; // Reset to approved so admin can retry
+    }
+
+    if (returnStatus) {
+      const { error: returnUpdateError } = await supabase
+        .from('return_requests')
+        .update({
+          status: returnStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', returnRequestId);
+
+      if (returnUpdateError) {
+        console.error('[Refund Webhook] Failed to update return request:', returnUpdateError);
+      }
+
+      // Add status history entry
+      await supabase.from('return_status_history').insert({
+        return_request_id: returnRequestId,
+        status: returnStatus,
+        notes: `Refund ${refund.status} via webhook`,
+        created_by: 'system', // System-generated update
+      });
+    }
+
+    console.log(`[Refund Webhook] Successfully processed webhook for refund: ${refund.id}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('[Refund Webhook] Error handling webhook:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to handle refund webhook',
+    };
+  }
+}
+
+/**
+ * Get all refund transactions for a return request
+ */
+export async function getRefundTransactions(returnRequestId: string): Promise<{
+  success: boolean;
+  transactions?: RazorpayRefundTransaction[];
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('razorpay_refund_transactions')
+      .select('*')
+      .eq('return_request_id', returnRequestId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return {
+      success: true,
+      transactions: data as unknown as RazorpayRefundTransaction[],
+    };
+  } catch (error) {
+    console.error('[Refund Service] Error getting refund transactions:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get refund transactions',
+    };
+  }
+}
+
+/**
+ * Retry failed refund
+ */
+export async function retryFailedRefund(returnRequestId: string): Promise<{
+  success: boolean;
+  refundId?: string;
+  transactionNumber?: string;
+  error?: string;
+}> {
+  try {
+    // Get return request details
+    const { data: returnRequest, error: fetchError } = await supabase
+      .from('return_requests')
+      .select('final_refund_amount, razorpay_refund_id, order_id')
+      .eq('id', returnRequestId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const finalAmount = returnRequest.final_refund_amount as number;
+    const orderId = returnRequest.order_id as string;
+    const refundId = returnRequest.razorpay_refund_id as string | null;
+
+    if (!finalAmount) {
+      throw new Error('Final refund amount not set');
+    }
+
+    // Get order details to get payment ID
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('razorpay_payment_id')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError) throw orderError;
+
+    const paymentId = order.razorpay_payment_id as string;
+
+    if (!paymentId) {
+      throw new Error('Payment ID not found for this return request');
+    }
+
+    // Create new refund
+    return await createRefund({
+      returnRequestId,
+      paymentId,
+      amount: finalAmount,
+      notes: {
+        retry: 'true',
+        original_refund_id: refundId || '',
+      },
+    });
+  } catch (error) {
+    console.error('[Refund Service] Error retrying refund:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to retry refund',
+    };
+  }
+}
