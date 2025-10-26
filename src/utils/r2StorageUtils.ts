@@ -281,3 +281,57 @@ export async function migrateImageFromGitHubToR2(
     };
   }
 }
+
+/**
+ * Get optimized image URL with specified width
+ * Uses Cloudflare Image Resizing if available, otherwise returns original
+ * 
+ * @param imageUrl - Original R2 image URL
+ * @param _width - Desired width (e.g., 400, 800, 1200) - currently unused
+ * @param _quality - Image quality 1-100 (default: 85) - currently unused
+ * @returns Optimized image URL
+ */
+export function getOptimizedImageUrl(
+  imageUrl: string, 
+  _width?: number, 
+  _quality: number = 85
+): string {
+  if (!imageUrl) return imageUrl;
+  
+  // Only optimize R2 images
+  if (!isR2Url(imageUrl)) return imageUrl;
+  
+  // For now, return original URL since cdn-cgi/image might not be configured
+  // TODO: Enable Cloudflare Image Resizing on your domain
+  return imageUrl;
+  
+  /* Uncomment when Cloudflare Image Resizing is enabled:
+  try {
+    const url = new URL(imageUrl);
+    const imagePath = url.pathname;
+    
+    const params = [];
+    if (_width) params.push(`width=${_width}`);
+    params.push(`quality=${_quality}`);
+    params.push('format=auto');
+    
+    return `${url.origin}/cdn-cgi/image/${params.join(',')}${imagePath}`;
+  } catch {
+    return imageUrl;
+  }
+  */
+}
+
+/**
+ * Get srcset for responsive images
+ * @param imageUrl - Original image URL
+ * @returns srcset string with multiple sizes
+ */
+export function getImageSrcSet(imageUrl: string): string {
+  if (!imageUrl || !isR2Url(imageUrl)) return '';
+  
+  const sizes = [400, 800, 1200, 1600];
+  return sizes
+    .map(size => `${getOptimizedImageUrl(imageUrl, size)} ${size}w`)
+    .join(', ');
+}

@@ -136,8 +136,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const getDefaultAdjustedPrice = () => {
     if (!product.variants || product.variants.length === 0) return product.price;
-    const defaultSize = product.sizes[0] || undefined;
-    const defaultColor = product.colors[0] || undefined;
+    const defaultSize = product.sizes?.[0] || undefined;
+    const defaultColor = product.colors?.[0] || undefined;
     const match = product.variants.find(v => {
       const colorMatch = defaultColor ? v.color === defaultColor : true;
       const sizeMatch = defaultSize && defaultSize !== 'Free Size' ? v.size === defaultSize : true;
@@ -192,8 +192,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Navigate to product detail page for buy now
-    window.location.href = `/products/${product.slug}`;
+    // Open product detail page in new tab
+    window.open(`/products/${product.slug}`, '_blank', 'noopener,noreferrer');
   };
 
   return (

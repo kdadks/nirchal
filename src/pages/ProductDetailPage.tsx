@@ -11,6 +11,7 @@ import { useCategories } from '../hooks/useCategories';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 import ProductCard from '../components/product/ProductCard';
 import { format } from 'date-fns';
+import { getOptimizedImageUrl, getImageSrcSet } from '../utils/r2StorageUtils';
 import { 
   getSelectedProductStockInfo, 
   isSizeAvailable, 
@@ -599,23 +600,27 @@ const ProductDetailPage: React.FC = () => {
               >
                 {/* Main Image with Click to Open */}
                 <img
-                  src={product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
-                  srcSet={`${product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'} 1x, ${product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=2400&q=85'} 2x`}
+                  src={getOptimizedImageUrl(product.images[selectedImage], 1200) || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
+                  srcSet={getImageSrcSet(product.images[selectedImage])}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
                   alt={`${product.name}${selectedColor ? ` in ${selectedColor}` : ''}${selectedSize ? ` - ${selectedSize}` : ''} | ${product.category || 'Fashion'} | Buy Online at Nirchal`}
                   className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer product-image hw-accelerate"
                   loading="eager"
+                  decoding="async"
                   {...({ fetchpriority: 'high' } as any)}
                   style={{
                     imageRendering: 'auto',
                     filter: 'contrast(1.03) saturate(1.02) brightness(1.01)',
                   }}
                   onLoad={() => {
-                    // Preload other images in the background
-                    product.images.forEach((img, index) => {
-                      if (index !== selectedImage && index < 3) {
-                        const preloadImg = new Image();
-                        preloadImg.src = img;
-                      }
+                    // Preload next 2 images only
+                    const nextImages = [selectedImage + 1, selectedImage - 1]
+                      .filter(i => i >= 0 && i < product.images.length && i !== selectedImage)
+                      .slice(0, 2);
+                    
+                    nextImages.forEach(index => {
+                      const preloadImg = new Image();
+                      preloadImg.src = getOptimizedImageUrl(product.images[index], 1200);
                     });
                   }}
                 />
@@ -675,11 +680,11 @@ const ProductDetailPage: React.FC = () => {
                         }`}
                       >
                         <img
-                          src={image}
-                          srcSet={`${image} 1x, ${image}?w=320&q=85 2x`}
+                          src={getOptimizedImageUrl(image, 200)}
                           alt={`${product.name} view ${galleryIndex + 1}`}
                           className="w-full h-16 sm:h-20 object-cover product-image hw-accelerate"
                           loading="lazy"
+                          decoding="async"
                           style={{
                             imageRendering: 'auto',
                             filter: 'contrast(1.02) saturate(1.01)',
@@ -1249,6 +1254,8 @@ const ProductDetailPage: React.FC = () => {
               src={product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'}
               alt={product.name}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-pointer"
+              loading="eager"
+              decoding="async"
               onClick={closeImageModal}
             />
           </div>

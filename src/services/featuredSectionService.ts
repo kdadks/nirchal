@@ -37,9 +37,25 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               price,
               sale_price,
               product_images (
+                id,
                 image_url,
                 is_primary,
                 display_order
+              ),
+              variants:product_variants (
+                id,
+                size,
+                color,
+                color_hex,
+                sku,
+                price_adjustment,
+                swatch_image_id
+              ),
+              inventory (
+                id,
+                variant_id,
+                quantity,
+                low_stock_threshold
               )
             )
           `)
@@ -57,6 +73,12 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
           .map((item: any) => {
             const product = item.product as any;
             
+            // Create image lookup by ID for swatch matching
+            const imageById = (product.product_images || []).reduce((acc: any, img: any) => {
+              acc[img.id] = img.image_url;
+              return acc;
+            }, {});
+            
             // Transform product images to match ProductCard expectations
             const images = (product.product_images || [])
               .sort((a: any, b: any) => {
@@ -67,13 +89,63 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               })
               .map((img: any) => img.image_url);
 
+            // Map variants and add quantity from inventory
+            const variants = (product.variants || []).map((variant: any) => {
+              const inventoryItem = (product.inventory || []).find(
+                (inv: any) => inv.variant_id === variant.id
+              );
+              
+              return {
+                id: variant.id,
+                size: variant.size,
+                color: variant.color,
+                colorHex: variant.color_hex,
+                sku: variant.sku,
+                priceAdjustment: variant.price_adjustment,
+                swatchImageId: variant.swatch_image_id,
+                swatchImage: variant.swatch_image_id ? imageById[variant.swatch_image_id] : null,
+                quantity: inventoryItem?.quantity || 0,
+              };
+            });
+
+            // Extract unique sizes and colors from variants
+            const sizes = variants.length > 0 
+              ? Array.from(new Set(variants.map((v: any) => v.size).filter(Boolean)))
+              : [];
+            const colors = variants.length > 0
+              ? Array.from(new Set(variants.map((v: any) => v.color).filter(Boolean)))
+              : [];
+
+            // Calculate stock status from inventory
+            const stockStatus = (() => {
+              if (Array.isArray(product.inventory) && product.inventory.length > 0) {
+                const totalQuantity = product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+                const minThreshold = product.inventory.length > 0 
+                  ? Math.min(...product.inventory.map((inv: any) => inv.low_stock_threshold || 10))
+                  : 10;
+                
+                if (totalQuantity === 0) {
+                  return 'Out of Stock';
+                } else if (totalQuantity <= minThreshold) {
+                  return 'Low Stock';
+                } else {
+                  return 'In Stock';
+                }
+              }
+              return 'In Stock'; // Default if no inventory data
+            })();
+
             return {
               id: product.id,
               name: product.name,
               slug: product.slug,
-              price: product.price,
-              sale_price: product.sale_price,
+              price: product.sale_price || product.price,
+              originalPrice: product.sale_price ? product.price : undefined,
               images: images,
+              variants: variants,
+              sizes: sizes,
+              colors: colors,
+              stockStatus: stockStatus,
               display_order: item.display_order,
             };
           });
