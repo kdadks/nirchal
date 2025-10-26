@@ -427,7 +427,7 @@ class ReturnService {
     receivedBy: string
   ): Promise<{ data: ReturnRequest | null; error: Error | null }> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.db
         .from('return_requests')
         .update({
           status: 'received',
@@ -466,16 +466,14 @@ class ReturnService {
     try {
       // Update each item with inspection results
       const itemUpdates = input.inspection_results.map((result) =>
-        supabase
+        this.db
           .from('return_items')
           .update({
-            item_condition: result.item_condition,
-            inspection_notes: result.inspection_notes,
-            quality_issue_description: result.quality_issue_description,
-            deduction_percentage: result.deduction_percentage,
-            deduction_amount: result.deduction_amount,
-            approved_return_amount: result.approved_return_amount,
-            inspection_image_urls: result.inspection_image_urls || [],
+            condition_on_return: result.item_condition,
+            condition_notes: result.inspection_notes,
+            item_deduction_percentage: result.deduction_percentage,
+            item_deduction_amount: result.deduction_amount,
+            item_deduction_reason: result.quality_issue_description,
           })
           .eq('id', result.item_id)
       );
@@ -485,6 +483,8 @@ class ReturnService {
       const hasError = results.some((r) => r.error);
       if (hasError) {
         console.error('Error updating items during inspection');
+        const errorDetails = results.filter(r => r.error).map(r => r.error);
+        console.error('Item update errors:', JSON.stringify(errorDetails, null, 2));
         return { data: null, error: new Error('Failed to update inspection results') };
       }
 
@@ -506,26 +506,32 @@ class ReturnService {
       const allRejected = input.inspection_results.every(
         (item) => item.item_condition === 'not_received'
       );
+      const hasDeductions = totalDeductionAmount > 0;
 
       let newStatus: ReturnRequestStatus;
+      let inspectionStatus: 'passed' | 'failed' | 'partial_pass';
+      
       if (allRejected) {
         newStatus = 'rejected';
-      } else if (allApproved) {
+        inspectionStatus = 'failed';
+      } else if (allApproved && !hasDeductions) {
         newStatus = 'approved';
+        inspectionStatus = 'passed';
       } else {
         newStatus = 'partially_approved';
+        inspectionStatus = 'partial_pass';
       }
 
       // Update return request with inspection details
-      const { data, error } = await supabase
+      const { data, error } = await this.db
         .from('return_requests')
         .update({
           status: newStatus,
-          inspection_status: input.overall_status,
+          inspection_status: inspectionStatus,
           inspection_notes: input.inspection_notes,
           inspection_date: new Date().toISOString(),
           inspected_by: input.inspected_by,
-          approved_refund_amount: totalApprovedAmount,
+          calculated_refund_amount: totalApprovedAmount,
           deduction_amount: totalDeductionAmount,
           decision_date: new Date().toISOString(),
           decision_by: input.inspected_by,

@@ -16,6 +16,7 @@ import {
 import { supabase } from '../../config/supabase';
 import { returnService } from '../../services/returnService';
 import { returnEmailService } from '../../services/returnEmailService';
+import { createRefund } from '../../services/razorpayRefundService';
 import { ReturnRequestWithItems, ReturnRequestStatus } from '../../types/return.types';
 import { getStatusLabel, getStatusColor, formatDate } from '../../types/return.index';
 import toast from 'react-hot-toast';
@@ -29,8 +30,10 @@ const STATUS_FILTERS: { value: ReturnRequestStatus | 'all'; label: string; icon:
   { value: 'shipped_by_customer', label: 'In Transit', icon: <TruckIcon className="h-4 w-4" /> },
   { value: 'received', label: 'Received', icon: <Package className="h-4 w-4" /> },
   { value: 'under_inspection', label: 'Inspecting', icon: <Search className="h-4 w-4" /> },
-  { value: 'approved', label: 'Approved', icon: <CheckCircle className="h-4 w-4" /> },
+  { value: 'approved', label: 'Full Refund', icon: <CheckCircle className="h-4 w-4" /> },
+  { value: 'partially_approved', label: 'Partial Refund', icon: <CheckCircle className="h-4 w-4" /> },
   { value: 'rejected', label: 'Rejected', icon: <XCircle className="h-4 w-4" /> },
+  { value: 'refund_initiated', label: 'Refund Processing', icon: <RefreshCw className="h-4 w-4" /> },
   { value: 'refund_completed', label: 'Completed', icon: <CheckCircle className="h-4 w-4" /> },
 ];
 
@@ -53,6 +56,12 @@ export const ReturnManagementDashboard: React.FC = () => {
   const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditAddressModalOpen, setIsEditAddressModalOpen] = useState(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [refundDetails, setRefundDetails] = useState<{
+    paymentId: string;
+    amount: number;
+    paymentMethod: string;
+  } | null>(null);
 
   useEffect(() => {
     loadReturns();
@@ -319,6 +328,73 @@ export const ReturnManagementDashboard: React.FC = () => {
     loadStatistics();
   };
 
+  const handleInitiateRefund = async (returnRequest: ReturnRequestWithItems) => {
+    // Check if order has payment details
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('razorpay_payment_id, payment_method')
+      .eq('id', returnRequest.order_id)
+      .single();
+
+    if (orderError || !order) {
+      toast.error('Failed to fetch order payment details');
+      return;
+    }
+
+    if (!order.razorpay_payment_id) {
+      toast.error('No payment ID found for this order. Cannot process refund.');
+      return;
+    }
+
+    if (order.payment_method !== 'razorpay') {
+      toast.error('Only Razorpay payments can be refunded automatically. Please process manually.');
+      return;
+    }
+
+    // Determine refund amount
+    const refundAmount = returnRequest.calculated_refund_amount || returnRequest.original_order_amount;
+
+    // Open refund modal with details
+    setSelectedReturn(returnRequest);
+    setRefundDetails({
+      paymentId: order.razorpay_payment_id as string,
+      amount: refundAmount,
+      paymentMethod: order.payment_method as string,
+    });
+    setIsRefundModalOpen(true);
+  };
+
+  const handleConfirmRefund = async () => {
+    if (!selectedReturn || !refundDetails) return;
+
+    setIsRefundModalOpen(false);
+
+    try {
+      const result = await createRefund({
+        returnRequestId: selectedReturn.id,
+        paymentId: refundDetails.paymentId,
+        amount: refundDetails.amount,
+        notes: {
+          return_number: selectedReturn.return_number,
+          reason: 'Return request approved',
+        },
+      });
+
+      if (result.success) {
+        toast.success('Refund initiated successfully!');
+        setSelectedReturn(null);
+        setRefundDetails(null);
+        loadReturns();
+        loadStatistics();
+      } else {
+        toast.error(result.error || 'Failed to initiate refund');
+      }
+    } catch (error: any) {
+      console.error('Error initiating refund:', error);
+      toast.error(error.message || 'An error occurred while initiating refund');
+    }
+  };
+
   const exportToCSV = () => {
     // TODO: Implement CSV export
     toast.success('Export functionality coming soon');
@@ -542,11 +618,11 @@ export const ReturnManagementDashboard: React.FC = () => {
                             {returnRequest.final_refund_amount
                               ? `₹${returnRequest.final_refund_amount.toFixed(2)}`
                               : returnRequest.calculated_refund_amount
-                              ? `₹${returnRequest.calculated_refund_amount.toFixed(2)} (Est.)`
+                              ? `₹${returnRequest.calculated_refund_amount.toFixed(2)}`
                               : returnRequest.return_items && returnRequest.return_items.length > 0
                               ? `₹${returnRequest.return_items
                                   .reduce((sum, item) => sum + item.total_price, 0)
-                                  .toFixed(2)} (Items)`
+                                  .toFixed(2)} (Est.)`
                               : '-'}
                           </div>
                         </td>
@@ -577,6 +653,17 @@ export const ReturnManagementDashboard: React.FC = () => {
                               </button>
                             )}
 
+                            {(returnRequest.status === 'approved' || returnRequest.status === 'partially_approved') && (
+                              <button
+                                onClick={() => handleInitiateRefund(returnRequest)}
+                                className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs flex items-center gap-1"
+                                title="Initiate refund to original payment method"
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                                Refund
+                              </button>
+                            )}
+
                             <button
                               onClick={() => openDetailsModal(returnRequest)}
                               className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -585,13 +672,16 @@ export const ReturnManagementDashboard: React.FC = () => {
                               <Eye className="h-4 w-4" />
                             </button>
 
-                            <button
-                              onClick={() => openEditAddressModal(returnRequest)}
-                              className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
-                              title="Edit Return Address"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
+                            {/* Hide Edit button if Refund button is shown */}
+                            {!(returnRequest.status === 'approved' || returnRequest.status === 'partially_approved') && (
+                              <button
+                                onClick={() => openEditAddressModal(returnRequest)}
+                                className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                                title="Edit Return Address"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            )}
 
                             {/* Smart Email Button - sends different emails based on status */}
                             {returnRequest.status !== 'refund_completed' && (
@@ -712,6 +802,124 @@ export const ReturnManagementDashboard: React.FC = () => {
             loadReturns();
           }}
         />
+      )}
+
+      {/* Refund Confirmation Modal */}
+      {isRefundModalOpen && selectedReturn && refundDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Initiate Refund</h3>
+                <button
+                  onClick={() => {
+                    setIsRefundModalOpen(false);
+                    setSelectedReturn(null);
+                    setRefundDetails(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Return Details */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Return Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Return Number:</span>
+                      <span className="font-medium text-gray-900">{selectedReturn.return_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Order Number:</span>
+                      <span className="font-medium text-gray-900">{selectedReturn.order_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Customer:</span>
+                      <span className="font-medium text-gray-900">
+                        {selectedReturn.customer_first_name} {selectedReturn.customer_last_name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedReturn.status)}`}>
+                        {getStatusLabel(selectedReturn.status)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-700 mb-2">Payment Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Payment Method:</span>
+                      <span className="font-medium text-gray-900 uppercase">{refundDetails.paymentMethod}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Payment ID:</span>
+                      <span className="font-mono text-xs text-gray-900">{refundDetails.paymentId}</span>
+                    </div>
+                    {selectedReturn.original_order_amount !== refundDetails.amount && (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Original Amount:</span>
+                          <span className="text-gray-900">₹{selectedReturn.original_order_amount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Deduction:</span>
+                          <span className="text-red-600">
+                            -₹{(selectedReturn.original_order_amount - refundDetails.amount).toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Refund Amount - Highlighted */}
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold text-green-900">Refund Amount:</span>
+                    <span className="text-2xl font-bold text-green-600">
+                      ₹{refundDetails.amount.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Warning */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Note:</strong> This will initiate an automatic refund to the customer's original payment method via Razorpay. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setIsRefundModalOpen(false);
+                    setSelectedReturn(null);
+                    setRefundDetails(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmRefund}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                >
+                  Confirm & Initiate Refund
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

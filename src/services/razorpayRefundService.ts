@@ -11,7 +11,7 @@
  * - Update database with refund details
  */
 
-import { supabase } from '../config/supabase';
+import { supabase, supabaseAdmin } from '../config/supabase';
 import type { RazorpayRefundResponse } from '../types/razorpay-refund.types';
 
 // Refund status type based on database schema
@@ -59,6 +59,11 @@ interface RefundStatusResponse {
 }
 
 /**
+ * Get database client - use admin client to bypass RLS
+ */
+const getDbClient = () => supabaseAdmin || supabase;
+
+/**
  * Create a refund via Razorpay API (called via serverless function)
  */
 export async function createRefund(params: CreateRefundParams): Promise<{
@@ -72,10 +77,12 @@ export async function createRefund(params: CreateRefundParams): Promise<{
   try {
     console.log(`[Refund Service] Creating refund for return: ${returnRequestId}`);
 
+    const db = getDbClient();
+
     // Get return request details to get order_id
-    const { data: returnRequest, error: fetchError } = await supabase
+    const { data: returnRequest, error: fetchError } = await db
       .from('return_requests')
-      .select('order_id, original_amount')
+      .select('order_id, original_order_amount')
       .eq('id', returnRequestId)
       .single();
 
@@ -84,8 +91,10 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     // Convert rupees to paise (Razorpay uses smallest currency unit)
     const amountInPaise = Math.round(amount * 100);
 
+    console.log(`[Refund Service] Initiating refund: ₹${amount} (${amountInPaise} paise)`);
+
     // Call serverless function to create refund
-    const response = await fetch('/functions/create-razorpay-refund', {
+    const response = await fetch('/api/create-razorpay-refund', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,22 +109,35 @@ export async function createRefund(params: CreateRefundParams): Promise<{
       }),
     });
 
+    console.log(`[Refund Service] Response status: ${response.status}`);
+
+    // Get response text first
+    const responseText = await response.text();
+    console.log(`[Refund Service] Response text:`, responseText);
+
+    // Parse JSON from text
+    let data: RazorpayRefundResponse;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error('[Refund Service] Invalid JSON response:', responseText);
+      throw new Error(`Invalid response from refund API: ${responseText.substring(0, 100)}`);
+    }
+
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = data as any;
       throw new Error(errorData.error || 'Failed to create refund');
     }
 
-    const data: RazorpayRefundResponse = await response.json();
-
     // Calculate deduction
-    const originalAmount = (returnRequest.original_amount as number) || amount;
+    const originalAmount = (returnRequest.original_order_amount as number) || amount;
     const deductionAmount = originalAmount - amount;
 
     // Get current user ID for initiated_by
     const { data: { user } } = await supabase.auth.getUser();
 
     // Save refund transaction to database (let DB generate transaction_number)
-    const { data: transaction, error: dbError } = await supabase
+    const { data: transaction, error: dbError } = await db
       .from('razorpay_refund_transactions')
       .insert({
         return_request_id: returnRequestId,
@@ -142,7 +164,7 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     }
 
     // Update return request status
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from('return_requests')
       .update({
         status: 'refund_initiated',
@@ -156,7 +178,7 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     }
 
     // Add status history
-    await supabase.from('return_status_history').insert({
+    await db.from('return_status_history').insert({
       return_request_id: returnRequestId,
       status: 'refund_initiated',
       notes: `Refund initiated: ${transaction?.transaction_number || data.id}`,
@@ -184,7 +206,8 @@ export async function createRefund(params: CreateRefundParams): Promise<{
  */
 export async function getRefundStatus(returnRequestId: string): Promise<RefundStatusResponse> {
   try {
-    const { data, error } = await supabase
+    const db = getDbClient();
+    const { data, error } = await db
       .from('razorpay_refund_transactions')
       .select('status, razorpay_refund_id, refund_amount, created_at')
       .eq('return_request_id', returnRequestId)
@@ -294,8 +317,10 @@ export async function handleRefundWebhook(webhookData: {
       };
     }
 
+    const db = getDbClient();
+
     // Update refund transaction status in database
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from('razorpay_refund_transactions')
       .update({
         status: refund.status as RefundStatus,
@@ -317,7 +342,7 @@ export async function handleRefundWebhook(webhookData: {
     }
 
     if (returnStatus) {
-      const { error: returnUpdateError } = await supabase
+      const { error: returnUpdateError } = await db
         .from('return_requests')
         .update({
           status: returnStatus,
@@ -330,7 +355,7 @@ export async function handleRefundWebhook(webhookData: {
       }
 
       // Add status history entry
-      await supabase.from('return_status_history').insert({
+      await db.from('return_status_history').insert({
         return_request_id: returnRequestId,
         status: returnStatus,
         notes: `Refund ${refund.status} via webhook`,
@@ -361,7 +386,8 @@ export async function getRefundTransactions(returnRequestId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { data, error } = await supabase
+    const db = getDbClient();
+    const { data, error } = await db
       .from('razorpay_refund_transactions')
       .select('*')
       .eq('return_request_id', returnRequestId)
@@ -392,8 +418,10 @@ export async function retryFailedRefund(returnRequestId: string): Promise<{
   error?: string;
 }> {
   try {
+    const db = getDbClient();
+
     // Get return request details
-    const { data: returnRequest, error: fetchError } = await supabase
+    const { data: returnRequest, error: fetchError } = await db
       .from('return_requests')
       .select('final_refund_amount, razorpay_refund_id, order_id')
       .eq('id', returnRequestId)
@@ -410,7 +438,7 @@ export async function retryFailedRefund(returnRequestId: string): Promise<{
     }
 
     // Get order details to get payment ID
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await db
       .from('orders')
       .select('razorpay_payment_id')
       .eq('id', orderId)
