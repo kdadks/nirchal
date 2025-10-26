@@ -1,7 +1,3 @@
 # Force HTTPS redirect for all HTTP requests
-# Netlify redirects removed - now on Cloudflare Pages
 http://nirchal.com/* https://nirchal.com/:splat 301
 http://www.nirchal.com/* https://nirchal.com/:splat 301
-
-# SPA fallback
-/* /index.html 200

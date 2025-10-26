@@ -27,6 +27,9 @@ export default defineConfig({
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
   },
+  optimizeDeps: {
+    exclude: ['nodemailer'], // Exclude server-only dependencies
+  },
   server: {
     port: 5173,
     strictPort: false,
@@ -37,14 +40,36 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     minify: 'esbuild',
-    // Increase chunk size limit to reduce chunk fragmentation
-    chunkSizeWarningLimit: 1000,
+    // Increase chunk size limit after proper code splitting
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
+      external: ['nodemailer'], // Exclude nodemailer from browser bundle
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react', 'react-hot-toast'],
-          utils: ['date-fns']
+          // Core React libraries
+          'react-vendor': ['react', 'react-dom'],
+          'react-router': ['react-router-dom'],
+          
+          // UI libraries
+          'ui-icons': ['lucide-react'],
+          'ui-components': ['react-hot-toast', 'react-helmet-async'],
+          
+          // Forms and data
+          'forms': ['react-hook-form'],
+          'data-utils': ['date-fns', 'xlsx'],
+          
+          // Supabase and AWS
+          'supabase': ['@supabase/supabase-js'],
+          'aws-sdk': ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner'],
+          
+          // PDF libraries (large)
+          'pdf': ['jspdf', 'pdfmake'],
+          
+          // Editor
+          'editor': ['quill', 'react-quill'],
+          
+          // Animation
+          'animation': ['framer-motion'],
         },
         // Add hash to filenames for better cache busting
         chunkFileNames: 'assets/[name]-[hash].js',
