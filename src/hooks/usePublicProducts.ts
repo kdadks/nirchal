@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../utils/storageUtils';
-import { mockProducts } from '../data/mockData';
 import type { Product } from '../types';
 
 export const usePublicProducts = (featured?: boolean) => {
@@ -13,20 +12,6 @@ export const usePublicProducts = (featured?: boolean) => {
     try {
       setLoading(true);
       setError(null);
-      
-      // TEMPORARY: Force mock data to test swatches
-      const USE_MOCK_DATA = false; // Set to false to use database
-      
-      if (USE_MOCK_DATA) {
-  if (import.meta.env.DEV) console.debug('[usePublicProducts] using mock data');
-        const filteredMockProducts = featured 
-          ? mockProducts.filter(p => p.isFeatured)
-          : mockProducts;
-        
-        setProducts(filteredMockProducts);
-        setLoading(false);
-        return;
-      }
       
       // Start with a basic query without problematic joins like product_reviews
       let query = supabase
@@ -56,14 +41,6 @@ export const usePublicProducts = (featured?: boolean) => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       
-      if (featured) {
-        try {
-          query = query.eq('is_featured', true);
-        } catch (e) {
-          query = query.eq('featured', true);
-        }
-      }
-      
       const { data, error } = await query;
       
       if (error) {
@@ -81,10 +58,6 @@ export const usePublicProducts = (featured?: boolean) => {
               .from('products')
               .select('*, category:categories(name)')
               .eq('is_active', true);
-              
-            if (featured) {
-              fallbackQuery.eq('is_featured', true);
-            }
             
             const fallbackResult = await fallbackQuery;
             if (fallbackResult.error) {
@@ -128,14 +101,9 @@ export const usePublicProducts = (featured?: boolean) => {
             return;
           } catch (fallbackError) {
             console.error('[usePublicProducts] Fallback failed:', fallbackError);
-            if (import.meta.env.DEV) console.debug('[usePublicProducts] using mock data as final fallback');
-            
-            // Use mock data as final fallback
-            const filteredMockProducts = featured 
-              ? mockProducts.filter(p => p.isFeatured)
-              : mockProducts;
-            
-            setProducts(filteredMockProducts);
+            // No products available, return empty array
+            setProducts([]);
+            setError('Unable to load products. Please try again later.');
             return;
           }
         }
@@ -419,7 +387,6 @@ export const usePublicProducts = (featured?: boolean) => {
           rating,
           reviewCount,
           isNew: Boolean(product.is_new ?? false),
-          isFeatured: Boolean(product.is_featured ?? false),
           isSale: Boolean(product.sale_price && product.sale_price < product.price),
           tags: product.tags ? (Array.isArray(product.tags) ? product.tags : [product.tags]) : [],
           sizes,
@@ -439,21 +406,9 @@ export const usePublicProducts = (featured?: boolean) => {
 
       setProducts(transformedProducts);
     } catch (e) {
-  console.error('[usePublicProducts] Error during processing:', e);
-  if (import.meta.env.DEV) console.debug('[usePublicProducts] falling back to mock data');
-      
-      // Use mock data as fallback, filtering by featured if needed
-      const filteredMockProducts = featured 
-        ? mockProducts.filter(p => p.isFeatured)
-        : mockProducts;
-      
-      if (import.meta.env.DEV) {
-        console.debug('[usePublicProducts] mock products used:', filteredMockProducts.length);
-        console.debug('[usePublicProducts] first mock product variants:', filteredMockProducts[0]?.variants);
-      }
-      
-      setProducts(filteredMockProducts);
-      setError(null); // Clear error since we have fallback data
+      console.error('[usePublicProducts] Error during processing:', e);
+      setProducts([]);
+      setError('Unable to load products. Please try again later.');
     } finally {
       setLoading(false);
     }

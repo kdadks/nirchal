@@ -27,7 +27,8 @@ import {
   ChevronRight,
   UserCheck,
   Receipt,
-  RotateCcw
+  RotateCcw,
+  Star
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -63,6 +64,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Hero Slides',
       path: '/admin/hero-slides',
       icon: <Image className="admin-nav-icon" />,
+      badge: null
+    },
+    {
+      name: 'Featured Sections',
+      path: '/admin/featured-sections',
+      icon: <Star className="admin-nav-icon" />,
       badge: null
     },
     {

@@ -1,14 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Truck, Shield, Award, RefreshCw, Star } from 'lucide-react';
-import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useCategories } from '../hooks/useCategories';
-import ProductCard from '../components/product/ProductCard';
 import HeroCarousel from '../components/home/HeroCarousel';
+import { DynamicFeaturedSections } from '../components/home/DynamicFeaturedSections';
 import type { Category } from '../types';
 
 const HomePage: React.FC = () => {
-  const { products: featuredProducts, loading: featuredLoading } = usePublicProducts(true);
   const { categories, loading: categoriesLoading } = useCategories();
   
   return (
@@ -29,49 +27,8 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Products - Trending Now */}
-      <section className="py-8 md:py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-6 md:mb-10">
-            <h2 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 md:mb-4 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
-              Trending Now
-            </h2>
-            <p className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Discover our most loved pieces, handpicked by our style experts and loved by thousands of customers
-            </p>
-          </div>
-          
-          {featuredLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-gray-200 aspect-[3/4] rounded-lg md:rounded-2xl mb-2 md:mb-4"></div>
-                  <div className="h-3 md:h-4 bg-gray-200 rounded mb-1 md:mb-2"></div>
-                  <div className="h-3 md:h-4 bg-gray-200 rounded w-2/3"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
-              {featuredProducts.slice(0, 5).map((product) => (
-                <div key={product.id} className="transform hover:scale-105 transition-transform duration-300">
-                  <ProductCard product={product} showActionButtons={true} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="text-center mt-6 md:mt-8">
-            <Link
-              to="/products"
-              className="inline-flex items-center bg-gradient-to-r from-primary-500 to-accent-500 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-medium text-base md:text-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
-            >
-              View All Products
-              <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5" />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Featured Products - Dynamic Sections from Admin */}
+      <DynamicFeaturedSections />
 
       {/* Featured Categories */}
       <section className="py-6 md:py-8 bg-gradient-to-br from-orange-50 to-pink-50">

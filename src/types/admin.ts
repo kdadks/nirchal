@@ -23,6 +23,13 @@ export interface Category {
   featured: boolean;
   created_at: string;
   updated_at: string;
+  is_special_occasion?: boolean;
+  occasion_slug?: string | null;
+  occasion_start_date?: string | null;
+  occasion_end_date?: string | null;
+  occasion_banner_image?: string | null;
+  occasion_banner_color?: string;
+  occasion_text_color?: string;
 }
 
 export interface Vendor {
@@ -64,7 +71,6 @@ export interface Product {
   sale_price: number | null;
   sku: string | null;
   is_active: boolean;
-  is_featured: boolean;
   meta_title: string | null;
   meta_description: string | null;
   created_at: string;

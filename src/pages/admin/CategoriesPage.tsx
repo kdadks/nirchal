@@ -18,6 +18,13 @@ const initialForm: CategoryFormData = {
   image_url: null,
   is_active: true,
   featured: false,
+  is_special_occasion: false,
+  occasion_slug: null,
+  occasion_start_date: null,
+  occasion_end_date: null,
+  occasion_banner_image: null,
+  occasion_banner_color: '#ffffff',
+  occasion_text_color: '#000000',
 };
 
 const CategoriesPage: React.FC = () => {
@@ -519,7 +526,7 @@ const CategoriesPage: React.FC = () => {
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="admin-card" style={{ width: '500px', maxWidth: '90vw', margin: '20px' }}>
+          <div className="admin-card" style={{ width: '800px', maxWidth: '90vw', maxHeight: '90vh', overflow: 'auto', margin: '20px' }}>
             <div className="admin-card-header">
               <h2 className="admin-card-title">
                 {isEditing ? 'Edit Category' : 'Add New Category'}
@@ -638,6 +645,111 @@ const CategoriesPage: React.FC = () => {
                 </label>
                 <p className="text-xs text-gray-500 mt-1">Featured categories will be displayed in the "Shop by Category" section on the homepage</p>
               </div>
+
+              <div className="admin-form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.is_special_occasion ?? false}
+                    onChange={(e) => setForm(prev => ({ ...prev, is_special_occasion: e.target.checked }))}
+                  />
+                  <span className="admin-label" style={{ margin: 0 }}>Special Occasion Category</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">Special occasion categories are hidden from regular navigation and can be linked to hero sections</p>
+              </div>
+
+              {/* Special Occasion Fields - Only show when is_special_occasion is true */}
+              {form.is_special_occasion && (
+                <div style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                  <h4 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#374151' }}>Special Occasion Settings</h4>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="admin-form-group" style={{ marginBottom: '8px' }}>
+                      <label className="admin-label" style={{ fontSize: '13px' }}>Occasion Slug</label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={form.occasion_slug || ''}
+                        onChange={(e) => setForm(prev => ({ ...prev, occasion_slug: e.target.value }))}
+                        placeholder="e.g., navratri-2024"
+                      />
+                    </div>
+
+                    <div className="admin-form-group" style={{ marginBottom: '8px' }}>
+                      <label className="admin-label" style={{ fontSize: '13px' }}>Banner Image URL</label>
+                      <input
+                        type="text"
+                        className="admin-input"
+                        value={form.occasion_banner_image || ''}
+                        onChange={(e) => setForm(prev => ({ ...prev, occasion_banner_image: e.target.value }))}
+                        placeholder="Banner for hero section"
+                      />
+                    </div>
+
+                    <div className="admin-form-group" style={{ marginBottom: '8px' }}>
+                      <label className="admin-label" style={{ fontSize: '13px' }}>Start Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        className="admin-input"
+                        value={form.occasion_start_date ? 
+                          new Date(form.occasion_start_date).toLocaleString('sv-SE', { 
+                            year: 'numeric', 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          }).replace(' ', 'T') : ''}
+                        onChange={(e) => setForm(prev => ({ 
+                          ...prev, 
+                          occasion_start_date: e.target.value ? e.target.value : null 
+                        }))}
+                      />
+                    </div>
+
+                    <div className="admin-form-group" style={{ marginBottom: '8px' }}>
+                      <label className="admin-label" style={{ fontSize: '13px' }}>End Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        className="admin-input"
+                        value={form.occasion_end_date ? 
+                          new Date(form.occasion_end_date).toLocaleString('sv-SE', { 
+                            year: 'numeric', 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          }).replace(' ', 'T') : ''}
+                        onChange={(e) => setForm(prev => ({ 
+                          ...prev, 
+                          occasion_end_date: e.target.value ? e.target.value : null 
+                        }))}
+                      />
+                    </div>
+
+                    <div className="admin-form-group" style={{ marginBottom: '8px' }}>
+                      <label className="admin-label" style={{ fontSize: '13px' }}>Banner Background</label>
+                      <input
+                        type="color"
+                        className="admin-input"
+                        style={{ height: '38px', cursor: 'pointer' }}
+                        value={form.occasion_banner_color || '#ffffff'}
+                        onChange={(e) => setForm(prev => ({ ...prev, occasion_banner_color: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="admin-form-group" style={{ marginBottom: '8px' }}>
+                      <label className="admin-label" style={{ fontSize: '13px' }}>Banner Text Color</label>
+                      <input
+                        type="color"
+                        className="admin-input"
+                        style={{ height: '38px', cursor: 'pointer' }}
+                        value={form.occasion_text_color || '#000000'}
+                        onChange={(e) => setForm(prev => ({ ...prev, occasion_text_color: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '24px' }}>
                 <button

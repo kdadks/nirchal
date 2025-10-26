@@ -25,6 +25,8 @@ export const usePublicCategories = () => {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
+        .eq('is_active', true)
+        .or('is_special_occasion.is.null,is_special_occasion.eq.false')
         .order('name');
       
       if (import.meta.env.DEV) {

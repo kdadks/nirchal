@@ -11,7 +11,7 @@ import { Package, Filter, Trash2, Upload, Download } from 'lucide-react';
 
 const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { products, loading, deleteProduct, deleteProducts, updateProduct, refresh } = useProducts();
+  const { products, loading, deleteProduct, deleteProducts, refresh } = useProducts();
   const { categories } = useCategories();
   const { vendors } = useVendors();
   const { searchTerm } = useAdminSearch();
@@ -120,15 +120,6 @@ const ProductsPage: React.FC = () => {
     if (selectedProducts.length === 0) return;
     setDeleteTarget({ type: 'bulk', ids: selectedProducts });
     setShowDeleteConfirm(true);
-  };
-
-  const handleToggleFeatured = async (productId: string, currentFeaturedStatus: boolean) => {
-    try {
-      await updateProduct(productId, { is_featured: !currentFeaturedStatus });
-      await refresh(); // Refresh the products list to show updated status
-    } catch (error) {
-      console.error('Error toggling featured status:', error);
-    }
   };
 
   const confirmDelete = async () => {
@@ -285,9 +276,6 @@ const ProductsPage: React.FC = () => {
                     Status
                   </th>
                   <th scope="col" className="admin-table-col-6 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Featured
-                  </th>
-                  <th scope="col" className="admin-table-col-7 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -377,24 +365,7 @@ const ProductsPage: React.FC = () => {
                           {product.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="admin-table-col-6 px-4 py-2 whitespace-nowrap text-center">
-                        <button
-                          onClick={() => handleToggleFeatured(product.id.toString(), Boolean(product.is_featured))}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                            product.is_featured
-                              ? 'bg-blue-600'
-                              : 'bg-gray-200'
-                          }`}
-                          title={product.is_featured ? 'Remove from featured' : 'Add to featured'}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              product.is_featured ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                          />
-                        </button>
-                      </td>
-                      <td className="admin-table-col-7 px-4 py-2 whitespace-nowrap text-sm font-medium">
+                      <td className="admin-table-col-6 px-4 py-2 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center justify-center">
                           <button
                             onClick={() => handleDeleteProduct(product.id.toString())}

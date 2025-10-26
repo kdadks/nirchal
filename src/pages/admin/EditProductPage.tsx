@@ -79,7 +79,6 @@ const EditProductPage: React.FC = () => {
     sale_price: product.sale_price,
     sku: product.sku || '',
     is_active: product.is_active,
-    is_featured: product.is_featured,
     meta_title: product.meta_title || '',
     meta_description: product.meta_description || '',
     images: (product.images || []).map(image => ({

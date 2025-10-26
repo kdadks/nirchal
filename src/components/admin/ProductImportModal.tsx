@@ -556,7 +556,6 @@ const useProductImport = () => {
               category_id: categoriesMap.get((mainRow.category_name || mainRow['Product Type'] || mainRow.Type || mainRow.type || '').toLowerCase()) || defaultCategoryId,
               vendor_id: vendorsMap.get((mainRow.vendor_name || mainRow.Vendor || '').toLowerCase()) || null,
               is_active: (mainRow.status || mainRow.Status || 'active').toLowerCase() === 'active',
-              is_featured: false, // Default to false, can be updated later
               slug: generateSlug(mainRow.name || mainRow.Title || mainRow.Handle || ''),
               meta_title: mainRow.meta_title || mainRow['SEO Title'] || '',
               meta_description: mainRow.meta_description || mainRow['SEO Description'] || `imported-order-${displayOrder.toString().padStart(8, '0')}`,

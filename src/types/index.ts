@@ -32,7 +32,6 @@ export interface Product {
   colors: string[];
   sizes: string[];
   description: string;
-  isFeatured?: boolean;
   isNew?: boolean;
   rating: number;
   reviewCount: number;
@@ -54,6 +53,13 @@ export interface Category {
   description?: string;
   featured?: boolean;
   slug?: string;
+  is_special_occasion?: boolean;
+  occasion_slug?: string;
+  occasion_start_date?: string;
+  occasion_end_date?: string;
+  occasion_banner_image?: string;
+  occasion_banner_color?: string;
+  occasion_text_color?: string;
 }
 
 export interface CartItem {

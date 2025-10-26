@@ -28,6 +28,8 @@ const fetchCategoriesFromDB = async (): Promise<Category[]> => {
   const { data, error } = await supabase
     .from('categories')
     .select('*')
+    .eq('is_active', true)
+    .or('is_special_occasion.is.null,is_special_occasion.eq.false')
     .order('name', { ascending: true });
 
   if (error) {

@@ -87,7 +87,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
     sale_price: initialData?.sale_price || null,
     sku: initialData?.sku || '',
     is_active: initialData?.is_active ?? true,
-    is_featured: initialData?.is_featured ?? false,
     meta_title: initialData?.meta_title || '',
     meta_description: initialData?.meta_description || '',
     images: initialData?.images?.map(img => ({ ...img, existing: true, toDelete: false })) || [],
@@ -618,16 +617,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                     className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                   />
                   <span className="ml-2 text-sm font-medium text-gray-700">Active</span>
-                </label>
-                
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_featured}
-                    onChange={(e) => setFormData(prev => ({ ...prev, is_featured: e.target.checked }))}
-                    className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  />
-                  <span className="ml-2 text-sm font-medium text-gray-700">Featured</span>
                 </label>
               </div>
             </div>

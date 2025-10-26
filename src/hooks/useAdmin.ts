@@ -1762,7 +1762,6 @@ export const importProducts = async (
 						sale_price: row.sale_price ? parseFloat(row.sale_price) : null,
 						sku: row.sku || null,
 						is_active: row.is_active?.toLowerCase() === 'true',
-						is_featured: row.is_featured?.toLowerCase() === 'true',
 						meta_title: row.meta_title || null,
 						meta_description: row.meta_description || null,
 						created_by: 'import',
