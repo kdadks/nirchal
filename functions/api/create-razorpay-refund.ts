@@ -120,9 +120,16 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     if (!paymentDetailsResponse.ok) {
       const errorData = await paymentDetailsResponse.json();
       console.error('Failed to fetch payment details:', errorData);
+      
+      // Check if it's a test/live mode mismatch
+      let errorMessage = 'Payment not found or invalid payment ID';
+      if (errorData.error?.description?.includes('does not exist') || errorData.error?.code === 'BAD_REQUEST_ERROR') {
+        errorMessage = 'Payment not found. This might be a live mode payment while using test mode keys (or vice versa). Please check your Razorpay mode settings.';
+      }
+      
       return new Response(
         JSON.stringify({
-          error: 'Payment not found or invalid payment ID',
+          error: errorMessage,
           razorpay_error: errorData
         }),
         { status: paymentDetailsResponse.status, headers: corsHeaders }
