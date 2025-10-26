@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useProductReviews } from '../hooks/useProductReviews';
 import { useProductSuggestions } from '../hooks/useProductSuggestions';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -9,9 +9,11 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useCategories } from '../hooks/useCategories';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
-import ProductCard from '../components/product/ProductCard';
 import { format } from 'date-fns';
 import { getOptimizedImageUrl, getImageSrcSet } from '../utils/r2StorageUtils';
+
+// Lazy load heavy components
+const ProductCard = lazy(() => import('../components/product/ProductCard'));
 import { 
   getSelectedProductStockInfo, 
   isSizeAvailable, 
@@ -59,11 +61,16 @@ const ProductDetailPage: React.FC = () => {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedRating, setSelectedRating] = useState(5);
   const [hasUserInteractedWithColor, setHasUserInteractedWithColor] = useState(false);
+  const [shouldLoadSuggestions, setShouldLoadSuggestions] = useState(false);
 
   const product = products.find(p => p.slug === slug);
   const { categories } = useCategories();
   const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
-  const { suggestions } = useProductSuggestions({ currentProduct: product || null });
+  
+  // Defer suggestions loading until after initial render
+  const { suggestions } = useProductSuggestions({ 
+    currentProduct: shouldLoadSuggestions ? (product || null) : null 
+  });
 
   // Get category slug from database
   const categorySlug = product?.category 
@@ -82,6 +89,13 @@ const ProductDetailPage: React.FC = () => {
         price: product.price,
         brand: 'Nirchal',
       });
+      
+      // Defer suggestions loading after 500ms to prioritize main content
+      const timer = setTimeout(() => {
+        setShouldLoadSuggestions(true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
@@ -230,6 +244,16 @@ const ProductDetailPage: React.FC = () => {
     return uniqueProductImages.filter(img => !swatchImageUrls.has(img));
   }, [uniqueProductImages, swatchImageUrls]);
 
+  // Memoize stock calculations (must be before early returns)
+  const stockInfo = useMemo(
+    () => product ? getSelectedProductStockInfo(product, selectedSize, selectedColor) : { isAvailable: false, stockStatus: 'out_of_stock' as const, quantity: 0 },
+    [product, selectedSize, selectedColor]
+  );
+  const maxQuantity = useMemo(
+    () => product ? getMaxQuantity(product, selectedSize, selectedColor) : 0,
+    [product, selectedSize, selectedColor]
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
@@ -349,10 +373,6 @@ const ProductDetailPage: React.FC = () => {
 
   // Only consider it as having variants if sizes exist and are not empty
   const hasVariants = sizes.length > 0 && sizes.some(size => size && size.trim() !== '');
-  
-  // Check stock availability for current selection
-  const stockInfo = getSelectedProductStockInfo(product, selectedSize, selectedColor);
-  const maxQuantity = getMaxQuantity(product, selectedSize, selectedColor);
   
   // Can add to cart if: has no variants OR size is selected AND stock is available
   const canAddToCart = (!hasVariants || selectedSize) && stockInfo.isAvailable;
@@ -615,15 +635,12 @@ const ProductDetailPage: React.FC = () => {
                     filter: 'contrast(1.03) saturate(1.02) brightness(1.01)',
                   }}
                   onLoad={() => {
-                    // Preload next 2 images only
-                    const nextImages = [selectedImage + 1, selectedImage - 1]
-                      .filter(i => i >= 0 && i < product.images.length && i !== selectedImage)
-                      .slice(0, 2);
-                    
-                    nextImages.forEach(index => {
+                    // Preload only the next image for faster navigation
+                    const nextIndex = selectedImage + 1 < product.images.length ? selectedImage + 1 : 0;
+                    if (nextIndex !== selectedImage) {
                       const preloadImg = new Image();
-                      preloadImg.src = getOptimizedImageUrl(product.images[index], 1200);
-                    });
+                      preloadImg.src = getOptimizedImageUrl(product.images[nextIndex], 1200);
+                    }
                   }}
                 />
 
@@ -1194,11 +1211,19 @@ const ProductDetailPage: React.FC = () => {
                 More beautiful pieces selected for you
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-              {suggestions.map((suggestion: Product) => (
-                <ProductCard key={suggestion.id} product={suggestion} />
-              ))}
-            </div>
+            <Suspense fallback={
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-80" />
+                ))}
+              </div>
+            }>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {suggestions.map((suggestion: Product) => (
+                  <ProductCard key={suggestion.id} product={suggestion} />
+                ))}
+              </div>
+            </Suspense>
           </div>
         )}
       </div>
