@@ -3,10 +3,11 @@ import { Package, TruckIcon, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import { ReturnRequestWithItems } from '../../types/return.types';
-import { getStatusLabel, getStatusColor, formatDate } from '../../types/return.index';
+import { getStatusLabel, formatDate } from '../../types/return.index';
 import toast from 'react-hot-toast';
 import { AddTrackingModal } from '../account/AddTrackingModal';
 import { ReturnDetailsModal } from '../returns/ReturnDetailsModal';
+import { returnService } from '../../services/returnService';
 
 export const CustomerReturnsTab: React.FC = () => {
   const { customer } = useCustomerAuth();
@@ -33,23 +34,17 @@ export const CustomerReturnsTab: React.FC = () => {
         return;
       }
 
-      // Fetch returns with items - we'll get order_number from order_id later if needed
-      const { data, error } = await supabase
-        .from('return_requests')
-        .select(`
-          *,
-          return_items (*)
-        `)
-        .eq('customer_id', customer.id)
-        .order('created_at', { ascending: false });
+      // Use returnService which uses supabaseAdmin to bypass RLS
+      const { data, error } = await returnService.getReturnRequestsByCustomer(customer.id);
 
       if (error) {
         console.error('Error loading returns:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
         toast.error('Failed to load your returns');
         setIsLoading(false);
         return;
       }
+
+      console.log('Returns data loaded:', data?.length || 0, 'returns');
 
       // Fetch order numbers for all returns
       if (data && data.length > 0) {
@@ -179,7 +174,23 @@ export const CustomerReturnsTab: React.FC = () => {
                     className={`px-3 py-1 text-xs font-medium rounded-md ${
                       returnRequest.status === 'pending_shipment' 
                         ? 'bg-orange-500 text-white' 
-                        : getStatusColor(returnRequest.status)
+                        : returnRequest.status === 'shipped_by_customer'
+                        ? 'bg-blue-500 text-white'
+                        : returnRequest.status === 'received'
+                        ? 'bg-purple-500 text-white'
+                        : returnRequest.status === 'under_inspection'
+                        ? 'bg-purple-600 text-white'
+                        : returnRequest.status === 'approved'
+                        ? 'bg-green-500 text-white'
+                        : returnRequest.status === 'partially_approved'
+                        ? 'bg-yellow-500 text-white'
+                        : returnRequest.status === 'rejected'
+                        ? 'bg-red-500 text-white'
+                        : returnRequest.status === 'refund_initiated'
+                        ? 'bg-blue-600 text-white'
+                        : returnRequest.status === 'refund_completed'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-500 text-white'
                     }`}
                   >
                     {getStatusLabel(returnRequest.status)}

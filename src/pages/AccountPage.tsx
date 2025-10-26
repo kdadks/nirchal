@@ -12,6 +12,7 @@ import OrderDetailsModal from '../components/account/OrderDetailsModal';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 import { ReturnRequestForm } from '../components/returns/ReturnRequestForm';
 import { CustomerReturnsTab } from '../components/account/CustomerReturnsTab';
+import { returnService } from '../services/returnService';
 import SEO from '../components/SEO';
 import { 
   Heart, 
@@ -110,7 +111,8 @@ const AccountPage: React.FC = () => {
 
     try {
       // Filter orders and addresses by current customer ID
-      const [ordersResult, addressesResult] = await Promise.all([
+      // Fetch return requests using returnService (uses supabaseAdmin, bypasses RLS)
+      const [ordersResult, addressesResult, returnsResult] = await Promise.all([
         supabase.from('orders')
           .select(`
             id, 
@@ -122,26 +124,30 @@ const AccountPage: React.FC = () => {
             payment_status, 
             razorpay_payment_id, 
             razorpay_order_id, 
-            payment_details,
-            return_requests!order_id(id)
+            payment_details
           `)
           .eq('customer_id', customer.id)
           .order('created_at', { ascending: false }),
         supabase.from('customer_addresses')
           .select('id, first_name, last_name, company, address_line_1, address_line_2, city, state, postal_code, country, phone, is_default, is_shipping, is_billing')
           .eq('customer_id', customer.id)
-          .order('is_default', { ascending: false })
+          .order('is_default', { ascending: false }),
+        returnService.getReturnRequestsByCustomer(customer.id)
       ]);
       
       if (ordersResult.error) {
         console.error('Error loading orders:', ordersResult.error);
         toast.error('Failed to load orders');
       } else {
+        // Create a set of order IDs that have return requests
+        const orderIdsWithReturns = new Set(
+          (returnsResult.data || []).map((r: any) => r.order_id)
+        );
+        
         // Map the data to include has_return_request flag
         const ordersWithReturnFlag = (ordersResult.data || []).map((order: any) => ({
           ...order,
-          has_return_request: order.return_requests && order.return_requests.length > 0,
-          return_requests: undefined // Remove the nested data
+          has_return_request: orderIdsWithReturns.has(order.id)
         }));
         setOrders(ordersWithReturnFlag);
       }

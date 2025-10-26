@@ -37,7 +37,10 @@ export const AddTrackingModal: React.FC<AddTrackingModalProps> = ({
       });
 
       if (error) {
-        toast.error('Failed to add tracking information');
+        console.error('Error marking as shipped:', error);
+        console.error('Error message:', error.message);
+        toast.error(error.message || 'Failed to add tracking information');
+        setIsSubmitting(false);
         return;
       }
 
@@ -47,7 +50,12 @@ export const AddTrackingModal: React.FC<AddTrackingModalProps> = ({
       onSuccess();
     } catch (error) {
       console.error('Error adding tracking info:', error);
-      toast.error('An error occurred while adding tracking information');
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        toast.error(error.message || 'An error occurred while adding tracking information');
+      } else {
+        toast.error('An error occurred while adding tracking information');
+      }
     } finally {
       setIsSubmitting(false);
     }

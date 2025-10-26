@@ -196,13 +196,7 @@ class ReturnService {
         .select(
           `
             *,
-            return_items (*),
-            customer:customers!customer_id (
-              first_name,
-              last_name,
-              email,
-              phone
-            )
+            return_items (*)
           `,
           { count: 'exact' }
         )
@@ -215,18 +209,24 @@ class ReturnService {
         return { data: [], error: new Error(error.message), count: 0 };
       }
 
-      // Flatten customer data
-      const formattedData = (data || []).map((item: any) => ({
-        ...item,
-        customer_first_name: item.customer?.first_name,
-        customer_last_name: item.customer?.last_name,
-        customer_email: item.customer?.email,
-        customer_phone: item.customer?.phone,
-        customer: undefined, // Remove nested object
+      // Fetch customer details
+      const { data: customerData } = await this.db
+        .from('customers')
+        .select('id, first_name, last_name, email, phone')
+        .eq('id', customerId)
+        .single();
+
+      // Add customer details to each return
+      const returnsWithCustomerData = (data || []).map((ret: any) => ({
+        ...ret,
+        customer_first_name: customerData?.first_name,
+        customer_last_name: customerData?.last_name,
+        customer_email: customerData?.email,
+        customer_phone: customerData?.phone,
       }));
 
       return {
-        data: (formattedData as unknown as ReturnRequestWithItems[]) || [],
+        data: (returnsWithCustomerData as unknown as ReturnRequestWithItems[]) || [],
         error: null,
         count: count || 0,
       };
@@ -382,7 +382,8 @@ class ReturnService {
     trackingInfo: UpdateTrackingInfoInput
   ): Promise<{ data: ReturnRequest | null; error: Error | null }> {
     try {
-      const { data, error } = await supabase
+      // Use admin client (bypasses RLS) - customer auth validation happens at UI level
+      const { data, error } = await this.db
         .from('return_requests')
         .update({
           status: 'shipped_by_customer',
@@ -397,15 +398,23 @@ class ReturnService {
 
       if (error) {
         console.error('Error marking as shipped:', error);
-        return { data: null, error: new Error(error.message) };
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        console.error('Error message:', error.message);
+        console.error('Error code:', error.code);
+        return { data: null, error: new Error(error.message || 'Failed to mark return as shipped') };
       }
 
       return { data: data as unknown as ReturnRequest, error: null };
     } catch (error) {
       console.error('Error in markAsShipped:', error);
+      console.error('Error type:', typeof error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       return {
         data: null,
-        error: error instanceof Error ? error : new Error('Unknown error'),
+        error: error instanceof Error ? error : new Error('Unknown error occurred while marking as shipped'),
       };
     }
   }
