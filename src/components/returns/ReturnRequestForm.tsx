@@ -296,9 +296,12 @@ export const ReturnRequestForm: React.FC<ReturnRequestFormProps> = ({
         items,
       };
 
+      console.log('Creating return request with input:', JSON.stringify(input, null, 2));
       const { error } = await returnService.createReturnRequest(input);
 
       if (error) {
+        console.error('Return request creation failed:', error);
+        console.error('Error message:', error.message);
         toast.error(`Failed to create return request: ${error.message}`);
         return;
       }

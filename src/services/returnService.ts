@@ -74,6 +74,8 @@ class ReturnService {
 
       if (requestError) {
         console.error('Error creating return request:', requestError);
+        console.error('Request error details:', JSON.stringify(requestError, null, 2));
+        console.error('Input data:', JSON.stringify(input, null, 2));
         return { data: null, error: new Error(requestError.message) };
       }
 
@@ -115,6 +117,12 @@ class ReturnService {
       };
     } catch (error) {
       console.error('Error in createReturnRequest:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('Error type:', typeof error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       return {
         data: null,
         error: error instanceof Error ? error : new Error('Unknown error'),
