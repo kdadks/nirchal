@@ -47,7 +47,7 @@ function getR2Client(): S3Client {
 export async function uploadImageToR2(
   file: Blob | Buffer | Uint8Array,
   fileName: string,
-  folder: 'products' | 'categories',
+  folder: 'products' | 'categories' | 'returns',
   contentType: string = 'image/jpeg'
 ): Promise<{ success: boolean; url?: string; error?: string }> {
   try {

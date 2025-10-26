@@ -3,6 +3,7 @@ import { X, Package, AlertCircle, Upload, Trash2 } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { returnEligibilityService } from '../../services/returnEligibilityService';
 import { returnService } from '../../services/returnService';
+import { uploadImageToR2 } from '../../utils/r2StorageUtils';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import type { ReturnEligibilityCheck, ReturnReason, CreateReturnRequestInput } from '../../types/return.types';
 import toast from 'react-hot-toast';
@@ -226,11 +227,32 @@ export const ReturnRequestForm: React.FC<ReturnRequestFormProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // TODO: Implement actual image upload to Supabase Storage
-    // For now, just store file names
-    const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-    setUploadedImages([...uploadedImages, ...newImages]);
-    toast.success(`${files.length} image(s) uploaded`);
+    const uploadPromises = Array.from(files).map(async (file) => {
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 8);
+      const extension = file.name.split('.').pop();
+      const fileName = `return-${order.order_number}-${timestamp}-${randomString}.${extension}`;
+
+      // Upload to R2
+      const result = await uploadImageToR2(file, fileName, 'returns', file.type);
+      
+      if (result.success && result.url) {
+        return result.url;
+      } else {
+        console.error('Upload failed:', result.error);
+        throw new Error(result.error || 'Upload failed');
+      }
+    });
+
+    try {
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setUploadedImages([...uploadedImages, ...uploadedUrls]);
+      toast.success(`${files.length} image(s) uploaded successfully`);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error('Failed to upload some images. Please try again.');
+    }
   };
 
   const removeImage = (index: number) => {
