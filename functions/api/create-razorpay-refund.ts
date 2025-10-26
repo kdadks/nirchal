@@ -105,6 +105,79 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       payload: refundPayload
     });
 
+    // First, fetch payment details to verify it's captured and refundable
+    console.log('Fetching payment details to verify status...');
+    const paymentDetailsResponse = await fetch(
+      `https://api.razorpay.com/v1/payments/${payment_id}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${authString}`,
+        },
+      }
+    );
+
+    if (!paymentDetailsResponse.ok) {
+      const errorData = await paymentDetailsResponse.json();
+      console.error('Failed to fetch payment details:', errorData);
+      return new Response(
+        JSON.stringify({
+          error: 'Payment not found or invalid payment ID',
+          razorpay_error: errorData
+        }),
+        { status: paymentDetailsResponse.status, headers: corsHeaders }
+      );
+    }
+
+    const paymentDetails = await paymentDetailsResponse.json();
+    console.log('Payment details:', {
+      id: paymentDetails.id,
+      status: paymentDetails.status,
+      captured: paymentDetails.captured,
+      amount: paymentDetails.amount,
+      amount_refunded: paymentDetails.amount_refunded
+    });
+
+    // Validate payment is captured
+    if (!paymentDetails.captured) {
+      console.error('Payment not captured:', payment_id);
+      return new Response(
+        JSON.stringify({
+          error: 'Payment is not captured yet. Only captured payments can be refunded.',
+          payment_status: paymentDetails.status
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate payment is not already fully refunded
+    const refundableAmount = paymentDetails.amount - (paymentDetails.amount_refunded || 0);
+    if (refundableAmount <= 0) {
+      console.error('Payment already fully refunded:', payment_id);
+      return new Response(
+        JSON.stringify({
+          error: 'Payment has already been fully refunded',
+          amount_refunded: paymentDetails.amount_refunded
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate refund amount doesn't exceed refundable amount
+    if (amount > refundableAmount) {
+      console.error('Refund amount exceeds refundable amount:', {
+        requested: amount,
+        refundable: refundableAmount
+      });
+      return new Response(
+        JSON.stringify({
+          error: `Refund amount (₹${amount/100}) exceeds refundable amount (₹${refundableAmount/100})`,
+          refundable_amount: refundableAmount
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     // Call Razorpay API to create refund
     const razorpayResponse = await fetch(
       `https://api.razorpay.com/v1/payments/${payment_id}/refund`,
