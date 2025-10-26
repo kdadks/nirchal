@@ -439,7 +439,10 @@ export const ReturnManagementDashboard: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Pending Action</p>
                   <p className="text-2xl font-bold text-gray-900 mt-2">
-                    {stats.pending + stats.in_transit}
+                    {(stats.pending || 0) + (stats.in_transit || 0) + (stats.received || 0) + (stats.under_inspection || 0)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Awaiting shipment, in transit, or inspection
                   </p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-600" />
@@ -450,7 +453,12 @@ export const ReturnManagementDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Approved</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">{stats.approved}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">
+                    {(stats.approved || 0) + (stats.partially_approved || 0)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Full: {stats.approved || 0} | Partial: {stats.partially_approved || 0}
+                  </p>
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
@@ -461,7 +469,10 @@ export const ReturnManagementDashboard: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Refund Amount</p>
                   <p className="text-2xl font-bold text-gray-900 mt-2">
-                    ₹{stats.total_refund_amount.toFixed(2)}
+                    ₹{(stats.total_refund_amount || 0).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Completed: {stats.completed || 0} | Processing: {stats.refund_initiated || 0}
                   </p>
                 </div>
                 <RefreshCw className="h-8 w-8 text-purple-600" />

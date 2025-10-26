@@ -687,7 +687,9 @@ class ReturnService {
    */
   async getReturnStatistics(dateFrom?: string, dateTo?: string) {
     try {
-      let query = supabase.from('return_requests').select('status, final_refund_amount');
+      // Use admin client to bypass RLS for statistics
+      const client = supabaseAdmin || supabase;
+      let query = client.from('return_requests').select('status, final_refund_amount');
 
       if (dateFrom) {
         query = query.gte('created_at', dateFrom);
@@ -708,9 +710,12 @@ class ReturnService {
         total_returns: data?.length || 0,
         pending: data?.filter((r) => r.status === 'pending_shipment').length || 0,
         in_transit: data?.filter((r) => r.status === 'shipped_by_customer').length || 0,
+        received: data?.filter((r) => r.status === 'received').length || 0,
         under_inspection: data?.filter((r) => r.status === 'under_inspection').length || 0,
         approved: data?.filter((r) => r.status === 'approved').length || 0,
+        partially_approved: data?.filter((r) => r.status === 'partially_approved').length || 0,
         rejected: data?.filter((r) => r.status === 'rejected').length || 0,
+        refund_initiated: data?.filter((r) => r.status === 'refund_initiated').length || 0,
         completed: data?.filter((r) => r.status === 'refund_completed').length || 0,
         total_refund_amount:
           data?.reduce((sum: number, r: any) => sum + ((r.final_refund_amount as number) || 0), 0) || 0,
