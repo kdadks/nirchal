@@ -53,6 +53,24 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
+    // Validate amount is positive
+    if (amount <= 0) {
+      console.error('Invalid amount:', amount);
+      return new Response(
+        JSON.stringify({ error: 'Amount must be greater than 0' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Validate payment_id format (should start with 'pay_')
+    if (!payment_id.startsWith('pay_')) {
+      console.error('Invalid payment_id format:', payment_id);
+      return new Response(
+        JSON.stringify({ error: 'Invalid payment_id format. Must start with pay_' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     // Validate environment variables
     if (!env.RAZORPAY_KEY_ID || !env.RAZORPAY_KEY_SECRET) {
       console.error('Missing Razorpay credentials');
@@ -79,7 +97,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       refundPayload.receipt = receipt;
     }
 
-    console.log('Calling Razorpay API to create refund...');
+    console.log('Calling Razorpay API to create refund...', {
+      payment_id,
+      amount,
+      speed,
+      has_notes: !!notes,
+      payload: refundPayload
+    });
 
     // Call Razorpay API to create refund
     const razorpayResponse = await fetch(
@@ -97,7 +121,12 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     const responseData = await razorpayResponse.json();
 
     if (!razorpayResponse.ok) {
-      console.error('Razorpay API error:', responseData);
+      console.error('Razorpay API error:', {
+        status: razorpayResponse.status,
+        payment_id,
+        request_payload: refundPayload,
+        error: responseData
+      });
       return new Response(
         JSON.stringify({
           error: responseData.error?.description || 'Failed to create refund',
