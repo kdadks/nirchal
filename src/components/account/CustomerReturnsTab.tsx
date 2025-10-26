@@ -251,7 +251,8 @@ export const CustomerReturnsTab: React.FC = () => {
                     {/* Actions - Compact */}
                     <div className="flex items-center gap-2 pt-2">
                       {returnRequest.status === 'pending_shipment' &&
-                        !returnRequest.customer_tracking_number && (
+                        !returnRequest.customer_tracking_number &&
+                        returnRequest.return_address_line1 && (
                           <button
                             onClick={() => openAddTrackingModal(returnRequest)}
                             className="flex items-center gap-1 px-3 py-1.5 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-xs font-medium"
