@@ -601,8 +601,10 @@ const ProductDetailPage: React.FC = () => {
                 {/* Main Image with Click to Open */}
                 <img
                   src={getOptimizedImageUrl(product.images[selectedImage], 1200) || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
-                  srcSet={getImageSrcSet(product.images[selectedImage])}
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+                  {...(getImageSrcSet(product.images[selectedImage]) && {
+                    srcSet: getImageSrcSet(product.images[selectedImage]),
+                    sizes: "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+                  })}
                   alt={`${product.name}${selectedColor ? ` in ${selectedColor}` : ''}${selectedSize ? ` - ${selectedSize}` : ''} | ${product.category || 'Fashion'} | Buy Online at Nirchal`}
                   className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer product-image hw-accelerate"
                   loading="eager"
