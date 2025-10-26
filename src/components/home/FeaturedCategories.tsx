@@ -34,6 +34,8 @@ const FeaturedCategories: React.FC = () => {
             <Link 
               key={category.id}
               to={`/category/${category.slug || category.name}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="group block"
             >
               <div className="relative overflow-hidden rounded-lg shadow-md">

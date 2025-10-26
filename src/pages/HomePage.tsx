@@ -61,6 +61,8 @@ const HomePage: React.FC = () => {
                   <Link
                     key={category.id}
                     to={`/category/${category.slug || category.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="group relative overflow-hidden rounded-lg md:rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                   >
                     <div className="aspect-[3/4] relative">

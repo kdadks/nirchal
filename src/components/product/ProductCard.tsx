@@ -204,7 +204,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <Link to={`/products/${product.slug}`} className="block">
+        <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="block">
           {/* Image Container - optimized for mobile */}
           <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 w-full max-w-full">
             {isInView ? (

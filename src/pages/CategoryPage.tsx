@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ShoppingBag, ArrowRight, Filter } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
@@ -6,11 +6,10 @@ import CategoryCard from '../components/category/CategoryCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const CategoryPage = () => {
-  const navigate = useNavigate();
   const { categories, loading, error } = useCategories();
 
   const handleCategoryClick = (categorySlug: string) => {
-    navigate(`/category/${categorySlug}`);
+    window.open(`/category/${categorySlug}`, '_blank', 'noopener,noreferrer');
   };
 
   if (loading) {
