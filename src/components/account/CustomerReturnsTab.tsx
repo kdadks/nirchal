@@ -234,8 +234,8 @@ export const CustomerReturnsTab: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Return Address - Compact */}
-                    {returnRequest.return_address_line1 && (
+                    {/* Return Address or Waiting Message - Compact */}
+                    {returnRequest.return_address_line1 ? (
                       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs">
                         <p className="font-medium text-gray-900 mb-1">Return To:</p>
                         <p className="text-gray-700">
@@ -246,6 +246,15 @@ export const CustomerReturnsTab: React.FC = () => {
                           {returnRequest.return_address_postal_code}
                         </p>
                       </div>
+                    ) : (
+                      returnRequest.status === 'pending_shipment' && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">
+                          <p className="font-medium text-blue-900 mb-1">⏳ Awaiting Return Address</p>
+                          <p className="text-blue-700">
+                            Once the admin assigns the return address, you will need to send the package to the given address and update the tracking here. You will receive a notification via email with the return address details.
+                          </p>
+                        </div>
+                      )
                     )}
 
                     {/* Actions - Compact */}

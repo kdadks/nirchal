@@ -352,7 +352,7 @@ export const ReturnRequestForm: React.FC<ReturnRequestFormProps> = ({
         return;
       }
 
-      toast.success('Return request submitted successfully!');
+      // Success toast is shown by parent component's onSuccess callback
       onSuccess?.();
       onClose();
     } catch (error) {
