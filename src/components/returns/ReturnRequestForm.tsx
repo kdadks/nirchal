@@ -3,7 +3,6 @@ import { X, Package, AlertCircle, Upload, Trash2 } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { returnEligibilityService } from '../../services/returnEligibilityService';
 import { returnService } from '../../services/returnService';
-import { uploadImageToR2 } from '../../utils/r2StorageUtils';
 import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import type { ReturnEligibilityCheck, ReturnReason, CreateReturnRequestInput } from '../../types/return.types';
 import toast from 'react-hot-toast';
@@ -228,20 +227,45 @@ export const ReturnRequestForm: React.FC<ReturnRequestFormProps> = ({
     if (!files || files.length === 0) return;
 
     const uploadPromises = Array.from(files).map(async (file) => {
-      // Generate unique filename
-      const timestamp = Date.now();
-      const randomString = Math.random().toString(36).substring(2, 8);
-      const extension = file.name.split('.').pop();
-      const fileName = `return-${order.order_number}-${timestamp}-${randomString}.${extension}`;
+      try {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 8);
+        const extension = file.name.split('.').pop();
+        const fileName = `return-${order.order_number}-${timestamp}-${randomString}.${extension}`;
 
-      // Upload to R2
-      const result = await uploadImageToR2(file, fileName, 'returns', file.type);
-      
-      if (result.success && result.url) {
-        return result.url;
-      } else {
-        console.error('Upload failed:', result.error);
-        throw new Error(result.error || 'Upload failed');
+        // Convert file to base64
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        // Upload via Cloudflare Function (same as product images)
+        const response = await fetch('/upload-image-r2', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName,
+            folder: 'returns',
+            imageData: base64Data,
+            contentType: file.type,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        return data.url;
+      } catch (error) {
+        console.error('Upload failed:', error);
+        throw error;
       }
     });
 
