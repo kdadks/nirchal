@@ -178,16 +178,21 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
-    // Call Razorpay API to create refund
+    // Call Razorpay Refunds API to create refund
+    // Using the dedicated refunds endpoint instead of the payment refund endpoint
+    console.log('Creating refund using Razorpay Refunds API...');
     const razorpayResponse = await fetch(
-      `https://api.razorpay.com/v1/payments/${payment_id}/refund`,
+      `https://api.razorpay.com/v1/refunds`,
       {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${authString}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(refundPayload),
+        body: JSON.stringify({
+          payment_id: payment_id,
+          ...refundPayload
+        }),
       }
     );
 
