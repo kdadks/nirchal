@@ -126,7 +126,14 @@ export async function createRefund(params: CreateRefundParams): Promise<{
 
     if (!response.ok) {
       const errorData = data as any;
-      throw new Error(errorData.error || 'Failed to create refund');
+      const errorMessage = errorData.error || 'Failed to create refund';
+      
+      // Provide user-friendly error messages for common issues
+      if (errorMessage.includes('does not have enough balance')) {
+        throw new Error('Insufficient balance in Razorpay account to process refund. Please add funds to your Razorpay account from the dashboard or contact support.');
+      }
+      
+      throw new Error(errorMessage);
     }
 
     // Calculate deduction
@@ -186,6 +193,18 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     });
 
     console.log(`[Refund Service] Refund created successfully: ${data.id}`);
+
+    // Send email notification to customer (async, don't wait)
+    import('../services/emailService').then(({ emailService }) => {
+      emailService.sendReturnStatusChangeEmail(
+        returnRequest as any, // Cast to ReturnRequestWithItems
+        'refund_initiated',
+        {
+          refundTransaction: transaction as any,
+          refundDate: new Date().toLocaleDateString(),
+        }
+      ).catch(err => console.error('Failed to send refund email:', err));
+    }).catch(err => console.error('Failed to load email service:', err));
 
     return {
       success: true,

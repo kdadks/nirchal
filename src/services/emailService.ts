@@ -549,6 +549,20 @@ class EmailService {
             additionalData?.inspectorNotes
           );
 
+        case 'refund_initiated':
+          // Send refund initiated notification
+          if (additionalData?.refundTransaction) {
+            return this.sendRefundProcessedEmail(
+              returnRequest,
+              customerEmail,
+              customerName,
+              additionalData.refundTransaction,
+              additionalData?.refundDate || new Date().toLocaleDateString()
+            );
+          }
+          console.warn('Refund transaction data not provided, skipping email');
+          return false;
+
         case 'refund_completed':
           // Send refund confirmation
           if (additionalData?.refundTransaction) {
