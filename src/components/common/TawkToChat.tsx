@@ -181,9 +181,50 @@ const initializeTawkTo = (): Promise<void> => {
       muteAllAudio();
       tawktoLoaded = true;
       
+      // Prevent Tawk.to from changing page title
+      const originalTitle = document.title;
+      
+      // Monitor and restore title changes
+      const titleObserver = new MutationObserver(() => {
+        // If title changed and contains notification indicators, restore it
+        if (document.title !== originalTitle && 
+            (document.title.includes('(') || document.title.includes('New') || document.title.includes('message'))) {
+          document.title = originalTitle;
+        }
+      });
+      
+      const titleElement = document.querySelector('title');
+      if (titleElement) {
+        titleObserver.observe(titleElement, {
+          childList: true,
+          characterData: true,
+          subtree: true
+        });
+      }
+      
+      // Also use Object.defineProperty to intercept direct title assignments
+      let internalTitle = originalTitle;
+      Object.defineProperty(document, 'title', {
+        get() {
+          return internalTitle;
+        },
+        set(newTitle) {
+          // Only allow title changes that don't look like Tawk.to notifications
+          if (!newTitle.includes('(') && !newTitle.includes('New message')) {
+            internalTitle = newTitle;
+            if (titleElement) {
+              titleElement.textContent = newTitle;
+            }
+          }
+        },
+        configurable: true
+      });
+      
       if (window.Tawk_API) {
         window.Tawk_API.onLoad = function() {
           muteAllAudio();
+          // Restore title after load
+          document.title = originalTitle;
         };
         
         window.Tawk_API.onChatMaximized = function() {
@@ -195,10 +236,17 @@ const initializeTawkTo = (): Promise<void> => {
           if (window.Tawk_API && typeof window.Tawk_API.hideWidget === 'function') {
             window.Tawk_API.hideWidget();
           }
+          // Restore title when chat is minimized
+          document.title = originalTitle;
         };
         
         window.Tawk_API.onChatStarted = function() {
           muteAllAudio();
+        };
+        
+        window.Tawk_API.onChatEnded = function() {
+          // Restore title when chat ends
+          document.title = originalTitle;
         };
       }
       
