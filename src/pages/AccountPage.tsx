@@ -77,6 +77,7 @@ const AccountPage: React.FC = () => {
   const { products } = usePublicProducts();
   const { reviews: userReviews, loading: reviewsLoading, totalReviews } = useUserReviews();
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [returnRequests, setReturnRequests] = useState<Map<string, any>>(new Map()); // Map order_id to return request
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -89,6 +90,7 @@ const AccountPage: React.FC = () => {
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);  // UUID type
   const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<Set<string>>(new Set());  // UUID type
+  const [expandedRefundDetails, setExpandedRefundDetails] = useState<Set<string>>(new Set());  // UUID type for refund details
   const [expandedReturnForms, setExpandedReturnForms] = useState<Set<string>>(new Set());  // UUID type for return forms
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'returns' | 'settings'>('profile');
   const location = useLocation();
@@ -143,6 +145,12 @@ const AccountPage: React.FC = () => {
         const orderIdsWithReturns = new Set(
           (returnsResult.data || []).map((r: any) => r.order_id)
         );
+        
+        // Create a map of order_id to return request for easy lookup
+        const returnsMap = new Map(
+          (returnsResult.data || []).map((r: any) => [r.order_id, r])
+        );
+        setReturnRequests(returnsMap);
         
         // Map the data to include has_return_request flag
         const ordersWithReturnFlag = (ordersResult.data || []).map((order: any) => ({
@@ -318,6 +326,18 @@ const AccountPage: React.FC = () => {
 
   const togglePaymentDetails = (orderId: string) => {  // UUID type
     setExpandedPaymentDetails(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleRefundDetails = (orderId: string) => {  // UUID type
+    setExpandedRefundDetails(prev => {
       const newSet = new Set(prev);
       if (newSet.has(orderId)) {
         newSet.delete(orderId);
@@ -778,7 +798,7 @@ const AccountPage: React.FC = () => {
 
                             {/* Payment History Section */}
                             {(order.payment_status || order.razorpay_payment_id) && (
-                              <div className="mt-4 border-t">
+                              <div className="mt-4">
                                 <button
                                   onClick={() => togglePaymentDetails(order.id)}
                                   className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors rounded-lg"
@@ -901,6 +921,158 @@ const AccountPage: React.FC = () => {
                                 )}
                               </div>
                             )}
+
+                            {/* Refund Details Section - Show if return request exists */}
+                            {order.has_return_request && returnRequests.has(order.id) && (() => {
+                              const returnRequest = returnRequests.get(order.id);
+                              if (!returnRequest) return null;
+                              
+                              return (
+                                <div className="mt-4">
+                                  <button
+                                    onClick={() => toggleRefundDetails(order.id)}
+                                    className="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 transition-colors rounded-lg"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <RotateCcw size={16} className="text-blue-600" />
+                                      <span className="text-sm font-medium text-gray-900">Refund Details</span>
+                                    </div>
+                                    {expandedRefundDetails.has(order.id) ? (
+                                      <ChevronDown size={16} className="text-gray-500" />
+                                    ) : (
+                                      <ChevronRight size={16} className="text-gray-500" />
+                                    )}
+                                  </button>
+                                  
+                                  {expandedRefundDetails.has(order.id) && (
+                                    <div className="p-3 bg-blue-50 rounded-b-lg space-y-2">
+                                      {/* Return Request Status */}
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-gray-600">Return Status:</span>
+                                        <span className="text-gray-900 font-medium capitalize">
+                                          {returnRequest.status?.replace(/_/g, ' ') || 'Pending'}
+                                        </span>
+                                      </div>
+
+                                      {/* Refund Status */}
+                                      {returnRequest.refund_status && (
+                                        <div className="flex items-center justify-between text-sm">
+                                          <span className="text-gray-600">Refund Status:</span>
+                                          <div className="flex items-center gap-1">
+                                            {returnRequest.refund_status === 'completed' ? (
+                                              <>
+                                                <CheckCircle size={14} className="text-green-600" />
+                                                <span className="text-green-600 font-medium">Completed</span>
+                                              </>
+                                            ) : returnRequest.refund_status === 'initiated' ? (
+                                              <>
+                                                <Clock size={14} className="text-yellow-600" />
+                                                <span className="text-yellow-600 font-medium">Processing</span>
+                                              </>
+                                            ) : returnRequest.refund_status === 'failed' ? (
+                                              <>
+                                                <XCircle size={14} className="text-red-600" />
+                                                <span className="text-red-600 font-medium">Failed</span>
+                                              </>
+                                            ) : (
+                                              <span className="text-gray-500 font-medium capitalize">
+                                                {returnRequest.refund_status?.replace(/_/g, ' ')}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Refund Amount */}
+                                      {returnRequest.final_refund_amount && (
+                                        <div className="flex items-center justify-between text-sm">
+                                          <span className="text-gray-600">Refund Amount:</span>
+                                          <span className="font-semibold text-green-600">
+                                            ₹{returnRequest.final_refund_amount.toLocaleString('en-IN')}
+                                          </span>
+                                        </div>
+                                      )}
+
+                                      {/* Razorpay Refund ID */}
+                                      {returnRequest.razorpay_refund_id && (
+                                        <div className="flex items-center justify-between text-sm">
+                                          <span className="text-gray-600">Refund ID:</span>
+                                          <span className="font-mono text-xs text-gray-900 bg-white px-2 py-1 rounded border">
+                                            {returnRequest.razorpay_refund_id}
+                                          </span>
+                                        </div>
+                                      )}
+
+                                      {/* Refund Initiated Date */}
+                                      {returnRequest.refund_initiated_date && (
+                                        <div className="flex items-center justify-between text-sm">
+                                          <span className="text-gray-600">Initiated On:</span>
+                                          <span className="text-gray-900">
+                                            {formatDisplayDate(returnRequest.refund_initiated_date)}
+                                          </span>
+                                        </div>
+                                      )}
+
+                                      {/* Refund Completed Date */}
+                                      {returnRequest.refund_completed_date && (
+                                        <div className="flex items-center justify-between text-sm">
+                                          <span className="text-gray-600">Completed On:</span>
+                                          <span className="text-gray-900 font-medium">
+                                            {formatDisplayDate(returnRequest.refund_completed_date)}
+                                          </span>
+                                        </div>
+                                      )}
+
+                                      {/* Refund Failure Reason */}
+                                      {returnRequest.refund_failure_reason && (
+                                        <div className="mt-2 pt-2 border-t border-blue-200">
+                                          <div className="flex items-start gap-2 text-sm">
+                                            <AlertTriangle size={14} className="text-red-600 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                              <span className="text-gray-600 block">Failure Reason:</span>
+                                              <span className="text-red-600 text-xs">
+                                                {returnRequest.refund_failure_reason}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Deduction Breakdown if applicable */}
+                                      {returnRequest.deduction_breakdown && (
+                                        <div className="mt-2 pt-2 border-t border-blue-200">
+                                          <span className="text-xs text-gray-600 font-medium block mb-1">Deductions:</span>
+                                          {returnRequest.deduction_breakdown.inspection_charge > 0 && (
+                                            <div className="flex justify-between text-xs">
+                                              <span className="text-gray-600">Inspection Charge:</span>
+                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.inspection_charge}</span>
+                                            </div>
+                                          )}
+                                          {returnRequest.deduction_breakdown.shipping_charge > 0 && (
+                                            <div className="flex justify-between text-xs">
+                                              <span className="text-gray-600">Shipping Charge:</span>
+                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.shipping_charge}</span>
+                                            </div>
+                                          )}
+                                          {returnRequest.deduction_breakdown.restocking_fee > 0 && (
+                                            <div className="flex justify-between text-xs">
+                                              <span className="text-gray-600">Restocking Fee:</span>
+                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.restocking_fee}</span>
+                                            </div>
+                                          )}
+                                          {returnRequest.deduction_breakdown.other_deductions > 0 && (
+                                            <div className="flex justify-between text-xs">
+                                              <span className="text-gray-600">Other Deductions:</span>
+                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.other_deductions}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         ))}
                       </div>
