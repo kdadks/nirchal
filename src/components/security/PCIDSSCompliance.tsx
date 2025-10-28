@@ -105,7 +105,7 @@ const PCIDSSCompliance: React.FC = () => {
     // Provide immediate basic score while initializing
     const quickStatus: PCIDSSStatus = {
       httpsEnforced: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
-      secureHeaders: true, // Netlify provides these
+      secureHeaders: true, // Cloudflare Pages provides these
       sessionSecurity: typeof sessionStorage !== 'undefined',
       paymentTokenization: true, // Will be properly checked shortly
       dataProtection: true, // Will be properly checked shortly
@@ -150,7 +150,7 @@ const PCIDSSCompliance: React.FC = () => {
   };
 
   const checkSecurityHeaders = (): boolean => {
-    // Check for essential security headers - these are provided by Netlify headers
+    // Check for essential security headers - these are provided by Cloudflare Pages headers
     // Since we're using Netlify for deployment, security headers are configured via _headers file
     if (typeof window !== 'undefined') {
       // Check if we're in a secure context (HTTPS or localhost)

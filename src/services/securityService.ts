@@ -21,7 +21,7 @@ export class SecurityService {
       // Get connection security info (limited in browsers)
       const securityInfo = {
         isSecure: true,
-        tlsVersion: 'TLS 1.2+', // Netlify default
+        tlsVersion: 'TLS 1.2+', // Cloudflare Pages default
         cipherSuite: 'Modern cipher suites supported',
         keySize: 256 // Typical for modern connections
       };

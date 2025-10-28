@@ -508,8 +508,8 @@ export class SecurityUtils {
       // you'd need to check actual HTTP headers
       if (typeof document !== 'undefined') {
         // These checks are approximations since we can't access HTTP headers from client-side
-        headers['X-Frame-Options'] = true; // Assume Netlify provides this
-        headers['X-Content-Type-Options'] = true; // Assume Netlify provides this
+        headers['X-Frame-Options'] = true; // Assume Cloudflare Pages provides this
+        headers['X-Content-Type-Options'] = true; // Assume Cloudflare Pages provides this
         headers['Referrer-Policy'] = !!document.querySelector('meta[name="referrer"]');
         headers['Permissions-Policy'] = true; // Modern browsers have this
       }

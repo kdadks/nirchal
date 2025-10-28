@@ -1,5 +1,5 @@
-// Client-side email service that calls Netlify Functions
-class NetlifyEmailService {
+// Client-side email service that calls Cloudflare Functions
+class CloudflareEmailService {
   private baseUrl: string;
 
   constructor() {
@@ -254,4 +254,4 @@ class NetlifyEmailService {
   }
 }
 
-export const netlifyEmailService = new NetlifyEmailService();
+export const netlifyEmailService = new CloudflareEmailService();

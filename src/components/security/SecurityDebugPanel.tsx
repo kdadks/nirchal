@@ -29,7 +29,7 @@ const SecurityDebugPanel: React.FC = () => {
           : `Site is NOT served over HTTPS (${window.location.protocol}). This is a critical security vulnerability.`,
         recommendation: httpsCheck 
           ? 'HTTPS is properly configured.' 
-          : 'Configure your hosting provider (Netlify) to force HTTPS redirects and ensure SSL certificate is active.',
+          : 'Configure your hosting provider (Cloudflare Pages) to force HTTPS redirects and ensure SSL certificate is active.',
         critical: true
       });
 
@@ -103,7 +103,7 @@ const SecurityDebugPanel: React.FC = () => {
               .join(', ')}`,
         recommendation: headersPassed 
           ? 'Security headers are properly configured.' 
-          : 'Configure security headers in Netlify _headers file or server configuration.',
+          : 'Configure security headers in Cloudflare Pages _headers file or server configuration.',
         critical: false
       });
 
@@ -315,7 +315,7 @@ const SecurityDebugPanel: React.FC = () => {
           <h4 className="font-medium text-blue-900 mb-2">Steps to Achieve 100% Compliance:</h4>
           <ol className="text-sm text-blue-800 space-y-1">
             <li>1. Fix all critical security issues (marked in red)</li>
-            <li>2. Configure security headers in your Netlify deployment</li>
+            <li>2. Configure security headers in your Cloudflare Pages deployment</li>
             <li>3. Implement Content Security Policy</li>
             <li>4. Ensure all payment processing uses proper tokenization</li>
             <li>5. Set up proper server-side audit logging</li>
