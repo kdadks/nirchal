@@ -33,7 +33,10 @@ const fetchCategoriesFromDB = async (): Promise<Category[]> => {
     .order('name', { ascending: true });
 
   if (error) {
-    console.error('[CategoryCache] Error fetching categories:', error);
+    // Only log errors in production
+    if (window.location.hostname !== 'localhost') {
+      console.error('[CategoryCache] Error fetching categories:', error);
+    }
     throw error;
   }
 

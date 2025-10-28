@@ -40,7 +40,10 @@ export const useSettings = () => {
       if (error) throw error;
       setCategories((data as any) || []);
     } catch (err) {
-      console.error('Error fetching settings categories:', err);
+      // Only log errors in production (expected on localhost during development)
+      if (window.location.hostname !== 'localhost') {
+        console.error('Error fetching settings categories:', err);
+      }
       setError(err instanceof Error ? err.message : 'Failed to fetch categories');
     }
   };

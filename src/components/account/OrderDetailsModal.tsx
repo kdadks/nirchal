@@ -586,9 +586,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               {/* Order Items */}
               <div>
                 <h3 className="text-base font-semibold text-gray-900 mb-3">Order Items</h3>
-                {import.meta.env.DEV && (
-                  <p className="text-xs text-gray-500 mb-2">Debug: {orderItems.length} items in state</p>
-                )}
                 <div className="space-y-2">
                   {orderItems.map((item) => {
                     // Detect if this is a service item

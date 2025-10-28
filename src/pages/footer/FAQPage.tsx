@@ -1,8 +1,8 @@
-/* global HTMLElement */
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp, Search, HelpCircle, Package, CreditCard, Truck, RefreshCw } from 'lucide-react';
 import { generateFAQSchema, renderJsonLd } from '../../utils/structuredData';
+import { openTawkToChat } from '../../components/common/TawkToChat';
 
 interface FAQ {
   id: number;
@@ -225,13 +225,9 @@ const FAQPage: React.FC = () => {
               </div>
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Live Chat</h3>
-                <p className="text-gray-600 mb-4">Chat with our AI assistant</p>
+                <p className="text-gray-600 mb-4">Chat with our support team in real-time</p>
                 <button
-                  onClick={() => {
-                    // This would trigger the AI chatbot
-                    const chatbot = document.querySelector('[data-chatbot-trigger]') as HTMLElement;
-                    if (chatbot) chatbot.click();
-                  }}
+                  onClick={openTawkToChat}
                   className="inline-block bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transition-all duration-300"
                 >
                   Start Chat

@@ -42,7 +42,10 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.log('Wishlist table does not exist, will create when first item is added');
         setWishlist([]);
       } else if (error) {
-        console.error('Error loading wishlist:', error);
+        // Only log errors in production
+        if (window.location.hostname !== 'localhost') {
+          console.error('Error loading wishlist:', error);
+        }
         setWishlist([]);
       } else {
         setWishlist((data || []).map(item => (item as any).product_id as string));

@@ -19,6 +19,10 @@ console.warn = (...args) => {
   if (args[0]?.includes?.('Multiple GoTrueClient instances detected')) {
     return; // Suppress this harmless warning
   }
+  // Suppress network errors on localhost (expected during development)
+  if (window.location.hostname === 'localhost' && args[0]?.includes?.('Failed to')) {
+    return;
+  }
   originalWarn.apply(console, args);
 };
 

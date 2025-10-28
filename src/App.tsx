@@ -9,6 +9,7 @@ import { CustomerAuthProvider } from './contexts/CustomerAuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
 import { AIAssistantButton } from './components/ai/AIAssistantButton';
+import TawkToChat from './components/common/TawkToChat';
 import { preloadCategories } from './utils/categoryCache';
 import AppRoutes from './routes';
 import VisitorTracker from './components/VisitorTracker';
@@ -119,6 +120,7 @@ const App: React.FC = () => {
               <VisitorTracker>
                 <RouterProvider router={router} />
                 <AIAssistantButton />
+                <TawkToChat />
                 <Toaster
                   position="top-right"
                   toastOptions={{
