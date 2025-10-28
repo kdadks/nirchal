@@ -41,13 +41,15 @@ export interface GA4EcommerceItem {
  */
 export const initGA4 = (measurementId: string): void => {
   if (!measurementId) {
-    console.warn('GA4 Measurement ID not provided');
+    // Silently skip if no measurement ID - not critical
     return;
   }
 
   // Check if already initialized
   if (window.gtag) {
-    console.log('GA4 already initialized');
+    if (import.meta.env.DEV) {
+      console.log('GA4 already initialized');
+    }
     return;
   }
 
@@ -68,7 +70,9 @@ export const initGA4 = (measurementId: string): void => {
     send_page_view: false, // We'll send page views manually
   });
 
-  console.log('GA4 initialized with ID:', measurementId);
+  if (import.meta.env.DEV) {
+    console.log('GA4 initialized with ID:', measurementId);
+  }
 };
 
 /**
@@ -77,13 +81,15 @@ export const initGA4 = (measurementId: string): void => {
  */
 export const initFacebookPixel = (pixelId: string): void => {
   if (!pixelId) {
-    console.warn('Facebook Pixel ID not provided');
+    // Silently skip if no pixel ID - not critical
     return;
   }
 
   // Check if already initialized
   if (window.fbq) {
-    console.log('Facebook Pixel already initialized');
+    if (import.meta.env.DEV) {
+      console.log('Facebook Pixel already initialized');
+    }
     return;
   }
 

@@ -8,11 +8,10 @@
     <meta name="description" content="Discover authentic Indian ethnic wear at Nirchal. Shop our curated collection of traditional and contemporary designs." />
     
     <!-- Content Security Policy for XSS Protection - Relaxed for UAT -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com https://*.pages.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com https://*.supabase.co wss://*.supabase.co https://*.pages.dev https://*.r2.cloudflarestorage.com https://*.r2.dev https://ipapi.co; frame-src https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://*.razorpay.com https://*.pages.dev https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com https://*.supabase.co wss://*.supabase.co https://*.pages.dev https://*.r2.cloudflarestorage.com https://*.r2.dev https://ipapi.co https://cloudflareinsights.com; frame-src https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com; font-src 'self' https://fonts.gstatic.com; object-src 'none'; base-uri 'self'; form-action 'self';" />
     
-    <!-- Additional Security Headers -->
+    <!-- Additional Security Headers (X-Frame-Options removed - set via HTTP headers only) -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     

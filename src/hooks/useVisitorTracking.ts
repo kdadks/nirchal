@@ -161,11 +161,11 @@ export const useVisitorTracking = () => {
           .from('guest_visitors')
           .select('id, pages_visited, time_spent, visit_count')
           .eq('visitor_id', visitorInfo.visitor_id)
-          .single();
+          .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors
 
-        if (fetchError && fetchError.code !== 'PGRST116') {
-          // PGRST116 means "not found", which is expected for new visitors
-          // Table might not exist yet - that's okay, continue anyway
+        if (fetchError) {
+          // Silently fail - visitor tracking is not critical
+          // Table might not exist yet or RLS might block access
           hasTrackedRef.current = true;
           return;
         }

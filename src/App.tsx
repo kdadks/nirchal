@@ -77,16 +77,19 @@ const App: React.FC = () => {
     
     if (ga4Id) {
       initGA4(ga4Id);
-      console.log('[GA4] Initialized with ID:', ga4Id);
-    } else {
-      console.warn('[GA4] Measurement ID not found. Add it in Admin Settings > SEO Settings');
+      if (import.meta.env.DEV) {
+        console.log('[GA4] Initialized with ID:', ga4Id);
+      }
     }
+    // Silently skip if no GA4 ID - not critical for functionality
 
     // Initialize Facebook Pixel
     const fbPixelId = seoSettings.facebook_pixel_id;
     if (fbPixelId) {
       initFacebookPixel(fbPixelId);
-      console.log('[Facebook Pixel] Initialized with ID:', fbPixelId);
+      if (import.meta.env.DEV) {
+        console.log('[Facebook Pixel] Initialized with ID:', fbPixelId);
+      }
     }
   }, [seoSettings]);
 

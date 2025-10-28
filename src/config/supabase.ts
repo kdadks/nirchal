@@ -13,16 +13,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 let supabaseInstance: ReturnType<typeof createClient> | null = null;
 let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
 
-// Suppress multiple client warnings in development (due to HMR)
-if (import.meta.env.DEV) {
-  const originalWarn = console.warn;
-  console.warn = (...args) => {
-    if (args[0]?.includes?.('Multiple GoTrueClient instances detected')) {
-      return; // Suppress this warning in development
-    }
-    originalWarn.apply(console, args);
-  };
-}
+// Suppress multiple client warnings (occurs due to HMR in dev or strict mode in prod)
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  if (args[0]?.includes?.('Multiple GoTrueClient instances detected')) {
+    return; // Suppress this harmless warning
+  }
+  originalWarn.apply(console, args);
+};
 
 // Regular client for public operations
 function getSupabaseClient() {
