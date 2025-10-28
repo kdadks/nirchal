@@ -58,17 +58,17 @@ const TawkToChat: React.FC = () => {
       /* Custom close button for Tawk.to */
       #tawk-close-button {
         position: fixed;
-        top: 20px;
-        right: 20px;
-        width: 40px;
-        height: 40px;
+        bottom: 90px;
+        right: 30px;
+        width: 36px;
+        height: 36px;
         background: #ff4444;
         color: white;
         border: none;
         border-radius: 50%;
         cursor: pointer;
-        font-size: 24px;
-        line-height: 40px;
+        font-size: 22px;
+        line-height: 36px;
         text-align: center;
         z-index: 10000;
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -83,6 +83,18 @@ const TawkToChat: React.FC = () => {
       
       #tawk-close-button.visible {
         display: block;
+      }
+      
+      /* Responsive positioning for smaller screens */
+      @media (max-width: 768px) {
+        #tawk-close-button {
+          bottom: 75px;
+          right: 20px;
+          width: 32px;
+          height: 32px;
+          font-size: 20px;
+          line-height: 32px;
+        }
       }
       
       /* Disable Tawk.to notification sounds */
@@ -113,6 +125,41 @@ const TawkToChat: React.FC = () => {
       }
     };
     document.body.appendChild(closeButton);
+
+    // Helper: position the close button over the Tawk.to widget header
+    const positionCloseButton = () => {
+      // Try to find the Tawk widget iframe or container
+      const iframe = document.querySelector('iframe[src*="tawk.to"], iframe[title*="chat"]') as HTMLIFrameElement | null;
+      let targetRect: DOMRect | null = null;
+
+      if (iframe && iframe.getBoundingClientRect) {
+        targetRect = iframe.getBoundingClientRect();
+      } else {
+        // Fallback: look for common container nodes
+        const possible = document.querySelector('div[id^="tawk"], div[class*="tawk"]') as HTMLElement | null;
+        if (possible && possible.getBoundingClientRect) {
+          targetRect = possible.getBoundingClientRect();
+        }
+      }
+
+      if (!targetRect) return;
+
+      // Compute position: place button over top-right of the widget header
+      const btnSize = 36; // matches CSS
+      const padding = 8; // offset from edge
+      const top = Math.max(8, window.scrollY + targetRect.top + padding);
+      const left = Math.max(8, window.scrollX + targetRect.left + targetRect.width - btnSize - padding);
+
+      closeButton.style.position = 'absolute';
+      closeButton.style.top = `${top}px`;
+      closeButton.style.left = `${left}px`;
+      closeButton.style.right = 'auto';
+    };
+
+    // Reposition on scroll/resize and when DOM changes
+    const repositionHandler = () => positionCloseButton();
+    window.addEventListener('scroll', repositionHandler, { passive: true });
+    window.addEventListener('resize', repositionHandler);
 
     // Your Tawk.to Property ID
     const tawkPropertyId = import.meta.env.VITE_TAWK_PROPERTY_ID || '690068c06b37cd19503f3534';
@@ -186,9 +233,14 @@ const TawkToChat: React.FC = () => {
           muteAllAudio();
         };
         
-        // Show close button when chat is maximized
+        // Show and position close button when chat is maximized
         window.Tawk_API.onChatMaximized = function() {
-          closeButton.classList.add('visible');
+          try {
+            positionCloseButton();
+            closeButton.classList.add('visible');
+          } catch (e) {
+            // noop
+          }
         };
         
         // Hide close button and widget when user minimizes the chat
@@ -213,7 +265,11 @@ const TawkToChat: React.FC = () => {
     return () => {
       // Disconnect observer
       observer.disconnect();
-      
+
+      // Remove reposition event listeners
+      window.removeEventListener('scroll', repositionHandler);
+      window.removeEventListener('resize', repositionHandler);
+
       // Remove close button
       if (closeButton.parentNode) {
         closeButton.parentNode.removeChild(closeButton);
@@ -245,6 +301,22 @@ export const openTawkToChat = () => {
     // Show close button
     const closeButton = document.getElementById('tawk-close-button');
     if (closeButton) {
+      // Attempt to position the button over the widget header
+      try {
+  const iframe = document.querySelector('iframe[src*="tawk.to"], iframe[title*="chat"]') as HTMLIFrameElement | null;
+        if (iframe) {
+          const rect = iframe.getBoundingClientRect();
+          const btnSize = 36;
+          const padding = 8;
+          const top = Math.max(8, window.scrollY + rect.top + padding);
+          const left = Math.max(8, window.scrollX + rect.left + rect.width - btnSize - padding);
+          (closeButton as HTMLElement).style.position = 'absolute';
+          (closeButton as HTMLElement).style.top = `${top}px`;
+          (closeButton as HTMLElement).style.left = `${left}px`;
+        }
+      } catch (err) {
+        // ignore
+      }
       closeButton.classList.add('visible');
     }
   } else {
