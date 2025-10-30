@@ -250,7 +250,7 @@ export const generateReturnAddressEmail = (data: ReturnAddressEmailData): string
       </p>
 
       <center>
-        <a href="${process.env.VITE_APP_URL || 'https://nirchal.com'}/account" class="button">
+        <a href="https://nirchal.com/myaccount" class="button">
           View Return Status
         </a>
       </center>

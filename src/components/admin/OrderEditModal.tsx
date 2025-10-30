@@ -88,7 +88,6 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
-      console.log('Fetching order details for order ID:', orderId);
       
       // Fetch order details first
       const { data: orderData, error: orderError } = await supabase
@@ -103,7 +102,6 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
       }
 
       // Fetch order items - first get all items without products join
-      console.log('Fetching order items for order ID:', orderId);
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
         .select('*')
@@ -113,10 +111,6 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
         console.error('Order items fetch error:', itemsError);
         console.error('Error details:', JSON.stringify(itemsError, null, 2));
         // Continue without items rather than failing completely
-        console.log('Continuing without order items...');
-      } else {
-        console.log('Order items fetched successfully:', items);
-        console.log('Sample item structure:', items?.[0]);
       }
       
       // For items that have product_id, fetch product details separately
@@ -201,13 +195,11 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
         order_items: processedItems || []
       } as OrderDetails;
 
-      console.log('Fetched order data:', completeOrderData);
       setOrderDetails(completeOrderData);
       setFormData(completeOrderData);
     } catch (error) {
       console.error('Error fetching order details:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      toast.error('Failed to load order details. Please check the console for more details.');
+      toast.error('Failed to load order details');
     } finally {
       setLoading(false);
     }

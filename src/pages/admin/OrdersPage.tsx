@@ -291,13 +291,6 @@ const OrdersPage: React.FC = () => {
           // Note: logistics_partners is returned as a single object by Supabase, not an array
           const logisticsPartnerData = (orderData as any).logistics_partners;
           
-          console.log('📦 Shipping email - Logistics Partner Data:', {
-            raw: logisticsPartnerData,
-            name: logisticsPartnerData?.name,
-            tracking_url_template: logisticsPartnerData?.tracking_url_template,
-            logistics_partner_id: (orderData as any).logistics_partner_id
-          });
-          
           await transactionalEmailService.sendShippingEmail({
             id: (orderData as any).id,
             order_number: (orderData as any).order_number,
