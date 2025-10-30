@@ -382,13 +382,14 @@ const CheckoutPage: React.FC = () => {
             is_default: true,
           });
 
-          await upsertAddressWithFlags(deliveryAddressData, true, false);
+          // Determine if same address is used for both shipping and billing
+          const isBothShippingAndBilling = form.billingIsSameAsDelivery;
+          
+          // Save delivery address with correct flags in ONE call
+          await upsertAddressWithFlags(deliveryAddressData, true, isBothShippingAndBilling);
 
-          // Handle billing address
-          if (form.billingIsSameAsDelivery) {
-            // Mark the same address as billing too
-            await upsertAddressWithFlags(deliveryAddressData, true, true);
-          } else if (form.billingAddress.trim()) {
+          // Handle separate billing address if provided
+          if (!form.billingIsSameAsDelivery && form.billingAddress.trim()) {
             // Save different billing address
             const billingAddressData = sanitizeAddressData({
               first_name: form.billingFirstName,
@@ -1157,9 +1158,21 @@ const CheckoutPage: React.FC = () => {
         // Update existing address to add new flags
         const existingAddress = existingAddresses[0];
         console.log(`✅ Found existing address (ID: ${existingAddress.id}), updating flags:`, {
-          current: { is_shipping: existingAddress.is_shipping, is_billing: existingAddress.is_billing },
-          new: { is_shipping: existingAddress.is_shipping || isDelivery, is_billing: existingAddress.is_billing || isBilling }
+          current: { is_shipping: existingAddress.is_shipping, is_billing: existingAddress.is_billing, is_default: existingAddress.is_default },
+          new: { is_shipping: existingAddress.is_shipping || isDelivery, is_billing: existingAddress.is_billing || isBilling, is_default: sanitizedAddress.is_default || existingAddress.is_default }
         });
+        
+        // If setting this address as default, first remove default from other addresses
+        const shouldBeDefault = sanitizedAddress.is_default || existingAddress.is_default;
+        if (shouldBeDefault && !existingAddress.is_default) {
+          console.log('🔄 Removing default flag from other addresses before updating');
+          await supabase
+            .from('customer_addresses')
+            .update({ is_default: false })
+            .eq('customer_id', customer.id)
+            .eq('is_default', true)
+            .neq('id', existingAddress.id); // Don't update the current address
+        }
         
         const { error: updateError } = await supabase
           .from('customer_addresses')
@@ -1169,7 +1182,7 @@ const CheckoutPage: React.FC = () => {
             first_name: sanitizedAddress.first_name,
             last_name: sanitizedAddress.last_name,
             phone: sanitizedAddress.phone,
-            is_default: sanitizedAddress.is_default || existingAddress.is_default,
+            is_default: shouldBeDefault,
           })
           .eq('id', existingAddress.id);
 
