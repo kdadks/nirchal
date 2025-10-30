@@ -385,6 +385,10 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
     return `₹${amount.toLocaleString('en-IN')}`;
   };
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-IN');
+  const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 
   if (!isOpen) return null;
 
@@ -447,6 +451,9 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
                 <p className="text-sm text-gray-600">Order Date</p>
                 <p className="text-sm font-medium text-gray-900 mt-1">
                   {formatDate(orderDetails.created_at)}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {formatTime(orderDetails.created_at)}
                 </p>
               </div>
             </div>
