@@ -288,6 +288,16 @@ const OrdersPage: React.FC = () => {
 
         } else if (newStatus === 'shipped' && (orderData as any).tracking_number) {
           // Send specialized shipping email with tracking details
+          // Note: logistics_partners is returned as a single object by Supabase, not an array
+          const logisticsPartnerData = (orderData as any).logistics_partners;
+          
+          console.log('📦 Shipping email - Logistics Partner Data:', {
+            raw: logisticsPartnerData,
+            name: logisticsPartnerData?.name,
+            tracking_url_template: logisticsPartnerData?.tracking_url_template,
+            logistics_partner_id: (orderData as any).logistics_partner_id
+          });
+          
           await transactionalEmailService.sendShippingEmail({
             id: (orderData as any).id,
             order_number: (orderData as any).order_number,
@@ -296,9 +306,9 @@ const OrdersPage: React.FC = () => {
             total_amount: (orderData as any).total_amount,
             status: newStatus,
             tracking_number: (orderData as any).tracking_number,
-            logistics_partner: (orderData as any).logistics_partners?.[0] ? {
-              name: (orderData as any).logistics_partners[0].name,
-              tracking_url_template: (orderData as any).logistics_partners[0].tracking_url_template
+            logistics_partner: logisticsPartnerData ? {
+              name: logisticsPartnerData.name || 'Logistics Partner',
+              tracking_url_template: logisticsPartnerData.tracking_url_template
             } : undefined
           });
 
@@ -841,12 +851,12 @@ const OrdersPage: React.FC = () => {
                       {order.tracking_number ? (
                         <div className="space-y-1">
                           <div className="font-medium text-xs">{order.tracking_number}</div>
-                          {order.logistics_partners?.[0] && (
+                          {order.logistics_partners && typeof order.logistics_partners === 'object' && (
                             <>
-                              <div className="text-xs text-gray-500">{order.logistics_partners[0].name}</div>
-                              {order.logistics_partners[0].tracking_url_template && (
+                              <div className="text-xs text-gray-500">{(order.logistics_partners as any).name}</div>
+                              {(order.logistics_partners as any).tracking_url_template && (
                                 <a
-                                  href={order.logistics_partners[0].tracking_url_template.replace('{tracking_number}', order.tracking_number)}
+                                  href={(order.logistics_partners as any).tracking_url_template.replace('{tracking_number}', order.tracking_number)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-blue-600 hover:text-blue-800 text-xs underline"

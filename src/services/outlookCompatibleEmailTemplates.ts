@@ -417,7 +417,7 @@ export const outlookCompatibleShippingEmail = (
     subHeaderText: `Order ${orderNumber} - Tracking: ${trackingNumber}`,
     customerName,
     content,
-    ctaText: trackingUrl ? '📍 Track Your Package' : '📱 View Order Details',
+    ctaText: trackingUrl ? '📍 Track Your Package' : '� Track Your Order',
     ctaUrl: trackingUrl || `${websiteUrl}/myaccount`,
     footerText: 'Fast & Reliable Delivery',
     websiteUrl

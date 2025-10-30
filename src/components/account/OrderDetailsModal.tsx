@@ -5,6 +5,7 @@ import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtil
 import toast from 'react-hot-toast';
 import { useRazorpay } from '../../hooks/useRazorpay';
 import { useInvoices } from '../../hooks/useInvoices';
+import { transactionalEmailService } from '../../services/transactionalEmailService';
 
 interface OrderItem {
   id: number;
@@ -418,6 +419,20 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
             if (verificationResult.verified) {
               toast.success('✅ Payment successful!', { duration: 4000 });
+              
+              // Send payment success email for retry payment
+              try {
+                await transactionalEmailService.sendPaymentSuccessEmail({
+                  customer_name: `${orderDetails.billing_first_name} ${orderDetails.billing_last_name}`,
+                  customer_email: orderDetails.billing_email,
+                  order_number: orderDetails.order_number,
+                  amount: amountToPay,
+                  payment_id: response.razorpay_payment_id
+                });
+                console.log('✅ Payment success email sent for retry payment');
+              } catch (emailError) {
+                console.error('Failed to send payment success email:', emailError);
+              }
               
               // Reload order details to show updated payment status
               await loadOrderDetails();
