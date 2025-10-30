@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useProductReviews } from '../hooks/useProductReviews';
 import { useProductSuggestions } from '../hooks/useProductSuggestions';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search, Facebook, Linkedin, MessageCircle, Link2, Check, ShoppingBag, Heart, Share2 } from 'lucide-react';
+import { Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search, Facebook, Linkedin, MessageCircle, Link2, Check, ShoppingBag, Heart, Share2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useWishlist } from '../contexts/WishlistContext';
@@ -55,6 +55,7 @@ const ProductDetailPage: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [isImageFullSize, setIsImageFullSize] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -343,10 +344,17 @@ const ProductDetailPage: React.FC = () => {
 
   const openImageModal = () => {
     setIsImageModalOpen(true);
+    setIsImageFullSize(false);
   };
 
   const closeImageModal = () => {
     setIsImageModalOpen(false);
+    setIsImageFullSize(false);
+  };
+
+  const toggleFullSize = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsImageFullSize(!isImageFullSize);
   };
 
   const nextImageInModal = () => {
@@ -1231,7 +1239,7 @@ const ProductDetailPage: React.FC = () => {
       {/* Full Screen Image Modal */}
       {isImageModalOpen && (
         <div 
-          className="fixed inset-0 bg-black/95 z-[10100] flex items-center justify-center p-2 sm:p-4 mobile-fullscreen"
+          className={`fixed inset-0 bg-black/95 z-[10100] ${isImageFullSize ? 'overflow-y-auto' : 'flex items-center justify-center'} p-2 sm:p-4 mobile-fullscreen`}
           onClick={closeImageModal}
           style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
         >
@@ -1241,13 +1249,22 @@ const ProductDetailPage: React.FC = () => {
               e.stopPropagation();
               closeImageModal();
             }}
-            className="absolute top-2 sm:top-4 right-2 sm:right-4 z-[10101] w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200 safe-top"
+            className="fixed top-2 sm:top-4 right-2 sm:right-4 z-[10102] w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors duration-200 safe-top"
           >
             <X size={20} className="sm:w-6 sm:h-6" />
           </button>
 
+          {/* Zoom Toggle Button - Centered */}
+          <button
+            onClick={toggleFullSize}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10102] w-12 h-12 sm:w-14 sm:h-14 bg-white/10 backdrop-blur-sm hover:bg-white/20 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-200 border-2 border-white/30"
+            title={isImageFullSize ? "Fit to screen" : "View full size"}
+          >
+            {isImageFullSize ? <ZoomOut size={24} className="sm:w-7 sm:h-7" /> : <ZoomIn size={24} className="sm:w-7 sm:h-7" />}
+          </button>
+
           {/* Image Navigation - Previous */}
-          {product.images.length > 1 && (
+          {product.images.length > 1 && !isImageFullSize && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1260,7 +1277,7 @@ const ProductDetailPage: React.FC = () => {
           )}
 
           {/* Image Navigation - Next */}
-          {product.images.length > 1 && (
+          {product.images.length > 1 && !isImageFullSize && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1274,28 +1291,27 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Full Size Image */}
           <div 
-            className="relative max-w-full max-h-full flex items-center justify-center"
+            className={`relative ${isImageFullSize ? 'w-full pt-20 pb-16' : 'max-w-full max-h-full flex items-center justify-center'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <img
               src={product.images[selectedImage] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80'}
               alt={product.name}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-pointer"
+              className={`${isImageFullSize ? 'w-full h-auto block' : 'max-w-full max-h-full object-contain'} rounded-lg shadow-2xl`}
               loading="eager"
               decoding="async"
-              onClick={closeImageModal}
             />
           </div>
 
           {/* Image Counter */}
           {product.images.length > 1 && (
-            <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm">
+            <div className="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm text-white px-3 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm z-[10101]">
               {selectedImage + 1} / {product.images.length}
             </div>
           )}
 
           {/* Product Name Overlay */}
-          <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 bg-black/50 backdrop-blur-sm text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm max-w-xs truncate">
+          <div className="fixed bottom-2 sm:bottom-4 right-2 sm:right-4 bg-black/50 backdrop-blur-sm text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-xs sm:text-sm max-w-xs truncate z-[10101]">
             {product.name}
           </div>
         </div>
