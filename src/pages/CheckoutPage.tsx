@@ -201,9 +201,10 @@ const CheckoutPage: React.FC = () => {
         
         setCustomerAddresses(processedAddresses);
 
-        // Clean up actual duplicate addresses in database
+        // Warn about duplicate addresses but don't auto-delete
         if (data && data.length > processedAddresses.length) {
-          await cleanupDuplicateAddresses(data, processedAddresses);
+          const duplicateCount = data.length - processedAddresses.length;
+          console.warn(`⚠️ Found ${duplicateCount} duplicate address(es) in database. Please review your saved addresses.`);
         }
         
         // Auto-select default address if available
@@ -1155,6 +1156,11 @@ const CheckoutPage: React.FC = () => {
       if (existingAddresses && existingAddresses.length > 0) {
         // Update existing address to add new flags
         const existingAddress = existingAddresses[0];
+        console.log(`✅ Found existing address (ID: ${existingAddress.id}), updating flags:`, {
+          current: { is_shipping: existingAddress.is_shipping, is_billing: existingAddress.is_billing },
+          new: { is_shipping: existingAddress.is_shipping || isDelivery, is_billing: existingAddress.is_billing || isBilling }
+        });
+        
         const { error: updateError } = await supabase
           .from('customer_addresses')
           .update({
@@ -1168,8 +1174,15 @@ const CheckoutPage: React.FC = () => {
           .eq('id', existingAddress.id);
 
         if (updateError) throw updateError;
+        console.log(`✅ Successfully updated address ID: ${existingAddress.id}`);
         return { id: existingAddress.id };
       } else {
+        console.log('📝 No existing address found, creating new one:', {
+          address: sanitizedAddress.address_line_1,
+          city: sanitizedAddress.city,
+          is_shipping: isDelivery,
+          is_billing: isBilling
+        });
         // Create new address
         // If this address should be default, first remove default flag from other addresses
         if (sanitizedAddress.is_default) {
@@ -1203,36 +1216,6 @@ const CheckoutPage: React.FC = () => {
         fullError: error
       });
       throw error;
-    }
-  };
-
-  // Function to clean up duplicate addresses in database
-  const cleanupDuplicateAddresses = async (originalAddresses: CustomerAddress[], cleanedAddresses: CustomerAddress[]) => {
-    if (!customer?.id) return;
-
-    try {
-      const addressesToKeep = new Set(cleanedAddresses.map(addr => addr.id));
-      const addressesToDelete = originalAddresses.filter(addr => !addressesToKeep.has(addr.id));
-
-      if (addressesToDelete.length > 0) {
-        // Delete duplicate addresses
-        const { error } = await supabase
-          .from('customer_addresses')
-          .delete()
-          .in('id', addressesToDelete.map(addr => addr.id));
-
-        if (error) throw error;
-        
-
-      }
-    } catch (error: any) {
-      console.error('Error cleaning up duplicate addresses:', {
-        message: error?.message || 'Unknown error',
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint,
-        fullError: error
-      });
     }
   };
 
