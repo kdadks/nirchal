@@ -403,8 +403,14 @@ const CheckoutPage: React.FC = () => {
             });
             await upsertAddressWithFlags(billingAddressData, false, true);
           }
-        } catch (addressError) {
-          console.error('Error saving addresses:', addressError);
+        } catch (addressError: any) {
+          console.error('Error saving addresses:', {
+            message: addressError?.message || 'Unknown error',
+            code: addressError?.code,
+            details: addressError?.details,
+            hint: addressError?.hint,
+            fullError: addressError
+          });
           // Don't throw - continue with order creation
           toast.error('Address saving failed, but order will continue');
         }
@@ -1188,8 +1194,14 @@ const CheckoutPage: React.FC = () => {
         if (insertError) throw insertError;
         return data;
       }
-    } catch (error) {
-      console.error('Error upserting address:', error);
+    } catch (error: any) {
+      console.error('Error upserting address:', {
+        message: error?.message || 'Unknown error',
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        fullError: error
+      });
       throw error;
     }
   };
@@ -1213,8 +1225,14 @@ const CheckoutPage: React.FC = () => {
         
 
       }
-    } catch (error) {
-      console.error('Error cleaning up duplicate addresses:', error);
+    } catch (error: any) {
+      console.error('Error cleaning up duplicate addresses:', {
+        message: error?.message || 'Unknown error',
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        fullError: error
+      });
     }
   };
 

@@ -173,15 +173,10 @@ class CloudflareEmailService {
               ${orderData.shippingAddress.replace(/\n/g, '<br>')}
             </div>
             
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.VITE_APP_URL || ''}/orders" class="button">Track Your Order</a>
-            </p>
-            
             <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h4 style="margin-top: 0; color: #1976d2;">What's Next?</h4>
               <ul style="margin: 0; padding-left: 20px;">
-                <li>We'll send you another email when your order ships</li>
-                <li>You can track your order status in your account</li>
+                <li>We'll send you another email with tracking details when your order ships</li>
                 <li>Contact us if you have any questions</li>
               </ul>
             </div>

@@ -277,8 +277,7 @@ export const outlookCompatibleOrderConfirmationEmail = (
     subHeaderText: `Order ${orderNumber}`,
     customerName,
     content: contentItems,
-    ctaText: '📦 Track Your Order',
-    ctaUrl: `${websiteUrl}/myaccount`,
+    // No CTA button - tracking button will be sent separately when tracking details are added
     footerText: 'Your Trusted Shopping Destination',
     websiteUrl
   });

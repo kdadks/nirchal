@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShoppingBag, Search, Menu, X, User, ChevronDown, Sparkles, Gift, Star, Zap } from 'lucide-react';
+import { Heart, ShoppingBag, Search, Menu, X, User, ChevronDown, Sparkles, Gift, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../../contexts/CartContext';
@@ -9,11 +9,11 @@ import { useProductSearch } from '../../hooks/useProductSearch';
 import { MENU_CATEGORIES } from '../../constants/categories';
 
 const promotionalMessages = [
-  {
-    text: "🎉 FLASH SALE: Up to 70% OFF on Festive Collection!",
-    icon: Sparkles,
-    gradient: "from-yellow-400 via-orange-500 to-red-500"
-  },
+  //{
+  //  text: "🎉 FLASH SALE: Up to 70% OFF on Festive Collection!",
+  //  icon: Sparkles,
+  //  gradient: "from-yellow-400 via-orange-500 to-red-500"
+  //},
   {
     text: "🚚 FREE SHIPPING on All Orders Across India 🇮🇳",
     icon: Gift,
@@ -24,13 +24,13 @@ const promotionalMessages = [
     icon: Star,
     gradient: "from-pink-400 via-purple-500 to-indigo-500"
   },
+  //{
+  //  text: "⚡ EXPRESS DELIVERY within 24 hours",
+  //  icon: Zap,
+  //  gradient: "from-cyan-400 via-blue-500 to-indigo-500"
+  //},
   {
-    text: "⚡ EXPRESS DELIVERY within 24 hours",
-    icon: Zap,
-    gradient: "from-cyan-400 via-blue-500 to-indigo-500"
-  },
-  {
-    text: "💎 DIAMOND JEWELRY: Exclusive Bridal Collection",
+    text: "💎 ARTIFICIAL JEWELRY: Exclusive Collection",
     icon: Sparkles,
     gradient: "from-purple-400 via-pink-500 to-red-500"
   }

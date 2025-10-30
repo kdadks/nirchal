@@ -19,7 +19,7 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center space-x-4 text-center">
             <Star className="w-5 h-5" />
-            <span className="font-medium">Free Shipping on All Orders Across India 🇮🇳</span>
+            <span className="font-medium">Free Shipping on All Orders Across India</span>
             <span className="hidden md:inline">•</span>
             <span className="hidden md:inline font-medium">2-day Easy Returns</span>
             <Star className="w-5 h-5" />
