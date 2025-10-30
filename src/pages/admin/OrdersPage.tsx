@@ -30,6 +30,8 @@ interface Order {
   cod_collected?: boolean;
   online_amount?: number;
   payment_split?: boolean;
+  // Return request tracking
+  has_return_request?: boolean;
 }
 import toast from 'react-hot-toast';
 import { transactionalEmailService } from '../../services/transactionalEmailService';
@@ -72,6 +74,7 @@ const OrdersPage: React.FC = () => {
           cod_collected,
           online_amount,
           payment_split,
+          has_return_request,
           logistics_partners(
             name,
             tracking_url_template
@@ -794,6 +797,9 @@ const OrdersPage: React.FC = () => {
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Payment Status
                   </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-orange-600 uppercase tracking-wider">
+                    Return
+                  </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Tracking
                   </th>
@@ -839,6 +845,15 @@ const OrdersPage: React.FC = () => {
                       <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md w-24 min-w-24 uppercase ${getPaymentStatusColor(order.payment_status)}`}>
                         {order.payment_status}
                       </span>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-center">
+                      {order.has_return_request ? (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                          ↩️ Return
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                       {order.tracking_number ? (
