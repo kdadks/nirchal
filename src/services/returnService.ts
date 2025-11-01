@@ -254,9 +254,6 @@ class ReturnService {
     offset = 0
   ): Promise<{ data: ReturnRequestWithItems[]; error: Error | null; count: number }> {
     try {
-      console.log('[ReturnService] getAllReturnRequests called with:', { filters, limit, offset });
-      console.log('[ReturnService] Using db client:', this.db ? 'initialized' : 'null');
-      
       let query = this.db
         .from('return_requests')
         .select(
@@ -289,12 +286,9 @@ class ReturnService {
         query = query.lte('created_at', filters.dateTo);
       }
 
-      console.log('[ReturnService] Executing query...');
       const { data, error, count } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
-
-      console.log('[ReturnService] Query result:', { dataCount: data?.length, count, error });
 
       if (error) {
         console.error('[ReturnService] Error fetching all returns:', error);

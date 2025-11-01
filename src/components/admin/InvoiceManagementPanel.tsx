@@ -328,9 +328,6 @@ const InvoiceManagementPanel: React.FC = () => {
       if (result.success && result.pdf) {
         // Convert data URL to blob and open directly
         try {
-          console.log('PDF generation timestamp:', new Date().toISOString());
-          console.log('PDF data length:', result.pdf.length);
-          
           const base64Data = result.pdf.split(',')[1];
           const binaryString = atob(base64Data);
           const bytes = new Uint8Array(binaryString.length);
@@ -341,8 +338,6 @@ const InvoiceManagementPanel: React.FC = () => {
           
           const blob = new Blob([bytes], { type: 'application/pdf' });
           const url = URL.createObjectURL(blob);
-          
-          console.log('Opening PDF in new window...');
           
           // Force new window with unique name to prevent caching
           const timestamp = new Date().getTime();

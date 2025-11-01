@@ -75,7 +75,6 @@ export const ReturnManagementDashboard: React.FC = () => {
   const loadReturns = async () => {
     setIsLoading(true);
     try {
-      console.log('[ReturnManagement] Loading returns...');
       const filters: any = {};
 
       if (selectedStatus !== 'all') {
@@ -91,15 +90,12 @@ export const ReturnManagementDashboard: React.FC = () => {
       }
 
       const offset = (currentPage - 1) * itemsPerPage;
-      console.log('[ReturnManagement] Calling getAllReturnRequests with:', { filters, itemsPerPage, offset });
       
       const { data, count, error } = await returnService.getAllReturnRequests(
         filters,
         itemsPerPage,
         offset
       );
-
-      console.log('[ReturnManagement] Response:', { dataCount: data?.length, count, error });
 
       if (error) {
         console.error('[ReturnManagement] Error from service:', error);
@@ -109,7 +105,6 @@ export const ReturnManagementDashboard: React.FC = () => {
 
       setReturns(data);
       setTotalCount(count);
-      console.log('[ReturnManagement] Returns loaded successfully:', data.length);
     } catch (error) {
       console.error('[ReturnManagement] Exception in loadReturns:', error);
       toast.error('An error occurred while loading returns');

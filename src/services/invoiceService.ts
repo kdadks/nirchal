@@ -222,8 +222,6 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
     .eq('category', 'billing')
     .in('key', ['tax_rate', 'enable_gst']);
 
-  console.log('Raw GST settings from DB:', gstSettings);
-
   const settingsMap: Record<string, string> = {};
   gstSettings?.forEach((setting: any) => {
     settingsMap[setting.key] = setting.value || '';
@@ -232,8 +230,6 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
   // Use settings values directly without defaults
   const gstEnabled = settingsMap['enable_gst'] === 'true';
   const taxRate = gstEnabled && settingsMap['tax_rate'] ? Number(settingsMap['tax_rate']) : 0;
-  
-  console.log('GST Settings:', { gstEnabled, taxRate, settingsMap });
 
   const billingAddress = [
     order.billing_address_line_1,
@@ -308,12 +304,6 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
  * Generate PDF invoice using pdfMake
  */
 async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, footerImageUrl?: string): Promise<string> {
-  console.log('PDF Generation with pdfMake - Version 2.0', {
-    margins: '40pt (1.4cm)',
-    tableWidths: ['*', 35, 70, 70],
-    timestamp: new Date().toISOString()
-  });
-  
   // Helper function to load image as base64
   const loadImageAsBase64 = async (url: string): Promise<string | null> => {
     try {
@@ -764,8 +754,6 @@ export async function bulkRaiseInvoices(invoiceIds: string[]): Promise<{ success
  */
 export async function previewInvoice(invoiceId: string): Promise<{ success: boolean; message: string; pdf?: string }> {
   try {
-    console.log('Preview invoice called for ID:', invoiceId);
-    
     // Get invoice details
     const { data: invoice, error } = await supabase
       .from('invoices')
@@ -819,7 +807,6 @@ export async function previewInvoice(invoiceId: string): Promise<{ success: bool
     };
 
     // Regenerate PDF with current pdfMake implementation
-    console.log('Regenerating PDF with pdfMake...');
     const headerImageUrl = undefined; // Can be configured from settings
     const footerImageUrl = undefined; // Can be configured from settings
     const pdfBase64 = await generateInvoicePDF(invoiceData, headerImageUrl, footerImageUrl);
