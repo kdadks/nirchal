@@ -1,13 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Truck, Shield, Award, RefreshCw, Star } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import HeroCarousel from '../components/home/HeroCarousel';
 import { DynamicFeaturedSections } from '../components/home/DynamicFeaturedSections';
 import type { Category } from '../types';
+import { supabase } from '../config/supabase';
+import toast from 'react-hot-toast';
 
 const HomePage: React.FC = () => {
   const { categories, loading: categoriesLoading } = useCategories();
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubscribing(true);
+    
+    try {
+      const { error } = await supabase
+        .from('newsletter_subscribers')
+        .insert([{ email: email.toLowerCase().trim() }]);
+
+      if (error) {
+        if (error.code === '23505') { // Unique violation
+          toast.error('This email is already subscribed!');
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success('Successfully subscribed! Check your email for exclusive offers.');
+        setEmail('');
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      toast.error('Failed to subscribe. Please try again.');
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
   
   return (
     <>
@@ -162,16 +199,23 @@ const HomePage: React.FC = () => {
               <h3 className="text-lg font-semibold">Stay in Style</h3>
               <p className="text-sm text-primary-100">Subscribe for new collections & exclusive offers</p>
             </div>
-            <div className="flex gap-2 min-w-0 sm:min-w-80">
+            <form onSubmit={handleSubscribe} className="flex gap-2 min-w-0 sm:min-w-80">
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="flex-1 px-3 py-2 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-white/30 text-sm"
+                disabled={isSubscribing}
               />
-              <button className="bg-white text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors text-sm whitespace-nowrap">
-                Subscribe
+              <button 
+                type="submit"
+                disabled={isSubscribing}
+                className="bg-white text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubscribing ? 'Subscribing...' : 'Subscribe'}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </section>

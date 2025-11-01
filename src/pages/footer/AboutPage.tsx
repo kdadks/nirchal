@@ -30,7 +30,7 @@ const AboutPage: React.FC = () => {
               <img
                 src="/heroimage1.png"
                 alt="Woman in ethnic saree outfit"
-                className="rounded-2xl shadow-2xl w-full h-auto max-h-96 object-cover"
+                className="rounded-2xl shadow-2xl w-full h-auto max-h-96 object-cover object-top"
                 loading="lazy"
               />
             </div>
