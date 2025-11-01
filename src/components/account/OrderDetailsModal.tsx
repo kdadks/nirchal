@@ -915,7 +915,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </div>
 
               {/* Tracking Information */}
-              {(orderDetails.shipped_at || orderDetails.delivered_at || orderDetails.tracking_number) && (
+              {(orderDetails.tracking_number || orderDetails.logistics_partners || orderDetails.shipped_at || orderDetails.delivered_at) && (
                 <div>
                   <h3 className="text-base font-semibold text-gray-900 mb-2">Tracking Information</h3>
                   <div className="bg-gray-50 rounded-lg p-3 text-sm">

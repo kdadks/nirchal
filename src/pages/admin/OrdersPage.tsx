@@ -262,6 +262,11 @@ const OrdersPage: React.FC = () => {
       // Prepare update data
       const updateData: any = { status: newStatus };
       
+      // Set shipped_at timestamp when marking as shipped
+      if (newStatus === 'shipped') {
+        updateData.shipped_at = new Date().toISOString();
+      }
+      
       // Set delivered_at timestamp when marking as delivered
       if (newStatus === 'delivered') {
         updateData.delivered_at = new Date().toISOString();
