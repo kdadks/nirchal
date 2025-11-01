@@ -22,7 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files (contains sensitive data)
 .env
+.env.local
+.env.*.local
 
 # Migration reports and logs
 migration-report.json

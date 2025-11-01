@@ -1,8 +1,16 @@
 const { readFileSync } = require('fs');
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
-const supabaseUrl = 'https://vhlvgjtpzjhhejdsqbzk.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZobHZnanRwempoaGVqZHNxYnprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE4ODA1NTEsImV4cCI6MjA0NzQ1NjU1MX0.r65cJnmJ0MPJ_2ZXB_tIHPLKmKF-CpW8-Xd7DG8P2YI';
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Error: Missing Supabase environment variables');
+  console.error('Please make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
+  process.exit(1);
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function setupWelcomeEmailTracking() {

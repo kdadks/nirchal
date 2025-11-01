@@ -2,12 +2,22 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { config } from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://vhlvgjtpzjkhejdsqbzk.supabase.co';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZobHZnanRwempoaGVqZHNxYnprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE4ODA1NTEsImV4cCI6MjA0NzQ1NjU1MX0.r65cJnmJ0MPJ_2ZXB_tIHPLKmKF-CpW8-Xd7DG8P2YI';
+// Load environment variables from .env file
+config();
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Error: Missing Supabase environment variables');
+  console.error('Please make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -34,7 +44,9 @@ async function addPasswordColumn() {
             // Try using raw SQL for ALTER TABLE
             try {
               const { error: alterError } = await supabase.rpc('exec_sql', { sql: cleanStmt });
-              if (alterError) 
+              if (alterError) {
+                console.log('ALTER TABLE error:', alterError);
+              }
             } catch (e) {
               console.log('Note: ALTER TABLE issue (column might exist):', e);
             }

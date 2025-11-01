@@ -83,7 +83,7 @@ VITE_R2_SECRET_ACCESS_KEY=<your-secret-key>
 VITE_R2_BUCKET_NAME=product-images
 
 # Supabase (already configured)
-VITE_SUPABASE_URL=https://tazrvokohjfzicdzzxia.supabase.co
+VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<your-service-key>
 ```

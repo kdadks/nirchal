@@ -15,7 +15,7 @@ Navigate to: **Pages** → **nirchal** → **Settings** → **Environment Variab
 
 | Variable Name | Value | Type | Status |
 |--------------|-------|------|--------|
-| `SUPABASE_URL` | `https://tazrvokohjfzicdzzxia.supabase.co` | Plain text | ✅ Should exist |
+| `SUPABASE_URL` | `https://your-project.supabase.co` | Plain text | ✅ Should exist |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGc...` (service role key) | 🔒 Encrypted | ⚠️ **CHECK THIS** |
 | `RAZORPAY_KEY_ID` | `rzp_test_XXX` or `rzp_live_XXX` | 🔒 Encrypted | ✅ Should exist |
 | `RAZORPAY_KEY_SECRET` | `XXX...` | 🔒 Encrypted | ✅ Should exist |
@@ -24,7 +24,7 @@ Navigate to: **Pages** → **nirchal** → **Settings** → **Environment Variab
 ### Client-Side Variables (separate):
 | Variable Name | Value | Type |
 |--------------|-------|------|
-| `VITE_SUPABASE_URL` | `https://tazrvokohjfzicdzzxia.supabase.co` | Plain text |
+| `VITE_SUPABASE_URL` | `https://your-project.supabase.co` | Plain text |
 | `VITE_SUPABASE_ANON_KEY` | `eyJhbGc...` (anon key) | Plain text |
 | `VITE_R2_PUBLIC_URL` | `https://pub-def558ac10b64a6bb80dc1beedeafe2c.r2.dev` | Plain text |
 | `R2_PUBLIC_URL` | `https://pub-def558ac10b64a6bb80dc1beedeafe2c.r2.dev` | Plain text |
@@ -45,7 +45,7 @@ Navigate to: **Pages** → **nirchal** → **Settings** → **Environment Variab
 
 ## How to Get Service Role Key
 
-1. Go to: https://supabase.com/dashboard/project/tazrvokohjfzicdzzxia/settings/api
+1. Go to: https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/api
 2. Look for: **Service Role Key** (NOT anon key)
 3. Click "Copy" or "Reveal" to see the full key
 4. It should be MUCH LONGER than the anon key

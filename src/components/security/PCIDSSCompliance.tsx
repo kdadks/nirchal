@@ -251,10 +251,11 @@ const PCIDSSCompliance: React.FC = () => {
 
   const validateAPIEndpoints = (): boolean => {
     // Ensure all API calls use secure endpoints
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const secureEndpoints = [
       'https://api.razorpay.com',
-      'https://tazrvokohjfzicdzzxia.supabase.co'
-    ];
+      supabaseUrl
+    ].filter(Boolean); // Filter out undefined values
 
     // Validate that we're using HTTPS and have proper CSP
     const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
@@ -262,7 +263,7 @@ const PCIDSSCompliance: React.FC = () => {
     // Check that our approved endpoints are in the allowed list
     const hasSecureEndpoints = secureEndpoints.length > 0 && isSecureContext;
     
-    return hasSecureEndpoints; // Netlify CSP configuration ensures secure endpoints
+    return hasSecureEndpoints; // CSP configuration ensures secure endpoints
   };
 
   const checkPaymentTokenization = (): boolean => {

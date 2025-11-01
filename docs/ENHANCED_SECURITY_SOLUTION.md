@@ -8,7 +8,7 @@
 ## Immediate Actions
 
 ### 1. Check Supabase Dashboard Settings
-1. Go to: https://supabase.com/dashboard/project/tazrvokohjfzicdzzxia/settings/general
+1. Go to: https://supabase.com/dashboard/project/YOUR_PROJECT_ID/settings/general
 2. Look for:
    - "Enhanced Security" toggle
    - "PCI DSS Compliance" setting

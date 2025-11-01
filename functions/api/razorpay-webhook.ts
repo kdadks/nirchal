@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 
 interface Env {
   RAZORPAY_WEBHOOK_SECRET: string;
-  VITE_SUPABASE_URL: string;
+  SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
 }
 
@@ -91,7 +91,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     // Initialize Supabase client with service role (bypass RLS)
     const supabase = createClient(
-      env.VITE_SUPABASE_URL,
+      env.SUPABASE_URL,
       env.SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
@@ -241,11 +241,11 @@ async function handleRefundProcessed(
       // Send email via Supabase Edge Function or external service
       // Note: This needs to be implemented based on your email service setup
       try {
-        const emailResponse = await fetch(`${process.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
+        const emailResponse = await fetch(`${env.SUPABASE_URL}/functions/v1/send-email`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
           },
           body: JSON.stringify({
             type: 'refund_completed',

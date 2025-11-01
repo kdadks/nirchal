@@ -443,7 +443,7 @@ R2_PUBLIC_URL=https://pub-xxx.r2.dev
 # R2 bucket bound as PRODUCT_IMAGES in wrangler.toml
 
 # Supabase
-SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
@@ -631,7 +631,7 @@ INSERT INTO settings (category, key, value, description) VALUES
 RAZORPAY_KEY_ID=rzp_live_...
 RAZORPAY_KEY_SECRET=...
 RAZORPAY_WEBHOOK_SECRET=...
-SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...
 R2_PUBLIC_URL=https://pub-xxx.r2.dev
 
