@@ -24,6 +24,10 @@ interface Order {
   billing_first_name: string;
   billing_last_name: string;
   billing_email?: string;
+  has_return_request?: boolean;
+  return_requests?: Array<{
+    status: string;
+  }>;
 }
 
 interface Product {
@@ -119,7 +123,7 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
 
-      // Fetch recent orders
+      // Fetch recent orders with return request status
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select(`
@@ -129,7 +133,11 @@ const AdminDashboard: React.FC = () => {
           total_amount,
           created_at,
           billing_first_name,
-          billing_last_name
+          billing_last_name,
+          has_return_request,
+          return_requests!return_requests_order_id_fkey(
+            status
+          )
         `)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -402,42 +410,72 @@ const AdminDashboard: React.FC = () => {
                   <tr>
                     <th>Order</th>
                     <th>Customer</th>
-                    <th>Status</th>
+                    <th>Order Status</th>
+                    <th>Return Status</th>
                     <th>Amount</th>
                     <th>Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentOrders.length > 0 ? (
-                    recentOrders.map((order, index) => (
-                      <tr key={index}>
-                        <td>
-                          <span className="admin-font-mono admin-text-sm">{order.order_number}</span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <div style={{
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '50%',
-                              backgroundColor: 'var(--admin-primary)',
-                              color: 'white',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '10px',
-                              fontWeight: '600'
-                            }}>
-                              {getInitials(order.billing_first_name, order.billing_last_name)}
+                    recentOrders.map((order, index) => {
+                      const returnRequest = order.return_requests && order.return_requests.length > 0 
+                        ? order.return_requests[0] 
+                        : null;
+                      const returnStatus = returnRequest?.status;
+                      
+                      return (
+                        <tr key={index}>
+                          <td>
+                            <span className="admin-font-mono admin-text-sm">{order.order_number}</span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                backgroundColor: 'var(--admin-primary)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '10px',
+                                fontWeight: '600'
+                              }}>
+                                {getInitials(order.billing_first_name, order.billing_last_name)}
+                              </div>
+                              <span className="admin-text-sm">{order.billing_first_name} {order.billing_last_name}</span>
                             </div>
-                            <span className="admin-text-sm">{order.billing_first_name} {order.billing_last_name}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span className={getStatusBadgeClass(order.status)}>
-                            {order.status}
-                          </span>
-                        </td>
+                          </td>
+                          <td>
+                            <span className={getStatusBadgeClass(order.status)}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td>
+                            {returnStatus ? (
+                              <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-md uppercase ${
+                                returnStatus === 'refund_completed' ? 'bg-green-100 text-green-800 w-24 min-w-24' :
+                                returnStatus === 'refund_initiated' ? 'bg-blue-100 text-blue-800 w-24 min-w-24' :
+                                returnStatus === 'rejected' ? 'bg-red-100 text-red-800 w-24 min-w-24' :
+                                returnStatus === 'approved' || returnStatus === 'partially_approved' ? 'bg-green-50 text-green-700 w-24 min-w-24' :
+                                returnStatus === 'under_inspection' || returnStatus === 'received' ? 'bg-purple-100 text-purple-800 w-24 min-w-24' :
+                                returnStatus === 'shipped_by_customer' ? 'bg-blue-50 text-blue-700 w-24 min-w-24' :
+                                'bg-yellow-100 text-yellow-800 w-24 min-w-24'
+                              }`}>
+                                {returnStatus === 'refund_completed' ? 'Refunded' :
+                                 returnStatus === 'refund_initiated' ? 'Refunding' :
+                                 returnStatus === 'partially_approved' ? 'Partial' :
+                                 returnStatus === 'shipped_by_customer' ? 'In Transit' :
+                                 returnStatus === 'under_inspection' ? 'Inspecting' :
+                                 returnStatus === 'pending_shipment' ? 'Pending' :
+                                 returnStatus.replace(/_/g, ' ')}
+                              </span>
+                            ) : (
+                              <span className="admin-text-muted admin-text-sm">—</span>
+                            )}
+                          </td>
                         <td>
                           <span className="admin-font-mono admin-text-sm">{formatCurrency(order.total_amount)}</span>
                         </td>
@@ -447,10 +485,11 @@ const AdminDashboard: React.FC = () => {
                           </span>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>
                         <span className="admin-text-muted">No recent orders found</span>
                       </td>
                     </tr>

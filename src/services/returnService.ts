@@ -3,7 +3,7 @@
  * Handles CRUD operations for return requests and items
  */
 
-import { supabase, supabaseAdmin } from '../config/supabase';
+import { supabase } from '../config/supabase';
 // Removed returnEmailService - emails are now manually triggered by admin
 import type {
   ReturnRequest,
@@ -19,9 +19,9 @@ import type {
 } from '../types/return.types';
 
 class ReturnService {
-  // Use admin client to bypass RLS for return operations
+  // Use regular supabase client - RLS policies allow all operations
   private get db() {
-    return supabaseAdmin || supabase;
+    return supabase;
   }
 
   /**
@@ -254,6 +254,9 @@ class ReturnService {
     offset = 0
   ): Promise<{ data: ReturnRequestWithItems[]; error: Error | null; count: number }> {
     try {
+      console.log('[ReturnService] getAllReturnRequests called with:', { filters, limit, offset });
+      console.log('[ReturnService] Using db client:', this.db ? 'initialized' : 'null');
+      
       let query = this.db
         .from('return_requests')
         .select(
@@ -286,12 +289,15 @@ class ReturnService {
         query = query.lte('created_at', filters.dateTo);
       }
 
+      console.log('[ReturnService] Executing query...');
       const { data, error, count } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
+      console.log('[ReturnService] Query result:', { dataCount: data?.length, count, error });
+
       if (error) {
-        console.error('Error fetching all returns:', error);
+        console.error('[ReturnService] Error fetching all returns:', error);
         return { data: [], error: new Error(error.message), count: 0 };
       }
 
@@ -687,9 +693,8 @@ class ReturnService {
    */
   async getReturnStatistics(dateFrom?: string, dateTo?: string) {
     try {
-      // Use admin client to bypass RLS for statistics
-      const client = supabaseAdmin || supabase;
-      let query = client.from('return_requests').select('status, final_refund_amount');
+      // Use regular supabase client - RLS allows all operations
+      let query = this.db.from('return_requests').select('status, final_refund_amount');
 
       if (dateFrom) {
         query = query.gte('created_at', dateFrom);

@@ -32,6 +32,9 @@ interface Order {
   payment_split?: boolean;
   // Return request tracking
   has_return_request?: boolean;
+  return_requests?: Array<{
+    status: string;
+  }>;
 }
 import toast from 'react-hot-toast';
 import { transactionalEmailService } from '../../services/transactionalEmailService';
@@ -78,6 +81,9 @@ const OrdersPage: React.FC = () => {
           logistics_partners(
             name,
             tracking_url_template
+          ),
+          return_requests!return_requests_order_id_fkey(
+            status
           )
         `)
         .order('created_at', { ascending: false });
@@ -850,13 +856,39 @@ const OrdersPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center">
-                      {order.has_return_request ? (
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
-                          ↩️ Return
-                        </span>
-                      ) : (
-                        <span className="text-gray-300 text-xs">—</span>
-                      )}
+                      {(() => {
+                        const returnRequest = order.return_requests && order.return_requests.length > 0 
+                          ? order.return_requests[0] 
+                          : null;
+                        const returnStatus = returnRequest?.status;
+                        
+                        if (!returnStatus) {
+                          return <span className="text-gray-300 text-xs">—</span>;
+                        }
+                        
+                        return (
+                          <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${
+                            returnStatus === 'refund_completed' ? 'bg-green-100 text-green-800' :
+                            returnStatus === 'refund_initiated' ? 'bg-blue-100 text-blue-800' :
+                            returnStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                            returnStatus === 'approved' || returnStatus === 'partially_approved' ? 'bg-green-50 text-green-700' :
+                            returnStatus === 'under_inspection' || returnStatus === 'received' ? 'bg-purple-100 text-purple-800' :
+                            returnStatus === 'shipped_by_customer' ? 'bg-blue-50 text-blue-700' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {returnStatus === 'refund_completed' ? '✓ Refunded' :
+                             returnStatus === 'refund_initiated' ? '⏳ Refunding' :
+                             returnStatus === 'partially_approved' ? '⚠️ Partial' :
+                             returnStatus === 'approved' ? '✓ Approved' :
+                             returnStatus === 'rejected' ? '✗ Rejected' :
+                             returnStatus === 'shipped_by_customer' ? '📦 In Transit' :
+                             returnStatus === 'under_inspection' ? '🔍 Inspecting' :
+                             returnStatus === 'received' ? '📥 Received' :
+                             returnStatus === 'pending_shipment' ? '⏳ Pending' :
+                             returnStatus.replace(/_/g, ' ')}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                       {order.tracking_number ? (

@@ -75,6 +75,7 @@ export const ReturnManagementDashboard: React.FC = () => {
   const loadReturns = async () => {
     setIsLoading(true);
     try {
+      console.log('[ReturnManagement] Loading returns...');
       const filters: any = {};
 
       if (selectedStatus !== 'all') {
@@ -90,21 +91,27 @@ export const ReturnManagementDashboard: React.FC = () => {
       }
 
       const offset = (currentPage - 1) * itemsPerPage;
+      console.log('[ReturnManagement] Calling getAllReturnRequests with:', { filters, itemsPerPage, offset });
+      
       const { data, count, error } = await returnService.getAllReturnRequests(
         filters,
         itemsPerPage,
         offset
       );
 
+      console.log('[ReturnManagement] Response:', { dataCount: data?.length, count, error });
+
       if (error) {
+        console.error('[ReturnManagement] Error from service:', error);
         toast.error('Failed to load returns');
         return;
       }
 
       setReturns(data);
       setTotalCount(count);
+      console.log('[ReturnManagement] Returns loaded successfully:', data.length);
     } catch (error) {
-      console.error('Error loading returns:', error);
+      console.error('[ReturnManagement] Exception in loadReturns:', error);
       toast.error('An error occurred while loading returns');
     } finally {
       setIsLoading(false);
@@ -239,11 +246,20 @@ export const ReturnManagementDashboard: React.FC = () => {
           emailType = 'Inspection Results';
           break;
 
+        case 'refund_initiated':
+          // Refund initiated - inform that email is sent automatically
+          toast('Refund initiated emails are sent automatically when refund is processed', {
+            icon: 'ℹ️',
+            duration: 4000,
+          });
+          return;
+
         case 'refund_completed':
           // Send refund completion email
           // Note: This requires refund transaction data
-          toast('Refund emails are sent automatically when refund is processed', {
+          toast('Refund completion emails are sent automatically when refund is processed', {
             icon: 'ℹ️',
+            duration: 4000,
           });
           return;
 
@@ -683,8 +699,13 @@ export const ReturnManagementDashboard: React.FC = () => {
                               <Eye className="h-4 w-4" />
                             </button>
 
-                            {/* Hide Edit button if Refund button is shown */}
-                            {!(returnRequest.status === 'approved' || returnRequest.status === 'partially_approved') && (
+                            {/* Hide Edit button if Refund button is shown or refund is processing/completed */}
+                            {!(
+                              returnRequest.status === 'approved' || 
+                              returnRequest.status === 'partially_approved' ||
+                              returnRequest.status === 'refund_initiated' ||
+                              returnRequest.status === 'refund_completed'
+                            ) && (
                               <button
                                 onClick={() => openEditAddressModal(returnRequest)}
                                 className="p-1.5 text-amber-600 hover:bg-amber-50 rounded transition-colors"
@@ -695,7 +716,11 @@ export const ReturnManagementDashboard: React.FC = () => {
                             )}
 
                             {/* Smart Email Button - sends different emails based on status */}
-                            {returnRequest.status !== 'refund_completed' && (
+                            {/* Hide email button for refund statuses (emails sent automatically) */}
+                            {!(
+                              returnRequest.status === 'refund_initiated' || 
+                              returnRequest.status === 'refund_completed'
+                            ) && (
                               <button
                                 onClick={() => handleSendEmail(returnRequest)}
                                 className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"

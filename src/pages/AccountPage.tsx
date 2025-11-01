@@ -949,8 +949,20 @@ const AccountPage: React.FC = () => {
                                       {/* Return Request Status */}
                                       <div className="flex items-center justify-between text-sm">
                                         <span className="text-gray-600">Return Status:</span>
-                                        <span className="text-gray-900 font-medium capitalize">
-                                          {returnRequest.status?.replace(/_/g, ' ') || 'Pending'}
+                                        <span className={`font-medium capitalize ${
+                                          returnRequest.status === 'refund_completed' 
+                                            ? 'text-green-600' 
+                                            : returnRequest.status === 'refund_initiated'
+                                            ? 'text-yellow-600'
+                                            : returnRequest.status === 'rejected'
+                                            ? 'text-red-600'
+                                            : 'text-gray-900'
+                                        }`}>
+                                          {returnRequest.status === 'refund_completed' 
+                                            ? 'Refunded' 
+                                            : returnRequest.status === 'refund_initiated'
+                                            ? 'Refund Processing'
+                                            : returnRequest.status?.replace(/_/g, ' ') || 'Pending'}
                                         </span>
                                       </div>
 
