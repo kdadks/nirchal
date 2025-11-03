@@ -122,7 +122,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   };
 
   try {
-    console.log('Razorpay Webhook - Request received');
+    console.log('🔔 RAZORPAY WEBHOOK TRIGGERED - Request received at:', new Date().toISOString());
+    console.log('📨 Request URL:', request.url);
+    console.log('📨 Request Method:', request.method);
 
     // Get webhook signature from headers
     const signature = request.headers.get('x-razorpay-signature');
