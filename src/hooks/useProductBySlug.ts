@@ -72,6 +72,25 @@ export const useProductBySlug = (slug: string | undefined) => {
             (inv: any) => inv.variant_id === v.id
           );
           
+          // Get swatch image URL with fallback mechanism
+          let swatchImageUrl: string | undefined;
+          
+          // First try to use the directly joined swatch image
+          if (v.swatch_image?.image_url) {
+            swatchImageUrl = getStorageImageUrl(v.swatch_image.image_url);
+          }
+          // Try to find the specific swatch image by ID in product_images array
+          else if (v.swatch_image_id && Array.isArray(productData.product_images)) {
+            const swatchImage = productData.product_images.find((img: any) => {
+              return img.id === v.swatch_image_id || String(img.id) === String(v.swatch_image_id);
+            });
+            
+            if (swatchImage) {
+              const rawUrl = swatchImage.image_url || swatchImage.image_path;
+              swatchImageUrl = rawUrl ? getStorageImageUrl(rawUrl) : undefined;
+            }
+          }
+          
           return {
             id: v.id,
             size: v.size || '',
@@ -81,7 +100,8 @@ export const useProductBySlug = (slug: string | undefined) => {
             priceAdjustment: v.price_adjustment || 0,
             quantity: inventoryItem?.quantity || 0,
             lowStockThreshold: inventoryItem?.low_stock_threshold || 5,
-            swatchImage: v.swatch_image?.image_url ? getStorageImageUrl(v.swatch_image.image_url) : undefined
+            swatchImageId: v.swatch_image_id || undefined,
+            swatchImage: swatchImageUrl
           };
         });
         
@@ -89,13 +109,39 @@ export const useProductBySlug = (slug: string | undefined) => {
         const uniqueColors = [...new Set(variants.map((v: any) => v.color).filter(Boolean))] as string[];
         const uniqueSizes = [...new Set(variants.map((v: any) => v.size).filter(Boolean))] as string[];
         
+        // Transform product images
+        const images: string[] = [];
+        if (Array.isArray(productData.product_images) && productData.product_images.length > 0) {
+          // Sort images: primary first, then by display_order
+          const sortedImages = [...productData.product_images].sort((a: any, b: any) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            if (a.display_order !== undefined && b.display_order !== undefined) {
+              return a.display_order - b.display_order;
+            }
+            return 0;
+          });
+
+          sortedImages.forEach((img: any) => {
+            const rawUrl = img.image_url || img.image_path;
+            const url = rawUrl ? getStorageImageUrl(rawUrl) : '';
+            if (url) images.push(url);
+          });
+        }
+        
+        // Fallback to generated URLs if no images
+        if (images.length === 0) {
+          const fallbackUrls = getProductImageUrls(productData.id, productData.name);
+          images.push(...fallbackUrls.filter(Boolean));
+        }
+        
         const transformedProduct: Product = {
           id: String(productData.id),
           slug: productData.slug || productData.name?.toLowerCase().replace(/\s+/g, '-') || `product-${productData.id}`,
           name: productData.name || 'Unnamed Product',
           description: productData.description || '',
           category: Array.isArray(productData.category) ? productData.category[0]?.name : productData.category?.name || 'Uncategorized',
-          images: getProductImageUrls(productData.product_images || []),
+          images,
           rating: productData.rating || 0,
           reviewCount: productData.review_count || 0,
           price: 0, // Will be calculated from variants or sale_price
