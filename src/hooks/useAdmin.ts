@@ -821,6 +821,7 @@ export const useProducts = () => {
 								// Update or insert each variant
 								for (let i = 0; i < variants.length; i++) {
 									const v = variants[i];
+									console.log(`[updateProduct] Processing variant ${i}:`, { id: v.id, size: v.size, color: v.color });
 									let variantId: string | undefined = undefined;
 									if (v.id) {
 										// Try to update existing variant
@@ -884,6 +885,7 @@ export const useProducts = () => {
 									// Update or insert inventory for this variant
 									if (variantId) {
 										// Check if inventory exists for this variant
+										console.log('[updateProduct] Checking inventory for variant_id:', variantId);
 										const { data: invList, error: fetchInvError } = await supabase
 											.from('inventory')
 											.select('*')
@@ -891,6 +893,7 @@ export const useProducts = () => {
 										if (fetchInvError) throw fetchInvError;
 
 										const inv = invList && invList.length > 0 ? invList[0] : null;
+										console.log('[updateProduct] Found inventory:', inv ? `ID: ${inv.id}` : 'none');
 
 										if (inv) {
 											// Update inventory
@@ -906,16 +909,46 @@ export const useProducts = () => {
 											if (updateInvError) throw updateInvError;
 											// inventory_history now handled by DB trigger
 										} else {
-											// Insert inventory - don't specify ID, let database generate it
-											const { error: insertInvError } = await supabase
-												.from('inventory')
-												.insert({
-													product_id: id,
-													variant_id: variantId,
-													quantity: v.quantity ?? 0,
-													low_stock_threshold: v.low_stock_threshold ?? 2
-												});
-											if (insertInvError) throw insertInvError;
+											// Insert inventory - let database generate ID
+											const inventoryData = {
+												product_id: id,
+												variant_id: variantId,
+												quantity: v.quantity ?? 0,
+												low_stock_threshold: v.low_stock_threshold ?? 2
+											};
+											console.log('[updateProduct] Inserting inventory:', inventoryData);
+											
+											// Try insert, if it fails with duplicate key, the sequence is out of sync
+											let insertAttempts = 0;
+											let insertSuccess = false;
+											let lastError = null;
+											
+											while (insertAttempts < 3 && !insertSuccess) {
+												const { error: insertInvError } = await supabase
+													.from('inventory')
+													.insert(inventoryData)
+													.select();
+												
+												if (!insertInvError) {
+													insertSuccess = true;
+												} else if (insertInvError.code === '23505') {
+													// Duplicate key - sequence out of sync, retry
+													console.warn(`[updateProduct] Inventory insert attempt ${insertAttempts + 1} failed with duplicate key, retrying...`);
+													insertAttempts++;
+													lastError = insertInvError;
+													// Wait a tiny bit before retry
+													await new Promise(resolve => setTimeout(resolve, 50));
+												} else {
+													// Different error, throw immediately
+													console.error('[updateProduct] Inventory insert error:', insertInvError);
+													throw insertInvError;
+												}
+											}
+											
+											if (!insertSuccess) {
+												console.error('[updateProduct] Failed to insert inventory after 3 attempts:', lastError);
+												throw lastError;
+											}
 											// inventory_history now handled by DB trigger
 										}
 									}
