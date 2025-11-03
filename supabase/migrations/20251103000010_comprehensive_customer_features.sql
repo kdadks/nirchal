@@ -5,6 +5,13 @@
 -- ============================================================================
 
 -- ====================================
+-- PART 0: ENABLE REQUIRED EXTENSIONS
+-- ====================================
+
+-- Enable pgcrypto extension (required for password hashing with gen_salt and crypt)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- ====================================
 -- PART 1: ADD MISSING COLUMNS TO CUSTOMERS TABLE
 -- ====================================
 
