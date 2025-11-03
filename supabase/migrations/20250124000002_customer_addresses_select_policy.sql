@@ -2,8 +2,11 @@
 -- Description: Allow anonymous and authenticated users to SELECT their own addresses
 -- Date: 2025-01-24
 
+-- Drop policy if it exists, then create it
+DROP POLICY IF EXISTS customer_addresses_public_select ON public.customer_addresses;
+
 -- Add SELECT policy to allow reading addresses
-CREATE POLICY IF NOT EXISTS customer_addresses_public_select 
+CREATE POLICY customer_addresses_public_select 
   ON public.customer_addresses 
   FOR SELECT 
   USING (true);

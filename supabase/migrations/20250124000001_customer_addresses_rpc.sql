@@ -14,12 +14,12 @@ CREATE OR REPLACE FUNCTION public.insert_customer_address(
   p_customer_id uuid,
   p_first_name text,
   p_last_name text,
-  p_company text DEFAULT NULL,
   p_address_line_1 text,
-  p_address_line_2 text DEFAULT NULL,
   p_city text,
   p_state text,
   p_postal_code text,
+  p_company text DEFAULT NULL,
+  p_address_line_2 text DEFAULT NULL,
   p_country text DEFAULT 'India',
   p_phone text DEFAULT NULL,
   p_is_default boolean DEFAULT false,
@@ -43,7 +43,7 @@ BEGIN
       AND is_default = true;
   END IF;
 
-  -- Insert the new address
+  -- Insert the new address (omit id column to let IDENTITY generate it)
   INSERT INTO public.customer_addresses (
     customer_id,
     first_name,
@@ -114,12 +114,12 @@ CREATE OR REPLACE FUNCTION public.update_customer_address(
   p_customer_id uuid,
   p_first_name text,
   p_last_name text,
-  p_company text DEFAULT NULL,
   p_address_line_1 text,
-  p_address_line_2 text DEFAULT NULL,
   p_city text,
   p_state text,
   p_postal_code text,
+  p_company text DEFAULT NULL,
+  p_address_line_2 text DEFAULT NULL,
   p_country text DEFAULT 'India',
   p_phone text DEFAULT NULL,
   p_is_default boolean DEFAULT false,

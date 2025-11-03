@@ -57,7 +57,14 @@ const AddressModal: React.FC<AddressModalProps> = ({
 
   useEffect(() => {
     if (editAddress) {
-      setFormData(editAddress);
+      // Ensure all optional fields have string values (not undefined)
+      setFormData({
+        ...editAddress,
+        company: editAddress.company || '',
+        address_line_2: editAddress.address_line_2 || '',
+        phone: editAddress.phone || '',
+        country: editAddress.country || 'India'
+      });
     } else {
       // Reset form for new address
       setFormData({
@@ -93,46 +100,40 @@ const AddressModal: React.FC<AddressModalProps> = ({
       // Sanitize form data before saving
       const sanitizedData = sanitizeAddressData(formData);
       
+      // If this address is being set as default, unset other default addresses first
+      if (sanitizedData.is_default) {
+        const { error: unsetError } = await supabase
+          .from('customer_addresses')
+          .update({ is_default: false })
+          .eq('customer_id', customer.id)
+          .neq('id', editAddress?.id || 0);
+          
+        if (unsetError) {
+          console.warn('Warning: Could not unset other default addresses:', unsetError);
+        }
+      }
+      
       if (editAddress?.id) {
-        // Update existing address using RPC function
-        const { error } = await supabase.rpc('update_customer_address', {
-          p_address_id: editAddress.id,
-          p_customer_id: customer.id,
-          p_first_name: sanitizedData.first_name,
-          p_last_name: sanitizedData.last_name,
-          p_company: sanitizedData.company || null,
-          p_address_line_1: sanitizedData.address_line_1,
-          p_address_line_2: sanitizedData.address_line_2 || null,
-          p_city: sanitizedData.city,
-          p_state: sanitizedData.state,
-          p_postal_code: sanitizedData.postal_code,
-          p_country: sanitizedData.country || 'India',
-          p_phone: sanitizedData.phone || null,
-          p_is_default: sanitizedData.is_default,
-          p_is_billing: sanitizedData.is_billing,
-          p_is_shipping: sanitizedData.is_shipping
-        });
+        // Update existing address - direct Supabase call
+        const { error } = await supabase
+          .from('customer_addresses')
+          .update({
+            ...sanitizedData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editAddress.id)
+          .eq('customer_id', customer.id);
 
         if (error) throw error;
         toast.success('Address updated successfully!');
       } else {
-        // Create new address using RPC function
-        const { error } = await supabase.rpc('insert_customer_address', {
-          p_customer_id: customer.id,
-          p_first_name: sanitizedData.first_name,
-          p_last_name: sanitizedData.last_name,
-          p_company: sanitizedData.company || null,
-          p_address_line_1: sanitizedData.address_line_1,
-          p_address_line_2: sanitizedData.address_line_2 || null,
-          p_city: sanitizedData.city,
-          p_state: sanitizedData.state,
-          p_postal_code: sanitizedData.postal_code,
-          p_country: sanitizedData.country || 'India',
-          p_phone: sanitizedData.phone || null,
-          p_is_default: sanitizedData.is_default,
-          p_is_billing: sanitizedData.is_billing,
-          p_is_shipping: sanitizedData.is_shipping
-        });
+        // Create new address - direct Supabase call
+        const { error } = await supabase
+          .from('customer_addresses')
+          .insert({
+            ...sanitizedData,
+            customer_id: customer.id
+          });
 
         if (error) throw error;
         toast.success('Address added successfully!');
@@ -140,9 +141,15 @@ const AddressModal: React.FC<AddressModalProps> = ({
 
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving address:', error);
-      toast.error('Failed to save address. Please try again.');
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint
+      });
+      toast.error(error?.message || 'Failed to save address. Please try again.');
     } finally {
       setLoading(false);
     }

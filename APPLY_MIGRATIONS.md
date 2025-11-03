@@ -2,23 +2,34 @@
 
 ## Apply These Migrations to Fix Address Issues
 
+**IMPORTANT**: After checking the backup, we found that:
+1. The working system used direct Supabase calls (no RPC functions needed)
+2. The only issue is the `id` column is missing IDENTITY/auto-increment
+3. RPC functions were added as an alternative but are not required
+
 ### Option 1: Via Supabase Dashboard (Recommended)
 
 1. **Go to your Supabase project dashboard**
    - Navigate to SQL Editor
 
-2. **Apply Migration 1: RPC Functions**
+2. **Apply Migration: Fix ID Column (REQUIRED)**
    ```sql
    -- Copy entire content from:
-   -- supabase/migrations/20250124000001_customer_addresses_rpc.sql
+   -- supabase/migrations/20250124000000_fix_customer_addresses_id.sql
    -- Paste in SQL Editor and click "Run"
    ```
 
-3. **Apply Migration 2: SELECT Policy**
+3. **Apply Migration: SELECT Policy (REQUIRED for checkout)**
    ```sql
    -- Copy entire content from:
    -- supabase/migrations/20250124000002_customer_addresses_select_policy.sql
    -- Paste in SQL Editor and click "Run"
+   ```
+
+4. **Optional: RPC Functions Migration (NOT NEEDED - only if you want to use RPC approach)**
+   ```sql
+   -- This is optional - the system now uses direct Supabase calls like the backup
+   -- supabase/migrations/20250124000001_customer_addresses_rpc.sql
    ```
 
 4. **Verify Functions Were Created**
