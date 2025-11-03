@@ -89,11 +89,12 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
     return null;
   }
   
+  // Map RPC response fields to expected format
   return {
-    id: data.id,
+    id: data.customer_id || data.id, // RPC returns customer_id, fallback to id
     tempPassword: data.temp_password,
-    existingCustomer: data.existing_customer,
-    needsWelcomeEmail: data.needs_welcome_email
+    existingCustomer: data.existing_customer !== undefined ? data.existing_customer : !data.is_new,
+    needsWelcomeEmail: data.needs_welcome_email !== undefined ? data.needs_welcome_email : data.is_new
   };
 }
 
