@@ -936,10 +936,36 @@ const ProductDetailPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4 max-w-lg">
                     {colors.map(color => {
-                      // Find the variant for this color to check for swatch image
-                      const colorVariant = product.variants?.find(v => v.color === color);
-                      // Only show swatch image if variant has actual swatch_image_id in database
-                      const hasSwatchImage = !!(colorVariant?.swatchImageId && colorVariant?.swatchImage);
+                      // Find ANY variant with this color that has a swatch image (prefer one with image)
+                      const colorVariant = product.variants?.find(v => v.color === color && v.swatchImage) 
+                        || product.variants?.find(v => v.color === color);
+                      // Show swatch image if variant has swatchImage URL
+                      const hasSwatchImage = !!(colorVariant?.swatchImage);
+                      
+                      // Debug logging for first color only to avoid spam
+                      if (color === colors[0] && import.meta.env.DEV) {
+                        console.log('[ProductDetailPage] Color swatch debug:', {
+                          color,
+                          hasSwatchImage,
+                          colorVariant: colorVariant ? {
+                            id: colorVariant.id,
+                            color: colorVariant.color,
+                            size: colorVariant.size,
+                            swatchImageId: colorVariant.swatchImageId,
+                            swatchImage: colorVariant.swatchImage,
+                            colorHex: colorVariant.colorHex
+                          } : null,
+                          allColors: colors,
+                          allVariants: product.variants?.map(v => ({
+                            id: v.id,
+                            color: v.color,
+                            size: v.size,
+                            swatchImageId: v.swatchImageId,
+                            hasSwatchImage: !!v.swatchImage
+                          }))
+                        });
+                      }
+                      
                       // Check if this color is available based on selected size
                       const isAvailable = isColorAvailable(product, color!, selectedSize);
                       

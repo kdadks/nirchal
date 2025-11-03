@@ -67,6 +67,16 @@ export const useProductBySlug = (slug: string | undefined) => {
         // Transform the product data
         const productData: any = data;
         
+        // Debug: Log raw variant data to see swatch_image_id values
+        if (import.meta.env.DEV && productData.product_variants?.length > 0) {
+          console.log('[useProductBySlug] Raw variant data:', {
+            variantCount: productData.product_variants.length,
+            firstVariant: productData.product_variants[0],
+            imageCount: productData.product_images?.length || 0,
+            firstImage: productData.product_images?.[0]
+          });
+        }
+        
         const variants = (productData.product_variants || []).map((v: any) => {
           const inventoryItem = (productData.inventory || []).find(
             (inv: any) => inv.variant_id === v.id
@@ -89,6 +99,18 @@ export const useProductBySlug = (slug: string | undefined) => {
               const rawUrl = swatchImage.image_url || swatchImage.image_path;
               swatchImageUrl = rawUrl ? getStorageImageUrl(rawUrl) : undefined;
             }
+          }
+          
+          // Debug log for swatch image resolution
+          if (import.meta.env.DEV && v.swatch_image_id) {
+            console.log('[useProductBySlug] Swatch image resolution:', {
+              variantId: v.id,
+              color: v.color,
+              swatchImageId: v.swatch_image_id,
+              hasDirectSwatchImage: !!v.swatch_image?.image_url,
+              foundInProductImages: !!swatchImageUrl,
+              resolvedUrl: swatchImageUrl
+            });
           }
           
           return {
