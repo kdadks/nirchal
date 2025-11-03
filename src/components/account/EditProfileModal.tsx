@@ -63,15 +63,23 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       // Sanitize form data before saving
       const sanitizedData = sanitizeFormData(formData);
       
-      const { error } = await supabase
+      console.log('Updating customer profile:', { customerId: customer.id, data: sanitizedData });
+      
+      const { data, error } = await supabase
         .from('customers')
         .update({
           ...sanitizedData,
           updated_at: new Date().toISOString()
         })
-        .eq('id', customer.id);
+        .eq('id', customer.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database update error:', error);
+        throw error;
+      }
+      
+      console.log('Profile update response:', data);
       
       // Refresh customer data in context
       await refreshCustomer();
@@ -90,7 +98,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1100] p-4">
       <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
