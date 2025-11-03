@@ -231,7 +231,7 @@ CREATE OR REPLACE FUNCTION public.request_password_reset(user_email text)
 RETURNS json
 LANGUAGE plpgsql 
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
   customer_record RECORD;
@@ -295,7 +295,7 @@ CREATE OR REPLACE FUNCTION public.reset_password_with_token(reset_token text, ne
 RETURNS json
 LANGUAGE plpgsql 
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
   customer_record RECORD;
@@ -322,10 +322,10 @@ BEGIN
     );
   END IF;
   
-  -- Update password_hash and clear reset token
+  -- IMPORTANT: Hash the password before storing
   UPDATE customers 
   SET 
-    password_hash = password_to_set,
+    password_hash = crypt(password_to_set, gen_salt('bf')),
     reset_token = NULL,
     reset_token_expires = NULL,
     updated_at = NOW(),
