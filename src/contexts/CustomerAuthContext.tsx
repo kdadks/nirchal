@@ -349,9 +349,31 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
 
       // Type assertion for RPC response
-      const response = data as { success: boolean; message?: string; error?: string } | null;
+      const response = data as { 
+        success: boolean; 
+        message?: string; 
+        error?: string;
+        customer_email?: string;
+        customer_first_name?: string;
+        customer_last_name?: string;
+      } | null;
 
       if (response?.success) {
+        // Send password change confirmation email
+        if (response.customer_email && response.customer_first_name && response.customer_last_name) {
+          try {
+            await transactionalEmailService.sendPasswordChangeEmail({
+              first_name: response.customer_first_name,
+              last_name: response.customer_last_name,
+              email: response.customer_email
+            });
+            console.log('Password change confirmation email sent successfully');
+          } catch (emailError) {
+            console.error('Failed to send password change confirmation email:', emailError);
+            // Don't block the password reset process if email fails
+          }
+        }
+        
         return { success: true, message: response.message || 'Password reset successfully' };
       } else {
         return { success: false, error: response?.error || 'Failed to reset password' };
