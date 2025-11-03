@@ -8,6 +8,17 @@
 -- PART 1: ADD MISSING COLUMNS TO CUSTOMERS TABLE
 -- ====================================
 
+-- Add is_guest column (CRITICAL - required by RPC function)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'customers' AND column_name = 'is_guest') THEN
+        ALTER TABLE customers ADD COLUMN is_guest BOOLEAN DEFAULT false;
+        RAISE NOTICE 'Added column: is_guest';
+    ELSE
+        RAISE NOTICE 'Column already exists: is_guest';
+    END IF;
+END $$;
+
 -- Add welcome email tracking columns (if not exists)
 DO $$ 
 BEGIN
@@ -51,10 +62,12 @@ BEGIN
 END $$;
 
 -- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_customers_is_guest ON customers(is_guest);
 CREATE INDEX IF NOT EXISTS idx_customers_welcome_email_sent ON customers(welcome_email_sent);
 CREATE INDEX IF NOT EXISTS idx_customers_reset_token ON customers(reset_token) WHERE reset_token IS NOT NULL;
 
--- Update existing customers to have welcome_email_sent = false if null
+-- Update existing customers to have default values if null
+UPDATE customers SET is_guest = false WHERE is_guest IS NULL;
 UPDATE customers SET welcome_email_sent = false WHERE welcome_email_sent IS NULL;
 
 -- ====================================
@@ -426,7 +439,7 @@ SELECT
     data_type
 FROM information_schema.columns
 WHERE table_name = 'customers'
-    AND column_name IN ('welcome_email_sent', 'welcome_email_sent_at', 'reset_token', 'reset_token_expires')
+    AND column_name IN ('is_guest', 'welcome_email_sent', 'welcome_email_sent_at', 'reset_token', 'reset_token_expires')
 ORDER BY column_name;
 
 -- Verify functions were created
