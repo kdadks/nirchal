@@ -1,39 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import CustomerAuthModal from '../components/auth/CustomerAuthModal';
 
 const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [token, setToken] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Get token directly from URL params without state
+  const token = useMemo(() => searchParams.get('token'), [searchParams]);
 
   useEffect(() => {
-    const urlToken = searchParams.get('token');
-    if (!urlToken) {
+    if (!token) {
       // No token provided, redirect to home
       navigate('/', { replace: true });
-    } else {
-      setToken(urlToken);
-      setIsModalOpen(true);
     }
-  }, [searchParams, navigate]);
+  }, [token, navigate]);
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
     // Redirect to home after modal closes
-    setTimeout(() => {
-      navigate('/', { replace: true });
-    }, 300);
+    navigate('/', { replace: true });
   };
 
+  // If no token, don't render modal (will redirect in useEffect)
   if (!token) {
-    return null; // Will redirect to home
+    return null;
   }
 
   return (
     <CustomerAuthModal
-      open={isModalOpen}
+      open={true}
       onClose={handleCloseModal}
       initialMode="reset-token"
       resetToken={token}
