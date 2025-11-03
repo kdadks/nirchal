@@ -50,6 +50,7 @@ export const useProductSearch = (searchQuery: string, limit: number = 8) => {
           )
         `)
         .ilike('name', `%${query}%`)
+        .not('category_id', 'is', null) // Only show products with categories on frontend
         .limit(limit);
 
       // If we have fewer than limit results from name search, search descriptions too
@@ -79,6 +80,7 @@ export const useProductSearch = (searchQuery: string, limit: number = 8) => {
             )
           `)
           .ilike('description', `%${query}%`)
+          .not('category_id', 'is', null) // Only show products with categories on frontend
           .not('id', 'in', `(${nameResultIds.join(',')})`)
           .limit(limit - (nameResults?.length || 0));
 

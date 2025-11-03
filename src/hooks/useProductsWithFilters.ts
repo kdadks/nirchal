@@ -66,7 +66,8 @@ export const useProductsWithFilters = (
             low_stock_threshold
           )
         `, { count: 'exact' })
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .not('category_id', 'is', null); // Only show products with categories on frontend
 
       // Apply category filter using cached category ID lookup
       if (filters.category) {

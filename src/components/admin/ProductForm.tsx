@@ -550,14 +550,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Category</label>
+                <label className="block text-sm font-medium text-gray-700">Category (Optional)</label>
                 <select
                   value={formData.category_id}
                   onChange={(e) => setFormData(prev => ({ ...prev, category_id: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                  required
                 >
-                  <option value="">Select Category</option>
+                  <option value="">No Category</option>
                   {categories.map((category: any) => (
                     <option key={category.id} value={category.id}>{category.name}</option>
                   ))}

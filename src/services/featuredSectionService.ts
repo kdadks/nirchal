@@ -69,7 +69,7 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
         }
 
         const products = (productData || [])
-          .filter((item: any) => item.product) // Filter out null products
+          .filter((item: any) => item.product && item.product.category_id) // Filter out null products and products without categories
           .map((item: any) => {
             const product = item.product as any;
             

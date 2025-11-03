@@ -4,7 +4,7 @@ import { useProductSuggestions } from '../hooks/useProductSuggestions';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search, Facebook, Linkedin, MessageCircle, Link2, Check, ShoppingBag, Heart, Share2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
-import { usePublicProducts } from '../hooks/usePublicProducts';
+import { useProductBySlug } from '../hooks/useProductBySlug';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useCategories } from '../hooks/useCategories';
@@ -44,7 +44,7 @@ const XIcon = ({ size = 20 }: { size?: number }) => (
 const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { products, loading } = usePublicProducts();
+  const { product, loading } = useProductBySlug(slug);
   const { addItem } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { customer } = useCustomerAuth();
@@ -64,7 +64,6 @@ const ProductDetailPage: React.FC = () => {
   const [hasUserInteractedWithColor, setHasUserInteractedWithColor] = useState(false);
   const [shouldLoadSuggestions, setShouldLoadSuggestions] = useState(false);
 
-  const product = products.find(p => p.slug === slug);
   const { categories } = useCategories();
   const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
   
@@ -563,6 +562,9 @@ const ProductDetailPage: React.FC = () => {
   breadcrumbItems.push({ name: product.name, url: productUrl });
   
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbItems, baseUrl);
+  
+  // Check if product is uncategorized (should not be indexed by search engines)
+  const isUncategorized = !product.category || product.category === 'Uncategorized';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
@@ -580,17 +582,23 @@ const ProductDetailPage: React.FC = () => {
           availability: stockInfo.isAvailable ? 'InStock' : 'OutOfStock',
           brand: 'Nirchal'
         }}
+        noindex={isUncategorized}
+        nofollow={isUncategorized}
       />
 
-      {/* Structured Data (JSON-LD) */}
-      <script 
-        type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: renderJsonLd(productSchema) }} 
-      />
-      <script 
-        type="application/ld+json" 
-        dangerouslySetInnerHTML={{ __html: renderJsonLd(breadcrumbSchema) }} 
-      />
+      {/* Structured Data (JSON-LD) - Only render for categorized products */}
+      {!isUncategorized && (
+        <>
+          <script 
+            type="application/ld+json" 
+            dangerouslySetInnerHTML={{ __html: renderJsonLd(productSchema) }} 
+          />
+          <script 
+            type="application/ld+json" 
+            dangerouslySetInnerHTML={{ __html: renderJsonLd(breadcrumbSchema) }} 
+          />
+        </>
+      )}
 
       {/* Breadcrumb - with top padding for mobile to avoid header overlap */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pt-20 sm:pt-6">

@@ -39,6 +39,7 @@ export const usePublicProducts = (featured?: boolean) => {
           )
         `)
         .eq('is_active', true)
+        .not('category_id', 'is', null) // Only show products with categories on frontend
         .order('created_at', { ascending: false });
       
       const { data, error } = await query;

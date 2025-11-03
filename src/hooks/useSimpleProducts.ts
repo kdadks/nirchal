@@ -18,6 +18,7 @@ export const useSimpleProducts = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .not('category_id', 'is', null) // Only show products with categories on frontend
         .order('created_at', { ascending: false });
       
       if (error) {
