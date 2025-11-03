@@ -90,7 +90,7 @@ CREATE OR REPLACE FUNCTION public.create_checkout_customer(
 RETURNS json
 LANGUAGE plpgsql 
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
     customer_record customers%ROWTYPE;
