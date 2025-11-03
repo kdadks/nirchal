@@ -1319,83 +1319,113 @@ const AccountPage: React.FC = () => {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {addresses.map((address) => (
-                          <div key={address.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                            <div className="flex justify-between items-start mb-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h4 className="font-medium text-gray-900">
-                                    {address.first_name} {address.last_name}
-                                  </h4>
-                                  {address.is_default && (
-                                    <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full">
-                                      Default
-                                    </span>
+                        {(() => {
+                          // Group addresses by physical location
+                          const addressMap = new Map();
+                          addresses.forEach(address => {
+                            const key = `${address.address_line_1}-${address.city}-${address.state}-${address.postal_code}`;
+                            
+                            if (addressMap.has(key)) {
+                              // Merge with existing - combine flags
+                              const existing = addressMap.get(key);
+                              existing.is_shipping = existing.is_shipping || address.is_shipping;
+                              existing.is_billing = existing.is_billing || address.is_billing;
+                              existing.is_default = existing.is_default || address.is_default;
+                              
+                              // Keep more complete information
+                              if (address.address_line_2 && !existing.address_line_2) {
+                                existing.address_line_2 = address.address_line_2;
+                              }
+                              if (address.phone && !existing.phone) {
+                                existing.phone = address.phone;
+                              }
+                              if (address.company && !existing.company) {
+                                existing.company = address.company;
+                              }
+                            } else {
+                              addressMap.set(key, { ...address });
+                            }
+                          });
+                          
+                          // Convert map to array and render
+                          return Array.from(addressMap.values()).map((address) => (
+                            <div key={address.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h4 className="font-medium text-gray-900">
+                                      {address.first_name} {address.last_name}
+                                    </h4>
+                                  </div>
+                                  
+                                  {/* Company */}
+                                  {address.company && (
+                                    <p className="text-sm text-gray-600 mb-1 font-medium">{address.company}</p>
                                   )}
+                                  
+                                  {/* Address Lines */}
+                                  <p className="text-sm text-gray-600 mb-1">{address.address_line_1}</p>
+                                  {address.address_line_2 && (
+                                    <p className="text-sm text-gray-600 mb-1">{address.address_line_2}</p>
+                                  )}
+                                  
+                                  {/* City, State, Postal Code, Country */}
+                                  <p className="text-sm text-gray-600 mb-2">
+                                    {address.city}, {address.state} {address.postal_code}
+                                    {address.country && address.country !== 'India' && (
+                                      <span>, {address.country}</span>
+                                    )}
+                                  </p>
+                                  
+                                  {/* Phone */}
+                                  {address.phone && (
+                                    <p className="text-sm text-gray-600 mb-2">📞 {address.phone}</p>
+                                  )}
+                                  
+                                  {/* Usage Tags - Show all applicable tags */}
+                                  <div className="flex flex-wrap gap-2">
+                                    {address.is_default && (
+                                      <span className="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">
+                                        Default
+                                      </span>
+                                    )}
+                                    {address.is_shipping && (
+                                      <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                                        Shipping
+                                      </span>
+                                    )}
+                                    {address.is_billing && (
+                                      <span className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
+                                        Billing
+                                      </span>
+                                    )}
+                                    {!address.is_shipping && !address.is_billing && (
+                                      <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                        Other
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                
-                                {/* Company */}
-                                {address.company && (
-                                  <p className="text-sm text-gray-600 mb-1 font-medium">{address.company}</p>
-                                )}
-                                
-                                {/* Address Lines */}
-                                <p className="text-sm text-gray-600 mb-1">{address.address_line_1}</p>
-                                {address.address_line_2 && (
-                                  <p className="text-sm text-gray-600 mb-1">{address.address_line_2}</p>
-                                )}
-                                
-                                {/* City, State, Postal Code, Country */}
-                                <p className="text-sm text-gray-600 mb-2">
-                                  {address.city}, {address.state} {address.postal_code}
-                                  {address.country && address.country !== 'India' && (
-                                    <span>, {address.country}</span>
-                                  )}
-                                </p>
-                                
-                                {/* Phone */}
-                                {address.phone && (
-                                  <p className="text-sm text-gray-600 mb-2">📞 {address.phone}</p>
-                                )}
-                                
-                                {/* Usage Tags */}
-                                <div className="flex gap-2">
-                                  {address.is_shipping && (
-                                    <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                                      Shipping
-                                    </span>
-                                  )}
-                                  {address.is_billing && (
-                                    <span className="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs rounded">
-                                      Billing
-                                    </span>
-                                  )}
-                                  {!address.is_shipping && !address.is_billing && (
-                                    <span className="inline-block px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                                      Other
-                                    </span>
-                                  )}
+                                <div className="flex gap-2 ml-4">
+                                  <button
+                                    onClick={() => handleAddressEdit(address)}
+                                    className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                                    title="Edit address"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingAddress(address.id)}
+                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Delete address"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
                                 </div>
-                              </div>
-                              <div className="flex gap-2 ml-4">
-                                <button
-                                  onClick={() => handleAddressEdit(address)}
-                                  className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                  title="Edit address"
-                                >
-                                  <Edit2 size={16} />
-                                </button>
-                                <button
-                                  onClick={() => setDeletingAddress(address.id)}
-                                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                  title="Delete address"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ));
+                        })()}
                       </div>
                     )}
                   </div>
