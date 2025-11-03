@@ -93,39 +93,46 @@ const AddressModal: React.FC<AddressModalProps> = ({
       // Sanitize form data before saving
       const sanitizedData = sanitizeAddressData(formData);
       
-      // If this address is being set as default, we need to unset other default addresses
-      if (sanitizedData.is_default) {
-        // First, unset all other default addresses for this customer
-        const { error: unsetError } = await supabase
-          .from('customer_addresses')
-          .update({ is_default: false })
-          .eq('customer_id', customer.id)
-          .neq('id', editAddress?.id || 0); // Don't unset the current address if editing
-          
-        if (unsetError) throw unsetError;
-      }
-      
       if (editAddress?.id) {
-        // Update existing address
-        const { error } = await supabase
-          .from('customer_addresses')
-          .update({
-            ...sanitizedData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editAddress.id)
-          .eq('customer_id', customer.id);
+        // Update existing address using RPC function
+        const { error } = await supabase.rpc('update_customer_address', {
+          p_address_id: editAddress.id,
+          p_customer_id: customer.id,
+          p_first_name: sanitizedData.first_name,
+          p_last_name: sanitizedData.last_name,
+          p_company: sanitizedData.company || null,
+          p_address_line_1: sanitizedData.address_line_1,
+          p_address_line_2: sanitizedData.address_line_2 || null,
+          p_city: sanitizedData.city,
+          p_state: sanitizedData.state,
+          p_postal_code: sanitizedData.postal_code,
+          p_country: sanitizedData.country || 'India',
+          p_phone: sanitizedData.phone || null,
+          p_is_default: sanitizedData.is_default,
+          p_is_billing: sanitizedData.is_billing,
+          p_is_shipping: sanitizedData.is_shipping
+        });
 
         if (error) throw error;
         toast.success('Address updated successfully!');
       } else {
-        // Create new address
-        const { error } = await supabase
-          .from('customer_addresses')
-          .insert({
-            ...sanitizedData,
-            customer_id: customer.id
-          });
+        // Create new address using RPC function
+        const { error } = await supabase.rpc('insert_customer_address', {
+          p_customer_id: customer.id,
+          p_first_name: sanitizedData.first_name,
+          p_last_name: sanitizedData.last_name,
+          p_company: sanitizedData.company || null,
+          p_address_line_1: sanitizedData.address_line_1,
+          p_address_line_2: sanitizedData.address_line_2 || null,
+          p_city: sanitizedData.city,
+          p_state: sanitizedData.state,
+          p_postal_code: sanitizedData.postal_code,
+          p_country: sanitizedData.country || 'India',
+          p_phone: sanitizedData.phone || null,
+          p_is_default: sanitizedData.is_default,
+          p_is_billing: sanitizedData.is_billing,
+          p_is_shipping: sanitizedData.is_shipping
+        });
 
         if (error) throw error;
         toast.success('Address added successfully!');
@@ -175,7 +182,7 @@ const AddressModal: React.FC<AddressModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1100] p-4">
       <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
