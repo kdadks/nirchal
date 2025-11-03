@@ -884,12 +884,13 @@ export const useProducts = () => {
 									// Update or insert inventory for this variant
 									if (variantId) {
 										// Check if inventory exists for this variant
-										const { data: inv, error: fetchInvError } = await supabase
+										const { data: invList, error: fetchInvError } = await supabase
 											.from('inventory')
 											.select('*')
-											.eq('variant_id', variantId)
-											.single();
-										if (fetchInvError && fetchInvError.code !== 'PGRST116') throw fetchInvError;
+											.eq('variant_id', variantId);
+										if (fetchInvError) throw fetchInvError;
+
+										const inv = invList && invList.length > 0 ? invList[0] : null;
 
 										if (inv) {
 											// Update inventory
@@ -905,7 +906,7 @@ export const useProducts = () => {
 											if (updateInvError) throw updateInvError;
 											// inventory_history now handled by DB trigger
 										} else {
-											// Insert inventory
+											// Insert inventory - don't specify ID, let database generate it
 											const { error: insertInvError } = await supabase
 												.from('inventory')
 												.insert({
@@ -913,9 +914,7 @@ export const useProducts = () => {
 													variant_id: variantId,
 													quantity: v.quantity ?? 0,
 													low_stock_threshold: v.low_stock_threshold ?? 2
-												})
-												.select()
-												.single();
+												});
 											if (insertInvError) throw insertInvError;
 											// inventory_history now handled by DB trigger
 										}
