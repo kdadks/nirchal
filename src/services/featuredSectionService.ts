@@ -36,6 +36,7 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               slug,
               price,
               sale_price,
+              category_id,
               product_images (
                 id,
                 image_url,
