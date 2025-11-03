@@ -77,6 +77,12 @@ export interface Product {
   updated_at: string;
   created_by: string;
   updated_by: string;
+  // Google Merchant Center fields
+  gtin: string | null; // Global Trade Item Number (UPC, EAN, ISBN)
+  mpn: string | null; // Manufacturer Part Number
+  gender: 'Female' | 'Male' | 'Unisex' | null;
+  age_group: 'Adult' | 'Kids' | 'Infant' | 'Toddler' | 'Newborn' | null;
+  google_product_category: string | null;
 }
 
 export interface ProductImage {

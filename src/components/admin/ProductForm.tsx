@@ -94,7 +94,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
     inventory: initialData?.inventory || {
       quantity: 0,
       low_stock_threshold: 2
-    }
+    },
+    // Google Merchant Center fields
+    gtin: initialData?.gtin || null,
+    mpn: initialData?.mpn || null,
+    gender: initialData?.gender || null,
+    age_group: initialData?.age_group || null,
+    google_product_category: initialData?.google_product_category || null
   });
 
   // Debug logging for variants
@@ -1624,6 +1630,154 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                     : 'Approaching character limit - consider keeping under 160 characters'
                   }
                 </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Google Merchant Center */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Google Merchant Center</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Product identifiers and attributes for Google Shopping and search results.
+            <a 
+              href="https://support.google.com/merchants/answer/7052112" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="ml-1 text-primary-600 hover:text-primary-700"
+            >
+              Learn more
+            </a>
+          </p>
+          
+          <div className="space-y-4">
+            {/* Product Identifiers */}
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Product Identifiers (Highly Recommended)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    GTIN (UPC/EAN/ISBN)
+                    <span className="text-xs text-gray-500 ml-1">(Strongly recommended)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.gtin || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, gtin: e.target.value || null }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    placeholder="e.g., 0123456789012"
+                    maxLength={50}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Global Trade Item Number (UPC for US, EAN for Europe)
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    MPN (Manufacturer Part Number)
+                    <span className="text-xs text-gray-500 ml-1">(Recommended if no GTIN)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.mpn || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, mpn: e.target.value || null }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    placeholder="e.g., MFG-12345"
+                    maxLength={100}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Unique identifier assigned by manufacturer
+                  </p>
+                </div>
+              </div>
+              
+              {!formData.gtin && !formData.mpn && (
+                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    <strong>Note:</strong> Adding at least one product identifier (GTIN preferred) significantly improves product visibility in Google Shopping.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Apparel Attributes */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Apparel Attributes (Required for major markets)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Gender
+                    <span className="text-xs text-red-500 ml-1">*</span>
+                  </label>
+                  <select
+                    value={formData.gender || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value as any || null }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Unisex">Unisex</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Required for apparel in most markets
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Age Group
+                    <span className="text-xs text-red-500 ml-1">*</span>
+                  </label>
+                  <select
+                    value={formData.age_group || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, age_group: e.target.value as any || null }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  >
+                    <option value="">Select Age Group</option>
+                    <option value="Adult">Adult</option>
+                    <option value="Kids">Kids</option>
+                    <option value="Toddler">Toddler</option>
+                    <option value="Infant">Infant</option>
+                    <option value="Newborn">Newborn</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Required for apparel in most markets
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Google Product Category
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.google_product_category || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, google_product_category: e.target.value || null }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    placeholder="e.g., Apparel & Accessories > Clothing"
+                    maxLength={255}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    <a 
+                      href="https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary-600 hover:text-primary-700"
+                    >
+                      View taxonomy
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              {(!formData.gender || !formData.age_group) && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    <strong>Tip:</strong> Gender and Age Group are required for apparel products in major markets (US, UK, Germany, France, Japan, Brazil). Set these to improve product visibility.
+                  </p>
+                </div>
               )}
             </div>
           </div>

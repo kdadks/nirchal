@@ -10,6 +10,7 @@ export interface Product {
   price: number;
   currency: string;
   image: string;
+  images?: string[]; // Multiple images for Google Merchant Center
   sku?: string;
   brand?: string;
   availability?: 'InStock' | 'OutOfStock' | 'PreOrder';
@@ -18,6 +19,16 @@ export interface Product {
     count: number;
   };
   slug: string;
+  // Additional GMC fields
+  color?: string;
+  colors?: string[];
+  material?: string;
+  category?: string;
+  gtin?: string; // Global Trade Item Number (UPC/EAN/ISBN)
+  mpn?: string; // Manufacturer Part Number
+  condition?: 'NewCondition' | 'RefurbishedCondition' | 'UsedCondition';
+  gender?: 'Female' | 'Male' | 'Unisex';
+  ageGroup?: 'Adult' | 'Kids' | 'Infant' | 'Toddler' | 'Newborn';
 }
 
 export interface BreadcrumbItem {
@@ -33,14 +44,33 @@ export interface FAQItem {
 /**
  * Generate Product structured data (JSON-LD)
  * https://schema.org/Product
+ * Enhanced for Google Merchant Center with all required attributes
  */
 export function generateProductSchema(product: Product, baseUrl: string) {
+  // Prepare images array
+  const images: string[] = [];
+  
+  // Add primary image
+  if (product.image) {
+    images.push(product.image.startsWith('http') ? product.image : `${baseUrl}${product.image}`);
+  }
+  
+  // Add additional images (up to 10 for GMC)
+  if (product.images && product.images.length > 0) {
+    product.images
+      .filter(img => img !== product.image) // Avoid duplicate primary image
+      .slice(0, 9) // GMC allows up to 10 additional images
+      .forEach(img => {
+        images.push(img.startsWith('http') ? img : `${baseUrl}${img}`);
+      });
+  }
+
   const schema: any = {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     'name': product.name,
     'description': product.description,
-    'image': product.image.startsWith('http') ? product.image : `${baseUrl}${product.image}`,
+    'image': images.length > 0 ? images : undefined,
     'sku': product.sku || product.id,
     'brand': {
       '@type': 'Brand',
@@ -55,6 +85,52 @@ export function generateProductSchema(product: Product, baseUrl: string) {
       'priceValidUntil': new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
     }
   };
+
+  // Add GTIN (Global Trade Item Number) if available - strongly recommended by GMC
+  if (product.gtin) {
+    schema['gtin'] = product.gtin;
+  }
+
+  // Add MPN (Manufacturer Part Number) if available
+  if (product.mpn) {
+    schema['mpn'] = product.mpn;
+  }
+
+  // Add product condition (default to NewCondition for apparel)
+  schema['itemCondition'] = `https://schema.org/${product.condition || 'NewCondition'}`;
+
+  // Add category for Google product category
+  if (product.category) {
+    schema['category'] = product.category;
+  }
+
+  // Add color - important for apparel
+  if (product.color) {
+    schema['color'] = product.color;
+  }
+
+  // Add material - recommended for apparel
+  if (product.material) {
+    schema['material'] = product.material;
+  }
+
+  // Add gender - required for apparel in major markets
+  if (product.gender) {
+    schema['audience'] = {
+      '@type': 'PeopleAudience',
+      'suggestedGender': product.gender
+    };
+  }
+
+  // Add age group - required for apparel in major markets
+  if (product.ageGroup) {
+    schema['audience'] = {
+      ...schema['audience'],
+      '@type': 'PeopleAudience',
+      'suggestedMinAge': product.ageGroup === 'Infant' ? 0 : product.ageGroup === 'Kids' ? 5 : 18,
+      'suggestedMaxAge': product.ageGroup === 'Infant' ? 4 : product.ageGroup === 'Kids' ? 17 : undefined
+    };
+  }
 
   // Add aggregateRating if available
   if (product.rating && product.rating.count > 0) {

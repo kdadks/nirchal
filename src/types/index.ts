@@ -44,6 +44,12 @@ export interface Product {
   variants?: ProductVariant[];
   meta_title?: string | null;
   meta_description?: string | null;
+  // Google Merchant Center fields
+  gtin?: string | null; // Global Trade Item Number (UPC, EAN, ISBN)
+  mpn?: string | null; // Manufacturer Part Number
+  gender?: 'Female' | 'Male' | 'Unisex' | null;
+  age_group?: 'Adult' | 'Kids' | 'Infant' | 'Toddler' | 'Newborn' | null;
+  google_product_category?: string | null;
 }
 
 export interface Category {

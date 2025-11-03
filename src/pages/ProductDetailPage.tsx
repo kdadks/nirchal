@@ -534,7 +534,7 @@ const ProductDetailPage: React.FC = () => {
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : undefined;
 
-  // Product structured data
+  // Product structured data with Google Merchant Center attributes
   const productSchema = generateProductSchema({
     id: product.id,
     name: product.name,
@@ -542,11 +542,22 @@ const ProductDetailPage: React.FC = () => {
     price: adjustedPrice,
     currency: 'INR',
     image: product.images[0] || '',
+    images: product.images, // All product images for GMC
     sku: product.id, // Using product ID as SKU
     brand: 'Nirchal',
     availability: stockInfo.isAvailable ? 'InStock' : 'OutOfStock',
     rating: avgRating ? { value: avgRating, count: reviews.length } : undefined,
-    slug: product.slug
+    slug: product.slug,
+    // Additional GMC attributes
+    color: product.color,
+    colors: product.colors,
+    material: product.fabric, // Map fabric to material
+    category: product.category,
+    gtin: product.gtin || undefined, // Global Trade Item Number
+    mpn: product.mpn || undefined, // Manufacturer Part Number
+    condition: 'NewCondition' as const, // All products are new
+    gender: product.gender || 'Female' as const, // Use from DB or default
+    ageGroup: product.age_group || 'Adult' as const, // Use from DB or default
   }, baseUrl);
 
   // Breadcrumb structured data
