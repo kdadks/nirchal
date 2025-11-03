@@ -11,6 +11,7 @@ interface Env {
   SUPABASE_SERVICE_ROLE_KEY: string;
   
   // Razorpay
+  RAZORPAY_KEY_ID: string;
   RAZORPAY_KEY_SECRET: string;
 }
 
@@ -137,6 +138,27 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     console.log('Payment signature verified successfully');
 
+    // Fetch payment details from Razorpay API
+    let paymentDetails = null;
+    if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
+      try {
+        const authHeader = `Basic ${btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`)}`;
+        const paymentResponse = await fetch(
+          `https://api.razorpay.com/v1/payments/${razorpay_payment_id}`,
+          {
+            headers: { 'Authorization': authHeader }
+          }
+        );
+        
+        if (paymentResponse.ok) {
+          paymentDetails = await paymentResponse.json();
+          console.log('✅ Fetched payment details from Razorpay API');
+        }
+      } catch (error) {
+        console.warn('Failed to fetch payment details, will continue without them:', error);
+      }
+    }
+
     // 🔒 DUPLICATE PAYMENT PROTECTION: Check if order is already paid
     const orderCheckResponse = await fetch(
       `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}&select=payment_status`,
@@ -186,6 +208,24 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     }
 
     // Update order with payment details
+    const updatePayload: any = {
+      payment_status: 'paid',
+      razorpay_payment_id: razorpay_payment_id,
+      razorpay_order_id: razorpay_order_id,
+      payment_transaction_id: razorpay_payment_id,
+      updated_at: new Date().toISOString()
+    };
+
+    // Add payment details if we fetched them
+    if (paymentDetails) {
+      updatePayload.payment_details = paymentDetails;
+      console.log('💾 Saving payment details:', {
+        payment_id: paymentDetails.id,
+        method: paymentDetails.method,
+        amount: paymentDetails.amount
+      });
+    }
+
     const updateResponse = await fetch(
       `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}`,
       {
@@ -196,12 +236,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({
-          payment_status: 'paid',
-          razorpay_payment_id: razorpay_payment_id,
-          razorpay_order_id: razorpay_order_id,
-          updated_at: new Date().toISOString()
-        })
+        body: JSON.stringify(updatePayload)
       }
     );
 
