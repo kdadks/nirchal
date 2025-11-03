@@ -101,7 +101,7 @@ export async function upsertCustomerByEmail(supabase: SupabaseClient, payload: C
 export async function markWelcomeEmailSent(supabase: SupabaseClient, customerId: string): Promise<boolean> {
   // Use RPC function only - no fallback
   const { data, error } = await supabase.rpc('mark_welcome_email_sent', {
-    customer_id: parseInt(customerId)
+    customer_id: customerId // UUID - no parseInt needed
   });
   
   if (error) {
