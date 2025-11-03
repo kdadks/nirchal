@@ -240,6 +240,34 @@ export const trackRemoveFromCart = (product: {
 };
 
 /**
+ * Track view cart
+ */
+export const trackViewCart = (items: GA4EcommerceItem[], totalValue: number): void => {
+  // GA4 tracking
+  if (window.gtag) {
+    window.gtag('event', 'view_cart', {
+      currency: 'INR',
+      value: totalValue,
+      items: items,
+    });
+  }
+
+  // Facebook Pixel tracking
+  if (window.fbq) {
+    window.fbq('track', 'ViewContent', {
+      content_type: 'product',
+      content_ids: items.map(item => item.item_id),
+      contents: items.map(item => ({
+        id: item.item_id,
+        quantity: item.quantity || 1,
+      })),
+      value: totalValue,
+      currency: 'INR',
+    });
+  }
+};
+
+/**
  * Track begin checkout
  */
 export const trackBeginCheckout = (items: GA4EcommerceItem[], totalValue: number): void => {
@@ -388,6 +416,7 @@ export default {
   trackProductView,
   trackAddToCart,
   trackRemoveFromCart,
+  trackViewCart,
   trackBeginCheckout,
   trackPurchase,
   trackSearch,

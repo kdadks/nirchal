@@ -15,7 +15,7 @@ import StateDropdown from '../components/common/StateDropdown';
 import CityDropdown from '../components/common/CityDropdown';
 import { SecurityUtils } from '../utils/securityUtils';
 import SEO from '../components/SEO';
-import { trackBeginCheckout } from '../utils/analytics';
+import { trackBeginCheckout, trackPurchase } from '../utils/analytics';
 
 interface CheckoutForm {
   // Contact Information
@@ -792,6 +792,26 @@ const CheckoutPage: React.FC = () => {
   ) => {
     // Immediately show processing state to prevent cart page flash
     setIsOrderProcessing(true);
+    
+    // Track purchase in Google Analytics
+    try {
+      trackPurchase(
+        order.order_number,
+        items.map(item => ({
+          item_id: item.id,
+          item_name: item.name,
+          item_category: item.category || 'Ethnic Wear',
+          item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        finalTotal,
+        0, // tax
+        0  // shipping
+      );
+    } catch (analyticsError) {
+      console.error('Failed to track purchase in GA4:', analyticsError);
+    }
     
     // Handle welcome email for customers who need it
     if (shouldSendWelcomeEmail && customerId) {

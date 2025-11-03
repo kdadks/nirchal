@@ -1,12 +1,30 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, ShoppingBag, Plus, Minus, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import CartAddOns from '../components/CartAddOns';
 import SEO from '../components/SEO';
+import { trackViewCart } from '../utils/analytics';
 
 const CartPage: React.FC = () => {
   const { state: { items, total }, updateQuantity, removeFromCart } = useCart();
+  
+  // Track view cart event when cart has items
+  useEffect(() => {
+    if (items.length > 0) {
+      trackViewCart(
+        items.map(item => ({
+          item_id: item.id,
+          item_name: item.name,
+          item_category: item.category || 'Ethnic Wear',
+          item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        total
+      );
+    }
+  }, []); // Only track on mount
 
   if (items.length === 0) {
     return (
