@@ -56,30 +56,48 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customer) return;
+    if (!customer) {
+      toast.error('Customer information not found');
+      return;
+    }
 
     setLoading(true);
     try {
       // Sanitize form data before saving
       const sanitizedData = sanitizeFormData(formData);
       
-      console.log('Updating customer profile:', { customerId: customer.id, data: sanitizedData });
+      console.log('Updating customer profile via RPC:', { 
+        customerId: customer.id, 
+        data: sanitizedData 
+      });
       
-      const { data, error } = await supabase
-        .from('customers')
-        .update({
-          ...sanitizedData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', customer.id)
-        .select();
+      // Update the customer profile using RPC function (bypasses RLS)
+      const { data, error } = await supabase.rpc('update_customer_profile', {
+        customer_id: customer.id,
+        p_first_name: sanitizedData.first_name,
+        p_last_name: sanitizedData.last_name,
+        p_email: sanitizedData.email,
+        p_phone: sanitizedData.phone || null,
+        p_date_of_birth: sanitizedData.date_of_birth || null,
+        p_gender: sanitizedData.gender || null
+      });
+
+      console.log('RPC update result:', { data, error });
 
       if (error) {
-        console.error('Database update error:', error);
-        throw error;
+        console.error('RPC error:', error);
+        throw new Error(error.message || 'Failed to update profile');
       }
       
-      console.log('Profile update response:', data);
+      // Type assertion for RPC response
+      const response = data as { success: boolean; error?: string; customer?: any } | null;
+      
+      if (!response || !response.success) {
+        console.error('Profile update failed:', response?.error);
+        throw new Error(response?.error || 'Failed to update profile');
+      }
+      
+      console.log('Profile updated successfully:', response.customer);
       
       // Refresh customer data in context
       await refreshCustomer();
@@ -87,9 +105,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       toast.success('Profile updated successfully!');
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile. Please try again.');
+      toast.error(error.message || 'Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
