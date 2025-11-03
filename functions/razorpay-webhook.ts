@@ -315,23 +315,51 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       return; // Skip processing for already paid orders
     }
 
-    const paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment.id, payment.order_id) || payment;
+    // Fetch full payment details from Razorpay API
+    let paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment.id, payment.order_id);
+    
+    // Fallback to webhook payment entity if API fetch fails
     if (!paymentDetails) {
-      console.warn('⚠️ Payment details still missing after Razorpay fetch fallback (payment.captured)', {
+      console.warn('⚠️ Using webhook payment entity as fallback (API fetch failed)', {
         payment_id: payment.id,
-        order_id: payment.order_id
+        order_id: payment.order_id,
+        has_webhook_data: !!payment,
+        webhook_keys: payment ? Object.keys(payment).join(', ') : 'none'
       });
+      paymentDetails = payment;
+    }
+    
+    // Ensure we have at minimum the essential fields
+    if (!paymentDetails || !paymentDetails.id) {
+      console.error('❌ CRITICAL: No payment details available at all!', {
+        payment_id: payment.id,
+        order_id: payment.order_id,
+        webhook_payload_exists: !!payment
+      });
+      // Use minimal payment object to prevent null
+      paymentDetails = {
+        id: payment.id,
+        order_id: payment.order_id,
+        amount: payment.amount,
+        currency: payment.currency,
+        status: payment.status,
+        method: payment.method || 'unknown',
+        captured_at: new Date().toISOString(),
+        source: 'webhook_fallback'
+      };
     }
 
     // Update order status to paid
     console.log('💾 Updating order with payment details:', {
       order_id: order.id,
       order_number: order.order_number,
-      updating_payment_id: payment.id,
-      updating_order_id: payment.order_id,
+      payment_id: payment.id,
+      order_id_razorpay: payment.order_id,
       payment_details_size: JSON.stringify(paymentDetails).length,
-      has_payment_method: !!paymentDetails?.method,
-      has_payment_amount: !!paymentDetails?.amount
+      payment_method: paymentDetails?.method || 'unknown',
+      payment_amount: paymentDetails?.amount || 'unknown',
+      payment_status: paymentDetails?.status || 'unknown',
+      details_source: paymentDetails?.source || 'razorpay_api'
     });
 
     const updateResponse = await fetch(
@@ -346,6 +374,7 @@ async function handlePaymentCaptured(env: Env, payment: any) {
         },
         body: JSON.stringify({
           payment_status: 'paid',
+          payment_transaction_id: payment.id,
           razorpay_payment_id: payment.id,
           razorpay_order_id: payment.order_id,
           payment_details: paymentDetails,
@@ -511,19 +540,45 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
         payment_id: payment?.id
       });
 
-      const paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment?.id, order?.id) || payment;
+      // Fetch full payment details from Razorpay API
+      let paymentDetails = await fetchPaymentDetailsFromRazorpay(env, payment?.id, order?.id);
+      
+      // Fallback to webhook payment entity if API fetch fails
       if (!paymentDetails) {
-        console.warn('⚠️ Payment details still missing after Razorpay fetch fallback (order.paid)', {
+        console.warn('⚠️ Using webhook payload as fallback for order.paid event', {
           razorpay_order_id: order?.id,
-          payment_id: payment?.id
+          payment_id: payment?.id,
+          has_payment: !!payment,
+          has_order: !!order
         });
+        paymentDetails = payment;
+      }
+      
+      // Ensure we have at minimum the essential fields
+      if (!paymentDetails || !paymentDetails.id) {
+        console.warn('⚠️ Creating minimal payment details from available data', {
+          payment_id: payment?.id,
+          order_id: order?.id,
+          has_payment: !!payment,
+          has_order: !!order
+        });
+        // Use minimal payment object with whatever data we have
+        paymentDetails = {
+          id: payment?.id || dbOrder.razorpay_payment_id || 'unknown',
+          order_id: order?.id || dbOrder.razorpay_order_id,
+          status: payment?.status || 'captured',
+          method: payment?.method || 'unknown',
+          captured_at: new Date().toISOString(),
+          source: 'order_paid_webhook_fallback'
+        };
       }
 
       const updatePayload = {
         payment_status: 'paid',
+        payment_transaction_id: payment?.id || dbOrder.razorpay_payment_id,
         razorpay_payment_id: payment?.id || dbOrder.razorpay_payment_id,
         razorpay_order_id: order?.id || dbOrder.razorpay_order_id,
-        payment_details: paymentDetails || { order, payment },
+        payment_details: paymentDetails,
         updated_at: new Date().toISOString()
       };
 
