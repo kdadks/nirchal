@@ -550,9 +550,9 @@ export const useProductsWithFilters = (
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {
               const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
               if (!hasVariants) {
-                // For products without variants, sum up product-level inventory (variant_id === null)
-                const productInventory = product.inventory.filter((inv: any) => inv.variant_id === null);
-                return productInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+                // For products without variants, sum up ALL inventory (includes orphaned variant inventory)
+                // This handles cases where variants were deleted but inventory records remain
+                return product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
               }
             }
             return 0;
