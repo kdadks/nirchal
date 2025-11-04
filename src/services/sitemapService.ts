@@ -123,6 +123,8 @@ export async function generateSitemap(): Promise<{ success: boolean; message: st
         category: 'seo',
         key: 'last_sitemap_generation',
         value: new Date().toISOString(),
+      }, {
+        onConflict: 'category,key'
       });
 
     await supabase
@@ -131,6 +133,8 @@ export async function generateSitemap(): Promise<{ success: boolean; message: st
         category: 'seo',
         key: 'sitemap_url_count',
         value: urls.length.toString(),
+      }, {
+        onConflict: 'category,key'
       });
 
     return {
@@ -153,23 +157,31 @@ export async function getSitemapMetadata(): Promise<{
   urlCount: number | null;
 }> {
   try {
-    const { data: lastGenData } = await supabase
+    const { data: lastGenData, error: lastGenError } = await supabase
       .from('settings')
       .select('value')
       .eq('category', 'seo')
       .eq('key', 'last_sitemap_generation')
-      .single();
+      .maybeSingle();
 
-    const { data: urlCountData } = await supabase
+    if (lastGenError) {
+      console.error('Error fetching last sitemap generation:', lastGenError);
+    }
+
+    const { data: urlCountData, error: urlCountError } = await supabase
       .from('settings')
       .select('value')
       .eq('category', 'seo')
       .eq('key', 'sitemap_url_count')
-      .single();
+      .maybeSingle();
+
+    if (urlCountError) {
+      console.error('Error fetching sitemap URL count:', urlCountError);
+    }
 
     return {
       lastGeneration: lastGenData?.value && typeof lastGenData.value === 'string' ? lastGenData.value : null,
-      urlCount: urlCountData && typeof urlCountData.value === 'string' ? parseInt(urlCountData.value) : null,
+      urlCount: urlCountData?.value && typeof urlCountData.value === 'string' ? parseInt(urlCountData.value) : null,
     };
   } catch (error) {
     console.error('Error fetching sitemap metadata:', error);
