@@ -80,6 +80,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error adding to wishlist:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
         return { success: false };
       }
 
@@ -87,6 +88,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return { success: true };
     } catch (error) {
       console.error('Error adding to wishlist:', error);
+      console.error('Exception details:', error instanceof Error ? error.message : JSON.stringify(error));
       return { success: false };
     }
   };

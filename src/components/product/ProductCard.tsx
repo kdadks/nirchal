@@ -199,73 +199,78 @@ const ProductCard: React.FC<ProductCardProps> = ({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="flex flex-col h-full">
-          {/* Image Container - optimized for mobile */}
-          <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 w-full max-w-full">
+        {/* Image Container - optimized for mobile */}
+        <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 w-full max-w-full">
+          <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="absolute inset-0 w-full h-full z-0 cursor-pointer">
             {isInView ? (
               <img
                 src={imageSrc}
                 alt={`${product.name} - ${product.category || 'Fashion'} | Buy Online at Nirchal`}
-                className="w-full h-full object-cover transition-opacity duration-300 max-w-full"
+                className="w-full h-full object-cover transition-opacity duration-300 max-w-full pointer-events-none"
                 onError={handleImageError}
                 loading="lazy"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center max-w-full">
+              <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center max-w-full pointer-events-none">
                 <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
               </div>
             )}
-            
-            {/* Discount Badge */}
-            {discountPercentage > 0 && (
-              <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold">
-                {discountPercentage}% OFF
-              </div>
-            )}
+          </Link>
+          
+          {/* Discount Badge */}
+          {discountPercentage > 0 && (
+            <div className="product-card-badge absolute top-2 left-2 bg-red-500 text-white px-2 py-1 text-xs font-semibold z-10 pointer-events-none">
+              {discountPercentage}% OFF
+            </div>
+          )}
 
-            {/* Action Buttons - Show on hover */}
-            <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              {/* Quick View Button */}
-              <button
-                onClick={handleQuickViewClick}
-                className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-200 z-10"
-                title="Quick View"
-              >
-                <Eye className="w-5 h-5 text-gray-700" />
-              </button>
+          {/* Action Buttons - Show on hover */}
+          <div className="product-card-actions absolute top-1 right-1 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-none">
+            {/* Quick View Button */}
+            <button
+              onClick={handleQuickViewClick}
+              type="button"
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg hover:bg-gray-50 transition-all duration-200 pointer-events-auto cursor-pointer"
+              title="Quick View"
+            >
+              <Eye className="w-4 h-4 text-gray-700 pointer-events-none" />
+            </button>
 
-              {/* Wishlist Button */}
-              <button
-                onClick={handleWishlistClick}
-                className="w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 z-10"
-                title="Add to Wishlist"
-              >
-                <Heart 
-                  className={`w-5 h-5 transition-colors duration-200 ${
-                    isInWishlist(product.id)
-                      ? 'fill-red-500 text-red-500' 
-                      : 'text-gray-700 hover:text-red-500'
+            {/* Wishlist Button */}
+            <button
+              onClick={handleWishlistClick}
+              type="button"
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 pointer-events-auto cursor-pointer"
+              title="Add to Wishlist"
+            >
+              <Heart 
+                className={`w-4 h-4 transition-colors duration-200 pointer-events-none ${
+                  isInWishlist(product.id)
+                    ? 'fill-red-500 text-red-500' 
+                    : 'text-gray-700 hover:text-red-500'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Image Progress Indicator - Show on hover if multiple images */}
+          {isHovering && displayImages.length > 1 && (
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1 z-10">
+              {displayImages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    index === currentImageIndex 
+                      ? 'w-4 bg-white' 
+                      : 'w-1 bg-white/50'
                   }`}
                 />
-              </button>
+              ))}
             </div>
+          )}
+        </div>
 
-            {/* Image Progress Indicator - Show on hover if multiple images */}
-            {isHovering && displayImages.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
-                {displayImages.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      index === currentImageIndex 
-                        ? 'w-4 bg-white' 
-                        : 'w-1 bg-white/50'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+        <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="flex-1 flex flex-col">
 
           {/* Content */}
           <div className="p-3 flex-1 flex flex-col">
