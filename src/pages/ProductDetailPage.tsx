@@ -245,10 +245,29 @@ const ProductDetailPage: React.FC = () => {
   }, [uniqueProductImages, swatchImageUrls]);
 
   // Memoize stock calculations (must be before early returns)
-  const stockInfo = useMemo(
-    () => product ? getSelectedProductStockInfo(product, selectedSize, selectedColor) : { isAvailable: false, stockStatus: 'out_of_stock' as const, quantity: 0 },
-    [product, selectedSize, selectedColor]
-  );
+  const stockInfo = useMemo(() => {
+    const info = product ? getSelectedProductStockInfo(product, selectedSize, selectedColor) : { isAvailable: false, stockStatus: 'out_of_stock' as const, quantity: 0 };
+    
+    // Debug log stock info
+    if (import.meta.env.DEV && product?.variants?.length) {
+      console.log('[ProductDetailPage] Stock info:', {
+        isAvailable: info.isAvailable,
+        quantity: info.quantity,
+        stockStatus: info.stockStatus,
+        selectedSize,
+        selectedColor,
+        hasVariants: !!product?.variants?.length,
+        variantCount: product?.variants?.length,
+        variants: product?.variants?.map(v => ({
+          size: v.size,
+          color: v.color,
+          quantity: v.quantity
+        }))
+      });
+    }
+    
+    return info;
+  }, [product, selectedSize, selectedColor]);
   const maxQuantity = useMemo(
     () => product ? getMaxQuantity(product, selectedSize, selectedColor) : 0,
     [product, selectedSize, selectedColor]

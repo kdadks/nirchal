@@ -33,18 +33,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // Check if product has any stock available
   const hasStock = React.useMemo(() => {
     if (product.variants && product.variants.length > 0) {
-      const hasVariantStock = product.variants.some(variant => {
+      // If product has variants, ONLY check variant quantities (never product-level stock)
+      return product.variants.some(variant => {
         const variantQuantity = variant.quantity || 0;
         return variantQuantity > 0;
       });
-      
-      if (!hasVariantStock) {
-        const stockInfo = getProductStockInfo(product);
-        return stockInfo.isInStock;
-      }
-      
-      return hasVariantStock;
     } else {
+      // No variants - check product-level stock
       const stockInfo = getProductStockInfo(product);
       return stockInfo.isInStock;
     }

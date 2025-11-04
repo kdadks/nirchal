@@ -12,10 +12,20 @@ export interface StockInfo {
  * Get stock information for a standalone product (no variants)
  */
 export const getProductStockInfo = (product: Product): StockInfo => {
-  // Use the pre-calculated stock status from the product data
-  const stockStatus = product.stockStatus === 'Pre-Order' ? 'Out of Stock' : product.stockStatus;
   const quantity = product.stockQuantity || 0;
-  const isAvailable = stockStatus !== 'Out of Stock';
+  
+  // Calculate stock status based on actual quantity (don't trust stored stockStatus)
+  let stockStatus: 'In Stock' | 'Low Stock' | 'Out of Stock';
+  if (quantity === 0) {
+    stockStatus = 'Out of Stock';
+  } else if (quantity <= 5) {
+    stockStatus = 'Low Stock';
+  } else {
+    stockStatus = 'In Stock';
+  }
+  
+  // isAvailable should be based on actual quantity
+  const isAvailable = quantity > 0;
   
   return {
     isInStock: isAvailable,
@@ -63,6 +73,9 @@ export const getSelectedProductStockInfo = (
   
   // If product has variants but none selected, consider it unavailable
   if ((!selectedSize || selectedSize === '') && (!selectedColor || selectedColor === '')) {
+    if (import.meta.env?.DEV) {
+      console.log('[getSelectedProductStockInfo] No size/color selected, returning out of stock');
+    }
     return {
       isInStock: false,
       quantity: 0,
@@ -77,6 +90,20 @@ export const getSelectedProductStockInfo = (
     const colorMatch = !selectedColor || selectedColor === '' || v.color === selectedColor;
     return sizeMatch && colorMatch;
   });
+  
+  if (import.meta.env?.DEV) {
+    console.log('[getSelectedProductStockInfo] Searching for variant:', {
+      selectedSize,
+      selectedColor,
+      variantCount: product.variants.length,
+      foundVariant: !!variant,
+      matchedVariant: variant ? {
+        size: variant.size,
+        color: variant.color,
+        quantity: variant.quantity
+      } : null
+    });
+  }
   
   if (!variant) {
     return {

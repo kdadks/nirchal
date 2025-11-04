@@ -47,7 +47,7 @@ export const useProductsWithFilters = (
         .from('products')
         .select(`
           *,
-          product_images(*),
+          product_images(id, image_url, is_primary, created_at, alt_text, display_order),
           product_variants(
             id,
             sku,
@@ -238,8 +238,14 @@ export const useProductsWithFilters = (
 
         if (Array.isArray(product.product_images) && product.product_images.length > 0) {
           const sortedImages = [...product.product_images].sort((a: any, b: any) => {
+            // Primary image always comes first
             if (a.is_primary && !b.is_primary) return -1;
             if (!a.is_primary && b.is_primary) return 1;
+            // Then sort by display_order if available
+            if (a.display_order !== undefined && b.display_order !== undefined) {
+              return a.display_order - b.display_order;
+            }
+            // Finally by created_at
             if (a.created_at && b.created_at) {
               return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
             }
@@ -247,7 +253,7 @@ export const useProductsWithFilters = (
           });
 
           for (const img of sortedImages) {
-            const rawUrl = (img.image_url || img.image_path) as string | null;
+            const rawUrl = img.image_url as string | null;
             const url = rawUrl ? getStorageImageUrl(String(rawUrl)) : '';
             if (!url) continue;
             imageEntries.push({
@@ -259,14 +265,20 @@ export const useProductsWithFilters = (
           try {
             const { data: productImages } = await supabase
               .from('product_images')
-              .select('id, image_url, image_path, is_primary, created_at')
+              .select('id, image_url, is_primary, created_at, display_order')
               .eq('product_id', product.id)
               .order('is_primary', { ascending: false });
 
             if (productImages && productImages.length > 0) {
               const sortedImages = [...productImages].sort((a: any, b: any) => {
+                // Primary image always comes first
                 if (a.is_primary && !b.is_primary) return -1;
                 if (!a.is_primary && b.is_primary) return 1;
+                // Then sort by display_order if available
+                if (a.display_order !== undefined && b.display_order !== undefined) {
+                  return a.display_order - b.display_order;
+                }
+                // Finally by created_at
                 if (a.created_at && b.created_at) {
                   return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                 }
@@ -274,7 +286,7 @@ export const useProductsWithFilters = (
               });
 
               for (const img of sortedImages) {
-                const rawUrl = (img.image_url || img.image_path) as string | null;
+                const rawUrl = img.image_url as string | null;
                 const url = rawUrl ? getStorageImageUrl(String(rawUrl)) : '';
                 if (!url) continue;
                 imageEntries.push({
@@ -382,6 +394,17 @@ export const useProductsWithFilters = (
                 swatchImageIds.add(String(variant.swatch_image_id));
               }
 
+              // Find inventory quantity for this variant
+              let variantQuantity = 0;
+              if (Array.isArray(product.inventory)) {
+                const inventoryItem = product.inventory.find((inv: any) => 
+                  inv.variant_id === variant.id || String(inv.variant_id) === String(variant.id)
+                );
+                if (inventoryItem) {
+                  variantQuantity = inventoryItem.quantity || 0;
+                }
+              }
+
               return {
                 id: variant.id,
                 sku: variant.sku,
@@ -391,7 +414,7 @@ export const useProductsWithFilters = (
                 material: undefined, // Not available in current schema
                 style: undefined,    // Not available in current schema
                 priceAdjustment: variant.price_adjustment || 0,
-                quantity: 0,         // Not available in current schema
+                quantity: variantQuantity,
                 variantType: variant.color ? 'color' : variant.size ? 'size' : undefined,
                 swatchImageId: variant.swatch_image_id,
                 swatchImage: swatchImageUrl

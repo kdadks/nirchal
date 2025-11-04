@@ -40,7 +40,8 @@ export const useProductSearch = (searchQuery: string, limit: number = 8) => {
           product_images(
             id,
             image_url,
-            display_order
+            display_order,
+            is_primary
           ),
           product_variants(
             id,
@@ -70,7 +71,8 @@ export const useProductSearch = (searchQuery: string, limit: number = 8) => {
             product_images(
               id,
               image_url,
-              display_order
+              display_order,
+              is_primary
             ),
             product_variants(
               id,
@@ -96,8 +98,10 @@ export const useProductSearch = (searchQuery: string, limit: number = 8) => {
 
       // Transform the results
       const transformedProducts: SearchProduct[] = searchResults.map((product: any, index: number) => {
-        // Find the main image (display_order 1) or the first image
-        const mainImage = product.product_images?.find((img: any) => img.display_order === 1) || product.product_images?.[0];
+        // Find the primary image first, then by display_order, or fallback to first image
+        const mainImage = product.product_images?.find((img: any) => img.is_primary) || 
+                          product.product_images?.find((img: any) => img.display_order === 1) || 
+                          product.product_images?.[0];
         
         // Determine match type and context
         const isNameMatch = index < (nameResults?.length || 0);

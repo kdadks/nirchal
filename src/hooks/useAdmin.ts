@@ -711,6 +711,13 @@ export const useProducts = () => {
 
 			// 3. Update metadata for existing images
 			if (images) {
+				// First, unset is_primary for all images of this product to ensure only one is primary
+				await supabase
+					.from('product_images')
+					.update({ is_primary: false })
+					.eq('product_id', id);
+				
+				// Then update each image with its correct metadata
 				for (const img of images) {
 					if (img.existing && img.id) {
 						await supabase.from('product_images').update({
