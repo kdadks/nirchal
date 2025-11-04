@@ -19,14 +19,11 @@ Your application is deployed on **Cloudflare Pages**, not Netlify. Cloudflare Pa
 1. **Login to**: [Razorpay Dashboard](https://dashboard.razorpay.com)
 2. **Navigate to**: Settings → Webhooks
 3. **Find your webhook** and click **Edit**
-4. **Update URL from**:
+4. **Update URL to**:
    ```
    https://nirchal.com/razorpay-webhook
    ```
-   **To**:
-   ```
-   https://nirchal.com/functions/razorpay-webhook
-   ```
+   **Note**: No `/functions/` prefix needed - Cloudflare Pages automatically handles routing
 
 5. **Ensure these events are selected**:
    - ✅ `payment.captured`
@@ -46,7 +43,7 @@ Your application is deployed on **Cloudflare Pages**, not Netlify. Cloudflare Pa
 
 **Primary Webhook (Use This One)**:
 - **File**: `functions/razorpay-webhook.ts`
-- **URL**: `https://nirchal.com/functions/razorpay-webhook`
+- **URL**: `https://nirchal.com/razorpay-webhook`
 - **Purpose**: Handle ALL events (payment + refund)
 - **Events Supported**:
   - `payment.captured`
