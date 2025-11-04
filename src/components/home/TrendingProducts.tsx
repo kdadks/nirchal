@@ -5,6 +5,16 @@ import type { Product } from '../../types';
 import { useWishlist } from '../../contexts/WishlistContext';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 
+/**
+ * TrendingProducts Component
+ * 
+ * NOTE: This component is currently NOT used in the application.
+ * The HomePage uses DynamicFeaturedSections.tsx instead, which renders
+ * ProductCard components dynamically based on database content.
+ * 
+ * This component is kept for potential future use or as a fallback
+ * static trending products section.
+ */
 const TrendingProducts: React.FC = () => {
   const { addToWishlist, isInWishlist } = useWishlist();
   const [showAuthModal, setShowAuthModal] = useState(false);
