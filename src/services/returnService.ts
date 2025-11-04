@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '../config/supabase';
-// Removed returnEmailService - emails are now manually triggered by admin
+import { returnEmailService } from './returnEmailService';
 import type {
   ReturnRequest,
   ReturnItem,
@@ -106,6 +106,84 @@ class ReturnService {
         // Rollback: delete the return request
         await this.db.from('return_requests').delete().eq('id', returnRequest.id as string);
         return { data: null, error: new Error(itemsError.message) };
+      }
+
+      // Send notification email to admin about new return request
+      try {
+        // Get admin email from settings
+        const { data: storeSettings } = await this.db
+          .from('settings')
+          .select('value')
+          .eq('category', 'shop')
+          .eq('key', 'store_email')
+          .single();
+
+        const adminEmail = storeSettings?.value || 'support@nirchal.com';
+
+        // Get customer details for email
+        const { data: customerData } = await this.db
+          .from('customers')
+          .select('first_name, last_name, email, phone')
+          .eq('id', input.customer_id)
+          .single();
+
+        const customerName = `${customerData?.first_name || ''} ${customerData?.last_name || ''}`.trim() || 'Customer';
+
+        const adminEmailResponse = await fetch('/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: adminEmail,
+            subject: `🔄 New Return Request - ${returnNumber}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+                  🔄 New Return Request Submitted
+                </h2>
+                
+                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                  <h3 style="color: #374151; margin-top: 0;">Return Details</h3>
+                  <p><strong>Return Number:</strong> ${returnNumber}</p>
+                  <p><strong>Order ID:</strong> ${input.order_id}</p>
+                  <p><strong>Customer:</strong> ${customerName} (${customerData?.email || 'N/A'})</p>
+                  <p><strong>Customer Phone:</strong> ${customerData?.phone || 'N/A'}</p>
+                  <p><strong>Return Reason:</strong> ${input.return_reason}</p>
+                  <p><strong>Description:</strong> ${input.reason_description}</p>
+                  <p><strong>Items to Return:</strong> ${input.items.length} item(s)</p>
+                  <p><strong>Pickup Address:</strong> ${input.pickup_address}</p>
+                </div>
+
+                <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                  <p style="margin: 0; color: #92400e;">
+                    <strong>Action Required:</strong> Please review this return request in the admin dashboard and provide the return shipping address to the customer.
+                  </p>
+                </div>
+
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${process.env.VITE_APP_URL || 'https://nirchal.com'}/admin/returns" 
+                     style="background: #3b82f6; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; display: inline-block;">
+                    📋 Review in Admin Dashboard
+                  </a>
+                </div>
+
+                <p style="color: #6b7280; font-size: 14px; text-align: center;">
+                  This email was sent automatically by the Nirchal Returns System
+                </p>
+              </div>
+            `,
+            fromName: 'Nirchal Returns System'
+          }),
+        });
+        
+        if (!adminEmailResponse.ok) {
+          const errorText = await adminEmailResponse.text();
+          console.error('Failed to send admin notification email:', errorText);
+        } else {
+          console.log('Admin notification email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Error sending admin notification email:', emailError);
+        // Don't fail the return creation if email fails
       }
 
       return {
@@ -444,8 +522,27 @@ class ReturnService {
         return { data: null, error: new Error(error.message) };
       }
 
-      // Manual email sending - admin will trigger via email button
-      // No automatic email on status change
+      // Automatically send return received confirmation email
+      try {
+        const returnWithItems = await this.getReturnRequestById(id);
+        if (returnWithItems.data) {
+          const success = await returnEmailService.sendReturnStatusChangeEmail(
+            returnWithItems.data as any,
+            'received',
+            {
+              receivedBy,
+              receivedDate: new Date().toLocaleDateString()
+            }
+          );
+          
+          if (!success) {
+            console.error('Failed to send return received email');
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending return received email:', emailError);
+        // Don't fail the status update if email fails
+      }
 
       return { data: data as unknown as ReturnRequest, error: null };
     } catch (error) {
@@ -551,8 +648,24 @@ class ReturnService {
         return { data: null, error: new Error(error.message) };
       }
 
-      // Manual email sending - admin will trigger via email button
-      // No automatic email on inspection complete
+      // Automatically send inspection complete email
+      try {
+        const success = await returnEmailService.sendReturnStatusChangeEmail(
+          data as any,
+          newStatus,
+          {
+            inspectionDate: new Date().toLocaleDateString(),
+            inspectorNotes: input.inspection_notes
+          }
+        );
+        
+        if (!success) {
+          console.error('Failed to send inspection complete email');
+        }
+      } catch (emailError) {
+        console.error('Error sending inspection complete email:', emailError);
+        // Don't fail the inspection if email fails
+      }
 
       return { data: data as unknown as ReturnRequestWithItems, error: null };
     } catch (error) {

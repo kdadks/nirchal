@@ -223,6 +223,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         await handleOrderPaid(env, orderEntity, paymentEntity);
         break;
       
+      // Handle refund events
+      case 'refund.processed':
+      case 'refund.failed':
+      case 'refund.speed_changed':
+        await handleRefundEvent(env, webhookPayload);
+        break;
+      
       default:
         console.log('Unhandled webhook event:', eventType);
     }
@@ -245,6 +252,155 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       }),
       { status: 500, headers: corsHeaders }
     );
+  }
+}
+
+// Handle refund events (processed, failed, speed_changed)
+async function handleRefundEvent(env: Env, webhookPayload: any) {
+  try {
+    const { event, payload } = webhookPayload;
+    const refund = payload.refund.entity;
+    
+    console.log(`🔄 Processing refund event: ${event}`, {
+      refund_id: refund.id,
+      status: refund.status,
+      payment_id: refund.payment_id,
+      amount: refund.amount
+    });
+
+    // Get return request ID from notes
+    const returnRequestId = refund.notes?.return_request_id;
+    if (!returnRequestId) {
+      console.error('❌ No return_request_id in refund notes');
+      return;
+    }
+
+    // Update refund transaction in database
+    const updateResponse = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/razorpay_refund_transactions?razorpay_refund_id=eq.${refund.id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          status: refund.status,
+          razorpay_status: refund.status,
+          razorpay_response: payload.refund.entity,
+          processed_at: refund.status === 'processed' ? new Date().toISOString() : null,
+          failed_at: refund.status === 'failed' ? new Date().toISOString() : null,
+        }),
+      }
+    );
+
+    if (!updateResponse.ok) {
+      console.error('❌ Failed to update refund transaction');
+      const errorData = await updateResponse.text();
+      console.error('Error:', errorData);
+      return;
+    }
+
+    console.log('✅ Updated refund transaction');
+
+    // Update return request status based on refund status
+    let returnStatus: string | undefined;
+    let statusNotes: string;
+
+    if (refund.status === 'processed') {
+      returnStatus = 'refund_completed';
+      statusNotes = `Refund processed successfully. Refund ID: ${refund.id}`;
+      
+      // Send refund completion email
+      try {
+        const emailResponse = await fetch(`${env.SUPABASE_URL}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            type: 'refund_processed',
+            return_request_id: returnRequestId,
+            refund_details: {
+              amount: refund.amount / 100, // Convert paise to rupees
+              refund_id: refund.id,
+              payment_id: refund.payment_id
+            }
+          })
+        });
+        
+        if (emailResponse.ok) {
+          console.log('✅ Refund completion email sent');
+        } else {
+          console.error('❌ Failed to send refund completion email');
+        }
+      } catch (emailError) {
+        console.error('❌ Error sending refund completion email:', emailError);
+      }
+      
+    } else if (refund.status === 'failed') {
+      returnStatus = 'approved'; // Reset to approved so admin can retry
+      statusNotes = `Refund failed. Refund ID: ${refund.id}`;
+    } else {
+      statusNotes = `Refund status: ${refund.status}. Refund ID: ${refund.id}`;
+    }
+
+    if (returnStatus) {
+      // Update return request status
+      const returnUpdateResponse = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/return_requests?id=eq.${returnRequestId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: returnStatus,
+            updated_at: new Date().toISOString(),
+          }),
+        }
+      );
+
+      if (!returnUpdateResponse.ok) {
+        console.error('❌ Failed to update return request status');
+      } else {
+        console.log(`✅ Updated return request status to: ${returnStatus}`);
+      }
+
+      // Add status history entry
+      const historyResponse = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/return_status_history`,
+        {
+          method: 'POST',
+          headers: {
+            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify({
+            return_request_id: returnRequestId,
+            status: returnStatus,
+            notes: statusNotes,
+            created_by: null, // System-generated
+          }),
+        }
+      );
+
+      if (!historyResponse.ok) {
+        console.error('❌ Failed to add status history');
+      }
+    }
+
+    console.log('✅ Refund event processed successfully');
+    
+  } catch (error) {
+    console.error('❌ Error processing refund event:', error);
   }
 }
 

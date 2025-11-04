@@ -195,8 +195,8 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     console.log(`[Refund Service] Refund created successfully: ${data.id}`);
 
     // Send email notification to customer (async, don't wait)
-    import('../services/emailService').then(({ emailService }) => {
-      emailService.sendReturnStatusChangeEmail(
+    import('../services/returnEmailService').then(({ returnEmailService }) => {
+      returnEmailService.sendReturnStatusChangeEmail(
         returnRequest as any, // Cast to ReturnRequestWithItems
         'refund_initiated',
         {
@@ -204,7 +204,7 @@ export async function createRefund(params: CreateRefundParams): Promise<{
           refundDate: new Date().toLocaleDateString(),
         }
       ).catch(err => console.error('Failed to send refund email:', err));
-    }).catch(err => console.error('Failed to load email service:', err));
+    }).catch(err => console.error('Failed to load return email service:', err));
 
     return {
       success: true,
@@ -380,6 +380,49 @@ export async function handleRefundWebhook(webhookData: {
         notes: `Refund ${refund.status} via webhook`,
         created_by: 'system', // System-generated update
       });
+
+      // Send email notification when refund is completed
+      if (returnStatus === 'refund_completed') {
+        try {
+          const { data: returnData } = await db
+            .from('return_requests')
+            .select(`
+              *,
+              return_items (*),
+              customers!inner (first_name, last_name, email)
+            `)
+            .eq('id', returnRequestId)
+            .single();
+
+          if (returnData && returnData.customers) {
+            const customer = returnData.customers as any;
+            const returnWithCustomer = {
+              ...returnData,
+              customer_first_name: customer.first_name,
+              customer_last_name: customer.last_name,
+              customer_email: customer.email,
+            };
+
+            // Import and send email (async, don't wait)
+            import('../services/returnEmailService').then(({ returnEmailService }) => {
+              returnEmailService.sendReturnStatusChangeEmail(
+                returnWithCustomer as any,
+                'refund_completed',
+                {
+                  refundTransaction: {
+                    refund_amount: refund.amount / 100, // Convert paise to rupees
+                    transaction_number: refund.id,
+                  } as any,
+                  refundDate: new Date().toLocaleDateString(),
+                }
+              ).catch(err => console.error('Failed to send refund completion email:', err));
+            }).catch(err => console.error('Failed to load return email service:', err));
+          }
+        } catch (emailError) {
+          console.error('Error sending refund completion email:', emailError);
+          // Don't fail the webhook if email fails
+        }
+      }
     }
 
     console.log(`[Refund Webhook] Successfully processed webhook for refund: ${refund.id}`);
