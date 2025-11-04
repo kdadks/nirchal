@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
 
 /**
  * Tawk.to Live Chat Integration - Lazy Loading
@@ -40,10 +39,8 @@ let tawktoLoaded = false;
 let closeButton: HTMLButtonElement | null = null;
 
 const TawkToChat: React.FC = () => {
-  const location = useLocation();
-
   // Don't render chatbot on admin routes
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminRoute = window.location.pathname.startsWith('/admin');
   
   useEffect(() => {
     // Don't add styles or initialize on admin routes
