@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,6 +44,9 @@ interface CheckoutForm {
   billingPhone: string;
   selectedBillingAddressId?: string;
   billingIsSameAsDelivery: boolean;
+  
+  // Shipping Method
+  shippingMethod: 'standard' | 'express';
   
   paymentMethod: 'razorpay';
 }
@@ -100,6 +103,9 @@ const CheckoutPage: React.FC = () => {
     billingPhone: '',
     selectedBillingAddressId: '',
     billingIsSameAsDelivery: true,
+    
+    // Shipping Method
+    shippingMethod: 'standard', // Default to free standard delivery
     
     paymentMethod: 'razorpay'
   });
@@ -423,9 +429,10 @@ const CheckoutPage: React.FC = () => {
       }
 
       // 3) Create order with items
-      // Free shipping for all orders in India, international shipping calculated separately
+      // Calculate shipping cost based on method selected
+      const expressDeliveryFee = form.shippingMethod === 'express' ? 250 : 0;
       const deliveryCountry = form.deliveryAddress ? 'India' : 'India'; // Will be updated when country selection is added
-      const deliveryCost = deliveryCountry === 'India' ? 0 : 0; // International shipping will be calculated later
+      const deliveryCost = deliveryCountry === 'India' ? expressDeliveryFee : expressDeliveryFee; // International shipping will be calculated later
       // Calculate payment amounts based on split choice
       const { productTotal, serviceTotal } = calculatePaymentSplit();
       const isPaymentSplit = paymentSplit === 'split' && serviceTotal > 0;
@@ -478,6 +485,8 @@ const CheckoutPage: React.FC = () => {
         payment_method: form.paymentMethod,
         subtotal: total,
         shipping_amount: deliveryCost,
+        shipping_method: form.shippingMethod,
+        express_delivery_fee: expressDeliveryFee,
         total_amount: finalTotal + codPaymentAmount, // Total includes both online and COD amounts
         billing: billingAddress,
         delivery: deliveryAddress,
@@ -1153,8 +1162,9 @@ const CheckoutPage: React.FC = () => {
     }
   };
 
-  // Free shipping for all orders in India
-  const deliveryCost = 0; // Free shipping across India, international will be calculated
+  // Calculate shipping cost based on selected method
+  const expressDeliveryFee = form.shippingMethod === 'express' ? 250 : 0;
+  const deliveryCost = expressDeliveryFee; // Standard is free, Express is ₹250
   
   // Calculate final total based on payment split choice
   const upfrontAmount = paymentSplit === 'split' && hasServices ? productTotal : total;
@@ -1466,6 +1476,76 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Shipping Method Selection */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="p-6 border-b border-gray-200">
+                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                      <Package size={20} className="text-amber-600" />
+                      Delivery Speed
+                    </h2>
+                  </div>
+                  
+                  <div className="p-6 space-y-4">
+                    {/* Standard Delivery */}
+                    <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      form.shippingMethod === 'standard' 
+                        ? 'border-green-500 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="shippingMethod"
+                        value="standard"
+                        checked={form.shippingMethod === 'standard'}
+                        onChange={(e) => setForm({...form, shippingMethod: e.target.value as 'standard' | 'express'})}
+                        className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500"
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">Standard Delivery</span>
+                            <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-semibold">FREE</span>
+                          </div>
+                          <span className="text-lg font-bold text-green-600">₹0</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">3-7 business days</p>
+                        <p className="text-xs text-gray-500 mt-1">Regular shipping for all orders</p>
+                      </div>
+                    </label>
+
+                    {/* Express Delivery */}
+                    <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      form.shippingMethod === 'express' 
+                        ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="shippingMethod"
+                        value="express"
+                        checked={form.shippingMethod === 'express'}
+                        onChange={(e) => setForm({...form, shippingMethod: e.target.value as 'standard' | 'express'})}
+                        className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500"
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">Express Delivery</span>
+                            <span className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded text-xs font-semibold">PREMIUM</span>
+                          </div>
+                          <span className="text-lg font-bold text-orange-600">₹250</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">1-3 business days</p>
+                        <div className="mt-2 space-y-1">
+                          <p className="text-xs text-gray-600">✓ Priority processing - packed first</p>
+                          <p className="text-xs text-gray-600">✓ Premium courier partners</p>
+                          <p className="text-xs text-gray-600">✓ Enhanced tracking with SMS updates</p>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
                 {/* Billing Information */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-6 border-b border-gray-200">
@@ -1733,7 +1813,7 @@ const CheckoutPage: React.FC = () => {
             </div>
 
             {/* Order Summary */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 relative">
               {/* Additional Place Order Button - Hidden on Mobile */}
               <div className="mb-4 hidden lg:block">
                 <button
@@ -1774,7 +1854,7 @@ const CheckoutPage: React.FC = () => {
                 </button>
               </div>
               
-              <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-200 sticky top-8">
+              <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-200" style={{ position: 'sticky', top: '8rem', maxHeight: 'calc(100vh - 10rem)', overflowY: 'auto' }}>
                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <ShoppingBag size={20} className="text-amber-600" />
                   Order Summary

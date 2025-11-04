@@ -250,8 +250,8 @@ export const useNirchalAI = () => {
         if (userMessage.toLowerCase().includes('return')) {
           return "📦 **Return Policy**: We offer a 2-day return policy for all items. Products should be in original condition with tags. Return pickup charges may apply. Would you like details about the return process?";
         }
-        if (userMessage.toLowerCase().includes('shipping')) {
-          return "🚚 **Shipping Info**: FREE shipping on all orders across India! 🇮🇳 No minimum order value. Standard delivery takes 3-7 business days. We deliver pan-India with real-time tracking. International shipping available with charges calculated at checkout.";
+        if (userMessage.toLowerCase().includes('shipping') || userMessage.toLowerCase().includes('delivery')) {
+          return "🚚 **Shipping Info**: We offer FREE Standard Delivery (3-7 days) on all orders across India! 🇮🇳 No minimum order value. Want your order faster? Choose Express Delivery (1-3 days) for just ₹250 with priority processing and premium courier service. International shipping available with charges calculated at checkout. Real-time tracking for all orders!";
         }
         if (userMessage.toLowerCase().includes('size')) {
           return "📏 **Size Guide**: We provide detailed size charts for all categories. Most items are available in XS to XXL. Custom sizing available for select products. Need help with a specific size?";

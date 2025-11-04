@@ -38,6 +38,8 @@ export type CreateOrderInput = {
   payment_method: string;
   subtotal: number;
   shipping_amount: number;
+  shipping_method?: 'standard' | 'express'; // Shipping method selected
+  express_delivery_fee?: number; // Express delivery fee charged
   total_amount: number;
   billing: {
     first_name: string;
@@ -215,6 +217,8 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
       subtotal: input.subtotal,
       tax_amount: 0,
       shipping_amount: input.shipping_amount,
+      shipping_method: input.shipping_method || 'standard',
+      express_delivery_fee: input.express_delivery_fee || 0,
       discount_amount: 0,
       total_amount: input.total_amount,
       billing_first_name: input.billing.first_name,

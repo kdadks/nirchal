@@ -28,23 +28,52 @@ const ShippingPage: React.FC = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Standard Delivery</span>
-                    <span className="font-semibold text-gray-800">3-7 business days</span>
+                  {/* Standard Delivery */}
+                  <div className="border border-gray-200 rounded-lg p-4 bg-green-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-lg">Standard Delivery</h4>
+                        <p className="text-sm text-gray-600 mt-1">Regular shipping for all orders</p>
+                      </div>
+                      <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">FREE</span>
+                    </div>
+                    <div className="flex items-center text-gray-700 mt-3">
+                      <Clock className="w-4 h-4 mr-2" />
+                      <span className="font-medium">3-7 business days</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Express Delivery</span>
-                    <span className="font-semibold text-gray-800">1-3 business days</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-600">Shipping Charges</span>
-                    <span className="font-semibold text-green-600">100% FREE 🇮🇳</span>
+
+                  {/* Express Delivery */}
+                  <div className="border border-orange-200 rounded-lg p-4 bg-gradient-to-r from-orange-50 to-amber-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-gray-800 text-lg flex items-center">
+                          Express Delivery 
+                          <span className="ml-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded text-xs font-semibold">PREMIUM</span>
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1">Priority processing and faster delivery</p>
+                      </div>
+                      <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-semibold">₹250</span>
+                    </div>
+                    <div className="flex items-center text-gray-700 mt-3 mb-3">
+                      <Clock className="w-4 h-4 mr-2" />
+                      <span className="font-medium">1-3 business days</span>
+                    </div>
+                    <div className="bg-white/50 rounded p-3 text-sm text-gray-700">
+                      <p className="font-medium mb-1">Why Express Delivery?</p>
+                      <ul className="space-y-1 text-xs">
+                        <li>• <strong>Priority processing</strong> - Your order gets packed first</li>
+                        <li>• <strong>Premium courier</strong> - Dedicated express logistics partners</li>
+                        <li>• <strong>Faster delivery</strong> - Get your order in 1-3 days instead of 3-7 days</li>
+                        <li>• <strong>Real-time tracking</strong> - Enhanced tracking with SMS updates</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-green-700">
-                    <strong>🎉 Free shipping</strong> on all orders across India! No minimum order value required. International shipping charges calculated based on destination country and address.
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-sm text-blue-700">
+                    <strong>📦 Shipping Information:</strong> Standard delivery is <strong>100% FREE</strong> on all orders across India with no minimum order value. Choose Express Delivery at checkout for faster service. International shipping charges calculated based on destination.
                   </p>
                 </div>
               </div>

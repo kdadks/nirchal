@@ -34,13 +34,13 @@ const faqs: FAQ[] = [
     id: 4,
     category: 'shipping',
     question: 'What are your shipping charges?',
-    answer: 'We offer FREE shipping on all orders across India with no minimum order value! 🇮🇳 For international orders, shipping charges are calculated based on the destination country and delivery address at checkout.'
+    answer: 'We offer FREE Standard Delivery (3-7 business days) on all orders across India with no minimum order value! 🇮🇳 Express Delivery (1-3 business days) is available for ₹250 - a premium service with priority processing and faster delivery through dedicated courier partners. International shipping charges are calculated based on the destination country and delivery address at checkout.'
   },
   {
     id: 5,
     category: 'shipping',
     question: 'How long does delivery take?',
-    answer: 'Standard delivery takes 3-7 business days within India. Express delivery takes 1-3 business days. International shipping takes 7-14 business days depending on the destination.'
+    answer: 'We offer two delivery options: Standard Delivery is FREE and takes 3-7 business days within India. Express Delivery costs ₹250 and delivers in just 1-3 business days with priority processing and premium courier service. International shipping takes 7-14 business days depending on the destination. You can choose your preferred delivery method at checkout.'
   },
   {
     id: 6,
