@@ -140,12 +140,11 @@ const Header: React.FC = () => {
                   <div className="relative flex items-center justify-center w-16 h-16">
                     {/* Logo image */}
                     <img 
-                      src="/nirchallogo.jpg" 
+                      src="/Nirchal_Logo.png" 
                       alt="Nirchal Logo" 
-                      className="w-full h-full object-contain rounded-xl shadow-sm"
+                      className="w-full h-full object-contain"
                       style={{
                         imageRendering: 'crisp-edges',
-                        filter: 'contrast(1.1) saturate(1.05) brightness(1.02)',
                         WebkitBackfaceVisibility: 'hidden',
                         backfaceVisibility: 'hidden',
                         transform: 'translateZ(0)'
