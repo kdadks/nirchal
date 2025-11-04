@@ -286,6 +286,88 @@ const CheckoutPage: React.FC = () => {
     }
   }, [customer]);
 
+  // Handle sticky sidebar positioning
+  useEffect(() => {
+    const sidebar = document.getElementById('order-summary-sidebar');
+    const placeOrderBtn = document.getElementById('place-order-button-top');
+    if (!sidebar || !placeOrderBtn) return;
+
+    let initialTop = 0;
+    let isInitialized = false;
+
+    const handleScroll = () => {
+      // Calculate initial position on first scroll or if not yet set
+      if (!isInitialized && sidebar && placeOrderBtn) {
+        // Reset styles first to get natural position
+        placeOrderBtn.style.position = 'relative';
+        placeOrderBtn.style.top = '0';
+        sidebar.style.position = 'relative';
+        sidebar.style.top = '0';
+        
+        const sidebarRect = sidebar.getBoundingClientRect();
+        initialTop = sidebarRect.top + window.pageYOffset;
+        isInitialized = true;
+      }
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Get actual header height dynamically
+      const header = document.querySelector('header');
+      const headerHeight = header ? header.offsetHeight : 100;
+      const stickyTop = headerHeight + 16; // Header + margin
+      
+      // Calculate when to start sticking - when sidebar would go under header
+      const shouldStick = scrollTop > (initialTop - stickyTop);
+      
+      if (shouldStick && window.innerWidth >= 1024) { // Only on lg screens
+        const parentWidth = sidebar.parentElement?.offsetWidth || 0;
+        
+        // Make place order button fixed at the top
+        placeOrderBtn.style.position = 'fixed';
+        placeOrderBtn.style.top = stickyTop + 'px';
+        placeOrderBtn.style.width = parentWidth + 'px';
+        placeOrderBtn.style.zIndex = '999';
+        placeOrderBtn.style.display = 'block';
+        
+        // Make sidebar fixed below the button
+        const btnHeight = placeOrderBtn.offsetHeight;
+        sidebar.style.position = 'fixed';
+        sidebar.style.top = (stickyTop + btnHeight + 16) + 'px'; // Button + gap
+        sidebar.style.width = parentWidth + 'px';
+        sidebar.style.maxHeight = `calc(100vh - ${stickyTop + btnHeight + 32}px)`;
+      } else {
+        // Reset to normal flow
+        placeOrderBtn.style.position = 'relative';
+        placeOrderBtn.style.top = '0';
+        placeOrderBtn.style.width = 'auto';
+        placeOrderBtn.style.zIndex = 'auto';
+        placeOrderBtn.style.display = 'block';
+        
+        sidebar.style.position = 'relative';
+        sidebar.style.top = '0';
+        sidebar.style.width = 'auto';
+        sidebar.style.maxHeight = 'none';
+      }
+    };
+
+    // Initial call
+    const initTimer = setTimeout(() => {
+      handleScroll();
+    }, 200);
+
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', () => {
+      isInitialized = false; // Recalculate on resize
+      handleScroll();
+    });
+
+    return () => {
+      clearTimeout(initTimer);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
+
   // Load default delivery address for logged-in customer
   useEffect(() => {
     const loadDefaultAddress = async () => {
@@ -1478,16 +1560,16 @@ const CheckoutPage: React.FC = () => {
 
                 {/* Shipping Method Selection */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                      <Package size={20} className="text-amber-600" />
+                  <div className="p-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <Package size={18} className="text-amber-600" />
                       Delivery Speed
                     </h2>
                   </div>
                   
-                  <div className="p-6 space-y-4">
+                  <div className="p-4 space-y-3">
                     {/* Standard Delivery */}
-                    <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    <label className={`relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
                       form.shippingMethod === 'standard' 
                         ? 'border-green-500 bg-green-50' 
                         : 'border-gray-200 hover:border-gray-300'
@@ -1498,23 +1580,22 @@ const CheckoutPage: React.FC = () => {
                         value="standard"
                         checked={form.shippingMethod === 'standard'}
                         onChange={(e) => setForm({...form, shippingMethod: e.target.value as 'standard' | 'express'})}
-                        className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500"
+                        className="h-4 w-4 text-green-600 focus:ring-green-500"
                       />
-                      <div className="ml-3 flex-1">
-                        <div className="flex items-center justify-between">
+                      <div className="ml-3 flex-1 flex items-center justify-between">
+                        <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">Standard Delivery</span>
-                            <span className="bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-semibold">FREE</span>
+                            <span className="font-semibold text-gray-900 text-sm">Standard</span>
+                            <span className="bg-green-600 text-white px-1.5 py-0.5 rounded text-xs font-semibold">FREE</span>
                           </div>
-                          <span className="text-lg font-bold text-green-600">₹0</span>
+                          <p className="text-xs text-gray-600 mt-0.5">3-7 business days</p>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">3-7 business days</p>
-                        <p className="text-xs text-gray-500 mt-1">Regular shipping for all orders</p>
+                        <span className="text-base font-bold text-green-600">₹0</span>
                       </div>
                     </label>
 
                     {/* Express Delivery */}
-                    <label className={`relative flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    <label className={`relative flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
                       form.shippingMethod === 'express' 
                         ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-amber-50' 
                         : 'border-gray-200 hover:border-gray-300'
@@ -1525,22 +1606,17 @@ const CheckoutPage: React.FC = () => {
                         value="express"
                         checked={form.shippingMethod === 'express'}
                         onChange={(e) => setForm({...form, shippingMethod: e.target.value as 'standard' | 'express'})}
-                        className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500"
+                        className="h-4 w-4 text-orange-600 focus:ring-orange-500"
                       />
-                      <div className="ml-3 flex-1">
-                        <div className="flex items-center justify-between">
+                      <div className="ml-3 flex-1 flex items-center justify-between">
+                        <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">Express Delivery</span>
-                            <span className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-2 py-0.5 rounded text-xs font-semibold">PREMIUM</span>
+                            <span className="font-semibold text-gray-900 text-sm">Express</span>
+                            <span className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-1.5 py-0.5 rounded text-xs font-semibold">PREMIUM</span>
                           </div>
-                          <span className="text-lg font-bold text-orange-600">₹250</span>
+                          <p className="text-xs text-gray-600 mt-0.5">1-3 business days • Priority processing</p>
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">1-3 business days</p>
-                        <div className="mt-2 space-y-1">
-                          <p className="text-xs text-gray-600">✓ Priority processing - packed first</p>
-                          <p className="text-xs text-gray-600">✓ Premium courier partners</p>
-                          <p className="text-xs text-gray-600">✓ Enhanced tracking with SMS updates</p>
-                        </div>
+                        <span className="text-base font-bold text-orange-600">₹250</span>
                       </div>
                     </label>
                   </div>
@@ -1815,7 +1891,7 @@ const CheckoutPage: React.FC = () => {
             {/* Order Summary */}
             <div className="lg:col-span-1 relative">
               {/* Additional Place Order Button - Hidden on Mobile */}
-              <div className="mb-4 hidden lg:block">
+              <div id="place-order-button-top" className="mb-4 hidden lg:block">
                 <button
                   type="button"
                   disabled={isSubmitting}
@@ -1854,7 +1930,7 @@ const CheckoutPage: React.FC = () => {
                 </button>
               </div>
               
-              <div className="bg-white rounded-xl shadow-lg p-4 border border-gray-200" style={{ position: 'sticky', top: '8rem', maxHeight: 'calc(100vh - 10rem)', overflowY: 'auto' }}>
+              <div id="order-summary-sidebar" className="bg-white rounded-xl shadow-lg p-4 border border-gray-200 transition-all duration-200 z-[999]" style={{ maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
                 <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <ShoppingBag size={20} className="text-amber-600" />
                   Order Summary
