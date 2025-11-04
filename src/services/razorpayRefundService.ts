@@ -79,10 +79,14 @@ export async function createRefund(params: CreateRefundParams): Promise<{
 
     const db = getDbClient();
 
-    // Get return request details to get order_id
+    // Get return request details with customer information for email
     const { data: returnRequest, error: fetchError } = await db
       .from('return_requests')
-      .select('order_id, original_order_amount')
+      .select(`
+        *,
+        return_items (*),
+        customers!inner (first_name, last_name, email, phone)
+      `)
       .eq('id', returnRequestId)
       .single();
 
@@ -140,6 +144,16 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     const originalAmount = (returnRequest.original_order_amount as number) || amount;
     const deductionAmount = originalAmount - amount;
 
+    // Prepare customer data for email
+    const customer = returnRequest.customers as any;
+    const returnWithCustomer = {
+      ...returnRequest,
+      customer_first_name: customer?.first_name,
+      customer_last_name: customer?.last_name,
+      customer_email: customer?.email,
+      customer_phone: customer?.phone,
+    };
+
     // Get current user ID for initiated_by
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -151,15 +165,20 @@ export async function createRefund(params: CreateRefundParams): Promise<{
         order_id: returnRequest.order_id,
         razorpay_payment_id: paymentId,
         razorpay_refund_id: data.id,
+        razorpay_order_id: null, // Will be populated if available
         refund_amount: amount,
-        status: data.status === 'pending' ? 'initiated' : data.status,
+        status: (data.status === 'pending' ? 'initiated' : data.status) as RefundStatus,
         razorpay_response: data,
         razorpay_status: data.status,
-        razorpay_speed: data.speed_requested,
+        razorpay_speed: data.speed_requested || 'normal',
         initiated_at: new Date().toISOString(),
+        processed_at: null,
+        failed_at: null,
+        failure_reason: null,
         initiated_by: user?.id || null,
         original_amount: originalAmount,
         deduction_amount: deductionAmount,
+        deduction_details: null,
         notes: notes ? JSON.stringify(notes) : null,
       })
       .select('transaction_number')
@@ -167,7 +186,15 @@ export async function createRefund(params: CreateRefundParams): Promise<{
 
     if (dbError) {
       console.error('[Refund Service] Failed to save refund transaction:', dbError);
+      console.error('[Refund Service] Error details:', {
+        code: dbError.code,
+        message: dbError.message,
+        details: dbError.details,
+        hint: dbError.hint
+      });
       // Don't throw error - refund was created, just log the DB error
+    } else {
+      console.log('[Refund Service] Successfully saved refund transaction:', transaction?.transaction_number);
     }
 
     // Update return request status
@@ -197,7 +224,7 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     // Send email notification to customer (async, don't wait)
     import('../services/returnEmailService').then(({ returnEmailService }) => {
       returnEmailService.sendReturnStatusChangeEmail(
-        returnRequest as any, // Cast to ReturnRequestWithItems
+        returnWithCustomer as any, // Use properly formatted customer data
         'refund_initiated',
         {
           refundTransaction: transaction as any,
