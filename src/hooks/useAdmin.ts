@@ -820,6 +820,45 @@ export const useProducts = () => {
 				}
 				
 				console.log('[updateProduct] ✅ Variant deletion completed successfully');
+				
+				// Check if this was the last variant deletion - if so, clean up and ensure product-level inventory
+				const { data: remainingVariants } = await supabase
+					.from('product_variants')
+					.select('id')
+					.eq('product_id', id);
+				
+				if (!remainingVariants || remainingVariants.length === 0) {
+					console.log('[updateProduct] No variants remaining - cleaning up orphaned variant inventory');
+					
+					// Delete ALL variant inventory (variant_id !== null) for this product
+					await supabase
+						.from('inventory')
+						.delete()
+						.eq('product_id', id)
+						.not('variant_id', 'is', null);
+					
+					console.log('[updateProduct] Ensuring product-level inventory exists');
+					// Check if product-level inventory exists
+					const { data: productInv } = await supabase
+						.from('inventory')
+						.select('*')
+						.eq('product_id', id)
+						.is('variant_id', null)
+						.single();
+					
+					if (!productInv && inventory) {
+						// Create product-level inventory if it doesn't exist
+						console.log('[updateProduct] Creating product-level inventory after variant deletion');
+						await supabase
+							.from('inventory')
+							.insert({
+								product_id: id,
+								variant_id: null,
+								quantity: inventory.quantity || 0,
+								low_stock_threshold: inventory.low_stock_threshold || 2
+							});
+					}
+				}
 			}
 
 			// 6. Update/insert variants and inventory

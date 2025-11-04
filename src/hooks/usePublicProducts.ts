@@ -359,18 +359,37 @@ export const usePublicProducts = (featured?: boolean) => {
           color: String(product.color ?? ''),
           inStock: Boolean(product.in_stock ?? true),
           stockQuantity: (() => {
-            // Calculate total stock from all inventory records
+            // Calculate product quantity from inventory
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {
-              return product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+              
+              if (hasVariants) {
+                // Product HAS variants: sum variant inventory only (variant_id !== null)
+                const variantInventory = product.inventory.filter((inv: any) => inv.variant_id !== null);
+                return variantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              } else {
+                // Product has NO variants: sum product-level inventory only (variant_id === null)
+                const productInventory = product.inventory.filter((inv: any) => inv.variant_id === null);
+                return productInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              }
             }
             return 0;
           })(),
           stockStatus: (() => {
-            // Calculate stock status from total inventory
+            // Calculate stock status from relevant inventory
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {
-              const totalQuantity = product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
-              const minThreshold = product.inventory.length > 0 
-                ? Math.min(...product.inventory.map((inv: any) => inv.low_stock_threshold || 10))
+              const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
+              const relevantInventory = product.inventory.filter((inv: any) => {
+                if (hasVariants) {
+                  return inv.variant_id !== null;
+                } else {
+                  return inv.variant_id === null;
+                }
+              });
+              
+              const totalQuantity = relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              const minThreshold = relevantInventory.length > 0 
+                ? Math.min(...relevantInventory.map((inv: any) => inv.low_stock_threshold || 10))
                 : 10;
               
               if (totalQuantity === 0) {

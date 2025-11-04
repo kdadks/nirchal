@@ -67,16 +67,6 @@ export const useProductBySlug = (slug: string | undefined) => {
         // Transform the product data
         const productData: any = data;
         
-        // Debug: Log raw variant data to see swatch_image_id values
-        if (import.meta.env.DEV && productData.product_variants?.length > 0) {
-          console.log('[useProductBySlug] Raw variant data:', {
-            variantCount: productData.product_variants.length,
-            firstVariant: productData.product_variants[0],
-            imageCount: productData.product_images?.length || 0,
-            firstImage: productData.product_images?.[0]
-          });
-        }
-        
         const variants = (productData.product_variants || []).map((v: any) => {
           const inventoryItem = (productData.inventory || []).find(
             (inv: any) => inv.variant_id === v.id
@@ -99,18 +89,6 @@ export const useProductBySlug = (slug: string | undefined) => {
               const rawUrl = swatchImage.image_url || swatchImage.image_path;
               swatchImageUrl = rawUrl ? getStorageImageUrl(rawUrl) : undefined;
             }
-          }
-          
-          // Debug log for swatch image resolution
-          if (import.meta.env.DEV && v.swatch_image_id) {
-            console.log('[useProductBySlug] Swatch image resolution:', {
-              variantId: v.id,
-              color: v.color,
-              swatchImageId: v.swatch_image_id,
-              hasDirectSwatchImage: !!v.swatch_image?.image_url,
-              foundInProductImages: !!swatchImageUrl,
-              resolvedUrl: swatchImageUrl
-            });
           }
           
           return {
@@ -157,6 +135,26 @@ export const useProductBySlug = (slug: string | undefined) => {
           images.push(...fallbackUrls.filter(Boolean));
         }
         
+        // Calculate stock quantity
+        const stockQuantity = (() => {
+          if (Array.isArray(productData.inventory) && productData.inventory.length > 0) {
+            const hasVariants = variants && variants.length > 0;
+            
+            if (hasVariants) {
+              // Product HAS variants: sum variant inventory only (variant_id !== null)
+              const variantInventory = productData.inventory.filter((inv: any) => inv.variant_id !== null);
+              return variantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+            } else {
+              // Product has NO variants: sum product-level inventory only (variant_id === null)
+              const productInventory = productData.inventory.filter((inv: any) => inv.variant_id === null);
+              const total = productInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              
+              return total;
+            }
+          }
+          return 0;
+        })();
+
         const transformedProduct: Product = {
           id: String(productData.id),
           slug: productData.slug || productData.name?.toLowerCase().replace(/\s+/g, '-') || `product-${productData.id}`,
@@ -173,6 +171,7 @@ export const useProductBySlug = (slug: string | undefined) => {
           colors: uniqueColors,
           sizes: uniqueSizes,
           stockStatus: 'In Stock',
+          stockQuantity,
           reviews: [],
           variants
         };

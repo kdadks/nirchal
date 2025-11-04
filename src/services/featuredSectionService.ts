@@ -117,23 +117,35 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               ? Array.from(new Set(variants.map((v: any) => v.color).filter(Boolean)))
               : [];
 
-            // Calculate stock status from inventory
-            const stockStatus = (() => {
+            // Calculate stock status and quantity from inventory
+            const stockInfo = (() => {
               if (Array.isArray(product.inventory) && product.inventory.length > 0) {
-                const totalQuantity = product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
-                const minThreshold = product.inventory.length > 0 
-                  ? Math.min(...product.inventory.map((inv: any) => inv.low_stock_threshold || 10))
+                const hasVariants = variants.length > 0;
+                const relevantInventory = product.inventory.filter((inv: any) => {
+                  if (hasVariants) {
+                    return inv.variant_id !== null;
+                  } else {
+                    return inv.variant_id === null;
+                  }
+                });
+                
+                const totalQuantity = relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+                const minThreshold = relevantInventory.length > 0 
+                  ? Math.min(...relevantInventory.map((inv: any) => inv.low_stock_threshold || 10))
                   : 10;
                 
+                let status: 'In Stock' | 'Low Stock' | 'Out of Stock';
                 if (totalQuantity === 0) {
-                  return 'Out of Stock';
+                  status = 'Out of Stock';
                 } else if (totalQuantity <= minThreshold) {
-                  return 'Low Stock';
+                  status = 'Low Stock';
                 } else {
-                  return 'In Stock';
+                  status = 'In Stock';
                 }
+                
+                return { quantity: totalQuantity, status };
               }
-              return 'In Stock'; // Default if no inventory data
+              return { quantity: 0, status: 'In Stock' as const }; // Default if no inventory data
             })();
 
             return {
@@ -146,7 +158,8 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               variants: variants,
               sizes: sizes,
               colors: colors,
-              stockStatus: stockStatus,
+              stockStatus: stockInfo.status,
+              stockQuantity: stockInfo.quantity,
               display_order: item.display_order,
             };
           });

@@ -331,6 +331,20 @@ export const useProductsWithFilters = (
             }
           });
           
+          // Debug logging for ALL products in DEV
+          if (import.meta.env.DEV) {
+            console.log(`[Stock Check] ${product.name}:`, {
+              hasVariants,
+              totalInventory: product.inventory.length,
+              relevantInventory: relevantInventory.length,
+              inventoryDetails: product.inventory.map((inv: any) => ({
+                id: inv.id,
+                variant_id: inv.variant_id,
+                quantity: inv.quantity
+              }))
+            });
+          }
+          
           const totalQuantity = relevantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
           const minThreshold = relevantInventory.length > 0 
             ? Math.min(...relevantInventory.map((inv: any) => inv.low_stock_threshold || 10))
@@ -546,13 +560,18 @@ export const useProductsWithFilters = (
           reviewCount: reviews.length,
           stockStatus,
           stockQuantity: (() => {
-            // Calculate standalone product quantity from inventory
+            // Calculate product quantity from inventory
             if (Array.isArray(product.inventory) && product.inventory.length > 0) {
               const hasVariants = Array.isArray(product.product_variants) && product.product_variants.length > 0;
-              if (!hasVariants) {
-                // For products without variants, sum up ALL inventory (includes orphaned variant inventory)
-                // This handles cases where variants were deleted but inventory records remain
-                return product.inventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              
+              if (hasVariants) {
+                // Product HAS variants: sum variant inventory only (variant_id !== null)
+                const variantInventory = product.inventory.filter((inv: any) => inv.variant_id !== null);
+                return variantInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
+              } else {
+                // Product has NO variants: sum product-level inventory only (variant_id === null)
+                const productInventory = product.inventory.filter((inv: any) => inv.variant_id === null);
+                return productInventory.reduce((sum: number, inv: any) => sum + (inv.quantity || 0), 0);
               }
             }
             return 0;
