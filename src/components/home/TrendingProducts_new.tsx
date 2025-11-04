@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, TrendingUp, Eye, Sparkles, ArrowRight } from 'lucide-react';
 import type { Product } from '../../types';
 import { useWishlist } from '../../contexts/WishlistContext';
+import CustomerAuthModal from '../auth/CustomerAuthModal';
 
 const TrendingProducts: React.FC = () => {
   const { addToWishlist, isInWishlist } = useWishlist();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   
   // Mock trending products for demo
   const featuredProducts: Product[] = [
@@ -141,7 +143,16 @@ const TrendingProducts: React.FC = () => {
                   {/* Quick Actions */}
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
                     <button
-                      onClick={() => addToWishlist(product.id)}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const result = await addToWishlist(product.id);
+                        if (!result.success && result.requiresAuth) {
+                          setShowAuthModal(true);
+                        } else if (!result.success) {
+                          console.error('Failed to add to wishlist');
+                        }
+                      }}
                       className={`w-12 h-12 rounded-full backdrop-blur-md border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110 ${
                         isInWishlist(product.id) ? 'bg-red-500 text-white' : 'bg-white/20 text-white hover:bg-white hover:text-red-500'
                       }`}
@@ -225,6 +236,12 @@ const TrendingProducts: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Customer Auth Modal */}
+      <CustomerAuthModal
+        open={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </section>
   );
 };

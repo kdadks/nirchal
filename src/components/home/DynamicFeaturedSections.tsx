@@ -84,12 +84,7 @@ export const DynamicFeaturedSections: React.FC = () => {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
                 {section.products.slice(0, section.max_products).map((product) => (
-                  <div
-                    key={product.id}
-                    className="transform hover:scale-105 transition-transform duration-300"
-                  >
-                    <ProductCard product={product as any} showActionButtons={true} />
-                  </div>
+                  <ProductCard key={product.id} product={product as any} showActionButtons={true} />
                 ))}
               </div>
 
