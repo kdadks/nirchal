@@ -89,31 +89,41 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       const hashedNewPassword = await bcrypt.hash(formData.newPassword, 12);
       console.log('New password hashed');
 
-      // 4. Update the password in the database
-      const { error: updateError } = await supabase
-        .from('customers')
-        .update({ 
-          password_hash: hashedNewPassword,
-          updated_at: new Date().toISOString()
-        })
-        .eq('email', email);
+      // 4. Update the password using the secure function
+      const { data, error: updateError } = await supabase.rpc('change_customer_password', {
+        customer_email: email,
+        current_password: formData.currentPassword,
+        new_password: hashedNewPassword
+      });
 
-      if (updateError) {
-        console.error('Error updating password:', updateError);
-        setError('Failed to update password. Please try again.');
+      // Type assertion for the RPC response
+      const response = data as { 
+        success: boolean; 
+        error?: string; 
+        message?: string;
+        customer_first_name?: string;
+        customer_last_name?: string;
+        customer_email?: string;
+      } | null;
+
+      if (updateError || !response?.success) {
+        console.error('Error updating password:', updateError || response?.error);
+        setError(response?.error || 'Failed to update password. Please try again.');
         return;
       }
 
       console.log('Password updated successfully');
 
-      // Send password change confirmation email
+      // Send password change confirmation email if customer data is available
       try {
-        await transactionalEmailService.sendPasswordChangeEmail({
-          first_name: customerData.first_name as string,
-          last_name: customerData.last_name as string,
-          email: email
-        });
-        console.log('Password change confirmation email sent successfully');
+        if (response.customer_first_name && response.customer_last_name && response.customer_email) {
+          await transactionalEmailService.sendPasswordChangeEmail({
+            first_name: response.customer_first_name,
+            last_name: response.customer_last_name,
+            email: response.customer_email
+          });
+          console.log('Password change confirmation email sent successfully');
+        }
       } catch (emailError) {
         console.error('Failed to send password change confirmation email:', emailError);
         // Don't block the password change process if email fails
