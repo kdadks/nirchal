@@ -9,6 +9,15 @@
  * 5. Add tracking IDs in Admin Settings > SEO Settings
  */
 
+// Excluded IP addresses (admin/developer IPs that should not be tracked)
+const EXCLUDED_IP_ADDRESSES = [
+  '192.168.0.199', // Admin machine
+];
+
+// Store detected IP address
+let detectedIPAddress: string | null = null;
+let ipCheckInProgress = false;
+
 // Type definitions for GA4 events
 declare global {
   interface Window {
@@ -36,12 +45,49 @@ export interface GA4EcommerceItem {
 }
 
 /**
+ * Check if current IP should be excluded from tracking
+ */
+const checkExcludedIP = async (): Promise<boolean> => {
+  if (detectedIPAddress) {
+    return EXCLUDED_IP_ADDRESSES.includes(detectedIPAddress);
+  }
+
+  if (ipCheckInProgress) {
+    return false; // Don't block if check is in progress
+  }
+
+  ipCheckInProgress = true;
+  
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    if (response.ok) {
+      const data = await response.json();
+      detectedIPAddress = data.ip;
+      ipCheckInProgress = false;
+      return detectedIPAddress ? EXCLUDED_IP_ADDRESSES.includes(detectedIPAddress) : false;
+    }
+  } catch (error) {
+    console.warn('Failed to check IP address for analytics exclusion');
+  }
+  
+  ipCheckInProgress = false;
+  return false;
+};
+
+/**
  * Initialize Google Analytics 4
  * Call this once in your app's entry point (main.tsx or App.tsx)
  */
-export const initGA4 = (measurementId: string): void => {
+export const initGA4 = async (measurementId: string): Promise<void> => {
   if (!measurementId) {
     // Silently skip if no measurement ID - not critical
+    return;
+  }
+
+  // Check if IP is excluded before initializing
+  const isExcluded = await checkExcludedIP();
+  if (isExcluded) {
+    console.log('Analytics tracking disabled for excluded IP address');
     return;
   }
 
@@ -79,9 +125,16 @@ export const initGA4 = (measurementId: string): void => {
  * Initialize Facebook Pixel
  * Call this once in your app's entry point (main.tsx or App.tsx)
  */
-export const initFacebookPixel = (pixelId: string): void => {
+export const initFacebookPixel = async (pixelId: string): Promise<void> => {
   if (!pixelId) {
     // Silently skip if no pixel ID - not critical
+    return;
+  }
+
+  // Check if IP is excluded before initializing
+  const isExcluded = await checkExcludedIP();
+  if (isExcluded) {
+    console.log('Facebook Pixel tracking disabled for excluded IP address');
     return;
   }
 

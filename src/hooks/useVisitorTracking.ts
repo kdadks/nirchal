@@ -87,6 +87,11 @@ const getReferrer = (): string => {
   return document.referrer || 'Direct';
 };
 
+// Excluded IP addresses (admin/developer IPs that should not be tracked)
+const EXCLUDED_IP_ADDRESSES = [
+  '192.168.0.199', // Admin machine
+];
+
 // Check if running on localhost or development environment
 const isLocalhost = (): boolean => {
   const hostname = window.location.hostname;
@@ -96,6 +101,12 @@ const isLocalhost = (): boolean => {
          hostname.startsWith('192.168.') ||
          hostname.startsWith('10.') ||
          hostname.endsWith('.local');
+};
+
+// Check if IP address should be excluded from tracking
+const isExcludedIP = (ipAddress?: string): boolean => {
+  if (!ipAddress) return false;
+  return EXCLUDED_IP_ADDRESSES.includes(ipAddress);
 };
 
 // Fetch IP and location data from ipapi.co (free tier: 1000 requests/day)
@@ -141,6 +152,13 @@ export const useVisitorTracking = () => {
     // Fetch location data and gather visitor info
     const initTracking = async () => {
       const locationData = await fetchLocationData();
+      
+      // Don't track if IP is in the excluded list
+      if (locationData && isExcludedIP(locationData.ip_address)) {
+        console.log('Visitor tracking disabled for excluded IP address');
+        hasTrackedRef.current = true;
+        return;
+      }
       
       const visitorInfo: VisitorInfo = {
         visitor_id: visitorIdRef.current!,

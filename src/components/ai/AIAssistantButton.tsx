@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
 import { MessageCircle, Bot, Sparkles } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { NirchalAIAssistant } from './NirchalAIAssistant';
 
 export const AIAssistantButton: React.FC = () => {
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const location = useLocation();
+
+  // Don't render on admin routes
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  if (isAdminRoute) {
+    return null;
+  }
 
   return (
     <>

@@ -26,18 +26,61 @@ const getVisitorId = (): string | null => {
   return visitorCookie ? visitorCookie.split('=')[1] : null;
 };
 
+// Track if payment/checkout is in progress to prevent false abandoned cart tracking
+let isCheckoutInProgress = false;
+
+// Function to mark checkout as started (call from checkout page)
+export const markCheckoutStarted = () => {
+  isCheckoutInProgress = true;
+  sessionStorage.setItem('checkout_in_progress', 'true');
+};
+
+// Function to mark checkout as completed (call after successful payment)
+export const markCheckoutCompleted = () => {
+  isCheckoutInProgress = false;
+  sessionStorage.removeItem('checkout_in_progress');
+};
+
+// Check if checkout is in progress
+const isCheckoutActive = (): boolean => {
+  return isCheckoutInProgress || sessionStorage.getItem('checkout_in_progress') === 'true';
+};
+
 export const useCartAbandonment = ({ cartItems, isAuthenticated, userId }: UseCartAbandonmentProps) => {
   const hasTrackedRef = useRef(false);
   const isUnloadingRef = useRef(false);
+  const lastTrackedCartHash = useRef<string>('');
+
+  /**
+   * Generate a hash of cart items to detect if cart has changed
+   */
+  const getCartHash = useCallback(() => {
+    return JSON.stringify(cartItems.map(item => ({
+      id: item.id,
+      quantity: item.quantity,
+      variantId: item.variantId
+    })));
+  }, [cartItems]);
 
   /**
    * Save abandoned cart to database
    */
   const saveAbandonedCart = useCallback(async (guestInfo: { name: string; email: string; phone: string } | null) => {
     if (cartItems.length === 0) return;
-    if (hasTrackedRef.current) return; // Prevent duplicate submissions
+    
+    // Don't track if checkout/payment is in progress
+    if (isCheckoutActive()) {
+      return;
+    }
+    
+    // Check if we already tracked this exact cart
+    const currentCartHash = getCartHash();
+    if (hasTrackedRef.current && lastTrackedCartHash.current === currentCartHash) {
+      return; // Prevent duplicate submissions for same cart
+    }
 
     hasTrackedRef.current = true;
+    lastTrackedCartHash.current = currentCartHash;
 
     try {
       const visitorId = getVisitorId();
@@ -156,9 +199,16 @@ export const useCartAbandonment = ({ cartItems, isAuthenticated, userId }: UseCa
    * Set up event listeners
    */
   useEffect(() => {
-    // Reset tracking flag when cart becomes empty
+    // Reset tracking flag when cart becomes empty or changes significantly
     if (cartItems.length === 0) {
       hasTrackedRef.current = false;
+      lastTrackedCartHash.current = '';
+    } else {
+      // If cart changes (items added/removed), allow re-tracking
+      const currentHash = getCartHash();
+      if (currentHash !== lastTrackedCartHash.current) {
+        hasTrackedRef.current = false;
+      }
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -170,7 +220,7 @@ export const useCartAbandonment = ({ cartItems, isAuthenticated, userId }: UseCa
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('unload', handleUnload);
     };
-  }, [handleVisibilityChange, handleBeforeUnload, handleUnload, cartItems.length]);
+  }, [handleVisibilityChange, handleBeforeUnload, handleUnload, cartItems.length, getCartHash]);
 
   return {
     saveAbandonedCart,

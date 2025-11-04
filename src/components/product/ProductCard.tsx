@@ -195,11 +195,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <>
       <div 
         ref={cardRef}
-        className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full max-w-full"
+        className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full max-w-full flex flex-col h-full"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="block">
+        <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="flex flex-col h-full">
           {/* Image Container - optimized for mobile */}
           <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 w-full max-w-full">
             {isInView ? (
@@ -268,14 +268,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </div>
 
           {/* Content */}
-          <div className="p-3">
+          <div className="p-3 flex-1 flex flex-col">
             {/* Product Name */}
-            <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2" title={product.name}>
+            <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]" title={product.name}>
               {product.name}
             </h3>
 
             {/* Price Section */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 min-h-[1.25rem]">
               <span className="text-sm font-bold text-gray-900">
                 {formatCurrency(getDefaultAdjustedPrice())}
               </span>
@@ -292,7 +292,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </div>
 
             {/* Rating and Action Button Row */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 mt-auto">
               {/* Rating - Always show with 0 if no rating */}
               <div className="flex items-center gap-1">
                 <div className="flex items-center">
@@ -334,9 +334,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Stock Status */}
             {!hasStock && (
-              <div className="mt-2 text-xs text-red-600 font-medium">
+              <div className="mt-2 text-xs text-red-600 font-medium min-h-[1rem]">
                 Out of Stock
               </div>
+            )}
+            {hasStock && (
+              <div className="mt-2 min-h-[1rem]"></div>
             )}
           </div>
         </Link>

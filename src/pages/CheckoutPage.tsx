@@ -16,6 +16,7 @@ import CityDropdown from '../components/common/CityDropdown';
 import { SecurityUtils } from '../utils/securityUtils';
 import SEO from '../components/SEO';
 import { trackBeginCheckout, trackPurchase } from '../utils/analytics';
+import { markCheckoutStarted, markCheckoutCompleted } from '../hooks/useCartAbandonment';
 
 interface CheckoutForm {
   // Contact Information
@@ -130,6 +131,9 @@ const CheckoutPage: React.FC = () => {
 
   // Load customer addresses if logged in
   useEffect(() => {
+    // Mark checkout as started to prevent abandoned cart tracking
+    markCheckoutStarted();
+    
     // Track begin checkout event in GA4
     if (items.length > 0) {
       trackBeginCheckout(
@@ -711,6 +715,7 @@ const CheckoutPage: React.FC = () => {
                 
                 // Clear cart
                 try {
+                  markCheckoutCompleted(); // Mark checkout as complete to stop abandoned cart tracking
                   clearCart();
                   localStorage.removeItem('cart');
                 } catch (cartError) {
@@ -930,6 +935,7 @@ const CheckoutPage: React.FC = () => {
     // Navigate to order confirmation page
     // Using window.location.href for reliable navigation in production
     try {
+      markCheckoutCompleted(); // Mark checkout as complete to stop abandoned cart tracking
       clearCart();
       localStorage.removeItem('cart');
     } catch (cartError) {

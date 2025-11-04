@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 /**
  * Tawk.to Live Chat Integration - Lazy Loading
  * 
  * Script only loads when user clicks "Start Chat" button
+ * Hidden on admin routes
  */
 
 interface TawkToAPI {
@@ -38,7 +40,17 @@ let tawktoLoaded = false;
 let closeButton: HTMLButtonElement | null = null;
 
 const TawkToChat: React.FC = () => {
+  const location = useLocation();
+
+  // Don't render chatbot on admin routes
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  
   useEffect(() => {
+    // Don't add styles or initialize on admin routes
+    if (isAdminRoute) {
+      return;
+    }
+
     // Only add styles on mount - don't load the script yet
     const style = document.createElement('style');
     style.textContent = `
@@ -102,7 +114,12 @@ const TawkToChat: React.FC = () => {
         style.parentNode.removeChild(style);
       }
     };
-  }, []);
+  }, [isAdminRoute]);
+
+  // Don't render on admin routes
+  if (isAdminRoute) {
+    return null;
+  }
 
   return null;
 };
