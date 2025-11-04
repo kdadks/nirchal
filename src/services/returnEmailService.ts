@@ -233,6 +233,23 @@ class ReturnEmailService {
             additionalData?.inspectorNotes
           );
 
+        case 'refund_initiated':
+          // Send refund initiated notification
+          console.log('📧 [Return Email Service] Processing refund_initiated status');
+          console.log('📧 Customer email:', customerEmail);
+          console.log('📧 Customer name:', customerName);
+          console.log('📧 Has refund transaction data:', !!additionalData?.refundTransaction);
+          
+          if (additionalData?.refundTransaction) {
+            // Since Razorpay already sends a comprehensive refund notification,
+            // we'll skip sending a duplicate custom email to avoid confusion
+            console.log('ℹ️ Refund initiated - Razorpay automatic notification will be sent');
+            console.log('ℹ️ Skipping custom refund email to avoid duplicates');
+            return true;
+          }
+          console.error('❌ Refund transaction data not provided for refund_initiated');
+          return false;
+
         case 'refund_completed':
           // Send refund confirmation
           if (additionalData?.refundTransaction) {
@@ -249,6 +266,7 @@ class ReturnEmailService {
 
         default:
           // No email for this status
+          console.log(`ℹ️ No email template for status: ${newStatus}`);
           return true;
       }
     } catch (error) {

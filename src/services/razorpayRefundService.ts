@@ -222,7 +222,12 @@ export async function createRefund(params: CreateRefundParams): Promise<{
     console.log(`[Refund Service] Refund created successfully: ${data.id}`);
 
     // Send email notification to customer (async, don't wait)
+    console.log('[Refund Service] Attempting to send refund initiated email');
+    console.log('[Refund Service] Customer email:', returnWithCustomer.customer_email);
+    console.log('[Refund Service] Customer name:', `${returnWithCustomer.customer_first_name} ${returnWithCustomer.customer_last_name}`);
+    
     import('../services/returnEmailService').then(({ returnEmailService }) => {
+      console.log('[Refund Service] Successfully loaded returnEmailService');
       returnEmailService.sendReturnStatusChangeEmail(
         returnWithCustomer as any, // Use properly formatted customer data
         'refund_initiated',
@@ -230,8 +235,18 @@ export async function createRefund(params: CreateRefundParams): Promise<{
           refundTransaction: transaction as any,
           refundDate: new Date().toLocaleDateString(),
         }
-      ).catch(err => console.error('Failed to send refund email:', err));
-    }).catch(err => console.error('Failed to load return email service:', err));
+      ).then((success) => {
+        if (success) {
+          console.log('✅ [Refund Service] Email sending completed successfully');
+        } else {
+          console.error('❌ [Refund Service] Email sending failed');
+        }
+      }).catch(err => {
+        console.error('❌ [Refund Service] Failed to send refund email:', err);
+      });
+    }).catch(err => {
+      console.error('❌ [Refund Service] Failed to load return email service:', err);
+    });
 
     return {
       success: true,
