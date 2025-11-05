@@ -122,7 +122,7 @@ const HomePage: React.FC = () => {
                       </div>
                       
                       {/* Content */}
-                      <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4 text-center">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-2 md:p-4 text-center">
                         <h3 className="text-sm md:text-lg font-bold text-white mb-1 md:mb-2 group-hover:text-accent-300 transition-colors">
                           {category.name}
                         </h3>

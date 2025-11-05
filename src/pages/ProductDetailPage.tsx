@@ -63,6 +63,7 @@ const ProductDetailPage: React.FC = () => {
   const [selectedRating, setSelectedRating] = useState(5);
   const [hasUserInteractedWithColor, setHasUserInteractedWithColor] = useState(false);
   const [shouldLoadSuggestions, setShouldLoadSuggestions] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const { categories } = useCategories();
   const { reviews, fetchReviews, addReview } = useProductReviews(product?.id || '');
@@ -784,7 +785,7 @@ const ProductDetailPage: React.FC = () => {
                 <div className="hidden lg:block bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <h4 className="text-md font-semibold text-gray-900 mb-3">Customer Reviews</h4>
                   <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {reviews.slice(0, 3).map((review) => (
+                    {(showAllReviews ? reviews : reviews.slice(0, 3)).map((review) => (
                       <div key={review.id} className="bg-white p-3 rounded-lg border border-gray-100">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -804,19 +805,20 @@ const ProductDetailPage: React.FC = () => {
                         <p className="text-sm text-gray-700 line-clamp-2">{review.comment}</p>
                       </div>
                     ))}
-                    {reviews.length > 3 && (
+                    {reviews.length > 3 && !showAllReviews && (
                       <button 
-                        onClick={() => {
-                          if (!customer) {
-                            setShowAuthModal(true);
-                          } else {
-                            setSelectedRating(5);
-                            setIsReviewModalOpen(true);
-                          }
-                        }}
+                        onClick={() => setShowAllReviews(true)}
                         className="text-xs text-amber-600 hover:text-amber-700 font-medium"
                       >
                         View all {reviews.length} reviews
+                      </button>
+                    )}
+                    {showAllReviews && (
+                      <button 
+                        onClick={() => setShowAllReviews(false)}
+                        className="text-xs text-amber-600 hover:text-amber-700 font-medium"
+                      >
+                        Show less
                       </button>
                     )}
                   </div>
@@ -1226,7 +1228,7 @@ const ProductDetailPage: React.FC = () => {
                   <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
                     <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Customer Reviews</h4>
                     <div className="space-y-2 sm:space-y-3 max-h-64 overflow-y-auto">
-                      {reviews.slice(0, 3).map((review) => (
+                      {(showAllReviews ? reviews : reviews.slice(0, 3)).map((review) => (
                         <div key={review.id} className="bg-white p-2 sm:p-3 rounded-lg border border-gray-100">
                           <div className="flex items-center justify-between mb-1 sm:mb-2">
                             <div className="flex items-center gap-1 sm:gap-2">
@@ -1246,19 +1248,20 @@ const ProductDetailPage: React.FC = () => {
                           <p className="text-xs sm:text-sm text-gray-700 line-clamp-2">{review.comment}</p>
                         </div>
                       ))}
-                      {reviews.length > 3 && (
+                      {reviews.length > 3 && !showAllReviews && (
                         <button 
-                          onClick={() => {
-                            if (!customer) {
-                              setShowAuthModal(true);
-                            } else {
-                              setSelectedRating(5);
-                              setIsReviewModalOpen(true);
-                            }
-                          }}
+                          onClick={() => setShowAllReviews(true)}
                           className="text-xs sm:text-sm text-amber-600 hover:text-amber-700 font-medium"
                         >
                           View all {reviews.length} reviews
+                        </button>
+                      )}
+                      {showAllReviews && (
+                        <button 
+                          onClick={() => setShowAllReviews(false)}
+                          className="text-xs sm:text-sm text-amber-600 hover:text-amber-700 font-medium"
+                        >
+                          Show less
                         </button>
                       )}
                     </div>

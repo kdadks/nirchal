@@ -57,6 +57,9 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
                 variant_id,
                 quantity,
                 low_stock_threshold
+              ),
+              product_reviews (
+                rating
               )
             )
           `)
@@ -148,6 +151,13 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               return { quantity: 0, status: 'In Stock' as const }; // Default if no inventory data
             })();
 
+            // Calculate average rating from reviews
+            const reviews = product.product_reviews || [];
+            const rating = reviews.length > 0
+              ? reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / reviews.length
+              : 0;
+            const reviewCount = reviews.length;
+
             return {
               id: product.id,
               name: product.name,
@@ -160,6 +170,8 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               colors: colors,
               stockStatus: stockInfo.status,
               stockQuantity: stockInfo.quantity,
+              rating: rating,
+              reviewCount: reviewCount,
               display_order: item.display_order,
             };
           });
