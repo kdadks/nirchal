@@ -1,4 +1,3 @@
-/* global setTimeout */
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Play, Star, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,6 +8,26 @@ const HeroCarousel: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+
+  // Preload first hero image for better LCP
+  useEffect(() => {
+    if (heroSlides.length > 0 && heroSlides[0].image_url) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = heroSlides[0].image_url;
+      link.fetchPriority = 'high';
+      document.head.appendChild(link);
+
+      // Preload image in JavaScript as well
+      const img = new Image();
+      img.src = heroSlides[0].image_url;
+      
+      return () => {
+        document.head.removeChild(link);
+      };
+    }
+  }, [heroSlides]);
 
   const nextSlide = useCallback(() => {
     if (isTransitioning || heroSlides.length === 0) return;
@@ -106,14 +125,19 @@ const HeroCarousel: React.FC = () => {
                 : 'opacity-0 scale-105 z-0'
             }`}
           >
-            {/* Background Image with Parallax Effect */}
-            <div 
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat transform transition-transform duration-700 ease-out"
-              style={{
-                backgroundImage: `url(${slide.image_url})`,
-                transform: currentSlide === index ? 'scale(1.05)' : 'scale(1.1)',
-              }}
-            >
+            {/* Background Image with Parallax Effect - Using IMG for better LCP */}
+            <div className="absolute inset-0 overflow-hidden">
+              <img
+                src={slide.image_url}
+                alt={slide.title}
+                className="absolute inset-0 w-full h-full object-cover transform transition-transform duration-700 ease-out"
+                style={{
+                  transform: currentSlide === index ? 'scale(1.05)' : 'scale(1.1)',
+                }}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 ? 'high' : 'auto'}
+                decoding={index === 0 ? 'sync' : 'async'}
+              />
               {/* Elegant Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
