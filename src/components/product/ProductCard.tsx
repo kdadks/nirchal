@@ -27,7 +27,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [isInView, setIsInView] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [imagesPreloaded, setImagesPreloaded] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLAnchorElement>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if product has any stock available
@@ -193,7 +193,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <>
-      <div 
+      <Link 
+        to={`/products/${product.slug}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
         ref={cardRef}
         className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full max-w-full flex flex-col h-full hover:scale-105 cursor-pointer"
         onMouseEnter={() => setIsHovering(true)}
@@ -201,21 +204,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
       >
         {/* Image Container - optimized for mobile */}
         <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 w-full max-w-full">
-          <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="absolute inset-0 w-full h-full z-0 cursor-pointer">
-            {isInView ? (
-              <img
-                src={imageSrc}
-                alt={`${product.name} - ${product.category || 'Fashion'} | Buy Online at Nirchal`}
-                className="w-full h-full object-cover transition-opacity duration-300 max-w-full pointer-events-none"
-                onError={handleImageError}
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center max-w-full pointer-events-none">
-                <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
-              </div>
-            )}
-          </Link>
+          {isInView ? (
+            <img
+              src={imageSrc}
+              alt={`${product.name} - ${product.category || 'Fashion'} | Buy Online at Nirchal`}
+              className="w-full h-full object-cover transition-opacity duration-300 max-w-full"
+              onError={handleImageError}
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-200 animate-pulse flex items-center justify-center max-w-full">
+              <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
+            </div>
+          )}
           
           {/* Discount Badge */}
           {discountPercentage > 0 && (
@@ -270,10 +271,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        <Link to={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer" className="flex-1 flex flex-col">
-
-          {/* Content */}
-          <div className="p-3 flex-1 flex flex-col">
+        {/* Content */}
+        <div className="p-3 flex-1 flex flex-col">
             {/* Product Name */}
             <h3 className="text-sm font-medium text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]" title={product.name}>
               {product.name}
@@ -347,8 +346,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <div className="mt-2 min-h-[1rem]"></div>
             )}
           </div>
-        </Link>
-      </div>
+      </Link>
 
       {/* Quick View Modal */}
       <QuickViewModal
