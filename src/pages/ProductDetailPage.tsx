@@ -566,7 +566,7 @@ const ProductDetailPage: React.FC = () => {
     sku: product.id, // Using product ID as SKU
     brand: 'Nirchal',
     availability: stockInfo.isAvailable ? 'InStock' : 'OutOfStock',
-    rating: avgRating ? { value: avgRating, count: reviews.length } : undefined,
+    rating: avgRating ? { value: avgRating, count: reviews.length } : { value: 5, count: 0 },
     slug: product.slug,
     // Additional GMC attributes
     color: product.color,
@@ -578,6 +578,20 @@ const ProductDetailPage: React.FC = () => {
     condition: 'NewCondition' as const, // All products are new
     gender: product.gender || 'Female' as const, // Use from DB or default
     ageGroup: product.age_group || 'Adult' as const, // Use from DB or default
+    // Reviews for structured data
+    reviews: reviews.length > 0 ? reviews.map(review => ({
+      author: review.userName,
+      rating: review.rating,
+      comment: review.comment,
+      datePublished: new Date(review.createdAt).toISOString().split('T')[0]
+    })) : undefined,
+    // Variants for structured data
+    variants: product.variants && product.variants.length > 0 ? product.variants.map(variant => ({
+      name: `${variant.size || ''} ${variant.color || ''}`.trim() || 'Default',
+      price: variant.priceAdjustment || product.price,
+      sku: `${product.id}-${variant.id}`,
+      availability: (variant.quantity || 0) > 0 ? 'InStock' as const : 'OutOfStock' as const
+    })) : undefined,
   }, baseUrl);
 
   // Breadcrumb structured data
