@@ -648,6 +648,18 @@ class ReturnService {
         return { data: null, error: new Error(error.message) };
       }
 
+      // ✅ RESTORE INVENTORY: For items that are received and approved/partially approved
+      // Only restore inventory for items that are NOT rejected (not_received)
+      if (newStatus !== 'rejected') {
+        try {
+          await this.restoreInventoryForReturn(input);
+        } catch (inventoryError) {
+          console.error('Error restoring inventory after inspection:', inventoryError);
+          // Don't fail the inspection if inventory update fails
+          // This can be manually adjusted later if needed
+        }
+      }
+
       // Automatically send inspection complete email
       try {
         const success = await returnEmailService.sendReturnStatusChangeEmail(
@@ -818,12 +830,6 @@ class ReturnService {
         return null;
       }
 
-      console.log('[Return Stats] Fetched return data:', data?.map(r => ({
-        status: r.status,
-        final_refund_amount: r.final_refund_amount,
-        calculated_refund_amount: (r as any).calculated_refund_amount
-      })));
-
       // Calculate total refund amount - ONLY count completed refunds (status = 'refund_completed')
       // This ensures only confirmed/successful refunds are included in the total
       const totalRefundAmount = data?.reduce((sum: number, r: any) => {
@@ -834,8 +840,6 @@ class ReturnService {
         }
         return sum;
       }, 0) || 0;
-
-      console.log('[Return Stats] Total refund amount (completed only):', totalRefundAmount);
 
       const stats = {
         total_returns: data?.length || 0,
@@ -887,6 +891,87 @@ class ReturnService {
     } catch (error) {
       console.error('Error in updateReturnAddress:', error);
       return { error: error as Error };
+    }
+  }
+
+  /**
+   * Restore inventory for approved/partially approved returns
+   * Only restores inventory for items that were received (not_received = rejected)
+   */
+  private async restoreInventoryForReturn(input: CompleteInspectionInput): Promise<void> {
+    // Get the return items with product details
+    const { data: returnItems, error: itemsError } = await this.db
+      .from('return_items')
+      .select('id, product_id, product_variant_id, quantity')
+      .in('id', input.inspection_results.map(r => r.item_id));
+
+    if (itemsError || !returnItems) {
+      console.error('Failed to fetch return items for inventory restoration:', itemsError);
+      throw new Error('Failed to fetch return items');
+    }
+
+    // Process each item
+    for (let i = 0; i < returnItems.length; i++) {
+      const item = returnItems[i] as { id: string; product_id: string; product_variant_id: string | null; quantity: number };
+      const inspectionResult = input.inspection_results[i];
+
+      // Skip items that were not received (rejected)
+      if (inspectionResult.item_condition === 'not_received') {
+        continue;
+      }
+
+      try {
+        // Find inventory record for this product/variant
+        let inventoryQuery = this.db
+          .from('inventory')
+          .select('id, quantity')
+          .eq('product_id', item.product_id);
+
+        if (item.product_variant_id) {
+          inventoryQuery = inventoryQuery.eq('variant_id', item.product_variant_id);
+        } else {
+          inventoryQuery = inventoryQuery.is('variant_id', null);
+        }
+
+        const { data: inventoryRecords, error: inventoryError } = await inventoryQuery;
+
+        if (inventoryError || !inventoryRecords || inventoryRecords.length === 0) {
+          console.warn(`No inventory record found for product ${item.product_id}`);
+          continue;
+        }
+
+        const inventoryRecord = inventoryRecords[0] as { id: string; quantity: number };
+        const oldQuantity = inventoryRecord.quantity;
+        const newQuantity = oldQuantity + item.quantity;
+
+        // Update inventory quantity
+        const { error: updateError } = await this.db
+          .from('inventory')
+          .update({
+            quantity: newQuantity,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', inventoryRecord.id);
+
+        if (updateError) {
+          console.error(`Failed to restore inventory for product ${item.product_id}:`, updateError);
+          continue;
+        }
+
+        // Create inventory history record
+        await this.db.from('inventory_history').insert({
+          inventory_id: inventoryRecord.id,
+          previous_quantity: oldQuantity,
+          new_quantity: newQuantity,
+          change_type: 'STOCK_IN',
+          reason: `Return ${input.return_request_id} - Items Received (${inspectionResult.item_condition})`,
+          created_by: input.inspected_by,
+          created_at: new Date().toISOString()
+        });
+      } catch (itemError) {
+        console.error(`Error restoring inventory for item ${item.id}:`, itemError);
+        // Continue with other items even if one fails
+      }
     }
   }
 
