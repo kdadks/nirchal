@@ -513,6 +513,193 @@ export async function getRefundTransactions(returnRequestId: string): Promise<{
 }
 
 /**
+ * Sync refund status from Razorpay API
+ * This manually checks the actual refund status on Razorpay and updates the local database
+ */
+export async function syncRefundStatus(returnRequestId: string): Promise<{
+  success: boolean;
+  status?: string;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const db = getDbClient();
+    if (!db) {
+      throw new Error('Database client not available');
+    }
+
+    // Get return request with refund details
+    const { data: returnRequest, error: fetchError } = await db
+      .from('return_requests')
+      .select('razorpay_refund_id, order_id, status')
+      .eq('id', returnRequestId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const refundId = returnRequest.razorpay_refund_id as string | null;
+    const orderId = returnRequest.order_id as string;
+
+    if (!refundId) {
+      return {
+        success: false,
+        error: 'No refund ID found for this return request',
+      };
+    }
+
+    // Get payment ID from order
+    const { data: order, error: orderError } = await db
+      .from('orders')
+      .select('razorpay_payment_id')
+      .eq('id', orderId)
+      .single();
+
+    if (orderError) throw orderError;
+
+    const paymentId = order.razorpay_payment_id as string;
+
+    if (!paymentId) {
+      return {
+        success: false,
+        error: 'Payment ID not found for this return request',
+      };
+    }
+
+    // Query Razorpay API for actual refund status
+    const response = await fetch('/functions/check-razorpay-refund-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        payment_id: paymentId,
+        refund_id: refundId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to check refund status from Razorpay');
+    }
+
+    const razorpayRefundData = await response.json();
+    const actualStatus = razorpayRefundData.status as string;
+
+    console.log(`[Sync Refund Status] Razorpay status: ${actualStatus} for refund: ${refundId}`);
+
+    // Update refund transaction status in database
+    const { error: updateError } = await db
+      .from('razorpay_refund_transactions')
+      .update({
+        status: actualStatus as RefundStatus,
+        razorpay_status: actualStatus,
+        razorpay_response: razorpayRefundData,
+        processed_at: actualStatus === 'processed' ? new Date().toISOString() : null,
+        failed_at: actualStatus === 'failed' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('razorpay_refund_id', refundId);
+
+    if (updateError) {
+      console.error('[Sync Refund Status] Failed to update refund transaction:', updateError);
+      throw updateError;
+    }
+
+    // Update return request status based on refund status
+    let returnStatus: string | undefined;
+    let statusMessage: string;
+
+    if (actualStatus === 'processed') {
+      returnStatus = 'refund_completed';
+      statusMessage = 'Refund has been processed successfully';
+    } else if (actualStatus === 'failed') {
+      returnStatus = 'approved'; // Reset to approved so admin can retry
+      statusMessage = 'Refund failed, status reset to approved';
+    } else {
+      statusMessage = `Refund status updated to: ${actualStatus}`;
+    }
+
+    if (returnStatus) {
+      const { error: returnUpdateError } = await db
+        .from('return_requests')
+        .update({
+          status: returnStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', returnRequestId);
+
+      if (returnUpdateError) {
+        console.error('[Sync Refund Status] Failed to update return request:', returnUpdateError);
+      }
+
+      // Add status history entry
+      await db.from('return_status_history').insert({
+        return_request_id: returnRequestId,
+        status: returnStatus,
+        notes: `Status synced from Razorpay: ${actualStatus}`,
+        created_by: 'system',
+      });
+
+      // Send email notification when refund is completed
+      if (returnStatus === 'refund_completed') {
+        try {
+          const { data: returnData } = await db
+            .from('return_requests')
+            .select(`
+              *,
+              return_items (*),
+              customers!inner (first_name, last_name, email)
+            `)
+            .eq('id', returnRequestId)
+            .single();
+
+          if (returnData && returnData.customers) {
+            const customer = returnData.customers as any;
+            const returnWithCustomer = {
+              ...returnData,
+              customer_first_name: customer.first_name,
+              customer_last_name: customer.last_name,
+              customer_email: customer.email,
+            };
+
+            // Send email (async, don't wait)
+            import('../services/returnEmailService').then(({ returnEmailService }) => {
+              returnEmailService.sendReturnStatusChangeEmail(
+                returnWithCustomer as any,
+                'refund_completed',
+                {
+                  refundTransaction: {
+                    refund_amount: razorpayRefundData.amount / 100,
+                    transaction_number: refundId,
+                  } as any,
+                  refundDate: new Date().toLocaleDateString(),
+                }
+              ).catch(err => console.error('Failed to send refund completion email:', err));
+            }).catch(err => console.error('Failed to load return email service:', err));
+          }
+        } catch (emailError) {
+          console.error('Error sending refund completion email:', emailError);
+        }
+      }
+    }
+
+    console.log(`[Sync Refund Status] Successfully synced status for refund: ${refundId}`);
+
+    return {
+      success: true,
+      status: actualStatus,
+      message: statusMessage,
+    };
+  } catch (error) {
+    console.error('[Sync Refund Status] Error syncing refund status:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to sync refund status',
+    };
+  }
+}
+
+/**
  * Retry failed refund
  */
 export async function retryFailedRefund(returnRequestId: string): Promise<{

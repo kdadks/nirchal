@@ -16,7 +16,7 @@ import {
 import { supabase } from '../../config/supabase';
 import { returnService } from '../../services/returnService';
 import { returnEmailService } from '../../services/returnEmailService';
-import { createRefund } from '../../services/razorpayRefundService';
+import { createRefund, syncRefundStatus } from '../../services/razorpayRefundService';
 import { ReturnRequestWithItems, ReturnRequestStatus } from '../../types/return.types';
 import { getStatusLabel, getStatusColor, formatDate } from '../../types/return.index';
 import toast from 'react-hot-toast';
@@ -62,6 +62,7 @@ export const ReturnManagementDashboard: React.FC = () => {
     amount: number;
     paymentMethod: string;
   } | null>(null);
+  const [syncingStatus, setSyncingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     loadReturns();
@@ -406,6 +407,27 @@ export const ReturnManagementDashboard: React.FC = () => {
     }
   };
 
+  const handleSyncRefundStatus = async (returnRequest: ReturnRequestWithItems) => {
+    setSyncingStatus(returnRequest.id);
+    
+    try {
+      const result = await syncRefundStatus(returnRequest.id);
+
+      if (result.success) {
+        toast.success(result.message || 'Refund status synced successfully!');
+        loadReturns();
+        loadStatistics();
+      } else {
+        toast.error(result.error || 'Failed to sync refund status');
+      }
+    } catch (error: any) {
+      console.error('Error syncing refund status:', error);
+      toast.error(error.message || 'An error occurred while syncing refund status');
+    } finally {
+      setSyncingStatus(null);
+    }
+  };
+
   const exportToCSV = () => {
     // TODO: Implement CSV export
     toast.success('Export functionality coming soon');
@@ -683,6 +705,18 @@ export const ReturnManagementDashboard: React.FC = () => {
                               >
                                 <RefreshCw className="h-3 w-3" />
                                 Refund
+                              </button>
+                            )}
+
+                            {returnRequest.status === 'refund_initiated' && (
+                              <button
+                                onClick={() => handleSyncRefundStatus(returnRequest)}
+                                disabled={syncingStatus === returnRequest.id}
+                                className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-xs flex items-center gap-1 disabled:bg-blue-400 disabled:cursor-not-allowed"
+                                title="Check and update refund status from Razorpay"
+                              >
+                                <RefreshCw className={`h-3 w-3 ${syncingStatus === returnRequest.id ? 'animate-spin' : ''}`} />
+                                {syncingStatus === returnRequest.id ? 'Syncing...' : 'Sync Status'}
                               </button>
                             )}
 
