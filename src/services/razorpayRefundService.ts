@@ -627,7 +627,6 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
         razorpay_response: razorpayRefundData,
         processed_at: actualStatus === 'processed' ? new Date().toISOString() : null,
         failed_at: actualStatus === 'failed' ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
       })
       .eq('razorpay_refund_id', refundId);
 
@@ -635,6 +634,8 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
       console.error('[Sync Refund Status] Failed to update refund transaction:', updateError);
       throw updateError;
     }
+
+    console.log('[Sync Refund Status] Successfully updated refund transaction');
 
     // Update return request status based on refund status
     let returnStatus: string | undefined;
