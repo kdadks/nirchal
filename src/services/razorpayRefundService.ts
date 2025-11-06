@@ -674,8 +674,9 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
 
       // Send email notification when refund is completed
       if (returnStatus === 'refund_completed') {
+        console.log('[Sync Refund Status] Attempting to send refund completion email...');
         try {
-          const { data: returnData } = await db
+          const { data: returnData, error: fetchReturnError } = await db
             .from('return_requests')
             .select(`
               *,
@@ -684,6 +685,17 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
             `)
             .eq('id', returnRequestId)
             .single();
+
+          if (fetchReturnError) {
+            console.error('[Sync Refund Status] Failed to fetch return data for email:', fetchReturnError);
+            throw fetchReturnError;
+          }
+
+          console.log('[Sync Refund Status] Return data fetched:', {
+            return_id: returnData?.id,
+            customer_email: (returnData?.customers as any)?.email,
+            final_refund_amount: returnData?.final_refund_amount
+          });
 
           if (returnData && returnData.customers) {
             const customer = returnData.customers as any;
@@ -694,8 +706,11 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
               customer_email: customer.email,
             };
 
+            console.log('[Sync Refund Status] Sending refund completion email to:', customer.email);
+            
             // Send email (async, don't wait)
             import('../services/returnEmailService').then(({ returnEmailService }) => {
+              console.log('[Sync Refund Status] Email service loaded, sending email...');
               returnEmailService.sendReturnStatusChangeEmail(
                 returnWithCustomer as any,
                 'refund_completed',
@@ -706,11 +721,15 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
                   } as any,
                   refundDate: new Date().toLocaleDateString(),
                 }
-              ).catch(err => console.error('Failed to send refund completion email:', err));
-            }).catch(err => console.error('Failed to load return email service:', err));
+              ).then((result) => {
+                console.log('[Sync Refund Status] Email send result:', result);
+              }).catch(err => console.error('[Sync Refund Status] Failed to send refund completion email:', err));
+            }).catch(err => console.error('[Sync Refund Status] Failed to load return email service:', err));
+          } else {
+            console.error('[Sync Refund Status] No return data or customer found for email');
           }
         } catch (emailError) {
-          console.error('Error sending refund completion email:', emailError);
+          console.error('[Sync Refund Status] Error sending refund completion email:', emailError);
         }
       }
     }

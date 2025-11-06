@@ -801,7 +801,7 @@ class ReturnService {
   async getReturnStatistics(dateFrom?: string, dateTo?: string) {
     try {
       // Use regular supabase client - RLS allows all operations
-      let query = this.db.from('return_requests').select('status, final_refund_amount');
+      let query = this.db.from('return_requests').select('status, final_refund_amount, calculated_refund_amount');
 
       if (dateFrom) {
         query = query.gte('created_at', dateFrom);
@@ -818,6 +818,25 @@ class ReturnService {
         return null;
       }
 
+      console.log('[Return Stats] Fetched return data:', data?.map(r => ({
+        status: r.status,
+        final_refund_amount: r.final_refund_amount,
+        calculated_refund_amount: (r as any).calculated_refund_amount
+      })));
+
+      // Calculate total refund amount - ONLY count completed refunds (status = 'refund_completed')
+      // This ensures only confirmed/successful refunds are included in the total
+      const totalRefundAmount = data?.reduce((sum: number, r: any) => {
+        // Only include refunds that are completed (webhook confirmed)
+        if (r.status === 'refund_completed') {
+          const amount = (r.final_refund_amount as number) || (r.calculated_refund_amount as number) || 0;
+          return sum + amount;
+        }
+        return sum;
+      }, 0) || 0;
+
+      console.log('[Return Stats] Total refund amount (completed only):', totalRefundAmount);
+
       const stats = {
         total_returns: data?.length || 0,
         pending: data?.filter((r) => r.status === 'pending_shipment').length || 0,
@@ -829,8 +848,7 @@ class ReturnService {
         rejected: data?.filter((r) => r.status === 'rejected').length || 0,
         refund_initiated: data?.filter((r) => r.status === 'refund_initiated').length || 0,
         completed: data?.filter((r) => r.status === 'refund_completed').length || 0,
-        total_refund_amount:
-          data?.reduce((sum: number, r: any) => sum + ((r.final_refund_amount as number) || 0), 0) || 0,
+        total_refund_amount: totalRefundAmount,
       };
 
       return stats;

@@ -79,6 +79,48 @@ const AccountPage: React.FC = () => {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [returnRequests, setReturnRequests] = useState<Map<string, any>>(new Map()); // Map order_id to return request
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
+
+  // Helper function to get return status badge
+  const getReturnStatusBadge = (returnStatus: string) => {
+    switch (returnStatus) {
+      case 'refund_completed':
+        return {
+          text: 'Refunded',
+          bgColor: 'bg-green-100',
+          textColor: 'text-green-800',
+          icon: <CheckCircle size={10} />
+        };
+      case 'refund_initiated':
+        return {
+          text: 'Refund Processing',
+          bgColor: 'bg-yellow-100',
+          textColor: 'text-yellow-800',
+          icon: <Clock size={10} />
+        };
+      case 'rejected':
+        return {
+          text: 'Return Rejected',
+          bgColor: 'bg-red-100',
+          textColor: 'text-red-800',
+          icon: <XCircle size={10} />
+        };
+      case 'approved':
+      case 'partially_approved':
+        return {
+          text: 'Approved',
+          bgColor: 'bg-blue-100',
+          textColor: 'text-blue-800',
+          icon: <CheckCircle size={10} />
+        };
+      default:
+        return {
+          text: 'Return Requested',
+          bgColor: 'bg-gray-100',
+          textColor: 'text-gray-600',
+          icon: <CheckCircle size={10} />
+        };
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDismissConfirm, setShowDismissConfirm] = useState(false);
@@ -693,10 +735,16 @@ const AccountPage: React.FC = () => {
                                 {/* Request Return Button - Desktop */}
                                 {order.status === 'delivered' && order.payment_status === 'paid' && order.delivered_at && (
                                   order.has_return_request ? (
-                                    <span className="px-2 py-1 text-xs font-medium rounded-md bg-gray-100 text-gray-600 flex items-center gap-1">
-                                      <CheckCircle size={10} />
-                                      Return Requested
-                                    </span>
+                                    (() => {
+                                      const returnRequest = returnRequests.get(order.id);
+                                      const badge = getReturnStatusBadge(returnRequest?.status || '');
+                                      return (
+                                        <span className={`px-2 py-1 text-xs font-medium rounded-md ${badge.bgColor} ${badge.textColor} flex items-center gap-1`}>
+                                          {badge.icon}
+                                          {badge.text}
+                                        </span>
+                                      );
+                                    })()
                                   ) : (
                                     <button
                                       onClick={() => toggleReturnForm(order.id)}
@@ -757,10 +805,16 @@ const AccountPage: React.FC = () => {
                               {/* Request Return Button - Mobile */}
                               {order.status === 'delivered' && order.payment_status === 'paid' && order.delivered_at && (
                                 order.has_return_request ? (
-                                  <div className="w-full px-3 py-1.5 text-xs font-medium rounded-md flex items-center justify-center gap-1 bg-gray-100 text-gray-600">
-                                    <CheckCircle size={12} />
-                                    Return Requested
-                                  </div>
+                                  (() => {
+                                    const returnRequest = returnRequests.get(order.id);
+                                    const badge = getReturnStatusBadge(returnRequest?.status || '');
+                                    return (
+                                      <div className={`w-full px-3 py-1.5 text-xs font-medium rounded-md flex items-center justify-center gap-1 ${badge.bgColor} ${badge.textColor}`}>
+                                        {badge.icon}
+                                        {badge.text}
+                                      </div>
+                                    );
+                                  })()
                                 ) : (
                                   <button
                                     onClick={() => toggleReturnForm(order.id)}
