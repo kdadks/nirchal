@@ -566,7 +566,12 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
     }
 
     // Query Razorpay API for actual refund status
-    const response = await fetch('/functions/check-razorpay-refund-status', {
+    console.log('[Sync Refund Status] Querying Razorpay API:', {
+      payment_id: paymentId,
+      refund_id: refundId
+    });
+
+    const response = await fetch('/check-razorpay-refund-status', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -577,12 +582,38 @@ export async function syncRefundStatus(returnRequestId: string): Promise<{
       }),
     });
 
+    // Get response text first for better error handling
+    const responseText = await response.text();
+    
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to check refund status from Razorpay');
+      console.error('[Sync Refund Status] API Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: responseText
+      });
+      
+      try {
+        const errorData = JSON.parse(responseText);
+        throw new Error(errorData.error || `Failed to check refund status: ${response.status} ${response.statusText}`);
+      } catch (parseError) {
+        throw new Error(`Failed to check refund status from Razorpay: ${response.status} ${response.statusText}`);
+      }
     }
 
-    const razorpayRefundData = await response.json();
+    // Parse response
+    let razorpayRefundData;
+    try {
+      razorpayRefundData = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('[Sync Refund Status] Failed to parse response:', responseText);
+      throw new Error('Invalid response from Razorpay API');
+    }
+
+    if (!razorpayRefundData || !razorpayRefundData.status) {
+      console.error('[Sync Refund Status] Invalid refund data:', razorpayRefundData);
+      throw new Error('Invalid refund data received from Razorpay');
+    }
+
     const actualStatus = razorpayRefundData.status as string;
 
     console.log(`[Sync Refund Status] Razorpay status: ${actualStatus} for refund: ${refundId}`);
