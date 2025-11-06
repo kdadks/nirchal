@@ -45,6 +45,9 @@ const LoginPage = lazyWithRetry(() => import('../pages/admin/LoginPage'));
 const AdminRoutes = lazyWithRetry(() => import('./AdminRoutes'));
 const AuthDebug = lazyWithRetry(() => import('../pages/AuthDebug'));
 
+// Error Pages
+const NotFoundPage = lazyWithRetry(() => import('../pages/NotFoundPage'));
+
 export const AppRoutes: React.FC = () => {
   return (
     <Suspense fallback={<LoadingSpinner />}>
@@ -79,6 +82,9 @@ export const AppRoutes: React.FC = () => {
           path="/admin/*" 
           element={<AdminRoutes />} 
         />
+        
+        {/* 404 - Catch all unmatched routes */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

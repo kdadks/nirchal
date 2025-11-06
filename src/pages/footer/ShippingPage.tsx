@@ -1,14 +1,15 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Clock, MapPin, Shield, Package } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const ShippingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Helmet>
-        <title>Shipping Policy - Nirchal | Delivery Information</title>
-        <meta name="description" content="Learn about Nirchal's shipping policy, delivery times, and shipping charges for domestic and international orders." />
-      </Helmet>
+      <SEO
+        title="Shipping Policy - Nirchal | Delivery Information"
+        description="Learn about Nirchal's shipping policy, delivery times, and shipping charges for domestic and international orders."
+        canonical="/shipping"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">

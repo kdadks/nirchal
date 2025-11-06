@@ -1,14 +1,15 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { FileText, ShoppingCart, Shield, Scale } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const TermsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Helmet>
-        <title>Terms & Conditions - Nirchal | Legal Terms</title>
-        <meta name="description" content="Read Nirchal's terms and conditions for using our website and services." />
-      </Helmet>
+      <SEO
+        title="Terms & Conditions - Nirchal | Legal Terms"
+        description="Read Nirchal's terms and conditions for using our website and services."
+        canonical="/terms"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">

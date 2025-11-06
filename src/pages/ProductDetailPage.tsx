@@ -50,6 +50,16 @@ const ProductDetailPage: React.FC = () => {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { customer } = useCustomerAuth();
   
+  // Handle legacy Shopify URLs with query parameters (e.g., ?variant=123)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.has('variant') || searchParams.size > 0) {
+      // Strip query parameters and redirect to clean URL
+      const cleanPath = window.location.pathname;
+      navigate(cleanPath, { replace: true });
+    }
+  }, [navigate]);
+  
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [selectedImage, setSelectedImage] = useState<number>(0);
@@ -317,8 +327,21 @@ const ProductDetailPage: React.FC = () => {
   }
 
   if (!product) {
-    navigate('/products');
-    return null;
+    // Product not found - return 404 page
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+          <p className="text-gray-600 mb-8">The product you're looking for doesn't exist or has been removed.</p>
+          <button
+            onClick={() => navigate('/products')}
+            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Browse All Products
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const handleAddToCart = async () => {
@@ -577,7 +600,7 @@ const ProductDetailPage: React.FC = () => {
     sku: product.id, // Using product ID as SKU
     brand: 'Nirchal',
     availability: stockInfo.isAvailable ? 'InStock' : 'OutOfStock',
-    rating: avgRating ? { value: avgRating, count: reviews.length } : { value: 5, count: 0 },
+    rating: avgRating && reviews.length > 0 ? { value: avgRating, count: reviews.length } : undefined,
     slug: product.slug,
     // Additional GMC attributes
     color: product.color,
@@ -589,6 +612,8 @@ const ProductDetailPage: React.FC = () => {
     condition: 'NewCondition' as const, // All products are new
     gender: product.gender || 'Female' as const, // Use from DB or default
     ageGroup: product.age_group || 'Adult' as const, // Use from DB or default
+    // Product Group ID for variants (Google Merchant Center)
+    productGroupID: product.variants && product.variants.length > 1 ? `group_${product.id}` : undefined,
     // Reviews for structured data
     reviews: reviews.length > 0 ? reviews.map(review => ({
       author: review.userName,
@@ -600,7 +625,7 @@ const ProductDetailPage: React.FC = () => {
     variants: product.variants && product.variants.length > 0 ? product.variants.map(variant => ({
       name: `${variant.size || ''} ${variant.color || ''}`.trim() || 'Default',
       price: variant.priceAdjustment || product.price,
-      sku: `${product.id}-${variant.id}`,
+      sku: `${product.id}-${variant.id}`.substring(0, 50), // Ensure SKU is max 50 chars
       availability: (variant.quantity || 0) > 0 ? 'InStock' as const : 'OutOfStock' as const
     })) : undefined,
   }, baseUrl);

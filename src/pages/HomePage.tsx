@@ -7,6 +7,7 @@ import { DynamicFeaturedSections } from '../components/home/DynamicFeaturedSecti
 import type { Category } from '../types';
 import { supabase } from '../config/supabase';
 import toast from 'react-hot-toast';
+import SEO from '../components/SEO';
 
 const HomePage: React.FC = () => {
   const { categories, loading: categoriesLoading } = useCategories();
@@ -48,6 +49,12 @@ const HomePage: React.FC = () => {
   
   return (
     <>
+      <SEO 
+        title="Nirchal - Indian Ethnic Wear"
+        description="Discover authentic Indian ethnic wear. Shop sarees, kurtis, lehengas, and traditional clothing. Free shipping available across India."
+        canonical="/"
+        keywords="indian ethnic wear, sarees, kurtis, lehengas, traditional clothing"
+      />
       {/* Hero Carousel Section */}
       <HeroCarousel />
 

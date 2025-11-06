@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Ruler, Info, Shirt } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 interface SizeChart {
   category: string;
@@ -73,10 +73,11 @@ const SizeGuidePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Helmet>
-        <title>Size Guide - Nirchal | Perfect Fit Guide</title>
-        <meta name="description" content="Find your perfect fit with Nirchal's detailed size guide for kurtis, lehengas, sarees and more." />
-      </Helmet>
+      <SEO
+        title="Size Guide - Nirchal | Perfect Fit Guide"
+        description="Find your perfect fit with Nirchal's detailed size guide for kurtis, lehengas, sarees and more."
+        canonical="/size-guide"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">

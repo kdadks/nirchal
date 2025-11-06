@@ -1,12 +1,13 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
+import SEO from '../../components/SEO';
 
 const AccessibilityPage: React.FC = () => (
   <>
-    <Helmet>
-      <title>Accessibility - Nirchal</title>
-      <meta name="description" content="Read about Nirchal's commitment to accessibility for all users." />
-    </Helmet>
+    <SEO
+      title="Accessibility - Nirchal"
+      description="Read about Nirchal's commitment to accessibility for all users."
+      canonical="/accessibility"
+    />
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50 py-12 md:py-16">
       <div className="container mx-auto px-4 max-w-3xl bg-white rounded-xl shadow-lg p-6 md:p-8">
         <h1 className="font-display text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-primary-700">Accessibility Statement</h1>

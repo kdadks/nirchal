@@ -1,14 +1,15 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Shield, Eye, Lock, Users } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const PrivacyPolicyPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Helmet>
-        <title>Privacy Policy - Nirchal | Data Protection</title>
-        <meta name="description" content="Learn about Nirchal's privacy policy and how we protect your personal information and data." />
-      </Helmet>
+      <SEO
+        title="Privacy Policy - Nirchal | Data Protection"
+        description="Learn about Nirchal's privacy policy and how we protect your personal information and data."
+        canonical="/privacy"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">

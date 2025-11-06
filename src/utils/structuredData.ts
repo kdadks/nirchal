@@ -45,6 +45,7 @@ export interface Product {
   ageGroup?: 'Adult' | 'Kids' | 'Infant' | 'Toddler' | 'Newborn';
   reviews?: Review[]; // Customer reviews
   variants?: ProductVariant[]; // Product variants
+  productGroupID?: string; // Group ID for variant products
 }
 
 export interface BreadcrumbItem {
@@ -81,13 +82,20 @@ export function generateProductSchema(product: Product, baseUrl: string) {
       });
   }
 
+  // Ensure image is always present (required by Google Merchant Center)
+  const defaultImage = `${baseUrl}/placeholder-product.jpg`;
+  const productImages = images.length > 0 ? images : [defaultImage];
+
+  // Ensure SKU is valid (max 50 characters for Google Merchant Center)
+  const validSku = (product.sku || product.id).substring(0, 50);
+
   const schema: any = {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     'name': product.name,
     'description': product.description || `${product.name} - Premium quality ${product.category || 'fashion'} available at Nirchal. Shop now for the best prices and fast delivery.`,
-    'image': images.length > 0 ? images : undefined,
-    'sku': product.sku || product.id,
+    'image': productImages, // Always include image (required field)
+    'sku': validSku, // Max 50 characters
     'brand': {
       '@type': 'Brand',
       'name': product.brand || 'Nirchal'
@@ -150,6 +158,14 @@ export function generateProductSchema(product: Product, baseUrl: string) {
   // Add product condition (default to NewCondition for apparel)
   schema['itemCondition'] = `https://schema.org/${product.condition || 'NewCondition'}`;
 
+  // Add productGroupID for variant products (recommended for products with multiple variants)
+  if (product.productGroupID) {
+    schema['productGroupID'] = product.productGroupID;
+  } else if (product.variants && product.variants.length > 1) {
+    // Auto-generate productGroupID from product ID if not provided
+    schema['productGroupID'] = `group_${product.id}`;
+  }
+
   // Add category for Google product category
   if (product.category) {
     schema['category'] = product.category;
@@ -183,8 +199,9 @@ export function generateProductSchema(product: Product, baseUrl: string) {
     };
   }
 
-  // Add aggregateRating if available (always add, even if no reviews yet)
-  if (product.rating && product.rating.count > 0) {
+  // Add aggregateRating only if there are reviews (Google requires reviewCount > 0)
+  // Critical: reviewCount must be positive (> 0) or Google will show errors
+  if (product.rating && product.rating.count > 0 && product.rating.value > 0) {
     schema['aggregateRating'] = {
       '@type': 'AggregateRating',
       'ratingValue': product.rating.value,
@@ -192,16 +209,8 @@ export function generateProductSchema(product: Product, baseUrl: string) {
       'bestRating': 5,
       'worstRating': 1
     };
-  } else {
-    // Add default aggregateRating to avoid Google Search Console warnings
-    schema['aggregateRating'] = {
-      '@type': 'AggregateRating',
-      'ratingValue': 5,
-      'reviewCount': 0,
-      'bestRating': 5,
-      'worstRating': 1
-    };
   }
+  // Note: Don't add aggregateRating if reviewCount is 0 - Google will reject it as critical error
 
   // Add review field (individual reviews)
   if (product.reviews && product.reviews.length > 0) {

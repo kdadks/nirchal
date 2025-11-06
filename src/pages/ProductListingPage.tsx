@@ -6,6 +6,7 @@ import { useCategories } from '../hooks/useCategories';
 import ProductCard from '../components/product/ProductCard';
 import Pagination from '../components/common/Pagination';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import SEO from '../components/SEO';
 
 interface ProductFilters {
   category?: string;
@@ -117,6 +118,27 @@ const ProductListingPage: React.FC = () => {
     paginationOptions
   );
   const { categories, loading: categoriesLoading } = useCategories();
+
+  // Get current category for SEO
+  const currentCategory = useMemo(() => {
+    if (categorySlug || filters.category) {
+      return categories.find(cat => 
+        cat.slug === categorySlug || cat.slug === filters.category || cat.name === filters.category
+      );
+    }
+    return null;
+  }, [categorySlug, filters.category, categories]);
+
+  // Generate canonical URL
+  const canonicalUrl = useMemo(() => {
+    if (categorySlug) {
+      return `/category/${categorySlug}`;
+    } else if (filters.category) {
+      const cat = categories.find(c => c.slug === filters.category || c.name === filters.category);
+      return cat ? `/category/${cat.slug}` : '/products';
+    }
+    return '/products';
+  }, [categorySlug, filters.category, categories]);
 
   const handleFilterChange = (key: keyof ProductFilters, value: any) => {
     // Handle empty string values properly
@@ -233,6 +255,12 @@ const ProductListingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 overflow-x-hidden">
+      <SEO 
+        title={currentCategory ? `${currentCategory.name} - Nirchal` : 'Shop Products - Nirchal'}
+        description={currentCategory ? `Browse our collection of ${currentCategory.name.toLowerCase()}. Authentic Indian ethnic wear with free shipping across India.` : 'Browse our complete collection of authentic Indian ethnic wear. Shop sarees, kurtis, lehengas, and more with free shipping.'}
+        canonical={canonicalUrl}
+        keywords={currentCategory ? `${currentCategory.name}, indian ethnic wear, online shopping` : 'products, indian ethnic wear, sarees, kurtis, lehengas'}
+      />
       {/* Hero Section - Commented out */}
       {/*
       <div className="relative bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 text-white">

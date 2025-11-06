@@ -1,3 +1,43 @@
 # Force HTTPS redirect for all HTTP requests
 http://nirchal.com/* https://nirchal.com/:splat 301
 http://www.nirchal.com/* https://nirchal.com/:splat 301
+https://www.nirchal.com/* https://nirchal.com/:splat 301
+
+# Shopify legacy URL redirects
+# Strip variant and other query parameters from product URLs
+# This handles old indexed URLs like /products/product-name?variant=123456
+/products/*?* /products/:splat 301!
+
+# Handle old Shopify collection URLs - redirect to category pages
+/collections/* /products?category=:splat 301
+
+# Handle old Shopify pages URLs - redirect to appropriate new URLs
+/pages/about /about 301
+/pages/contact /contact 301
+/pages/shipping /shipping 301
+/pages/returns /return-policy 301
+/pages/privacy /privacy-policy 301
+/pages/terms /terms 301
+/pages/faq /faq 301
+/pages/size-guide /size-guide 301
+
+# API and static assets - serve directly
+/api/* 200
+/assets/* 200
+/*.css 200
+/*.js 200
+/*.json 200
+/*.ico 200
+/*.png 200
+/*.jpg 200
+/*.jpeg 200
+/*.gif 200
+/*.svg 200
+/*.webp 200
+/*.woff 200
+/*.woff2 200
+/*.ttf 200
+/*.eot 200
+
+# All other routes - serve index.html for client-side routing (SPA)
+/* /index.html 200

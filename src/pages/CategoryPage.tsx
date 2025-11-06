@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { ShoppingBag, ArrowRight, Filter } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import CategoryCard from '../components/category/CategoryCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import SEO from '../components/SEO';
 
 const CategoryPage = () => {
   const { categories, loading, error } = useCategories();
@@ -74,10 +74,12 @@ const CategoryPage = () => {
 
   return (
     <>
-      <Helmet>
-        <title>Shop by Categories | Nirchal</title>
-        <meta name="description" content="Browse our complete collection of ethnic wear organized by categories" />
-      </Helmet>
+      <SEO
+        title="Shop by Categories"
+        description="Browse our complete collection of ethnic wear organized by categories. Discover sarees, kurtis, lehengas, and more traditional Indian clothing."
+        canonical="/categories"
+        keywords="indian clothing categories, ethnic wear, sarees, kurtis, lehengas, traditional wear"
+      />
       
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
         {/* Hero Section - Commented out */}

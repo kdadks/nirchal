@@ -16,7 +16,7 @@ const HeroCarousel: React.FC = () => {
       link.rel = 'preload';
       link.as = 'image';
       link.href = heroSlides[0].image_url;
-      link.fetchPriority = 'high';
+      link.setAttribute('fetchpriority', 'high');
       document.head.appendChild(link);
 
       // Preload image in JavaScript as well
@@ -135,7 +135,7 @@ const HeroCarousel: React.FC = () => {
                   transform: currentSlide === index ? 'scale(1.05)' : 'scale(1.1)',
                 }}
                 loading={index === 0 ? 'eager' : 'lazy'}
-                fetchPriority={index === 0 ? 'high' : 'auto'}
+                {...(index === 0 ? { fetchpriority: 'high' } : {})}
                 decoding={index === 0 ? 'sync' : 'async'}
               />
               {/* Elegant Gradient Overlay */}

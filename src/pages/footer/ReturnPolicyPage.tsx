@@ -1,14 +1,15 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { RotateCcw, Shield, Clock } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const ReturnPolicyPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Helmet>
-        <title>Return Policy - Nirchal | Returns & Refunds</title>
-        <meta name="description" content="Learn about Nirchal's return policy, including return conditions, process, and refund information." />
-      </Helmet>
+      <SEO
+        title="Return Policy - Nirchal | Returns & Refunds"
+        description="Learn about Nirchal's return policy, including return conditions, process, and refund information."
+        canonical="/returns"
+      />
 
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">

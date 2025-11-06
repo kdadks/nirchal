@@ -1,6 +1,6 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Calendar, User, Clock, ChevronRight } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 interface BlogPost {
   id: number;
@@ -61,10 +61,11 @@ const BlogPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-8 pt-20 md:pt-24">
-      <Helmet>
-        <title>Blog - Nirchal</title>
-        <meta name="description" content="Read the latest articles about fashion trends, styling tips, and updates from Nirchal" />
-      </Helmet>
+      <SEO
+        title="Blog - Nirchal"
+        description="Read the latest articles about fashion trends, styling tips, and updates from Nirchal"
+        canonical="/blog"
+      />
 
       <div className="max-w-5xl mx-auto">
         <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 mb-4 md:mb-6">Blog</h1>

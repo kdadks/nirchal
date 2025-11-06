@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { MapPin, Phone, Clock, Mail, Search } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 interface Store {
   id: number;
@@ -94,10 +94,11 @@ const StoreLocatorPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 md:py-8 pt-20 md:pt-24">
-      <Helmet>
-        <title>Store Locator - Nirchal</title>
-        <meta name="description" content="Find Nirchal stores near you" />
-      </Helmet>
+      <SEO
+        title="Store Locator - Nirchal"
+        description="Find Nirchal stores near you"
+        canonical="/stores"
+      />
 
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">

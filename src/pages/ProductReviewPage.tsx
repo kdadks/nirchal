@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
 import { Star, ThumbsUp, MessageCircle } from 'lucide-react';
 import { formatDisplayDate } from '../utils/formatDate';
+import SEO from '../components/SEO';
 
 interface Review {
   id: number;
@@ -61,10 +61,12 @@ const ProductReviewPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Helmet>
-        <title>Product Reviews - #{id}</title>
-        <meta name="description" content={`Customer reviews and ratings for product #${id}`} />
-      </Helmet>
+      <SEO
+        title={`Product Reviews - #${id}`}
+        description={`Customer reviews and ratings for product #${id}`}
+        noindex={true}
+        nofollow={true}
+      />
 
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">Customer Reviews</h1>

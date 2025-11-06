@@ -1,14 +1,15 @@
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
 import { Heart, Award, Users, Truck } from 'lucide-react';
+import SEO from '../../components/SEO';
 
 const AboutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
-      <Helmet>
-        <title>About Us - Nirchal | Premium Indian Ethnic Wear</title>
-        <meta name="description" content="Discover the story behind Nirchal - India's premier destination for authentic ethnic wear, celebrating tradition with modern elegance." />
-      </Helmet>
+      <SEO
+        title="About Us - Nirchal | Premium Indian Ethnic Wear"
+        description="Discover the story behind Nirchal - India's premier destination for authentic ethnic wear, celebrating tradition with modern elegance."
+        canonical="/about"
+      />
 
       {/* Story Section */}
       <section className="py-12 md:py-16">

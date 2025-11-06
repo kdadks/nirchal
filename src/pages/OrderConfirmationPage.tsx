@@ -5,6 +5,8 @@ import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { SecurityUtils } from '../utils/securityUtils';
 import toast from 'react-hot-toast';
+import SEO from '../components/SEO';
+
 const OrderConfirmationPage: React.FC = () => {
   const { customer } = useCustomerAuth();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -93,8 +95,15 @@ const OrderConfirmationPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-16">
-      <div className="max-w-2xl mx-auto text-center">
+    <>
+      <SEO 
+        title="Order Confirmation - Nirchal"
+        description="Thank you for your order"
+        noindex={true}
+        nofollow={true}
+      />
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-2xl mx-auto text-center">
         <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full mb-6 ${
           paymentStatus === 'pending' ? 'bg-orange-100' : 'bg-green-100'
         }`}>
@@ -354,6 +363,7 @@ const OrderConfirmationPage: React.FC = () => {
         />
       </div>
     </div>
+    </>
   );
 };
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
 import { ChevronDown, ChevronUp, Search, HelpCircle, Package, CreditCard, Truck, RefreshCw } from 'lucide-react';
 import { generateFAQSchema, renderJsonLd } from '../../utils/structuredData';
 import { openTawkToChat } from '../../components/common/TawkToChat';
+import SEO from '../../components/SEO';
 
 interface FAQ {
   id: number;
@@ -113,13 +113,11 @@ const FAQPage: React.FC = () => {
 
   return (
     <>
-      <Helmet>
-        <title>Frequently Asked Questions - Nirchal</title>
-        <meta
-          name="description"
-          content="Find answers to common questions about Nirchal's ethnic wear collection, shipping, returns, and more."
-        />
-      </Helmet>
+      <SEO
+        title="Frequently Asked Questions - Nirchal"
+        description="Find answers to common questions about Nirchal's ethnic wear collection, shipping, returns, and more."
+        canonical="/faq"
+      />
 
       {/* FAQ Structured Data (JSON-LD) */}
       <script 
