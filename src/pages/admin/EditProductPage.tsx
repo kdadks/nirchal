@@ -87,6 +87,7 @@ const EditProductPage: React.FC = () => {
     gender: product.gender || null,
     age_group: product.age_group || null,
     google_product_category: product.google_product_category || null,
+    google_category_id: product.google_category_id || null,
     images: (product.images || []).map(image => ({
       id: image.id,
       image_url: image.image_url,

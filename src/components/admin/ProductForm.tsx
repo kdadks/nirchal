@@ -6,6 +6,7 @@ import 'react-quill/dist/quill.snow.css';
 import type { ProductFormData, ProductFormDataWithDelete } from '../../types/admin';
 import { useCategories, useVendors } from '../../hooks/useAdmin';
 import { SwatchSelectionModal } from './SwatchSelectionModal';
+import { GoogleCategorySelector } from './GoogleCategorySelector';
 import { getStorageImageUrl } from '../../utils/storageUtils';
 import { sanitizeFormData } from '../../utils/formUtils';
 
@@ -100,7 +101,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
     mpn: initialData?.mpn || null,
     gender: initialData?.gender || null,
     age_group: initialData?.age_group || null,
-    google_product_category: initialData?.google_product_category || null
+    google_product_category: initialData?.google_product_category || null,
+    google_category_id: initialData?.google_category_id || null
   });
 
   // Debug logging for variants
@@ -1746,30 +1748,27 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                     Required for apparel in most markets
                   </p>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Google Product Category
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.google_product_category || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, google_product_category: e.target.value || null }))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                    placeholder="e.g., Apparel & Accessories > Clothing"
-                    maxLength={255}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    <a 
-                      href="https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary-600 hover:text-primary-700"
-                    >
-                      View taxonomy
-                    </a>
-                  </p>
-                </div>
+              {/* Google Product Category - Full Width on New Line */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Google Product Category
+                </label>
+                <GoogleCategorySelector
+                  value={formData.google_category_id}
+                  onChange={(categoryId, category) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      google_category_id: categoryId,
+                      google_product_category: category?.full_path || null
+                    }));
+                  }}
+                  placeholder="Search Google product categories..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Search and select from 5,500+ official Google product categories for better SEO
+                </p>
               </div>
 
               {(!formData.gender || !formData.age_group) && (

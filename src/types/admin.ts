@@ -83,6 +83,7 @@ export interface Product {
   gender: 'Female' | 'Male' | 'Unisex' | null;
   age_group: 'Adult' | 'Kids' | 'Infant' | 'Toddler' | 'Newborn' | null;
   google_product_category: string | null;
+  google_category_id: number | null; // Reference to google_product_categories table
 }
 
 export interface ProductImage {
