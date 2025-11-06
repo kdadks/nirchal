@@ -27,6 +27,7 @@ import type { Product } from '../types';
 import SEO from '../components/SEO';
 import { generateProductSchema, generateBreadcrumbSchema, renderJsonLd } from '../utils/structuredData';
 import { trackProductView } from '../utils/analytics';
+import { trackViewContent } from '../utils/metaPixel';
 
 // Custom SVG Icons
 const TelegramIcon = ({ size = 20 }: { size?: number }) => (
@@ -89,6 +90,16 @@ const ProductDetailPage: React.FC = () => {
         category: product.category,
         price: product.price,
         brand: 'Nirchal',
+      });
+      
+      // Track product view in Meta Pixel
+      trackViewContent({
+        content_name: product.name,
+        content_category: product.category || 'Fashion',
+        content_ids: [product.id],
+        content_type: 'product',
+        value: product.price,
+        currency: 'INR'
       });
       
       // Defer suggestions loading after 500ms to prioritize main content

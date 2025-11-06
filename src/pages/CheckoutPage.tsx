@@ -17,6 +17,7 @@ import { SecurityUtils } from '../utils/securityUtils';
 import SEO from '../components/SEO';
 import { trackBeginCheckout, trackPurchase } from '../utils/analytics';
 import { markCheckoutStarted, markCheckoutCompleted } from '../hooks/useCartAbandonment';
+import { trackInitiateCheckout, trackPurchase as trackMetaPurchase } from '../utils/metaPixel';
 
 interface CheckoutForm {
   // Contact Information
@@ -153,6 +154,19 @@ const CheckoutPage: React.FC = () => {
         })),
         total
       );
+      
+      // Track initiate checkout event in Meta Pixel
+      trackInitiateCheckout({
+        content_ids: items.map(item => item.id),
+        contents: items.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          item_price: item.price
+        })),
+        num_items: items.reduce((sum, item) => sum + item.quantity, 0),
+        value: total,
+        currency: 'INR'
+      });
     }
     
     const loadCustomerAddresses = async () => {
@@ -907,6 +921,24 @@ const CheckoutPage: React.FC = () => {
       );
     } catch (analyticsError) {
       console.error('Failed to track purchase in GA4:', analyticsError);
+    }
+    
+    // Track purchase in Meta Pixel
+    try {
+      trackMetaPurchase({
+        content_ids: items.map(item => item.id),
+        contents: items.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          item_price: item.price
+        })),
+        content_type: 'product',
+        value: finalTotal,
+        currency: 'INR',
+        num_items: items.reduce((sum, item) => sum + item.quantity, 0)
+      });
+    } catch (metaError) {
+      console.error('Failed to track purchase in Meta Pixel:', metaError);
     }
     
     // Handle welcome email for customers who need it

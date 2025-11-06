@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useCartAbandonment } from '../hooks/useCartAbandonment';
 import { trackAddToCart, trackRemoveFromCart } from '../utils/analytics';
+import { trackAddToCart as trackMetaAddToCart } from '../utils/metaPixel';
 
 interface CartItem {
   id: string;
@@ -150,6 +151,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         price: item.price,
         quantity: 1,
         variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color || undefined,
+      });
+      
+      // Track add to cart event in Meta Pixel
+      trackMetaAddToCart({
+        content_name: item.name,
+        content_ids: [item.id],
+        content_type: 'product',
+        value: item.price,
+        currency: 'INR'
       });
     } catch (error) {
       console.error('Error adding item to cart:', error);
