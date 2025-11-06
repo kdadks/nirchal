@@ -176,33 +176,63 @@ const AdminDashboard: React.FC = () => {
       const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const yesterday = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
 
-      // Orders today
+      // Orders today (exclude cancelled)
       const { data: todayOrders, error: todayOrdersError } = await supabase
         .from('orders')
-        .select('total_amount')
+        .select('total_amount, status')
         .gte('created_at', todayStart.toISOString());
 
       if (todayOrdersError) throw todayOrdersError;
 
-      // Orders yesterday
+      // Orders yesterday (exclude cancelled)
       const { data: yesterdayOrders, error: yesterdayOrdersError } = await supabase
         .from('orders')
-        .select('total_amount')
+        .select('total_amount, status')
         .gte('created_at', yesterday.toISOString())
         .lt('created_at', todayStart.toISOString());
 
       if (yesterdayOrdersError) throw yesterdayOrdersError;
 
-      // Calculate total revenue
+      // Calculate total revenue (exclude cancelled orders)
       const { data: allOrders, error: allOrdersError } = await supabase
         .from('orders')
-        .select('total_amount');
+        .select('total_amount, status')
+        .neq('status', 'cancelled'); // Exclude cancelled orders
 
       if (allOrdersError) throw allOrdersError;
 
-      const totalRevenue = (allOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
-      const todayRevenue = (todayOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
-      const yesterdayRevenue = (yesterdayOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      // Get total refunded amount (only completed refunds)
+      const { data: refundData, error: refundError } = await supabase
+        .from('return_requests')
+        .select('final_refund_amount, calculated_refund_amount')
+        .eq('status', 'refund_completed');
+
+      if (refundError) {
+        console.error('Error fetching refunds:', refundError);
+      }
+
+      const totalRefunded = (refundData || []).reduce((sum, refund) => {
+        const amount = (refund.final_refund_amount as number) || (refund.calculated_refund_amount as number) || 0;
+        return sum + amount;
+      }, 0);
+
+      console.log('[Admin Dashboard] Total refunded amount:', totalRefunded);
+
+      // Calculate revenue excluding cancelled orders and subtracting refunds
+      const grossRevenue = (allOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      const totalRevenue = grossRevenue - totalRefunded;
+
+      const todayRevenue = (todayOrders || []).reduce((sum, order) => {
+        const orderStatus = (order as any).status;
+        if (orderStatus === 'cancelled') return sum;
+        return sum + ((order as any).total_amount || 0);
+      }, 0);
+      
+      const yesterdayRevenue = (yesterdayOrders || []).reduce((sum, order) => {
+        const orderStatus = (order as any).status;
+        if (orderStatus === 'cancelled') return sum;
+        return sum + ((order as any).total_amount || 0);
+      }, 0);
 
       const ordersToday = (todayOrders || []).length;
       const ordersYesterday = (yesterdayOrders || []).length;
