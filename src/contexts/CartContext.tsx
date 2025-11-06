@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { useAuth } from './AuthContext';
+import { useCustomerAuth } from './CustomerAuthContext';
 import { useCartAbandonment } from '../hooks/useCartAbandonment';
 import { trackAddToCart, trackRemoveFromCart } from '../utils/analytics';
 import { trackAddToCart as trackMetaAddToCart } from '../utils/metaPixel';
@@ -118,7 +118,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 }
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { customer } = useCustomerAuth();
   const [state, dispatch] = useReducer(cartReducer, initialState, () => {
     // Load cart from localStorage on init
     const savedCart = localStorage.getItem('cart');
@@ -128,8 +128,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize cart abandonment tracking
   useCartAbandonment({
     cartItems: state.items,
-    isAuthenticated: !!user,
-    userId: user?.id,
+    isAuthenticated: !!customer,
+    userId: customer?.id,
+    customerEmail: customer?.email,
+    customerName: `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim(),
+    customerPhone: customer?.phone,
   });
 
   // Save cart to localStorage whenever it changes

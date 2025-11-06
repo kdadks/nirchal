@@ -17,6 +17,9 @@ interface UseCartAbandonmentProps {
   cartItems: CartItem[];
   isAuthenticated: boolean;
   userId?: string;
+  customerEmail?: string;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 // Get visitor ID from cookie
@@ -36,9 +39,46 @@ export const markCheckoutStarted = () => {
 };
 
 // Function to mark checkout as completed (call after successful payment)
-export const markCheckoutCompleted = () => {
+export const markCheckoutCompleted = async (userId?: string) => {
   isCheckoutInProgress = false;
   sessionStorage.removeItem('checkout_in_progress');
+  
+  // Mark any abandoned carts for this user/visitor as completed
+  try {
+    const visitorId = getVisitorId();
+    
+    if (userId || visitorId) {
+      console.log('[Cart Abandonment] Marking carts as completed:', { userId, visitorId });
+      
+      // Update all abandoned carts for this user/visitor that are still in 'abandoned' status
+      const updates: any = {
+        status: 'completed',
+        recovered_at: new Date().toISOString(),
+      };
+      
+      let query = supabase
+        .from('abandoned_carts')
+        .update(updates)
+        .eq('status', 'abandoned');
+      
+      // Match by user_id if logged in, otherwise by visitor_id
+      if (userId) {
+        query = query.eq('user_id', userId);
+      } else if (visitorId) {
+        query = query.eq('visitor_id', visitorId);
+      }
+      
+      const { error } = await query;
+      
+      if (error) {
+        console.error('[Cart Abandonment] Error marking as completed:', error);
+      } else {
+        console.log('[Cart Abandonment] Successfully marked as completed');
+      }
+    }
+  } catch (error) {
+    console.error('[Cart Abandonment] Exception marking as completed:', error);
+  }
 };
 
 // Check if checkout is in progress
@@ -46,7 +86,14 @@ const isCheckoutActive = (): boolean => {
   return isCheckoutInProgress || sessionStorage.getItem('checkout_in_progress') === 'true';
 };
 
-export const useCartAbandonment = ({ cartItems, isAuthenticated, userId }: UseCartAbandonmentProps) => {
+export const useCartAbandonment = ({ 
+  cartItems, 
+  isAuthenticated, 
+  userId,
+  customerEmail,
+  customerName,
+  customerPhone 
+}: UseCartAbandonmentProps) => {
   const hasTrackedRef = useRef(false);
   const isUnloadingRef = useRef(false);
   const lastTrackedCartHash = useRef<string>('');
@@ -70,14 +117,38 @@ export const useCartAbandonment = ({ cartItems, isAuthenticated, userId }: UseCa
     
     // Don't track if checkout/payment is in progress
     if (isCheckoutActive()) {
+      console.log('[Cart Abandonment] Skipping - checkout in progress');
       return;
     }
     
     // Check if we already tracked this exact cart
     const currentCartHash = getCartHash();
     if (hasTrackedRef.current && lastTrackedCartHash.current === currentCartHash) {
+      console.log('[Cart Abandonment] Skipping - already tracked this cart');
       return; // Prevent duplicate submissions for same cart
     }
+
+    // Priority for user info: logged-in customer > guest info > fallback
+    const finalName = isAuthenticated && customerName 
+      ? customerName 
+      : guestInfo?.name || 'Anonymous';
+    
+    const finalEmail = isAuthenticated && customerEmail 
+      ? customerEmail 
+      : guestInfo?.email || null;
+    
+    const finalPhone = isAuthenticated && customerPhone 
+      ? customerPhone 
+      : guestInfo?.phone || null;
+
+    console.log('[Cart Abandonment] Saving cart:', {
+      isAuthenticated,
+      finalName,
+      finalEmail,
+      finalPhone,
+      userId,
+      itemCount: cartItems.length
+    });
 
     hasTrackedRef.current = true;
     lastTrackedCartHash.current = currentCartHash;
@@ -86,9 +157,9 @@ export const useCartAbandonment = ({ cartItems, isAuthenticated, userId }: UseCa
       const visitorId = getVisitorId();
       
       const cartData = {
-        guest_name: guestInfo?.name || 'Anonymous',
-        guest_email: guestInfo?.email || null,
-        guest_phone: guestInfo?.phone || null,
+        guest_name: finalName,
+        guest_email: finalEmail,
+        guest_phone: finalPhone,
         visitor_id: visitorId, // Link to visitor tracking
         user_id: isAuthenticated && userId ? userId : null,
         cart_items: cartItems,
@@ -104,14 +175,20 @@ export const useCartAbandonment = ({ cartItems, isAuthenticated, userId }: UseCa
         navigator.sendBeacon('/api/cart-abandonment', blob);
       } else {
         // Regular fetch for other scenarios
-        await supabase
+        const { error } = await supabase
           .from('abandoned_carts')
           .insert([cartData]);
+        
+        if (error) {
+          console.error('[Cart Abandonment] Error saving:', error);
+        } else {
+          console.log('[Cart Abandonment] Successfully saved');
+        }
       }
     } catch (error) {
-      // Silent fail
+      console.error('[Cart Abandonment] Exception:', error);
     }
-  }, [cartItems, isAuthenticated, userId]);
+  }, [cartItems, isAuthenticated, userId, customerEmail, customerName, customerPhone, getCartHash]);
 
   /**
    * Handle page visibility change (tab switch, minimize, etc.)

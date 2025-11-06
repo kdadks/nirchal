@@ -820,7 +820,7 @@ const CheckoutPage: React.FC = () => {
                 
                 // Clear cart
                 try {
-                  markCheckoutCompleted(); // Mark checkout as complete to stop abandoned cart tracking
+                  await markCheckoutCompleted(customer?.id); // Mark checkout as complete and update abandoned carts
                   clearCart();
                   localStorage.removeItem('cart');
                 } catch (cartError) {
@@ -1058,7 +1058,7 @@ const CheckoutPage: React.FC = () => {
     // Navigate to order confirmation page
     // Using window.location.href for reliable navigation in production
     try {
-      markCheckoutCompleted(); // Mark checkout as complete to stop abandoned cart tracking
+      await markCheckoutCompleted(customer?.id); // Mark checkout as complete and update abandoned carts
       clearCart();
       localStorage.removeItem('cart');
     } catch (cartError) {
