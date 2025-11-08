@@ -198,7 +198,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         target="_blank" 
         rel="noopener noreferrer"
         ref={cardRef}
-        className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full max-w-full flex flex-col h-full hover:scale-105 cursor-pointer"
+        className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full max-w-full flex flex-col h-full cursor-pointer"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
