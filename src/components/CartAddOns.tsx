@@ -1054,6 +1054,24 @@ const CustomBlouseForm: React.FC<{
         </select>
       </div>
 
+      {/* Size Guide Reference */}
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+        <p className="text-xs text-gray-700 mb-2">
+          <strong>Need help with measurements?</strong> Not sure how to measure correctly?
+        </p>
+        <a 
+          href="/size-guide" 
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-700 underline"
+        >
+          📏 Check our detailed Size Guide
+        </a>
+        <p className="text-xs text-gray-600 mt-2">
+          Our size guide includes step-by-step instructions on how to measure bust, waist, shoulder, sleeve length, and blouse length to ensure perfect fit.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Back Length (inches)</label>

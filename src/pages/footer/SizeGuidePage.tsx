@@ -47,6 +47,19 @@ const SizeGuidePage: React.FC = () => {
       sizes: {
         'Standard': ['5.5m–6m', '0.8m', '28–44" (adjustable)']
       }
+    },
+    {
+      category: 'blouses',
+      measurements: ['Bust', 'Waist', 'Shoulder', 'Sleeve Length', 'Blouse Length'],
+      sizes: {
+        'XS': ['30', '24', '12', '15', '16'],
+        'S': ['32', '26', '12.5', '15.5', '17'],
+        'M': ['34', '28', '13', '16', '18'],
+        'L': ['36', '30', '13.5', '16.5', '19'],
+        'XL': ['38', '32', '14', '17', '20'],
+        'XXL': ['40', '34', '14.5', '17.5', '21'],
+        '3XL': ['42', '36', '15', '18', '22']
+      }
     }
   ];
 
@@ -66,6 +79,18 @@ const SizeGuidePage: React.FC = () => {
     {
       measurement: 'Length',
       instruction: 'For tops/kurtis: Measure from shoulder point to desired length. For bottoms: Measure from waist to ankle.'
+    },
+    {
+      measurement: 'Shoulder',
+      instruction: 'For blouses: Measure across the back from one shoulder bone to the other. Keep the tape straight across the back.'
+    },
+    {
+      measurement: 'Sleeve Length',
+      instruction: 'For blouses: Measure from the center back neck, across shoulder, down to your wrist bone with arm bent at 90 degrees.'
+    },
+    {
+      measurement: 'Blouse Length',
+      instruction: 'For blouses: Measure from the highest point of the shoulder down to your desired blouse length (typically to hip level).'
     }
   ];
 
@@ -100,7 +125,8 @@ const SizeGuidePage: React.FC = () => {
                   let label = chart.category
                     .replace('kurtis/suits/dresses', 'Kurtis / Suits / Dresses')
                     .replace('lehengas', 'Lehengas')
-                    .replace('sarees', 'Sarees');
+                    .replace('sarees', 'Sarees')
+                    .replace('blouses', 'Blouses');
                   return (
                     <button
                       key={chart.category}
@@ -149,29 +175,31 @@ const SizeGuidePage: React.FC = () => {
             </div>
           </section>
 
-          {/* How to Measure */}
-          <section className="mb-12">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <div className="flex items-center mb-6">
-                <Ruler className="w-8 h-8 text-primary-600 mr-3" />
-                <h2 className="text-2xl font-bold text-gray-800">How to Measure</h2>
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                {howToMeasure.map((item, index) => (
-                  <div key={item.measurement} className="bg-gradient-to-r from-primary-50 to-accent-50 p-4 rounded-lg border border-primary-100">
-                    <div className="flex items-center mb-2">
-                      <div className="w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
-                        {index + 1}
+          {/* How to Measure - Only for Blouse Category */}
+          {selectedCategory === 'blouses' && (
+            <section className="mb-12">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <div className="flex items-center mb-6">
+                  <Ruler className="w-8 h-8 text-primary-600 mr-3" />
+                  <h2 className="text-2xl font-bold text-gray-800">How to Measure</h2>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  {howToMeasure.map((item, index) => (
+                    <div key={item.measurement} className="bg-gradient-to-r from-primary-50 to-accent-50 p-4 rounded-lg border border-primary-100">
+                      <div className="flex items-center mb-2">
+                        <div className="w-8 h-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                          {index + 1}
+                        </div>
+                        <h3 className="font-semibold text-primary-900">{item.measurement}</h3>
                       </div>
-                      <h3 className="font-semibold text-primary-900">{item.measurement}</h3>
+                      <p className="text-primary-800 text-sm leading-relaxed ml-11">{item.instruction}</p>
                     </div>
-                    <p className="text-primary-800 text-sm leading-relaxed ml-11">{item.instruction}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* Important Notes */}
           <section>
