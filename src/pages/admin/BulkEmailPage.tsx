@@ -24,6 +24,7 @@ const BulkEmailPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [previewCampaignId, setPreviewCampaignId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ id: string; title: string } | null>(null);
 
   // Fetch campaigns
   const fetchCampaigns = async () => {
@@ -75,7 +76,7 @@ const BulkEmailPage: React.FC = () => {
       toast.success(`Campaign "${campaignTitle}" sent successfully!`);
       await fetchCampaigns(); // Refresh the list
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error sending campaign:', errorMessage);
       toast.dismiss();
       toast.error(`Failed to send campaign: ${errorMessage}`);
@@ -83,18 +84,26 @@ const BulkEmailPage: React.FC = () => {
   };
 
   const handleDeleteCampaign = async (_campaignId: string, campaignTitle: string) => {
-    if (confirm(`Are you sure you want to delete "${campaignTitle}"?`)) {
-      toast.loading('Deleting campaign...');
-      try {
-        await emailCampaignService.deleteCampaign(_campaignId);
-        toast.dismiss();
-        toast.success('Campaign deleted successfully!');
-        await fetchCampaigns(); // Refresh the list
-      } catch (error) {
-        console.error('Error deleting campaign:', error);
-        toast.dismiss();
-        toast.error('Failed to delete campaign');
-      }
+    setDeleteConfirmation({ id: _campaignId, title: campaignTitle });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+
+    const { id: campaignId } = deleteConfirmation;
+    setDeleteConfirmation(null); // Close modal immediately
+
+    toast.loading('Deleting campaign...');
+    try {
+      await emailCampaignService.deleteCampaign(campaignId);
+      toast.dismiss();
+      toast.success('Campaign deleted successfully!');
+      await fetchCampaigns(); // Refresh the list
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error deleting campaign:', errorMessage);
+      toast.dismiss();
+      toast.error(`Failed to delete campaign: ${errorMessage}`);
     }
   };
 
@@ -289,6 +298,34 @@ const BulkEmailPage: React.FC = () => {
           campaignId={previewCampaignId}
           onClose={() => setPreviewCampaignId(null)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-sm w-full">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Campaign</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete "<span className="font-medium">{deleteConfirmation.title}</span>"? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteConfirmation(null)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => confirmDelete()}
+                  className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

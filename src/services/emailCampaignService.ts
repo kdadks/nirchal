@@ -223,7 +223,7 @@ export const emailCampaignService = {
           successCount++;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
-          console.error(`Failed to send email to ${recipient.email}:`, errorMessage);
+          console.error(`Failed to send email to ${recipient.email}: ${errorMessage}`);
 
           // Update recipient status to failed
           await this.updateRecipientStatus(recipient.id, 'failed', {
@@ -265,8 +265,18 @@ export const emailCampaignService = {
 
       console.log(`Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error sending campaign:', errorMessage);
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        // Handle Supabase errors and other objects
+        errorMessage = (error as any).message || (error as any).error || JSON.stringify(error);
+      }
+      
+      console.error(`Error sending campaign: ${errorMessage}`);
       
       // Update campaign status to failed
       try {

@@ -215,11 +215,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       await refreshCounts();
       
       // Also call page-specific refresh callback if available
-      if (refreshCallback) {
+      if (refreshCallback && typeof refreshCallback === 'function') {
         await refreshCallback();
       }
     } catch (error) {
-      console.error('Error refreshing data:', error);
+      console.error('Error refreshing data:', error instanceof Error ? error.message : String(error));
     } finally {
       setIsRefreshing(false);
     }
