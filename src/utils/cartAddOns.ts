@@ -57,7 +57,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Matching Jewelry',
         description: 'Complete your look with traditional jewelry',
         type: 'product',
-        category: 'Jewelry',
+        category: 'Jewellery',
         priceRange: { min: 299, max: 9999 },
         icon: '💎'
       },
@@ -100,7 +100,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Traditional Jewelry',
         description: 'Statement jewelry perfect for your lehenga',
         type: 'product',
-        category: 'Jewelry',
+        category: 'Jewellery',
         priceRange: { min: 499, max: 14999 },
         icon: '💎'
       },
@@ -144,7 +144,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Elegant Jewelry',
         description: 'Contemporary jewelry to match your gown',
         type: 'product',
-        category: 'Jewelry',
+        category: 'Jewellery',
         priceRange: { min: 399, max: 7999 },
         icon: '💎'
       },
@@ -196,7 +196,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Everyday Jewelry',
         description: 'Simple and elegant jewelry pieces',
         type: 'product',
-        category: 'Jewelry',
+        category: 'Jewellery',
         priceRange: { min: 199, max: 3999 },
         icon: '💎'
       }
@@ -232,7 +232,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Casual Jewelry',
         description: 'Lightweight jewelry for everyday wear',
         type: 'product',
-        category: 'Jewelry',
+        category: 'Jewellery',
         priceRange: { min: 149, max: 1999 },
         icon: '💎'
       }
@@ -259,7 +259,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Elegant Jewelry',
         description: 'Traditional jewelry to complete your look',
         type: 'product',
-        category: 'Jewelry',
+        category: 'Jewellery',
         priceRange: { min: 199, max: 3999 },
         icon: '💎'
       },
@@ -295,7 +295,7 @@ export const CART_ADDON_RULES: AddOnSuggestion[] = [
         title: 'Fashion Jewelry',
         description: 'Trendy jewelry to complete your outfit',
         type: 'product',
-        category: 'Jewelry',
+        category: 'Jewellery',
         priceRange: { min: 199, max: 2999 },
         icon: '💎'
       },

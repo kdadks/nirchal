@@ -214,7 +214,7 @@ const CartAddOns: React.FC<CartAddOnsProps> = ({ cartItems }) => {
               {/* Jewelry - Product Selection */}
               {selectedService.id === 'jewelry' && (
                 <ProductSelectionModal
-                  category="Jewelry"
+                  category="Jewellery"
                   onClose={closeServiceModal}
                   addToCart={addToCart}
                 />
@@ -437,7 +437,7 @@ const ProductSelectionModal: React.FC<{
     { id: 'casual', label: 'Casual' },
   ];
 
-  const isJewelryCategory = category.toLowerCase() === 'jewelry';
+  const isJewelryCategory = category.toLowerCase() === 'jewelry' || category.toLowerCase() === 'jewellery';
 
   // Flexible category matching to handle singular/plural variations
   const filteredProducts = products.filter(p => {
@@ -448,9 +448,18 @@ const ProductSelectionModal: React.FC<{
     const singularSearch = searchCategory.endsWith('s') ? searchCategory.slice(0, -1) : searchCategory;
     const pluralSearch = searchCategory.endsWith('s') ? searchCategory : searchCategory + 's';
     
-    const matchesCategory = productCategory === searchCategory || 
-                           productCategory === singularSearch || 
-                           productCategory === pluralSearch;
+    // For jewelry, also handle alternate spellings (jewellery vs jewelry)
+    let matchesCategory = productCategory === searchCategory || 
+                         productCategory === singularSearch || 
+                         productCategory === pluralSearch;
+    
+    if (isJewelryCategory && !matchesCategory) {
+      // Check for jewellery vs jewelry variations
+      matchesCategory = productCategory === 'jewellery' || 
+                       productCategory === 'jewelry' ||
+                       productCategory.includes('jewelry') ||
+                       productCategory.includes('jewellery');
+    }
     
     if (!matchesCategory) return false;
 
@@ -462,13 +471,15 @@ const ProductSelectionModal: React.FC<{
       
       switch (selectedTab) {
         case 'traditional':
-          return searchText.includes('traditional') || searchText.includes('ethnic') || searchText.includes('temple');
+          return searchText.includes('traditional') || searchText.includes('ethnic') || searchText.includes('temple') || searchText.includes('pearl') || searchText.includes('kundan');
         case 'matching':
-          return searchText.includes('matching') || searchText.includes('coordinating');
+          // For matching tab, show all jewelry since any jewelry can be matching
+          // Only filter out if explicitly marked as something else
+          return !searchText.includes('casual') && !searchText.includes('everyday');
         case 'elegant':
-          return searchText.includes('elegant') || searchText.includes('contemporary') || searchText.includes('modern');
+          return searchText.includes('elegant') || searchText.includes('contemporary') || searchText.includes('modern') || searchText.includes('diamond');
         case 'casual':
-          return searchText.includes('casual') || searchText.includes('everyday') || searchText.includes('lightweight');
+          return searchText.includes('casual') || searchText.includes('everyday') || searchText.includes('lightweight') || searchText.includes('simple');
         default:
           return true;
       }
@@ -476,6 +487,17 @@ const ProductSelectionModal: React.FC<{
     
     return true;
   });
+
+  // Debug logging
+  console.log(`ProductSelectionModal - Category: ${category}, Total Products: ${products.length}, Filtered: ${filteredProducts.length}, Tab: ${selectedTab}`);
+  if (isJewelryCategory) {
+    const jewelryProducts = products.filter(p => {
+      if (!p.category) return false;
+      const pc = p.category.toLowerCase();
+      return pc === 'jewelry' || pc === 'jewellery' || pc.includes('jewelry') || pc.includes('jewellery');
+    });
+    console.log(`Jewelry/Jewellery products found in DB:`, jewelryProducts.map(p => ({ name: p.name, category: p.category, price: p.price })));
+  }
 
   const handleAddToCart = () => {
     if (!selectedProduct) {
