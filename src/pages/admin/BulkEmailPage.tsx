@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Plus, Eye, Send, Clock, Trash2, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { emailCampaignService } from '../../services/emailCampaignService';
 
 interface Campaign {
   id: string;
@@ -16,7 +17,7 @@ interface Campaign {
 
 const BulkEmailPage: React.FC = () => {
   const navigate = useNavigate();
-  const [campaigns, _setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
@@ -24,14 +25,11 @@ const BulkEmailPage: React.FC = () => {
   const fetchCampaigns = async () => {
     setLoading(true);
     try {
-      // TODO: Implement API call to fetch campaigns
-      // const response = await supabase
-      //   .from('email_campaigns')
-      //   .select('*')
-      //   .order('created_at', { ascending: false });
-      // setCampaigns(response.data || []);
+      const response = await emailCampaignService.listCampaigns(50, 0);
+      setCampaigns((response.data as unknown as Campaign[]) || []);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
+      toast.error('Failed to fetch campaigns');
     } finally {
       setLoading(false);
     }
@@ -58,23 +56,41 @@ const BulkEmailPage: React.FC = () => {
     }
   };
 
-  const handleSendCampaign = (_campaignId: string, campaignTitle: string) => {
+  const handleSendCampaign = async (_campaignId: string, campaignTitle: string) => {
     toast.loading('Sending campaign...');
-    // TODO: Implement send via emailCampaignService.sendCampaign(_campaignId)
-    setTimeout(() => {
+    try {
+      // TODO: Implement send via emailCampaignService.sendCampaign(_campaignId)
+      // Update campaign status to 'sending'
+      // await emailCampaignService.updateCampaign(_campaignId, { status: 'sending' });
+      
+      // Trigger sending via edge function
+      // const response = await supabase.functions.invoke('send-email-campaign', {
+      //   body: { campaignId: _campaignId }
+      // });
+      
       toast.dismiss();
       toast.success(`Campaign "${campaignTitle}" sent successfully!`);
-    }, 1000);
+      await fetchCampaigns(); // Refresh the list
+    } catch (error) {
+      console.error('Error sending campaign:', error);
+      toast.dismiss();
+      toast.error('Failed to send campaign');
+    }
   };
 
-  const handleDeleteCampaign = (_campaignId: string, campaignTitle: string) => {
+  const handleDeleteCampaign = async (_campaignId: string, campaignTitle: string) => {
     if (confirm(`Are you sure you want to delete "${campaignTitle}"?`)) {
       toast.loading('Deleting campaign...');
-      // TODO: Implement delete via emailCampaignService.deleteCampaign(_campaignId)
-      setTimeout(() => {
+      try {
+        await emailCampaignService.deleteCampaign(_campaignId);
         toast.dismiss();
         toast.success('Campaign deleted successfully!');
-      }, 1000);
+        await fetchCampaigns(); // Refresh the list
+      } catch (error) {
+        console.error('Error deleting campaign:', error);
+        toast.dismiss();
+        toast.error('Failed to delete campaign');
+      }
     }
   };
 

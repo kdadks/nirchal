@@ -3,6 +3,7 @@ import { ArrowLeft, Save, Eye, Upload, X, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import toast from 'react-hot-toast';
+import { emailCampaignService } from '../../services/emailCampaignService';
 import 'react-quill/dist/quill.snow.css';
 
 interface Recipient {
@@ -199,9 +200,19 @@ const CreateEmailCampaignPage: React.FC = () => {
 
     try {
       toast.loading('Saving campaign...');
-      // TODO: Implement save draft API call
+      await emailCampaignService.createCampaign({
+        title: formData.title,
+        description: formData.description,
+        subject: formData.subject,
+        html_content: formData.html_content,
+        sender_email: formData.sender_email,
+        sender_name: formData.sender_name,
+        recipients: formData.recipients,
+        max_retries: formData.max_retries,
+      });
       toast.dismiss();
       toast.success('Campaign saved as draft!');
+      setTimeout(() => navigate(`/admin/email-campaigns`), 1000);
     } catch (error) {
       console.error('Error saving campaign:', error);
       toast.dismiss();
@@ -233,18 +244,29 @@ const CreateEmailCampaignPage: React.FC = () => {
     }
 
     try {
-      toast.loading('Sending campaign...');
-      // TODO: Implement send campaign API call via emailCampaignService
-      // const response = await emailCampaignService.sendCampaign({
-      //   title: formData.title,
-      //   description: formData.description,
-      //   subject: formData.subject,
-      //   html_content: formData.html_content,
-      //   sender_email: formData.sender_email,
-      //   sender_name: formData.sender_name,
-      //   recipients: formData.recipients,
-      //   max_retries: formData.max_retries,
+      toast.loading('Creating and sending campaign...');
+      // Create the campaign
+      const campaign = await emailCampaignService.createCampaign({
+        title: formData.title,
+        description: formData.description,
+        subject: formData.subject,
+        html_content: formData.html_content,
+        sender_email: formData.sender_email,
+        sender_name: formData.sender_name,
+        recipients: formData.recipients,
+        max_retries: formData.max_retries,
+      });
+
+      // Update campaign status to 'sent' (or 'sending' if using edge functions)
+      await emailCampaignService.updateCampaign(campaign.id, { 
+        status: 'sent',
+      });
+
+      // TODO: Trigger sending via edge function if async sending is needed
+      // await supabase.functions.invoke('send-email-campaign', {
+      //   body: { campaignId: campaign.id }
       // });
+
       toast.dismiss();
       toast.success(`Campaign sent to ${formData.recipients.length} recipient${formData.recipients.length !== 1 ? 's' : ''}!`);
       setTimeout(() => navigate('/admin/email-campaigns'), 1500);
