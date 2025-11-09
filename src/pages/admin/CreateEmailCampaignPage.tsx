@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Save, Eye, Upload, X, Send } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import toast from 'react-hot-toast';
 import { emailCampaignService } from '../../services/emailCampaignService';
@@ -25,6 +25,7 @@ interface FormData {
 
 const CreateEmailCampaignPage: React.FC = () => {
   const navigate = useNavigate();
+  const { id: campaignId } = useParams<{ id: string }>();
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -41,6 +42,46 @@ const CreateEmailCampaignPage: React.FC = () => {
   const [recipientCSV, setRecipientCSV] = useState<File | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'content' | 'recipients' | 'schedule'>('basic');
+  const [_loading, setLoading] = useState(campaignId ? true : false);
+
+  // Load campaign data if editing
+  React.useEffect(() => {
+    if (campaignId) {
+      loadCampaign();
+    }
+  }, [campaignId]);
+
+  const loadCampaign = async () => {
+    try {
+      const campaign = await emailCampaignService.getCampaignById(campaignId!);
+      if (!campaign) {
+        toast.error('Campaign not found');
+        navigate('/admin/email-campaigns');
+        return;
+      }
+
+      // Load recipients
+      const recipients = await emailCampaignService.getCampaignRecipients(campaignId!);
+
+      setFormData({
+        title: campaign.title,
+        description: campaign.description || '',
+        subject: campaign.subject,
+        html_content: campaign.html_content,
+        sender_email: campaign.sender_email,
+        sender_name: campaign.sender_name || '',
+        recipients: recipients as unknown as Recipient[],
+        scheduled_at: campaign.scheduled_at || '',
+        max_retries: campaign.max_retries || 3,
+      });
+    } catch (error) {
+      console.error('Error loading campaign:', error);
+      toast.error('Failed to load campaign');
+      navigate('/admin/email-campaigns');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBasicChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

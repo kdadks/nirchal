@@ -55,6 +55,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="/security" element={<SecurityPage />} />
               <Route path="/email-campaigns" element={<BulkEmailPage />} />
               <Route path="/email-campaigns/new" element={<CreateEmailCampaignPage />} />
+              <Route path="/email-campaigns/:id/edit" element={<CreateEmailCampaignPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>

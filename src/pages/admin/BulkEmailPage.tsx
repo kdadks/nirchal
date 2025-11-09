@@ -3,6 +3,7 @@ import { Mail, Plus, Eye, Send, Clock, Trash2, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { emailCampaignService } from '../../services/emailCampaignService';
+import CampaignPreviewModal from '../../components/admin/CampaignPreviewModal';
 
 interface Campaign {
   id: string;
@@ -20,6 +21,7 @@ const BulkEmailPage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [previewCampaignId, setPreviewCampaignId] = useState<string | null>(null);
 
   // Fetch campaigns
   const fetchCampaigns = async () => {
@@ -229,7 +231,7 @@ const BulkEmailPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => navigate(`/admin/email-campaigns/${campaign.id}/preview`)}
+                          onClick={() => setPreviewCampaignId(campaign.id)}
                           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Preview"
                         >
@@ -276,6 +278,14 @@ const BulkEmailPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Preview Modal */}
+      {previewCampaignId && (
+        <CampaignPreviewModal 
+          campaignId={previewCampaignId}
+          onClose={() => setPreviewCampaignId(null)}
+        />
+      )}
     </div>
   );
 };
