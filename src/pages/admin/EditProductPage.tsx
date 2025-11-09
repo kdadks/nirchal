@@ -81,6 +81,11 @@ const EditProductPage: React.FC = () => {
     is_active: product.is_active,
     meta_title: product.meta_title || '',
     meta_description: product.meta_description || '',
+    // Product attributes
+    fabric: product.fabric || null,
+    color: product.color || null,
+    occasion: product.occasion || null,
+    subcategory: product.subcategory || null,
     // Google Merchant Center fields
     gtin: product.gtin || null,
     mpn: product.mpn || null,

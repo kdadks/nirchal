@@ -77,6 +77,11 @@ export interface Product {
   updated_at: string;
   created_by: string;
   updated_by: string;
+  // Product attributes
+  fabric: string | null; // e.g., Cotton, Silk, Georgette
+  color: string | null; // e.g., Red, Blue, Multi-color
+  occasion: string[] | null; // e.g., ['wedding', 'party', 'casual']
+  subcategory: string | null; // e.g., Saree, Kurti, Dress
   // Google Merchant Center fields
   gtin: string | null; // Global Trade Item Number (UPC, EAN, ISBN)
   mpn: string | null; // Manufacturer Part Number

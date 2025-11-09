@@ -96,6 +96,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
       quantity: 0,
       low_stock_threshold: 2
     },
+    // Product attributes
+    fabric: initialData?.fabric || null,
+    color: initialData?.color || null,
+    occasion: initialData?.occasion || null,
+    subcategory: initialData?.subcategory || null,
     // Google Merchant Center fields
     gtin: initialData?.gtin || null,
     mpn: initialData?.mpn || null,
@@ -625,6 +630,92 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                   />
                   <span className="ml-2 text-sm font-medium text-gray-700">Active</span>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Product Attributes */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Product Attributes</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Fabric (Optional)</label>
+                <select
+                  value={formData.fabric || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fabric: e.target.value || null }))}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                >
+                  <option value="">Select Fabric Type</option>
+                  <option value="Silk">Silk</option>
+                  <option value="Cotton">Cotton</option>
+                  <option value="Georgette">Georgette</option>
+                  <option value="Chiffon">Chiffon</option>
+                  <option value="Velvet">Velvet</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Helps customers filter products by fabric type
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Color (Optional)</label>
+                <input
+                  type="text"
+                  value={formData.color || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value || null }))}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  placeholder="e.g., Red, Blue, Green, Multi-color"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Primary color of the product. For color variants, use the Variants section below
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Occasions (Optional)</label>
+                <div className="mt-1 space-y-2">
+                  {['wedding', 'party', 'festival', 'casual', 'formal'].map((occasion) => (
+                    <label key={occasion} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={(formData.occasion || []).includes(occasion)}
+                        onChange={(e) => {
+                          const currentOccasions = formData.occasion || [];
+                          if (e.target.checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              occasion: [...currentOccasions, occasion]
+                            }));
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              occasion: currentOccasions.filter(o => o !== occasion)
+                            }));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 capitalize">{occasion}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Select one or more occasions this product is suitable for
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Subcategory (Optional)</label>
+                <input
+                  type="text"
+                  value={formData.subcategory || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, subcategory: e.target.value || null }))}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                  placeholder="e.g., Saree, Kurti, Dress, Blouse, Lehenga"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Specific type of product within its category
+                </p>
               </div>
             </div>
           </div>
