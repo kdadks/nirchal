@@ -275,7 +275,7 @@ export const emailCampaignService = {
       if (updateError) throw updateError;
 
       // Log campaign completion
-      await this.logCampaignEvent(campaignId, 'completed', {
+      await this.logCampaignEvent(campaignId, 'started', {
         success_count: successCount,
         failure_count: failureCount,
         total_recipients: recipients.length,

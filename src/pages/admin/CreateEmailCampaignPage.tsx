@@ -383,6 +383,9 @@ const CreateEmailCampaignPage: React.FC = () => {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Email Content (HTML) *</label>
+          <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+            <strong>Tip:</strong> Images are embedded directly in emails as base64. Keep image file sizes small (under 1MB) for email deliverability.
+          </div>
           <ReactQuill
             value={formData.html_content}
             onChange={handleHTMLContentChange}
@@ -395,8 +398,12 @@ const CreateEmailCampaignPage: React.FC = () => {
                 [{ 'color': [] }, { 'background': [] }],
                 ['link', 'image'],
                 ['clean']
-              ]
+              ],
+              imageResize: {
+                displaySize: true
+              }
             }}
+            formats={['header', 'bold', 'italic', 'underline', 'strike', 'list', 'color', 'background', 'link', 'image', 'image-resize']}
             style={{ minHeight: '400px' }}
           />
         </div>
