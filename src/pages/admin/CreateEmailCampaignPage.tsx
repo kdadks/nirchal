@@ -398,12 +398,8 @@ const CreateEmailCampaignPage: React.FC = () => {
                 [{ 'color': [] }, { 'background': [] }],
                 ['link', 'image'],
                 ['clean']
-              ],
-              imageResize: {
-                displaySize: true
-              }
+              ]
             }}
-            formats={['header', 'bold', 'italic', 'underline', 'strike', 'list', 'color', 'background', 'link', 'image', 'image-resize']}
             style={{ minHeight: '400px' }}
           />
         </div>
