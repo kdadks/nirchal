@@ -12,6 +12,7 @@ interface Env {
 interface SendEmailRequest {
   to: string;
   from: string;
+  fromName?: string;
   subject: string;
   html: string;
   recipientId?: string;
@@ -55,7 +56,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     }
 
     const body: SendEmailRequest = await request.json();
-    const { to, from, subject, html } = body;
+    const { to, from, fromName, subject, html } = body;
 
     // Validate required fields
     if (!to || !from || !subject || !html) {
@@ -65,6 +66,9 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
+    // Format the from field with sender name if provided
+    const fromFormatted = fromName ? `${fromName} <${from}>` : from;
+
     // Call Resend API
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -73,7 +77,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         'Authorization': `Bearer ${env.RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from,
+        from: fromFormatted,
         to,
         subject,
         html,

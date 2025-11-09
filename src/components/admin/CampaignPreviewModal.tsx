@@ -106,6 +106,18 @@ const CampaignPreviewModal: React.FC<CampaignPreviewModalProps> = ({ campaignId,
               <label className="text-xs font-semibold text-gray-600 uppercase">Failed</label>
               <p className="text-sm text-gray-900 mt-1">{campaign.failed_count}</p>
             </div>
+            {campaign.started_at && (
+              <div>
+                <label className="text-xs font-semibold text-gray-600 uppercase">Started At</label>
+                <p className="text-sm text-gray-900 mt-1">{new Date(campaign.started_at).toLocaleString()}</p>
+              </div>
+            )}
+            {campaign.completed_at && (
+              <div>
+                <label className="text-xs font-semibold text-gray-600 uppercase">Completed At</label>
+                <p className="text-sm text-gray-900 mt-1">{new Date(campaign.completed_at).toLocaleString()}</p>
+              </div>
+            )}
           </div>
 
           {/* Email Details */}

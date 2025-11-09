@@ -171,6 +171,23 @@ export const emailCampaignService = {
       const recipients = await this.getCampaignRecipients(campaignId);
       if (!recipients || recipients.length === 0) throw new Error('No recipients found');
 
+      // Mark campaign as sending and set started_at
+      const sendStart = new Date().toISOString();
+      try {
+        const { error: startError } = await supabase
+          .from('email_campaigns')
+          .update({
+            status: 'sending',
+            started_at: sendStart,
+          })
+          .eq('id', campaignId);
+
+        if (startError) console.error('Error setting campaign started_at:', startError);
+        await this.logCampaignEvent(campaignId, 'started', { timestamp: sendStart });
+      } catch (e) {
+        console.error('Failed to mark campaign as sending:', e);
+      }
+
       // Send emails via Resend API
       let successCount = 0;
       let failureCount = 0;
@@ -185,6 +202,7 @@ export const emailCampaignService = {
             },
             body: JSON.stringify({
               from: campaign.sender_email || 'noreply@nirchal.com',
+              fromName: campaign.sender_name || 'Nirchal Fashion',
               to: recipient.email,
               subject: campaign.subject,
               html: campaign.html_content,
@@ -242,25 +260,28 @@ export const emailCampaignService = {
         }
       }
 
-      // Update campaign with final counts
+      // Update campaign with final counts and completed_at
+      const completionTime = new Date().toISOString();
       const { error: updateError } = await supabase
         .from('email_campaigns')
         .update({
           status: 'sent',
           sent_count: successCount,
           failed_count: failureCount,
-          sent_at: new Date().toISOString(),
+          completed_at: completionTime,
         })
         .eq('id', campaignId);
 
       if (updateError) throw updateError;
 
       // Log campaign completion
-      await this.logCampaignEvent(campaignId, 'started', {
+      await this.logCampaignEvent(campaignId, 'completed', {
         success_count: successCount,
         failure_count: failureCount,
         total_recipients: recipients.length,
-        timestamp: new Date().toISOString(),
+        started_at: sendStart,
+        completed_at: completionTime,
+        timestamp: completionTime,
       });
 
       console.log(`Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);

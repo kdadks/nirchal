@@ -14,6 +14,8 @@ interface Campaign {
   total_recipients: number;
   sent_count: number;
   created_at: string;
+  started_at?: string;
+  completed_at?: string;
   scheduled_at?: string;
 }
 
@@ -215,7 +217,8 @@ const BulkEmailPage: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Recipients</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Sent</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Started</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Completed</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -237,7 +240,10 @@ const BulkEmailPage: React.FC = () => {
                     <td className="px-6 py-4 text-sm text-gray-700">{campaign.total_recipients}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{campaign.sent_count}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(campaign.created_at).toLocaleDateString()}
+                      {campaign.started_at ? new Date(campaign.started_at).toLocaleString() : '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {campaign.completed_at ? new Date(campaign.completed_at).toLocaleString() : '-'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
