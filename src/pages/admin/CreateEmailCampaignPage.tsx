@@ -107,24 +107,51 @@ const CreateEmailCampaignPage: React.FC = () => {
       let addedCount = 0;
       const duplicateCount = { count: 0 };
       const invalidCount = { count: 0 };
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      // More lenient email regex - RFC 5322 simplified
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+      // Function to validate email more thoroughly
+      const isValidEmail = (email: string): boolean => {
+        // Basic checks
+        if (!email || email.length > 254) return false;
+        if (!emailRegex.test(email)) return false;
+        
+        const [localPart, ...domainParts] = email.split('@');
+        const domain = domainParts.join('@');
+        
+        // Check local part length (max 64 chars)
+        if (!localPart || localPart.length > 64) return false;
+        if (!localPart.match(/^[a-zA-Z0-9._%-]+$/)) return false;
+        
+        // Check domain
+        if (!domain || domain.length < 3) return false;
+        if (domain.startsWith('.') || domain.endsWith('.')) return false;
+        if (domain.includes('..')) return false;
+        
+        return true;
+      };
 
       lines.forEach((line, index) => {
         const parts = line.split(',').map(p => p.trim());
-        const email = parts[0];
-        const name = parts[1];
+        const email = parts[0]?.trim().toLowerCase();
+        const name = parts[1]?.trim();
+
+        // Skip empty lines
+        if (!email) {
+          return;
+        }
 
         // Skip header row if it looks like one
-        if (index === 0 && (email.toLowerCase() === 'email' || email.toLowerCase() === 'email_address')) {
+        if (index === 0 && (email === 'email' || email === 'email_address' || email === 'email address')) {
           return;
         }
 
-        if (!emailRegex.test(email)) {
+        if (!isValidEmail(email)) {
           invalidCount.count++;
+          console.warn(`Invalid email format: "${email}"`);
           return;
         }
 
-        if (formData.recipients.some(r => r.email === email)) {
+        if (formData.recipients.some(r => r.email.toLowerCase() === email)) {
           duplicateCount.count++;
           return;
         }
@@ -350,7 +377,10 @@ const CreateEmailCampaignPage: React.FC = () => {
             {recipientCSV && (
               <p className="text-xs text-green-600 mt-2">Selected: {recipientCSV.name}</p>
             )}
-            <p className="text-xs text-gray-500 mt-2">Expected format: email,name (optional)</p>
+            <p className="text-xs text-gray-500 mt-2">Format: email,name (optional) - one per line</p>
+            <p className="text-xs text-gray-500">Example:</p>
+            <p className="text-xs text-gray-400 font-mono">john@example.com,John Doe</p>
+            <p className="text-xs text-gray-400 font-mono">jane@example.com</p>
           </div>
 
           {/* Recipients List */}

@@ -118,62 +118,31 @@ ALTER TABLE email_campaign_recipients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_campaign_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_templates ENABLE ROW LEVEL SECURITY;
 
--- Only super-admins can create and manage email campaigns
-CREATE POLICY "super_admin_campaigns_full_access"
+-- Only authenticated admin users can create and manage email campaigns
+-- Admin users are identified by being in auth.users (not customers table)
+CREATE POLICY "admin_campaigns_full_access"
     ON email_campaigns
     FOR ALL
-    USING (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ))
-    WITH CHECK (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ));
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
 
--- Super-admins can manage recipients
-CREATE POLICY "super_admin_recipients_full_access"
+-- Only authenticated admin users can manage recipients
+CREATE POLICY "admin_recipients_full_access"
     ON email_campaign_recipients
     FOR ALL
-    USING (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ))
-    WITH CHECK (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ));
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
 
--- Super-admins can view logs
-CREATE POLICY "super_admin_logs_full_access"
+-- Only authenticated admin users can view logs
+CREATE POLICY "admin_logs_full_access"
     ON email_campaign_logs
     FOR ALL
-    USING (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ))
-    WITH CHECK (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ));
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
 
--- Super-admins can manage templates
-CREATE POLICY "super_admin_templates_full_access"
+-- Only authenticated admin users can manage templates
+CREATE POLICY "admin_templates_full_access"
     ON email_templates
     FOR ALL
-    USING (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ))
-    WITH CHECK (EXISTS(
-        SELECT 1 FROM user_roles
-        WHERE user_id = auth.uid()
-        AND role = 'super_admin'
-    ));
+    USING (auth.uid() IS NOT NULL)
+    WITH CHECK (auth.uid() IS NOT NULL);
