@@ -75,9 +75,10 @@ const BulkEmailPage: React.FC = () => {
       toast.success(`Campaign "${campaignTitle}" sent successfully!`);
       await fetchCampaigns(); // Refresh the list
     } catch (error) {
-      console.error('Error sending campaign:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error sending campaign:', errorMessage);
       toast.dismiss();
-      toast.error('Failed to send campaign');
+      toast.error(`Failed to send campaign: ${errorMessage}`);
     }
   };
 

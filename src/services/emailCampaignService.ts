@@ -194,35 +194,47 @@ export const emailCampaignService = {
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || error.message || 'Failed to send email');
+            const errorData = await response.text();
+            let errorMessage = 'Failed to send email';
+            try {
+              const jsonError = JSON.parse(errorData);
+              errorMessage = jsonError.error || jsonError.message || errorMessage;
+            } catch {
+              errorMessage = `API Error: ${response.status} - ${errorData || response.statusText}`;
+            }
+            throw new Error(errorMessage);
           }
 
+          const responseData = await response.json();
+          
           // Update recipient status to sent
           await this.updateRecipientStatus(recipient.id, 'sent', {
             sent_at: new Date().toISOString(),
+            resend_message_id: responseData.messageId,
           });
 
           // Log success
           await this.logCampaignEvent(campaignId, 'sent', {
             recipient_email: recipient.email,
+            messageId: responseData.messageId,
             timestamp: new Date().toISOString(),
           }, recipient.id);
 
           successCount++;
         } catch (error) {
-          console.error(`Failed to send email to ${recipient.email}:`, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error(`Failed to send email to ${recipient.email}:`, errorMessage);
 
           // Update recipient status to failed
           await this.updateRecipientStatus(recipient.id, 'failed', {
-            error_message: error instanceof Error ? error.message : 'Unknown error',
+            error_message: errorMessage,
             failed_at: new Date().toISOString(),
           });
 
           // Log failure
           await this.logCampaignEvent(campaignId, 'failed', {
             recipient_email: recipient.email,
-            error: error instanceof Error ? error.message : 'Unknown error',
+            error: errorMessage,
             timestamp: new Date().toISOString(),
           }, recipient.id);
 
@@ -253,7 +265,8 @@ export const emailCampaignService = {
 
       console.log(`Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);
     } catch (error) {
-      console.error('Error sending campaign:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error sending campaign:', errorMessage);
       
       // Update campaign status to failed
       try {
@@ -261,14 +274,14 @@ export const emailCampaignService = {
           status: 'failed',
         });
         await this.logCampaignEvent(campaignId, 'failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: errorMessage,
           timestamp: new Date().toISOString(),
         });
       } catch (updateError) {
         console.error('Error updating campaign status:', updateError);
       }
 
-      throw error;
+      throw new Error(errorMessage);
     }
   },
 
