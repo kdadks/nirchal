@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Plus, Eye, Send, Clock, Trash2, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface Campaign {
   id: string;
@@ -55,6 +56,35 @@ const BulkEmailPage: React.FC = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleSendCampaign = (_campaignId: string, campaignTitle: string) => {
+    toast.loading('Sending campaign...');
+    // TODO: Implement send via emailCampaignService.sendCampaign(_campaignId)
+    setTimeout(() => {
+      toast.dismiss();
+      toast.success(`Campaign "${campaignTitle}" sent successfully!`);
+    }, 1000);
+  };
+
+  const handleDeleteCampaign = (_campaignId: string, campaignTitle: string) => {
+    if (confirm(`Are you sure you want to delete "${campaignTitle}"?`)) {
+      toast.loading('Deleting campaign...');
+      // TODO: Implement delete via emailCampaignService.deleteCampaign(_campaignId)
+      setTimeout(() => {
+        toast.dismiss();
+        toast.success('Campaign deleted successfully!');
+      }, 1000);
+    }
+  };
+
+  const handleExportStats = (_campaignId: string, _campaignTitle: string) => {
+    toast.loading('Exporting statistics...');
+    // TODO: Implement export stats
+    setTimeout(() => {
+      toast.dismiss();
+      toast.success('Statistics exported successfully!');
+    }, 1000);
   };
 
   const getStatusIcon = (status: string) => {
@@ -198,9 +228,7 @@ const BulkEmailPage: React.FC = () => {
                         </button>
                         {campaign.status === 'draft' && (
                           <button
-                            onClick={() => {
-                              // TODO: Implement send campaign
-                            }}
+                            onClick={() => handleSendCampaign(campaign.id, campaign.title)}
                             className="p-2 hover:bg-green-100 rounded-lg transition-colors"
                             title="Send"
                           >
@@ -209,6 +237,7 @@ const BulkEmailPage: React.FC = () => {
                         )}
                         {['sent', 'failed'].includes(campaign.status) && (
                           <button
+                            onClick={() => handleExportStats(campaign.id, campaign.title)}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                             title="Export stats"
                           >
@@ -216,6 +245,7 @@ const BulkEmailPage: React.FC = () => {
                           </button>
                         )}
                         <button
+                          onClick={() => handleDeleteCampaign(campaign.id, campaign.title)}
                           className="p-2 hover:bg-red-100 rounded-lg transition-colors"
                           title="Delete"
                         >

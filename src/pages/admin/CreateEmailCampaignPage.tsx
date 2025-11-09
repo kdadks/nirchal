@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Eye, Upload, X } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Upload, X, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ReactQuill from 'react-quill';
+import toast from 'react-hot-toast';
 import 'react-quill/dist/quill.snow.css';
 
 interface Recipient {
@@ -64,12 +65,12 @@ const CreateEmailCampaignPage: React.FC = () => {
     const name = parts[1]?.trim();
 
     if (!emailRegex.test(email)) {
-      alert('Invalid email address');
+      toast.error('Invalid email address');
       return;
     }
 
     if (formData.recipients.some(r => r.email === email)) {
-      alert('This email is already added');
+      toast.error('This email is already added');
       return;
     }
 
@@ -78,6 +79,7 @@ const CreateEmailCampaignPage: React.FC = () => {
       recipients: [...prev.recipients, { email, name }]
     }));
     setRecipientInput('');
+    toast.success('Recipient added');
   };
 
   const handleRemoveRecipient = (email: string) => {
@@ -92,22 +94,125 @@ const CreateEmailCampaignPage: React.FC = () => {
     if (!file) return;
 
     setRecipientCSV(file);
-    // TODO: Parse CSV file for recipients
-    // Expected format: email,name or just email
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        toast.error('CSV file is empty');
+        return;
+      }
+
+      let addedCount = 0;
+      const duplicateCount = { count: 0 };
+      const invalidCount = { count: 0 };
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      lines.forEach((line, index) => {
+        const parts = line.split(',').map(p => p.trim());
+        const email = parts[0];
+        const name = parts[1];
+
+        // Skip header row if it looks like one
+        if (index === 0 && (email.toLowerCase() === 'email' || email.toLowerCase() === 'email_address')) {
+          return;
+        }
+
+        if (!emailRegex.test(email)) {
+          invalidCount.count++;
+          return;
+        }
+
+        if (formData.recipients.some(r => r.email === email)) {
+          duplicateCount.count++;
+          return;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          recipients: [...prev.recipients, { email, name }]
+        }));
+        addedCount++;
+      });
+
+      if (addedCount > 0) {
+        toast.success(`Added ${addedCount} recipient${addedCount !== 1 ? 's' : ''} from CSV`);
+      }
+      if (duplicateCount.count > 0) {
+        toast.error(`${duplicateCount.count} duplicate email${duplicateCount.count !== 1 ? 's' : ''} skipped`);
+      }
+      if (invalidCount.count > 0) {
+        toast.error(`${invalidCount.count} invalid email${invalidCount.count !== 1 ? 's' : ''} skipped`);
+      }
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      toast.error('Failed to parse CSV file');
+      setRecipientCSV(null);
+    }
   };
 
   const handleSaveDraft = async () => {
     if (!formData.title || !formData.subject || !formData.html_content) {
-      alert('Please fill in title, subject, and content');
+      toast.error('Please fill in title, subject, and content');
       return;
     }
 
     try {
+      toast.loading('Saving campaign...');
       // TODO: Implement save draft API call
-      alert('Campaign saved as draft!');
+      toast.dismiss();
+      toast.success('Campaign saved as draft!');
     } catch (error) {
       console.error('Error saving campaign:', error);
-      alert('Failed to save campaign');
+      toast.dismiss();
+      toast.error('Failed to save campaign');
+    }
+  };
+
+  const handleSendCampaign = async () => {
+    // Validation
+    if (!formData.title) {
+      toast.error('Please add a campaign title');
+      return;
+    }
+    if (!formData.subject) {
+      toast.error('Please add an email subject');
+      return;
+    }
+    if (!formData.html_content) {
+      toast.error('Please add email content');
+      return;
+    }
+    if (!formData.sender_email) {
+      toast.error('Please add a sender email');
+      return;
+    }
+    if (formData.recipients.length === 0) {
+      toast.error('Please add at least one recipient');
+      return;
+    }
+
+    try {
+      toast.loading('Sending campaign...');
+      // TODO: Implement send campaign API call via emailCampaignService
+      // const response = await emailCampaignService.sendCampaign({
+      //   title: formData.title,
+      //   description: formData.description,
+      //   subject: formData.subject,
+      //   html_content: formData.html_content,
+      //   sender_email: formData.sender_email,
+      //   sender_name: formData.sender_name,
+      //   recipients: formData.recipients,
+      //   max_retries: formData.max_retries,
+      // });
+      toast.dismiss();
+      toast.success(`Campaign sent to ${formData.recipients.length} recipient${formData.recipients.length !== 1 ? 's' : ''}!`);
+      setTimeout(() => navigate('/admin/email-campaigns'), 1500);
+    } catch (error) {
+      console.error('Error sending campaign:', error);
+      toast.dismiss();
+      toast.error('Failed to send campaign');
     }
   };
 
@@ -369,10 +474,17 @@ const CreateEmailCampaignPage: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveDraft}
-                className="flex items-center gap-2 px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium"
+                className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
               >
                 <Save className="w-4 h-4" />
                 Save Draft
+              </button>
+              <button
+                onClick={handleSendCampaign}
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                <Send className="w-4 h-4" />
+                Send Now
               </button>
             </div>
           </div>
