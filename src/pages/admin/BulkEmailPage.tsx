@@ -3,6 +3,7 @@ import { Mail, Plus, Eye, Send, Clock, Trash2, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { emailCampaignService } from '../../services/emailCampaignService';
+import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import CampaignPreviewModal from '../../components/admin/CampaignPreviewModal';
 
 interface Campaign {
@@ -18,6 +19,7 @@ interface Campaign {
 
 const BulkEmailPage: React.FC = () => {
   const navigate = useNavigate();
+  const { setRefreshCallback } = useAdminSearch();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -39,7 +41,14 @@ const BulkEmailPage: React.FC = () => {
 
   React.useEffect(() => {
     fetchCampaigns();
-  }, []);
+    // Register refresh callback for the admin header refresh button
+    setRefreshCallback(() => fetchCampaigns());
+    
+    return () => {
+      // Clear callback when component unmounts
+      setRefreshCallback(null);
+    };
+  }, [setRefreshCallback]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -6,6 +6,8 @@ interface AdminSearchContextType {
   currentPage: string;
   setCurrentPage: (page: string) => void;
   clearSearch: () => void;
+  refreshCallback: (() => Promise<void>) | null;
+  setRefreshCallback: (callback: (() => Promise<void>) | null) => void;
 }
 
 const AdminSearchContext = createContext<AdminSearchContextType | undefined>(undefined);
@@ -25,6 +27,7 @@ interface AdminSearchProviderProps {
 export const AdminSearchProvider: React.FC<AdminSearchProviderProps> = ({ children }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [refreshCallback, setRefreshCallback] = useState<(() => Promise<void>) | null>(null);
 
   const clearSearch = () => {
     setSearchTerm('');
@@ -36,6 +39,8 @@ export const AdminSearchProvider: React.FC<AdminSearchProviderProps> = ({ childr
     currentPage,
     setCurrentPage,
     clearSearch,
+    refreshCallback,
+    setRefreshCallback,
   };
 
   return (

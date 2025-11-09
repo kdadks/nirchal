@@ -45,7 +45,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [expandedMenus, setExpandedMenus] = useState<{ [key: string]: boolean }>({ orders: true, users: true });
   
   // Get search context
-  const { searchTerm, setSearchTerm, setCurrentPage } = useAdminSearch();
+  const { searchTerm, setSearchTerm, setCurrentPage, refreshCallback } = useAdminSearch();
   
   // Get counts from AdminContext
   const { counts, refreshCounts } = useAdminContext();
@@ -213,6 +213,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     try {
       // Simply refresh all counts since we have the AdminContext
       await refreshCounts();
+      
+      // Also call page-specific refresh callback if available
+      if (refreshCallback) {
+        await refreshCallback();
+      }
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {

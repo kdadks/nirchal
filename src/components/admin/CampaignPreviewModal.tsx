@@ -16,13 +16,6 @@ const CampaignPreviewModal: React.FC<CampaignPreviewModalProps> = ({ campaignId,
 
   useEffect(() => {
     loadCampaignData();
-    
-    // Set up auto-refresh every 2 seconds to show updated counts
-    const interval = setInterval(() => {
-      loadCampaignData();
-    }, 2000);
-
-    return () => clearInterval(interval);
   }, [campaignId]);
 
   const loadCampaignData = async () => {
@@ -35,10 +28,7 @@ const CampaignPreviewModal: React.FC<CampaignPreviewModalProps> = ({ campaignId,
       setRecipients(recipientsData as unknown as EmailCampaignRecipient[]);
     } catch (error) {
       console.error('Error loading campaign:', error);
-      // Only show toast on initial load, not on auto-refresh
-      if (loading) {
-        toast.error('Failed to load campaign preview');
-      }
+      toast.error('Failed to load campaign preview');
     } finally {
       setLoading(false);
     }
