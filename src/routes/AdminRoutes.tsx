@@ -21,6 +21,8 @@ import OptimizedAdminTest from '../components/admin/OptimizedAdminTest';
 import InvoiceManagementPanel from '../components/admin/InvoiceManagementPanel';
 import { FeaturedSectionsPanel } from '../components/admin/FeaturedSectionsPanel';
 import { ReturnManagementDashboard } from '../components/returns/ReturnManagementDashboard';
+import BulkEmailPage from '../pages/admin/BulkEmailPage';
+import CreateEmailCampaignPage from '../pages/admin/CreateEmailCampaignPage';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import { AdminProvider } from '../contexts/AdminContext';
 import { AdminSearchProvider } from '../contexts/AdminSearchContext';
@@ -51,6 +53,8 @@ const AdminRoutes: React.FC = () => {
               <Route path="/guest-visitors" element={<GuestVisitorsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/security" element={<SecurityPage />} />
+              <Route path="/email-campaigns" element={<BulkEmailPage />} />
+              <Route path="/email-campaigns/new" element={<CreateEmailCampaignPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>

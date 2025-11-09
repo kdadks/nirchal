@@ -28,7 +28,8 @@ import {
   UserCheck,
   Receipt,
   RotateCcw,
-  Star
+  Star,
+  Mail
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -165,6 +166,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       badge: null
     },
     {
+      name: 'Bulk Email',
+      path: '/admin/email-campaigns',
+      icon: <Mail className="admin-nav-icon" />,
+      badge: null
+    },
+    {
       name: 'Settings',
       path: '/admin/settings',
       icon: <Settings className="admin-nav-icon" />,
@@ -187,6 +194,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     if (path.includes('/guest-visitors')) return 'guest-visitors';
     if (path.includes('/users')) return 'users';
     if (path.includes('/analytics')) return 'analytics';
+    if (path.includes('/email-campaigns')) return 'email-campaigns';
     if (path.includes('/security')) return 'security';
     if (path.includes('/settings')) return 'settings';
     return 'dashboard';
