@@ -114,9 +114,13 @@ export const useProductsWithFilters = (
         query = query.eq('fabric', filters.fabric);
       }
 
-      // Apply occasion filter
+      // Apply occasion filter - check if occasion array contains the selected occasion value
       if (filters.occasion) {
-        query = query.contains('occasion', [filters.occasion]);
+        // For JSONB arrays, use filter with 'cs' (contains) operator
+        // This checks if the occasion array contains the specified string value
+        // Query: occasion @> '["value"]'::jsonb
+        const occasionJson = JSON.stringify([filters.occasion]);
+        query = query.filter('occasion', 'cs', occasionJson);
       }
 
       // Apply search filter - search across name and description
@@ -164,13 +168,26 @@ export const useProductsWithFilters = (
         // Handle specific database column errors
         if (error) {
           console.error('[useProductsWithFilters] Database error:', error);
+          console.error('[useProductsWithFilters] Error details:', {
+            message: error?.message,
+            code: error?.code,
+            details: error?.details,
+            hint: error?.hint
+          });
           throw error;
         }
         
       } catch (err: any) {
         console.error('[useProductsWithFilters] Query failed:', err);
+        console.error('[useProductsWithFilters] Error details:', {
+          message: err?.message,
+          code: err?.code,
+          details: err?.details,
+          hint: err?.hint
+        });
         if (isStale()) return;
-        setError(err instanceof Error ? err.message : 'Failed to fetch products');
+        const errorMsg = err?.message || err?.details?.message || 'Failed to fetch products';
+        setError(errorMsg);
         setProducts([]);
         setTotalCount(0);
         setTotalPages(0);
