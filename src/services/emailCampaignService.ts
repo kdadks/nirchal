@@ -230,10 +230,18 @@ export const emailCampaignService = {
         }
       }
 
-      // Update campaign status to sent
-      await this.updateCampaign(campaignId, {
-        status: 'sent',
-      });
+      // Update campaign with final counts
+      const { error: updateError } = await supabase
+        .from('email_campaigns')
+        .update({
+          status: 'sent',
+          sent_count: successCount,
+          failed_count: failureCount,
+          sent_at: new Date().toISOString(),
+        })
+        .eq('id', campaignId);
+
+      if (updateError) throw updateError;
 
       // Log campaign completion
       await this.logCampaignEvent(campaignId, 'started', {

@@ -229,13 +229,15 @@ const BulkEmailPage: React.FC = () => {
                         >
                           <Eye className="w-4 h-4 text-gray-600" />
                         </button>
-                        <button
-                          onClick={() => navigate(`/admin/email-campaigns/${campaign.id}/edit`)}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Mail className="w-4 h-4 text-gray-600" />
-                        </button>
+                        {campaign.status === 'draft' && (
+                          <button
+                            onClick={() => navigate(`/admin/email-campaigns/${campaign.id}/edit`)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Mail className="w-4 h-4 text-gray-600" />
+                          </button>
+                        )}
                         {campaign.status === 'draft' && (
                           <button
                             onClick={() => handleSendCampaign(campaign.id, campaign.title)}
