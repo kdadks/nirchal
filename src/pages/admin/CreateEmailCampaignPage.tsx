@@ -49,6 +49,16 @@ const CreateEmailCampaignPage: React.FC = () => {
     }));
   };
 
+  // Function to convert text to sentence case
+  const toSentenceCase = (text: string): string => {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const handleHTMLContentChange = (value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -76,7 +86,7 @@ const CreateEmailCampaignPage: React.FC = () => {
 
     setFormData(prev => ({
       ...prev,
-      recipients: [...prev.recipients, { email, name }]
+      recipients: [...prev.recipients, { email, name: name ? toSentenceCase(name) : undefined }]
     }));
     setRecipientInput('');
     toast.success('Recipient added');
@@ -131,7 +141,9 @@ const CreateEmailCampaignPage: React.FC = () => {
       };
 
       lines.forEach((line, index) => {
-        const parts = line.split(',').map(p => p.trim());
+        // Support both comma and tab-separated values
+        const delimiter = line.includes('\t') ? '\t' : ',';
+        const parts = line.split(delimiter).map(p => p.trim());
         const email = parts[0]?.trim().toLowerCase();
         const name = parts[1]?.trim();
 
@@ -158,7 +170,7 @@ const CreateEmailCampaignPage: React.FC = () => {
 
         setFormData(prev => ({
           ...prev,
-          recipients: [...prev.recipients, { email, name }]
+          recipients: [...prev.recipients, { email, name: name ? toSentenceCase(name) : undefined }]
         }));
         addedCount++;
       });
@@ -377,10 +389,11 @@ const CreateEmailCampaignPage: React.FC = () => {
             {recipientCSV && (
               <p className="text-xs text-green-600 mt-2">Selected: {recipientCSV.name}</p>
             )}
-            <p className="text-xs text-gray-500 mt-2">Format: email,name (optional) - one per line</p>
-            <p className="text-xs text-gray-500">Example:</p>
+            <p className="text-xs text-gray-500 mt-2">Format: email and name (comma or tab separated)</p>
+            <p className="text-xs text-gray-500">Examples:</p>
             <p className="text-xs text-gray-400 font-mono">john@example.com,John Doe</p>
-            <p className="text-xs text-gray-400 font-mono">jane@example.com</p>
+            <p className="text-xs text-gray-400 font-mono">jane@example.com	Jane Smith</p>
+            <p className="text-xs text-gray-400 font-mono">test@example.com (name optional)</p>
           </div>
 
           {/* Recipients List */}
