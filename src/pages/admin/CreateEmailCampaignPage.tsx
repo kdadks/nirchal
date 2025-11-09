@@ -298,15 +298,8 @@ const CreateEmailCampaignPage: React.FC = () => {
         max_retries: formData.max_retries,
       });
 
-      // Update campaign status to 'sent' (or 'sending' if using edge functions)
-      await emailCampaignService.updateCampaign(campaign.id, { 
-        status: 'sent',
-      });
-
-      // TODO: Trigger sending via edge function if async sending is needed
-      // await supabase.functions.invoke('send-email-campaign', {
-      //   body: { campaignId: campaign.id }
-      // });
+      // Send the campaign (this will mark recipients as sent and update campaign status)
+      await emailCampaignService.sendCampaign(campaign.id);
 
       toast.dismiss();
       toast.success(`Campaign sent to ${formData.recipients.length} recipient${formData.recipients.length !== 1 ? 's' : ''}!`);

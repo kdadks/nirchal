@@ -61,15 +61,7 @@ const BulkEmailPage: React.FC = () => {
   const handleSendCampaign = async (_campaignId: string, campaignTitle: string) => {
     toast.loading('Sending campaign...');
     try {
-      // TODO: Implement send via emailCampaignService.sendCampaign(_campaignId)
-      // Update campaign status to 'sending'
-      // await emailCampaignService.updateCampaign(_campaignId, { status: 'sending' });
-      
-      // Trigger sending via edge function
-      // const response = await supabase.functions.invoke('send-email-campaign', {
-      //   body: { campaignId: _campaignId }
-      // });
-      
+      await emailCampaignService.sendCampaign(_campaignId);
       toast.dismiss();
       toast.success(`Campaign "${campaignTitle}" sent successfully!`);
       await fetchCampaigns(); // Refresh the list
