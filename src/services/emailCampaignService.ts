@@ -143,27 +143,123 @@ export const emailCampaignService = {
     if (error) throw error;
   },
 
+  // Update recipient status
+  async updateRecipientStatus(
+    recipientId: string,
+    status: string,
+    updates?: Record<string, any>
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('email_campaign_recipients')
+      .update({
+        status,
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', recipientId);
+
+    if (error) throw error;
+  },
+
   // Send campaign (initiate sending)
   async sendCampaign(campaignId: string): Promise<void> {
     try {
-      // Call Edge Function to send campaign
-      const { error } = await supabase.functions.invoke('send-email-campaign', {
-        body: { campaign_id: campaignId }
-      });
+      // Get campaign and recipients
+      const campaign = await this.getCampaignById(campaignId);
+      if (!campaign) throw new Error('Campaign not found');
 
-      if (error) throw error;
+      const recipients = await this.getCampaignRecipients(campaignId);
+      if (!recipients || recipients.length === 0) throw new Error('No recipients found');
 
-      // Update campaign status to 'sending'
+      // Send emails via Resend API
+      let successCount = 0;
+      let failureCount = 0;
+
+      for (const recipient of recipients) {
+        try {
+          // Call Cloudflare Function to send email via Resend
+          const response = await fetch('/api/send-campaign-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: campaign.sender_email || 'noreply@nirchal.com',
+              to: recipient.email,
+              subject: campaign.subject,
+              html: campaign.html_content,
+              recipientId: recipient.id,
+              campaignId: campaignId,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || error.message || 'Failed to send email');
+          }
+
+          // Update recipient status to sent
+          await this.updateRecipientStatus(recipient.id, 'sent', {
+            sent_at: new Date().toISOString(),
+          });
+
+          // Log success
+          await this.logCampaignEvent(campaignId, 'sent', {
+            recipient_email: recipient.email,
+            timestamp: new Date().toISOString(),
+          }, recipient.id);
+
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to send email to ${recipient.email}:`, error);
+
+          // Update recipient status to failed
+          await this.updateRecipientStatus(recipient.id, 'failed', {
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+            failed_at: new Date().toISOString(),
+          });
+
+          // Log failure
+          await this.logCampaignEvent(campaignId, 'failed', {
+            recipient_email: recipient.email,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString(),
+          }, recipient.id);
+
+          failureCount++;
+        }
+      }
+
+      // Update campaign status to sent
       await this.updateCampaign(campaignId, {
-        status: 'sending',
+        status: 'sent',
       });
 
-      // Log the event
+      // Log campaign completion
       await this.logCampaignEvent(campaignId, 'started', {
+        success_count: successCount,
+        failure_count: failureCount,
+        total_recipients: recipients.length,
         timestamp: new Date().toISOString(),
       });
+
+      console.log(`Campaign ${campaignId} completed: ${successCount} sent, ${failureCount} failed`);
     } catch (error) {
       console.error('Error sending campaign:', error);
+      
+      // Update campaign status to failed
+      try {
+        await this.updateCampaign(campaignId, {
+          status: 'failed',
+        });
+        await this.logCampaignEvent(campaignId, 'failed', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (updateError) {
+        console.error('Error updating campaign status:', updateError);
+      }
+
       throw error;
     }
   },
