@@ -172,6 +172,18 @@ const SizeGuidePage: React.FC = () => {
                   </table>
                 </div>
               )}
+
+              {/* Blouse Reference Image - Only for Blouse Category */}
+              {selectedCategory === 'blouses' && (
+                <div className="mt-8 flex justify-center">
+                  <img
+                    src="https://pub-def558ac10b64a6bb80dc1beedeafe2c.r2.dev/categories/blouse.webp"
+                    alt="Blouse Size Guide Reference"
+                    className="max-w-full h-auto"
+                    style={{ maxWidth: '600px' }}
+                  />
+                </div>
+              )}
             </div>
           </section>
 
