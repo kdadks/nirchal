@@ -134,21 +134,12 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 <p className="text-sm text-gray-600">
                   We use cookies to improve your experience, personalize content, and analyze traffic.
                   By clicking "Accept All", you consent to our use of cookies. You can customize your
-                  preferences, read our{' '}
-                  <button
-                    onClick={() => setIsDetailsOpen(true)}
-                    className="text-blue-600 hover:underline font-medium cursor-pointer"
-                  >
-                    cookie policy
-                  </button>
-                  , or view our{' '}
+                  preferences or{' '}
                   <a
                     href="/cookie-policy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline font-medium"
+                    className="text-blue-600 hover:underline font-medium cursor-pointer"
                   >
-                    full policy page
+                    read our cookie policy
                   </a>
                   .
                 </p>

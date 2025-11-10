@@ -8,7 +8,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Cookie, Shield, Eye, Lock, AlertCircle, HelpCircle } from 'lucide-react';
-import { APP_COOKIES } from '../utils/cookieConsentManager';
 
 const CookiePolicyPage: React.FC = () => {
   return (
@@ -91,19 +90,6 @@ const CookiePolicyPage: React.FC = () => {
                   <li><strong>Functionality:</strong> Enable form submission and cart operations</li>
                   <li><strong>Visitor Tracking:</strong> Generate unique visitor ID for analytics</li>
                 </ul>
-                <div className="mt-4 bg-gray-50 rounded p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Cookies Used:</h4>
-                  <div className="space-y-1 text-sm text-gray-700">
-                    {Object.entries(APP_COOKIES)
-                      .filter(([_, config]) => config.category === 'essential')
-                      .map(([name, config]) => (
-                        <div key={name} className="flex justify-between">
-                          <span><code className="bg-gray-100 px-2 py-1 rounded">{name}</code></span>
-                          <span>{config.description}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
               </div>
 
               {/* Analytics */}
@@ -135,17 +121,6 @@ const CookiePolicyPage: React.FC = () => {
                       <strong>Google Analytics:</strong> Tracks visitor behavior and site metrics.
                       <a
                         href="https://policies.google.com/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-2 text-blue-600 hover:underline"
-                      >
-                        Privacy Policy →
-                      </a>
-                    </li>
-                    <li>
-                      <strong>NitroX:</strong> Captures guest emails for cart abandonment recovery.
-                      <a
-                        href="https://nitrocommerce.ai/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-2 text-blue-600 hover:underline"

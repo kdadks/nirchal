@@ -40,6 +40,7 @@ const ShippingPage = lazyWithRetry(() => import('../pages/footer/ShippingPage'))
 const ReturnPolicyPage = lazyWithRetry(() => import('../pages/footer/ReturnPolicyPage'));
 const TermsPage = lazyWithRetry(() => import('../pages/footer/TermsPage'));
 const CookiePolicyPage = lazyWithRetry(() => import('../pages/CookiePolicyPage'));
+const CookieConsentSettingsPage = lazyWithRetry(() => import('../pages/CookieConsentSettingsPage'));
 
 // Admin Pages - Lazy loaded with error handling
 const LoginPage = lazyWithRetry(() => import('../pages/admin/LoginPage'));
@@ -77,6 +78,9 @@ export const AppRoutes: React.FC = () => {
         <Route path="/return-policy" element={<ReturnPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+
+        {/* Settings Routes */}
+        <Route path="/settings/cookies" element={<CookieConsentSettingsPage />} />
 
         {/* Admin Routes */}
         <Route path="/admin/login" element={<LoginPage />} />

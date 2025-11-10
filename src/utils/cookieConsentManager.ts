@@ -58,27 +58,7 @@ interface CookieConfig {
 // List of all cookies used in the app
 export const APP_COOKIES: Record<string, CookieConfig> = {
   // Essential cookies
-  'nirchal_guest_info': {
-    name: 'Guest Information',
-    category: CookieCategory.ESSENTIAL,
-    description: 'Stores guest user information for cart abandonment tracking'
-  },
-  'nirchal_visitor_id': {
-    name: 'Visitor ID',
-    category: CookieCategory.ESSENTIAL,
-    description: 'Unique identifier for visitor tracking'
-  },
-  'sb-auth-token': {
-    name: 'Authentication Token',
-    category: CookieCategory.ESSENTIAL,
-    description: 'Supabase authentication token for user session'
-  },
-  'checkout_in_progress': {
-    name: 'Checkout Progress',
-    category: CookieCategory.ESSENTIAL,
-    description: 'Tracks checkout state to prevent cart abandonment false positives'
-  },
-
+  
   // Analytics cookies
   '_ga': {
     name: 'Google Analytics',
@@ -91,11 +71,6 @@ export const APP_COOKIES: Record<string, CookieConfig> = {
     category: CookieCategory.ANALYTICS,
     domain: '.google-analytics.com',
     description: 'Google Analytics session tracking'
-  },
-  'nitro_session': {
-    name: 'NitroX Email Capture',
-    category: CookieCategory.ANALYTICS,
-    description: 'NitroX platform for guest email tracking'
   },
 
   // Marketing cookies
