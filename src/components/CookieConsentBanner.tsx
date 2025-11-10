@@ -137,6 +137,8 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                   preferences or{' '}
                   <a
                     href="/cookie-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="text-blue-600 hover:underline font-medium cursor-pointer"
                   >
                     read our cookie policy

@@ -204,7 +204,7 @@ const CookiePolicyPage: React.FC = () => {
                 <h3 className="font-semibold text-gray-900 mb-2">✓ Change Your Preferences</h3>
                 <p className="text-gray-700">
                   You can change your cookie preferences anytime by visiting our
-                  <a href="/settings/cookies" className="ml-1 text-blue-600 hover:underline font-medium">
+                  <a href="/settings/cookies" target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-600 hover:underline font-medium">
                     Cookie Settings page
                   </a>
                   or clicking "Cookie Settings" in the banner.
@@ -367,6 +367,8 @@ const CookiePolicyPage: React.FC = () => {
             </p>
             <a
               href="/settings/cookies"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-block bg-white text-blue-600 font-semibold py-3 px-8 rounded-lg hover:bg-blue-50 transition-colors"
             >
               Go to Cookie Settings
