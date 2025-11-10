@@ -7,7 +7,14 @@
  * 3. Create Facebook Pixel at https://business.facebook.com/events_manager
  * 4. Get your Pixel ID (15-16 digits)
  * 5. Add tracking IDs in Admin Settings > SEO Settings
+ * 
+ * GDPR/DPDP Compliance:
+ * - Respects user consent preferences via cookieConsentManager
+ * - Analytics only initialized if user consents to analytics cookies
+ * - Marketing scripts only loaded if user consents to marketing cookies
  */
+
+import { cookieConsentManager, CookieCategory } from './cookieConsentManager';
 
 // Excluded IP addresses (admin/developer IPs that should not be tracked)
 const EXCLUDED_IP_ADDRESSES = [
@@ -77,10 +84,18 @@ const checkExcludedIP = async (): Promise<boolean> => {
 /**
  * Initialize Google Analytics 4
  * Call this once in your app's entry point (main.tsx or App.tsx)
+ * 
+ * Will respect user consent - only initializes if analytics cookies are consented to
  */
 export const initGA4 = async (measurementId: string): Promise<void> => {
   if (!measurementId) {
     // Silently skip if no measurement ID - not critical
+    return;
+  }
+
+  // Check cookie consent before initializing
+  if (!cookieConsentManager.hasConsent(CookieCategory.ANALYTICS)) {
+    console.log('[Analytics] GA4 initialization skipped - user has not consented to analytics cookies');
     return;
   }
 
@@ -114,6 +129,9 @@ export const initGA4 = async (measurementId: string): Promise<void> => {
   window.gtag('js', new Date());
   window.gtag('config', measurementId, {
     send_page_view: false, // We'll send page views manually
+    anonymize_ip: true,
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
   });
 
   if (import.meta.env.DEV) {
@@ -124,10 +142,18 @@ export const initGA4 = async (measurementId: string): Promise<void> => {
 /**
  * Initialize Facebook Pixel
  * Call this once in your app's entry point (main.tsx or App.tsx)
+ * 
+ * Will respect user consent - only initializes if marketing cookies are consented to
  */
 export const initFacebookPixel = async (pixelId: string): Promise<void> => {
   if (!pixelId) {
     // Silently skip if no pixel ID - not critical
+    return;
+  }
+
+  // Check cookie consent before initializing
+  if (!cookieConsentManager.hasConsent(CookieCategory.MARKETING)) {
+    console.log('[Facebook Pixel] Initialization skipped - user has not consented to marketing cookies');
     return;
   }
 

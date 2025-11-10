@@ -13,7 +13,9 @@ import TawkToChat from './components/common/TawkToChat';
 import { preloadCategories } from './utils/categoryCache';
 import AppRoutes from './routes';
 import VisitorTracker from './components/VisitorTracker';
+import CookieConsentBanner from './components/CookieConsentBanner';
 import { initGA4, initFacebookPixel } from './utils/analytics';
+import { cookieConsentManager } from './utils/cookieConsentManager';
 import { supabase } from './config/supabase';
 
 const router = createBrowserRouter([
@@ -71,6 +73,20 @@ const App: React.FC = () => {
     loadSEOSettings();
   }, []);
 
+  // Initialize cookie consent manager on app start
+  useEffect(() => {
+    const initCookieConsent = async () => {
+      try {
+        await cookieConsentManager.init();
+        console.log('[Cookie Consent] Manager initialized');
+      } catch (error) {
+        console.error('[Cookie Consent] Initialization failed:', error);
+      }
+    };
+
+    initCookieConsent();
+  }, []);
+
   // Initialize Google Analytics 4 and Facebook Pixel
   useEffect(() => {
     // Try database settings first, fallback to env variable
@@ -119,6 +135,7 @@ const App: React.FC = () => {
             <WishlistProvider>
               <VisitorTracker>
                 <RouterProvider router={router} />
+                <CookieConsentBanner />
                 <AIAssistantButton />
                 <TawkToChat />
                 <Toaster
