@@ -32,9 +32,40 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
     const hasSeenBanner = cookieConsentManager.hasSeenBanner();
     const isExpired = cookieConsentManager.isConsentExpired();
 
+    console.log('[Cookie Consent Banner] Checking visibility:', {
+      hasSeenBanner,
+      isExpired,
+      shouldShow: !hasSeenBanner || isExpired,
+    });
+
+    // In development, always show banner on first load for testing
+    // Add ?resetCookies=true to URL to reset and see banner
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('resetCookies')) {
+        console.log('[Cookie Consent Banner] Resetting cookies for testing');
+        localStorage.removeItem('nirchal_cookie_consent');
+        setIsVisible(true);
+        return;
+      }
+    }
+
     if (!hasSeenBanner || isExpired) {
       setIsVisible(true);
+    } else {
+      console.log('[Cookie Consent Banner] Banner not shown - consent already given');
     }
+
+    // Listen for show banner event (development helper)
+    const handleShowBanner = () => {
+      console.log('[Cookie Consent Banner] Show event triggered');
+      setIsVisible(true);
+    };
+    window.addEventListener('showCookieBanner', handleShowBanner);
+
+    return () => {
+      window.removeEventListener('showCookieBanner', handleShowBanner);
+    };
   }, []);
 
   const handleAcceptAll = () => {
@@ -59,10 +90,19 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
     // Can't toggle essential
     if (category === CookieCategory.ESSENTIAL) return;
 
-    setPreferences(prev => ({
-      ...prev,
-      [category]: !prev[category],
-    }));
+    setPreferences(prev => {
+      const updated = {
+        ...prev,
+        [category]: !prev[category],
+      };
+      console.log('[Cookie Consent Banner] Category toggled:', {
+        category,
+        previousValue: prev[category],
+        newValue: updated[category],
+        allPreferences: updated,
+      });
+      return updated;
+    });
   };
 
   if (!isVisible) {
@@ -94,13 +134,22 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 <p className="text-sm text-gray-600">
                   We use cookies to improve your experience, personalize content, and analyze traffic.
                   By clicking "Accept All", you consent to our use of cookies. You can customize your
-                  preferences or read our{' '}
+                  preferences, read our{' '}
                   <button
                     onClick={() => setIsDetailsOpen(true)}
                     className="text-blue-600 hover:underline font-medium cursor-pointer"
                   >
                     cookie policy
                   </button>
+                  , or view our{' '}
+                  <a
+                    href="/cookie-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline font-medium"
+                  >
+                    full policy page
+                  </a>
                   .
                 </p>
               </div>
@@ -179,67 +228,73 @@ const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({
                 {/* Analytics Cookies */}
                 <div 
                   className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => handleToggleCategory(CookieCategory.ANALYTICS)}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <label className="flex-1 cursor-pointer">
+                  <label className="flex items-start justify-between cursor-pointer">
+                    <div className="flex-1">
                       <h4 className="font-medium text-gray-900">Analytics</h4>
                       <p className="text-xs text-gray-600 mt-1">
                         Help us understand how you use our website.
                       </p>
-                    </label>
+                    </div>
                     <input
                       type="checkbox"
                       checked={preferences[CookieCategory.ANALYTICS]}
-                      onChange={() => handleToggleCategory(CookieCategory.ANALYTICS)}
+                      onChange={() => {
+                        console.log('[Analytics Checkbox] Toggled');
+                        handleToggleCategory(CookieCategory.ANALYTICS);
+                      }}
                       className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer flex-shrink-0"
                     />
-                  </div>
-                  <p className="text-xs text-gray-500">Includes: Google Analytics, NitroX</p>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">Includes: Google Analytics, NitroX</p>
                 </div>
 
                 {/* Marketing Cookies */}
                 <div 
                   className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => handleToggleCategory(CookieCategory.MARKETING)}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <label className="flex-1 cursor-pointer">
+                  <label className="flex items-start justify-between cursor-pointer">
+                    <div className="flex-1">
                       <h4 className="font-medium text-gray-900">Marketing</h4>
                       <p className="text-xs text-gray-600 mt-1">
                         Used for targeted advertising and conversion tracking.
                       </p>
-                    </label>
+                    </div>
                     <input
                       type="checkbox"
                       checked={preferences[CookieCategory.MARKETING]}
-                      onChange={() => handleToggleCategory(CookieCategory.MARKETING)}
+                      onChange={() => {
+                        console.log('[Marketing Checkbox] Toggled');
+                        handleToggleCategory(CookieCategory.MARKETING);
+                      }}
                       className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer flex-shrink-0"
                     />
-                  </div>
-                  <p className="text-xs text-gray-500">Includes: Facebook Pixel, Retargeting</p>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">Includes: Facebook Pixel, Retargeting</p>
                 </div>
 
                 {/* Performance Cookies */}
                 <div 
                   className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => handleToggleCategory(CookieCategory.PERFORMANCE)}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <label className="flex-1 cursor-pointer">
+                  <label className="flex items-start justify-between cursor-pointer">
+                    <div className="flex-1">
                       <h4 className="font-medium text-gray-900">Performance</h4>
                       <p className="text-xs text-gray-600 mt-1">
                         Improve website speed and user experience.
                       </p>
-                    </label>
+                    </div>
                     <input
                       type="checkbox"
                       checked={preferences[CookieCategory.PERFORMANCE]}
-                      onChange={() => handleToggleCategory(CookieCategory.PERFORMANCE)}
+                      onChange={() => {
+                        console.log('[Performance Checkbox] Toggled');
+                        handleToggleCategory(CookieCategory.PERFORMANCE);
+                      }}
                       className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 cursor-pointer flex-shrink-0"
                     />
-                  </div>
-                  <p className="text-xs text-gray-500">Includes: Cache, Preferences storage</p>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">Includes: Cache, Preferences storage</p>
                 </div>
               </div>
 

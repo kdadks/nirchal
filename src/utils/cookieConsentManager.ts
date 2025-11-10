@@ -588,4 +588,28 @@ For more information, visit our privacy policy.
 // Create and export singleton instance
 export const cookieConsentManager = new CookieConsentManager();
 
+// Development helper: Make cookie consent manager available globally for testing
+if (import.meta.env.DEV) {
+  (window as any).nirchalCookieConsent = {
+    reset: () => {
+      localStorage.removeItem(CONSENT_STORAGE_KEY);
+      localStorage.removeItem('nirchal_consent_logs');
+      console.log('[Cookie Consent] Reset complete! Refresh the page to see the banner.');
+    },
+    getPreferences: () => cookieConsentManager.getPreferences(),
+    getMetadata: () => cookieConsentManager.getMetadata(),
+    acceptAll: () => cookieConsentManager.acceptAll(),
+    rejectAll: () => cookieConsentManager.rejectAll(),
+    show: () => {
+      const event = new CustomEvent('showCookieBanner');
+      window.dispatchEvent(event);
+    },
+  };
+  console.log('[Cookie Consent] Development helpers available at window.nirchalCookieConsent');
+  console.log('  - nirchalCookieConsent.reset() - Clear consent and show banner again');
+  console.log('  - nirchalCookieConsent.getPreferences() - View current preferences');
+  console.log('  - nirchalCookieConsent.acceptAll() - Accept all cookies');
+  console.log('  - nirchalCookieConsent.rejectAll() - Reject all non-essential');
+}
+
 export default cookieConsentManager;
