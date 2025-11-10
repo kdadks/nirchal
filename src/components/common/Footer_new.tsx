@@ -58,6 +58,7 @@ const Footer: React.FC = () => {
               <Link to="/shipping" className="text-gray-400 hover:text-accent-400 transition-colors">Shipping</Link>
               <Link to="/products" className="text-gray-400 hover:text-accent-400 transition-colors">Shop</Link>
               <Link to="/terms" className="text-gray-400 hover:text-accent-400 transition-colors">Terms</Link>
+              <a href="/cookie-policy" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-accent-400 transition-colors">Cookies</a>
             </div>
           </div>
 
