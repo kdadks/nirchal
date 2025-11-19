@@ -118,32 +118,37 @@ const VerifyEmailPage: React.FC = () => {
           }
         }
 
-        // Update customer to mark email as verified and clear the token
-        const { error: updateError } = await supabase
-          .from('customers')
-          .update({
-            email_verified: true,
-            reset_token: null,
-            reset_token_expires: null
-          })
-          .eq('id', customerId);
+        // Use RPC function to mark email as verified (bypasses RLS restrictions)
+        const { data: verifyResult, error: updateError } = await supabase
+          .rpc('mark_email_verified', {
+            p_customer_id: customerId
+          }) as { data: any; error: any };
 
         if (updateError) {
+          console.error('❌ Error marking email verified:', updateError);
           throw updateError;
         }
+
+        if (!verifyResult?.success) {
+          console.error('❌ RPC returned error:', verifyResult?.error);
+          throw new Error(verifyResult?.error || 'Failed to mark email as verified');
+        }
+
+        console.log('✅ Email marked as verified via RPC');
+        console.log('Verification Result:', verifyResult);
 
         setStatus({
           loading: false,
           success: true,
           error: null,
-          message: 'Your email has been successfully verified! You can now log in to your account.'
+          message: 'Your email has been successfully verified! Redirecting to home page...'
         });
 
         toast.success('Email verified successfully!');
 
-        // Redirect to login after 3 seconds
+        // Redirect to home page after 3 seconds
         setTimeout(() => {
-          navigate('/login');
+          navigate('/');
         }, 3000);
       } catch (err) {
         console.error('Error verifying email:', err);

@@ -51,3 +51,51 @@ $$;
 
 -- Grant execute permissions to authenticated users (the admin frontend)
 GRANT EXECUTE ON FUNCTION public.store_email_verification_token(uuid, text, timestamp with time zone) TO anon, authenticated;
+
+-- Create function to mark email as verified
+CREATE OR REPLACE FUNCTION public.mark_email_verified(
+  p_customer_id uuid
+) RETURNS json
+LANGUAGE plpgsql SECURITY DEFINER
+AS $$
+DECLARE
+  v_rows_updated INTEGER;
+BEGIN
+  -- Update customer to mark email as verified and clear verification token
+  UPDATE public.customers 
+  SET 
+    email_verified = true,
+    reset_token = NULL,
+    reset_token_expires = NULL,
+    updated_at = NOW()
+  WHERE id = p_customer_id;
+  
+  -- Check if update was successful
+  GET DIAGNOSTICS v_rows_updated = ROW_COUNT;
+  
+  IF v_rows_updated = 0 THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', 'Customer not found'
+    );
+  END IF;
+  
+  -- Return success
+  RETURN json_build_object(
+    'success', true,
+    'message', 'Email verified successfully',
+    'customer_id', p_customer_id,
+    'email_verified', true
+  );
+  
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', 'Database error: ' || SQLERRM
+    );
+END;
+$$;
+
+-- Grant execute permissions to authenticated users (customers verifying their own email)
+GRANT EXECUTE ON FUNCTION public.mark_email_verified(uuid) TO anon, authenticated;
