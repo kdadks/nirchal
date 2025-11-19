@@ -4,6 +4,7 @@ import { supabase } from '../../config/supabase';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
+import CustomerDetailsModal from '../../components/admin/CustomerDetailsModal';
 import toast from 'react-hot-toast';
 
 interface Customer {
@@ -23,6 +24,8 @@ const UsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const { searchTerm } = useAdminSearch();
 
   const fetchCustomers = async () => {
@@ -246,9 +249,15 @@ const UsersPage: React.FC = () => {
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <button
+                            onClick={() => {
+                              setSelectedCustomerId(customer.id);
+                              setShowDetailsModal(true);
+                            }}
+                            className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition"
+                          >
                             {customer.first_name} {customer.last_name}
-                          </div>
+                          </button>
                           <div className="text-sm text-gray-500">{customer.email}</div>
                         </div>
                       </div>
@@ -324,6 +333,16 @@ const UsersPage: React.FC = () => {
           onItemsPerPageChange={setItemsPerPage}
         />
       </div>
+
+      {/* Customer Details Modal */}
+      <CustomerDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedCustomerId(null);
+        }}
+        customerId={selectedCustomerId || ''}
+      />
     </div>
   );
 };
