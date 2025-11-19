@@ -143,12 +143,19 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
       // Generate a verification token (base64 encoded random string)
       const verificationToken = btoa(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
       
-      // Create verification link using nirchal.com domain
-      const verificationLink = `https://nirchal.com/verify-email?token=${verificationToken}&customerId=${customer.id}`;
+      // Create verification link using nirchal.com domain with proper URL encoding
+      const encodedToken = encodeURIComponent(verificationToken);
+      const verificationLink = `https://nirchal.com/verify-email?token=${encodedToken}&customerId=${customer.id}`;
 
       // Store token in database with expiry (24 hours)
       const expiryTime = new Date();
       expiryTime.setHours(expiryTime.getHours() + 24);
+
+      console.log('Storing verification token:', {
+        customerId: customer.id,
+        tokenLength: verificationToken.length,
+        expiryTime: expiryTime.toISOString()
+      });
 
       const { error: tokenError } = await supabase
         .from('customers')
@@ -158,7 +165,12 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
         })
         .eq('id', customer.id);
 
-      if (tokenError) throw tokenError;
+      if (tokenError) {
+        console.error('Error storing token:', tokenError);
+        throw tokenError;
+      }
+
+      console.log('Token stored successfully');
 
       // Send verification email via Cloudflare function
       const emailResponse = await fetch('/send-email', {

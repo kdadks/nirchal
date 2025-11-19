@@ -54,6 +54,17 @@ const VerifyEmailPage: React.FC = () => {
           return;
         }
 
+        // Debug logging
+        console.log('Verification Debug:', {
+          receivedToken: token,
+          receivedTokenLength: token?.length,
+          storedToken: customer.reset_token,
+          storedTokenLength: (customer.reset_token as any)?.length,
+          tokenMatch: customer.reset_token === token,
+          customerEmail: customer.email,
+          emailVerified: customer.email_verified
+        });
+
         // Check if already verified
         if (customer.email_verified) {
           setStatus({
@@ -65,8 +76,14 @@ const VerifyEmailPage: React.FC = () => {
           return;
         }
 
-        // Check if token matches
-        if (customer.reset_token !== token) {
+        // Check if token matches (handle URL encoding)
+        const decodedToken = decodeURIComponent(token);
+        if (customer.reset_token !== token && customer.reset_token !== decodedToken) {
+          console.error('Token mismatch:', {
+            receivedToken: token,
+            decodedToken: decodedToken,
+            storedToken: customer.reset_token
+          });
           setStatus({
             loading: false,
             success: false,
