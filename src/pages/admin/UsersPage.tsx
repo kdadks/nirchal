@@ -27,7 +27,7 @@ const UsersPage: React.FC = () => {
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const { searchTerm } = useAdminSearch();
+  const { searchTerm, setRefreshCallback } = useAdminSearch();
 
   const fetchCustomers = async () => {
     try {
@@ -62,6 +62,13 @@ const UsersPage: React.FC = () => {
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  // Set refresh callback for admin header refresh button
+  useEffect(() => {
+    setRefreshCallback(async () => {
+      await fetchCustomers();
+    });
+  }, [setRefreshCallback]);
 
   // Filter customers based on search term
   const filteredCustomers = React.useMemo(() => {

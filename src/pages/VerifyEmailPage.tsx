@@ -66,6 +66,10 @@ const VerifyEmailPage: React.FC = () => {
             error: null,
             message: 'Your email is already verified!'
           });
+          // Redirect to home page after 3 seconds
+          setTimeout(() => {
+            navigate('/');
+          }, 3000);
           return;
         }
 
@@ -156,13 +160,13 @@ const VerifyEmailPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Success!</h1>
               <p className="text-gray-600 mb-4">{status.message}</p>
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-green-800">Redirecting to login in 3 seconds...</p>
+                <p className="text-sm text-green-800">Redirecting to home page in 3 seconds...</p>
               </div>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/')}
                 className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium transition"
               >
-                Go to Login Now
+                Go to Home Now
               </button>
             </>
           ) : (
