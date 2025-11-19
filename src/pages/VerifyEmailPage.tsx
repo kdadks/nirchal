@@ -54,18 +54,9 @@ const VerifyEmailPage: React.FC = () => {
           return;
         }
 
-        // Debug logging - show actual values
+        // Token validation
         const storedTokenStr = String(customer.reset_token || 'null');
         const tokenStr = String(token || 'null');
-        console.log('=== VERIFICATION DEBUG ===');
-        console.log('Received Token:', tokenStr);
-        console.log('Stored Token:', storedTokenStr);
-        console.log('Token Lengths - Received:', tokenStr.length, 'Stored:', storedTokenStr.length);
-        console.log('Exact Match:', storedTokenStr === tokenStr);
-        console.log('Customer ID:', customerId);
-        console.log('Customer Email:', customer.email);
-        console.log('Email Already Verified:', customer.email_verified);
-        console.log('========================');
 
         // Check if already verified
         if (customer.email_verified) {
@@ -83,18 +74,7 @@ const VerifyEmailPage: React.FC = () => {
         const storedTokenTrimmed = storedTokenStr.trim();
         const tokenTrimmed = tokenStr.trim();
         
-        console.log('=== TOKEN COMPARISON ===');
-        console.log('Stored (trimmed):', storedTokenTrimmed);
-        console.log('Received (trimmed):', tokenTrimmed);
-        console.log('Received (decoded):', decodedToken);
-        console.log('Match (exact):', storedTokenTrimmed === tokenTrimmed);
-        console.log('Match (decoded):', storedTokenTrimmed === decodedToken);
-        console.log('========================');
-        
         if (storedTokenTrimmed !== tokenTrimmed && storedTokenTrimmed !== decodedToken) {
-          console.error('❌ TOKEN MISMATCH - Verification will fail');
-          console.log('Expected:', storedTokenTrimmed);
-          console.log('Got:', tokenTrimmed);
           setStatus({
             loading: false,
             success: false,
@@ -119,23 +99,18 @@ const VerifyEmailPage: React.FC = () => {
         }
 
         // Use RPC function to mark email as verified (bypasses RLS restrictions)
-        const { data: verifyResult, error: updateError } = await supabase
+        const { data: verifyResult, error: verifyError } = await supabase
           .rpc('mark_email_verified', {
             p_customer_id: customerId
           }) as { data: any; error: any };
 
-        if (updateError) {
-          console.error('❌ Error marking email verified:', updateError);
-          throw updateError;
+        if (verifyError) {
+          throw verifyError;
         }
 
         if (!verifyResult?.success) {
-          console.error('❌ RPC returned error:', verifyResult?.error);
           throw new Error(verifyResult?.error || 'Failed to mark email as verified');
         }
-
-        console.log('✅ Email marked as verified via RPC');
-        console.log('Verification Result:', verifyResult);
 
         setStatus({
           loading: false,

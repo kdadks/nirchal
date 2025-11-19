@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Mail, Phone, Calendar, AlertTriangle } from 'lucide-react';
+import { Users, UserCheck, UserX, Mail, Phone, Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -17,6 +17,7 @@ interface Customer {
   created_at: string;
   password_change_required?: boolean;
   temp_password_created_at?: string;
+  email_verified?: boolean;
 }
 
 const UsersPage: React.FC = () => {
@@ -42,7 +43,8 @@ const UsersPage: React.FC = () => {
           is_active,
           created_at,
           password_change_required,
-          temp_password_created_at
+          temp_password_created_at,
+          email_verified
         `)
         .order('created_at', { ascending: false });
 
@@ -266,7 +268,12 @@ const UsersPage: React.FC = () => {
                       <div className="text-sm text-gray-900">
                         <div className="flex items-center">
                           <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                          {customer.email}
+                          <span>{customer.email}</span>
+                          {customer.email_verified && (
+                            <div className="ml-2" title="Email verified">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            </div>
+                          )}
                         </div>
                         {customer.phone && (
                           <div className="flex items-center mt-1">
