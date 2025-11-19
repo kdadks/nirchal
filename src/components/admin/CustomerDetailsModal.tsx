@@ -162,20 +162,26 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
         expiryTime: expiryTime.toISOString()
       });
 
-      const { error: tokenError } = await supabase
-        .from('customers')
-        .update({
-          reset_token: verificationToken,
-          reset_token_expires: expiryTime.toISOString()
-        })
-        .eq('id', customer.id);
+      // Use RPC function to store token (bypasses RLS restrictions)
+      const { data: rpcResult, error: tokenError } = await supabase
+        .rpc('store_email_verification_token', {
+          p_customer_id: customer.id,
+          p_token: verificationToken,
+          p_expires_at: expiryTime.toISOString()
+        }) as { data: any; error: any };
 
       if (tokenError) {
         console.error('❌ Error storing token:', tokenError);
         throw tokenError;
       }
 
-      console.log('✅ Token stored successfully');
+      if (!rpcResult?.success) {
+        console.error('❌ RPC returned error:', rpcResult?.error);
+        throw new Error(rpcResult?.error || 'Failed to store verification token');
+      }
+
+      console.log('✅ Token stored successfully via RPC');
+      console.log('RPC Response:', rpcResult);
 
       // Send verification email via Cloudflare function
       const emailResponse = await fetch('/send-email', {
