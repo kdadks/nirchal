@@ -161,7 +161,7 @@ const AnalyticsPage: React.FC = () => {
 
       // Fetch overview data
       const [ordersData, productsData, customersData] = await Promise.all([
-        supabase.from('orders').select('total_amount, created_at'),
+        supabase.from('orders').select('total_amount, created_at, payment_status'),
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('customers').select('id, created_at')
       ]);
@@ -173,8 +173,11 @@ const AnalyticsPage: React.FC = () => {
       const orders = ordersData.data || [];
       const customers = customersData.data || [];
 
-      // Calculate totals
-      const totalRevenue = orders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      // Calculate totals - exclude pending payments
+      const totalRevenue = orders.reduce((sum, order) => {
+        if ((order as any).payment_status === 'pending') return sum;
+        return sum + ((order as any).total_amount || 0);
+      }, 0);
       const totalOrders = orders.length;
       const totalProducts = productsData.count || 0;
       const totalCustomers = customers.length;
@@ -197,8 +200,14 @@ const AnalyticsPage: React.FC = () => {
         return customerDate >= lastMonth && customerDate < currentMonth;
       });
 
-      const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
-      const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      const currentMonthRevenue = currentMonthOrders.reduce((sum, order) => {
+        if ((order as any).payment_status === 'pending') return sum;
+        return sum + ((order as any).total_amount || 0);
+      }, 0);
+      const lastMonthRevenue = lastMonthOrders.reduce((sum, order) => {
+        if ((order as any).payment_status === 'pending') return sum;
+        return sum + ((order as any).total_amount || 0);
+      }, 0);
 
       const revenueGrowth = calculateGrowth(currentMonthRevenue, lastMonthRevenue);
       const orderGrowth = calculateGrowth(currentMonthOrders.length, lastMonthOrders.length);
@@ -217,7 +226,10 @@ const AnalyticsPage: React.FC = () => {
           return orderDate >= monthStart && orderDate < monthEnd;
         });
         
-        const monthRevenue = monthOrders.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+        const monthRevenue = monthOrders.reduce((sum, order) => {
+          if ((order as any).payment_status === 'pending') return sum;
+          return sum + ((order as any).total_amount || 0);
+        }, 0);
         
         monthlyRevenue.push({
           month: monthNames[monthStart.getMonth()],

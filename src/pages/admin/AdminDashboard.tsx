@@ -179,7 +179,7 @@ const AdminDashboard: React.FC = () => {
       // Orders today (exclude cancelled)
       const { data: todayOrders, error: todayOrdersError } = await supabase
         .from('orders')
-        .select('total_amount, status')
+        .select('total_amount, status, payment_status')
         .gte('created_at', todayStart.toISOString());
 
       if (todayOrdersError) throw todayOrdersError;
@@ -187,16 +187,16 @@ const AdminDashboard: React.FC = () => {
       // Orders yesterday (exclude cancelled)
       const { data: yesterdayOrders, error: yesterdayOrdersError } = await supabase
         .from('orders')
-        .select('total_amount, status')
+        .select('total_amount, status, payment_status')
         .gte('created_at', yesterday.toISOString())
         .lt('created_at', todayStart.toISOString());
 
       if (yesterdayOrdersError) throw yesterdayOrdersError;
 
-      // Calculate total revenue (exclude cancelled orders)
+      // Calculate total revenue (exclude cancelled orders and pending payments)
       const { data: allOrders, error: allOrdersError } = await supabase
         .from('orders')
-        .select('total_amount, status')
+        .select('total_amount, status, payment_status')
         .neq('status', 'cancelled'); // Exclude cancelled orders
 
       if (allOrdersError) throw allOrdersError;
@@ -218,19 +218,26 @@ const AdminDashboard: React.FC = () => {
 
       console.log('[Admin Dashboard] Total refunded amount:', totalRefunded);
 
-      // Calculate revenue excluding cancelled orders and subtracting refunds
-      const grossRevenue = (allOrders || []).reduce((sum, order) => sum + ((order as any).total_amount || 0), 0);
+      // Calculate revenue excluding cancelled orders, pending payments, and subtracting refunds
+      const grossRevenue = (allOrders || []).reduce((sum, order) => {
+        if ((order as any).payment_status === 'pending') return sum;
+        return sum + ((order as any).total_amount || 0);
+      }, 0);
       const totalRevenue = grossRevenue - totalRefunded;
 
       const todayRevenue = (todayOrders || []).reduce((sum, order) => {
         const orderStatus = (order as any).status;
+        const paymentStatus = (order as any).payment_status;
         if (orderStatus === 'cancelled') return sum;
+        if (paymentStatus === 'pending') return sum;
         return sum + ((order as any).total_amount || 0);
       }, 0);
       
       const yesterdayRevenue = (yesterdayOrders || []).reduce((sum, order) => {
         const orderStatus = (order as any).status;
+        const paymentStatus = (order as any).payment_status;
         if (orderStatus === 'cancelled') return sum;
+        if (paymentStatus === 'pending') return sum;
         return sum + ((order as any).total_amount || 0);
       }, 0);
 

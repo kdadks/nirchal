@@ -50,36 +50,51 @@ const getVisitorId = (): string => {
 // Detect browser
 const detectBrowser = (): string => {
   const userAgent = navigator.userAgent;
-  if (userAgent.includes('Firefox')) return 'Firefox';
-  if (userAgent.includes('Chrome')) return 'Chrome';
-  if (userAgent.includes('Safari')) return 'Safari';
-  if (userAgent.includes('Edge')) return 'Edge';
-  if (userAgent.includes('Opera')) return 'Opera';
+  
+  // Check for specific browsers in order
+  if (/firefox/i.test(userAgent)) return 'Firefox';
+  if (/edg/i.test(userAgent)) return 'Edge';
+  if (/opr|opera/i.test(userAgent)) return 'Opera';
+  if (/chrome|chromium/i.test(userAgent)) return 'Chrome';
+  if (/safari/i.test(userAgent)) return 'Safari';
+  if (/trident/i.test(userAgent)) return 'Internet Explorer';
+  
+  console.warn('⚠️ Could not detect browser from UA:', userAgent);
   return 'Unknown';
 };
 
 // Detect OS
 const detectOS = (): string => {
   const userAgent = navigator.userAgent;
-  if (userAgent.includes('Windows')) return 'Windows';
-  if (userAgent.includes('Mac')) return 'macOS';
-  if (userAgent.includes('Linux')) return 'Linux';
-  if (userAgent.includes('Android')) return 'Android';
-  if (userAgent.includes('iOS')) return 'iOS';
+  
+  if (/win/i.test(userAgent)) return 'Windows';
+  if (/mac/i.test(userAgent)) return 'macOS';
+  if (/x11/i.test(userAgent)) return 'Linux';
+  if (/android/i.test(userAgent)) return 'Android';
+  if (/iphone|ipad|ipod/i.test(userAgent)) return 'iOS';
+  
+  console.warn('⚠️ Could not detect OS from UA:', userAgent);
   return 'Unknown';
 };
 
 // Detect device type
 const detectDeviceType = (): string => {
   const userAgent = navigator.userAgent;
-  if (/mobile/i.test(userAgent)) return 'Mobile';
-  if (/tablet/i.test(userAgent)) return 'Tablet';
+  
+  if (/ipad|android(?!.*mobi)/i.test(userAgent)) return 'Tablet';
+  if (/mobile|android|iphone|ipod|blackberry|windows phone/i.test(userAgent)) return 'Mobile';
+  
   return 'Desktop';
 };
 
 // Get screen resolution
 const getScreenResolution = (): string => {
-  return `${window.screen.width}x${window.screen.height}`;
+  try {
+    return `${window.screen.width}x${window.screen.height}`;
+  } catch (error) {
+    console.warn('⚠️ Could not get screen resolution');
+    return 'Unknown';
+  }
 };
 
 // Get referrer
@@ -112,21 +127,44 @@ const isExcludedIP = (ipAddress?: string): boolean => {
 // Fetch IP and location data from ipapi.co (free tier: 1000 requests/day)
 const fetchLocationData = async (): Promise<LocationInfo | null> => {
   try {
-    const response = await fetch('https://ipapi.co/json/');
-    if (!response.ok) return null;
+    console.log('🌍 Fetching location data from ipapi.co...');
+    const response = await fetch('https://ipapi.co/json/', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      console.warn(`⚠️ ipapi.co returned status ${response.status}`);
+      return null;
+    }
     
     const data = await response.json();
-    return {
+    
+    // Ensure we have at least IP address
+    if (!data.ip) {
+      console.warn('⚠️ No IP address in response');
+      return null;
+    }
+    
+    const locationInfo: LocationInfo = {
       ip_address: data.ip,
-      city: data.city,
-      country: data.country_name,
-      country_code: data.country_code,
-      region: data.region,
-      latitude: data.latitude,
-      longitude: data.longitude
+      city: data.city || undefined,
+      country: data.country_name || undefined,
+      country_code: data.country_code || undefined,
+      region: data.region || undefined,
+      latitude: data.latitude ? parseFloat(data.latitude) : undefined,
+      longitude: data.longitude ? parseFloat(data.longitude) : undefined
     };
+    
+    console.log('✅ Location data fetched:', {
+      ip: locationInfo.ip_address,
+      city: locationInfo.city,
+      country: locationInfo.country
+    });
+    
+    return locationInfo;
   } catch (error) {
-    console.warn('Failed to fetch location data:', error);
+    console.error('❌ Failed to fetch location data:', error instanceof Error ? error.message : error);
     return null;
   }
 };
@@ -170,6 +208,22 @@ export const useVisitorTracking = () => {
         location: locationData || undefined
       };
 
+      console.log('%c👤 VISITOR INFO CAPTURED', 'color: #4F46E5; font-weight: bold; font-size: 12px;', {
+        browser: visitorInfo.browser,
+        os: visitorInfo.os,
+        device_type: visitorInfo.device_type,
+        screen_resolution: visitorInfo.screen_resolution,
+        referrer: visitorInfo.referrer,
+        userAgent: navigator.userAgent
+      });
+      
+      console.group('🔍 Detection Details');
+      console.log('Browser detected:', visitorInfo.browser);
+      console.log('OS detected:', visitorInfo.os);
+      console.log('Device type detected:', visitorInfo.device_type);
+      console.log('Screen resolution:', visitorInfo.screen_resolution);
+      console.groupEnd();
+
       // Track initial visit
       if (hasTrackedRef.current) return;
 
@@ -202,19 +256,28 @@ export const useVisitorTracking = () => {
 
           // Add location data if available
           if (visitorInfo.location) {
-            updateData.ip_address = visitorInfo.location.ip_address;
-            updateData.city = visitorInfo.location.city;
-            updateData.country = visitorInfo.location.country;
-            updateData.country_code = visitorInfo.location.country_code;
-            updateData.region = visitorInfo.location.region;
-            updateData.latitude = visitorInfo.location.latitude;
-            updateData.longitude = visitorInfo.location.longitude;
+            updateData.ip_address = visitorInfo.location.ip_address || null;
+            updateData.city = visitorInfo.location.city || null;
+            updateData.country = visitorInfo.location.country || null;
+            updateData.country_code = visitorInfo.location.country_code || null;
+            updateData.region = visitorInfo.location.region || null;
+            updateData.latitude = visitorInfo.location.latitude || null;
+            updateData.longitude = visitorInfo.location.longitude || null;
+            console.log('📍 Updating visitor with location:', updateData.city, updateData.country);
+          } else {
+            console.warn('⚠️ No location data for update');
           }
 
-          await supabase
+          const { error: updateError } = await supabase
             .from('guest_visitors')
             .update(updateData)
             .eq('visitor_id', visitorInfo.visitor_id);
+          
+          if (updateError) {
+            console.error('❌ Error updating visitor:', updateError);
+          } else {
+            console.log('✅ Visitor updated successfully');
+          }
         } else {
           // Create new visitor with location data
           const insertData: any = {
@@ -233,27 +296,47 @@ export const useVisitorTracking = () => {
 
           // Add location data if available
           if (visitorInfo.location) {
-            insertData.ip_address = visitorInfo.location.ip_address;
-            insertData.city = visitorInfo.location.city;
-            insertData.country = visitorInfo.location.country;
-            insertData.country_code = visitorInfo.location.country_code;
-            insertData.region = visitorInfo.location.region;
-            insertData.latitude = visitorInfo.location.latitude;
-            insertData.longitude = visitorInfo.location.longitude;
+            insertData.ip_address = visitorInfo.location.ip_address || null;
+            insertData.city = visitorInfo.location.city || null;
+            insertData.country = visitorInfo.location.country || null;
+            insertData.country_code = visitorInfo.location.country_code || null;
+            insertData.region = visitorInfo.location.region || null;
+            insertData.latitude = visitorInfo.location.latitude || null;
+            insertData.longitude = visitorInfo.location.longitude || null;
+            console.log('📍 Creating visitor with location:', insertData.city, insertData.country);
+          } else {
+            console.warn('⚠️ No location data for new visitor');
+            // Still set default values for location fields
+            insertData.ip_address = null;
+            insertData.city = null;
+            insertData.country = null;
+            insertData.country_code = null;
+            insertData.region = null;
+            insertData.latitude = null;
+            insertData.longitude = null;
           }
+
+          console.log('💾 Inserting visitor record:', {
+            visitor_id: insertData.visitor_id,
+            ip_address: insertData.ip_address,
+            city: insertData.city,
+            country: insertData.country
+          });
 
           const { error: insertError } = await supabase
             .from('guest_visitors')
             .insert(insertData);
 
           if (insertError) {
-            // Silent fail - don't show errors to users
+            console.error('❌ Error inserting visitor:', insertError);
+          } else {
+            console.log('✅ Visitor created successfully');
           }
         }
 
         hasTrackedRef.current = true;
       } catch (error) {
-        // Silent fail - don't show errors to users
+        console.error('❌ Tracking error:', error instanceof Error ? error.message : error);
         hasTrackedRef.current = true; // Mark as tracked even on error to avoid infinite retries
       }
     };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, Mail, Phone, Calendar, Clock } from 'lucide-react';
+import { UserCheck, Mail, Phone, Calendar, Clock, Globe } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
@@ -82,6 +82,11 @@ const GuestVisitorsPage: React.FC = () => {
 
   // Filter visitors based on search term
   const filteredVisitors = visitors.filter(visitor => {
+    // Filter out "Unknown" browser or OS
+    if (visitor.browser === 'Unknown' || visitor.os === 'Unknown') {
+      return false;
+    }
+    
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (
@@ -209,6 +214,15 @@ const GuestVisitorsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Location Analytics - Pie Chart */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center mb-6">
+          <Globe className="h-6 w-6 text-primary-600 mr-3" />
+          <h2 className="text-lg font-semibold text-gray-900">Guests by Location</h2>
+        </div>
+        <LocationPieChart visitors={uniqueVisitors} />
+      </div>
+
       {/* Visitors Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -326,6 +340,150 @@ const GuestVisitorsPage: React.FC = () => {
               onItemsPerPageChange={setItemsPerPage}
               showItemsPerPage={false}
             />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Pie Chart Component for Location Analytics
+interface LocationPieChartProps {
+  visitors: GuestVisitor[];
+}
+
+const LocationPieChart: React.FC<LocationPieChartProps> = ({ visitors }) => {
+  // Aggregate visitors by country/state, filtering out Unknown locations
+  const locationData = visitors.reduce((acc, visitor) => {
+    // Use country if available, otherwise city - skip if neither exists
+    const location = visitor.country || visitor.city;
+    if (!location) return acc; // Skip entries without location data
+    
+    const existing = acc.find(item => item.location === location);
+    
+    if (existing) {
+      existing.count++;
+    } else {
+      acc.push({ location, count: 1 });
+    }
+    return acc;
+  }, [] as Array<{ location: string; count: number }>)
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 8); // Show top 8 locations
+
+  const total = locationData.reduce((sum, item) => sum + item.count, 0);
+  const visitorsWithoutLocation = visitors.length - total;
+  
+  // Color palette for pie slices
+  const colors = [
+    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6',
+    '#ec4899', '#06b6d4', '#f97316'
+  ];
+
+  // Calculate pie chart data with SVG paths
+  let currentAngle = -Math.PI / 2; // Start at top
+  const radius = 80;
+  const centerX = 120;
+  const centerY = 120;
+
+  const slices = locationData.map((item, index) => {
+    const sliceAngle = (item.count / total) * 2 * Math.PI;
+    const startAngle = currentAngle;
+    const endAngle = currentAngle + sliceAngle;
+
+    const x1 = centerX + radius * Math.cos(startAngle);
+    const y1 = centerY + radius * Math.sin(startAngle);
+    const x2 = centerX + radius * Math.cos(endAngle);
+    const y2 = centerY + radius * Math.sin(endAngle);
+
+    const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+
+    const path = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+    // Calculate label position
+    const labelAngle = startAngle + sliceAngle / 2;
+    const labelRadius = radius * 0.65;
+    const labelX = centerX + labelRadius * Math.cos(labelAngle);
+    const labelY = centerY + labelRadius * Math.sin(labelAngle);
+
+    currentAngle = endAngle;
+
+    return {
+      path,
+      color: colors[index % colors.length],
+      location: item.location,
+      count: item.count,
+      percentage: Math.round((item.count / total) * 100),
+      labelX,
+      labelY
+    };
+  });
+
+  if (locationData.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Globe className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+        <p className="text-gray-500">No location data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      {/* Pie Chart */}
+      <div className="lg:col-span-2 flex justify-center items-center py-4">
+        <svg width="200" height="200" viewBox="0 0 240 240" className="drop-shadow-sm">
+          {slices.map((slice, index) => (
+            <g key={index}>
+              <path
+                d={slice.path}
+                fill={slice.color}
+                stroke="white"
+                strokeWidth="2"
+                opacity="0.85"
+              />
+              {slice.percentage >= 5 && (
+                <text
+                  x={slice.labelX}
+                  y={slice.labelY}
+                  textAnchor="middle"
+                  dy="0.3em"
+                  className="text-xs font-semibold fill-white"
+                  style={{ pointerEvents: 'none' }}
+                >
+                  {slice.percentage}%
+                </text>
+              )}
+            </g>
+          ))}
+        </svg>
+      </div>
+
+      {/* Legend */}
+      <div className="space-y-1 overflow-y-auto max-h-72">
+        <p className="text-xs font-semibold text-gray-700 mb-3 px-1">Top Locations</p>
+        {slices.map((slice, index) => (
+          <div key={index} className="flex items-center justify-between px-1 py-1.5 rounded hover:bg-gray-50 group">
+            <div className="flex items-center flex-1 min-w-0">
+              <div
+                className="w-2.5 h-2.5 rounded-full mr-2 flex-shrink-0"
+                style={{ backgroundColor: slice.color }}
+              ></div>
+              <p className="text-xs text-gray-900 truncate font-medium">
+                {slice.location}
+              </p>
+            </div>
+            <span className="ml-2 text-xs font-semibold text-gray-600 flex-shrink-0">
+              {slice.percentage}%
+            </span>
+          </div>
+        ))}
+        {visitorsWithoutLocation > 0 && (
+          <div className="flex items-center justify-between px-1 py-1.5 rounded hover:bg-gray-50 text-gray-500 border-t border-gray-100 mt-2 pt-2">
+            <span className="text-xs">No location</span>
+            <span className="text-xs font-semibold">
+              {Math.round((visitorsWithoutLocation / visitors.length) * 100)}%
+            </span>
           </div>
         )}
       </div>

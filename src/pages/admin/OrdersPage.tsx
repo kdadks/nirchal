@@ -467,9 +467,10 @@ const OrdersPage: React.FC = () => {
   const deliveredOrders = orders.filter(order => order.status === 'delivered');
   const cancelledOrders = orders.filter(order => order.status === 'cancelled');
   
-  // Calculate total revenue (excluding cancelled orders)
+  // Calculate total revenue (only count paid orders - exclude cancelled and pending payment orders)
   const totalRevenue = orders.reduce((sum, order) => {
     if (order.status === 'cancelled') return sum;
+    if (order.payment_status === 'pending') return sum;
     return sum + order.total_amount;
   }, 0);
 
