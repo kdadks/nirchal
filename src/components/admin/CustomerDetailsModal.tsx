@@ -143,8 +143,8 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
       // Generate a verification token (base64 encoded random string)
       const verificationToken = btoa(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
       
-      // Create verification link
-      const verificationLink = `${window.location.origin}/verify-email?token=${verificationToken}&customerId=${customer.id}`;
+      // Create verification link using nirchal.com domain
+      const verificationLink = `https://nirchal.com/verify-email?token=${verificationToken}&customerId=${customer.id}`;
 
       // Store token in database with expiry (24 hours)
       const expiryTime = new Date();
@@ -160,8 +160,8 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
 
       if (tokenError) throw tokenError;
 
-      // Send verification email using the email service
-      const emailResponse = await fetch('/.netlify/functions/send-email', {
+      // Send verification email via Cloudflare function
+      const emailResponse = await fetch('/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -169,28 +169,36 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
         body: JSON.stringify({
           to: customer.email,
           subject: 'Verify Your Email Address - Nirchal',
-          htmlContent: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #333;">Email Verification</h2>
-              <p>Dear ${customer.first_name},</p>
-              <p>Please verify your email address by clicking the button below. This link will expire in 24 hours.</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${verificationLink}" style="background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-                  Verify Email Address
-                </a>
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
+              <div style="background-color: white; padding: 40px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h2 style="color: #2563eb; margin-top: 0; margin-bottom: 20px;">Email Verification Required</h2>
+                <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">Dear ${customer.first_name},</p>
+                <p style="color: #4b5563; font-size: 14px; line-height: 1.6; margin-bottom: 30px;">Please verify your email address to activate your Nirchal account. Click the button below to confirm your email. This link will expire in 24 hours.</p>
+                
+                <div style="text-align: center; margin: 40px 0;">
+                  <a href="${verificationLink}" style="background-color: #2563eb; color: white; padding: 14px 40px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 14px;">
+                    Verify Email Address
+                  </a>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 13px; margin-top: 30px; margin-bottom: 10px;">Or copy and paste this link in your browser:</p>
+                <p style="background-color: #f3f4f6; padding: 12px; border-radius: 4px; word-break: break-all; color: #4b5563; font-size: 12px; margin-bottom: 20px;">${verificationLink}</p>
+                
+                <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">If you did not request this verification, please ignore this email or contact support.</p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+                <p style="color: #9ca3af; font-size: 11px; margin-top: 20px; margin-bottom: 0;">© 2025 Nirchal. All rights reserved.</p>
               </div>
-              <p>Or copy and paste this link in your browser:</p>
-              <p style="word-break: break-all; color: #666; font-size: 12px;">${verificationLink}</p>
-              <p style="color: #666; font-size: 12px; margin-top: 20px;">If you did not request this verification, please ignore this email.</p>
-              <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="color: #999; font-size: 11px;">© Nirchal. All rights reserved.</p>
             </div>
           `
         })
       });
 
       if (!emailResponse.ok) {
-        throw new Error('Failed to send verification email');
+        const errorData = await emailResponse.text();
+        console.error('Email service error:', errorData);
+        throw new Error('Failed to send verification email. Please try again later.');
       }
 
       toast.success('Verification email sent to ' + customer.email);
