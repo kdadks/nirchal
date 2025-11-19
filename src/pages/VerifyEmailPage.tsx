@@ -57,15 +57,15 @@ const VerifyEmailPage: React.FC = () => {
         // Debug logging - show actual values
         const storedTokenStr = String(customer.reset_token || 'null');
         const tokenStr = String(token || 'null');
-        console.log('Verification Debug - RAW VALUES:', {
-          receivedToken: tokenStr,
-          receivedTokenLength: tokenStr.length,
-          storedToken: storedTokenStr,
-          storedTokenLength: storedTokenStr.length,
-          tokenMatch: storedTokenStr === tokenStr,
-          customerEmail: customer.email,
-          emailVerified: customer.email_verified
-        });
+        console.log('=== VERIFICATION DEBUG ===');
+        console.log('Received Token:', tokenStr);
+        console.log('Stored Token:', storedTokenStr);
+        console.log('Token Lengths - Received:', tokenStr.length, 'Stored:', storedTokenStr.length);
+        console.log('Exact Match:', storedTokenStr === tokenStr);
+        console.log('Customer ID:', customerId);
+        console.log('Customer Email:', customer.email);
+        console.log('Email Already Verified:', customer.email_verified);
+        console.log('========================');
 
         // Check if already verified
         if (customer.email_verified) {
@@ -83,24 +83,18 @@ const VerifyEmailPage: React.FC = () => {
         const storedTokenTrimmed = storedTokenStr.trim();
         const tokenTrimmed = tokenStr.trim();
         
-        console.log('Token comparison details:', {
-          storedTokenTrimmed,
-          tokenTrimmed,
-          decodedToken,
-          match1: storedTokenTrimmed === tokenTrimmed,
-          match2: storedTokenTrimmed === decodedToken,
-          storedFirst20: storedTokenTrimmed.substring(0, 20),
-          receivedFirst20: tokenTrimmed.substring(0, 20),
-          decodedFirst20: decodedToken.substring(0, 20)
-        });
+        console.log('=== TOKEN COMPARISON ===');
+        console.log('Stored (trimmed):', storedTokenTrimmed);
+        console.log('Received (trimmed):', tokenTrimmed);
+        console.log('Received (decoded):', decodedToken);
+        console.log('Match (exact):', storedTokenTrimmed === tokenTrimmed);
+        console.log('Match (decoded):', storedTokenTrimmed === decodedToken);
+        console.log('========================');
         
         if (storedTokenTrimmed !== tokenTrimmed && storedTokenTrimmed !== decodedToken) {
-          console.error('Token mismatch:', {
-            receivedToken: tokenStr,
-            decodedToken: decodedToken,
-            storedToken: storedTokenStr,
-            storedTokenTrimmed
-          });
+          console.error('❌ TOKEN MISMATCH - Verification will fail');
+          console.log('Expected:', storedTokenTrimmed);
+          console.log('Got:', tokenTrimmed);
           setStatus({
             loading: false,
             success: false,

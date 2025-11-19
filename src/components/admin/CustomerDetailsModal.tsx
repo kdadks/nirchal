@@ -158,6 +158,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
       console.log('Storing verification token:', {
         customerId: customer.id,
         tokenLength: verificationToken.length,
+        tokenValue: verificationToken,
         expiryTime: expiryTime.toISOString()
       });
 
@@ -170,11 +171,11 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
         .eq('id', customer.id);
 
       if (tokenError) {
-        console.error('Error storing token:', tokenError);
+        console.error('❌ Error storing token:', tokenError);
         throw tokenError;
       }
 
-      console.log('Token stored successfully');
+      console.log('✅ Token stored successfully');
 
       // Send verification email via Cloudflare function
       const emailResponse = await fetch('/send-email', {
