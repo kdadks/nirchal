@@ -140,8 +140,12 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
     try {
       setVerifying(true);
 
-      // Generate a verification token (base64 encoded random string)
-      const verificationToken = btoa(Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+      // Generate a verification token (shorter base64 string to fit in 255 char limit)
+      // Use a simpler random string that won't exceed 255 chars
+      const randomPart1 = Math.random().toString(36).substring(2, 12);
+      const randomPart2 = Math.random().toString(36).substring(2, 12);
+      const randomPart3 = Date.now().toString(36);
+      const verificationToken = btoa(`${randomPart1}${randomPart2}${randomPart3}`).substring(0, 200);
       
       // Create verification link using nirchal.com domain with proper URL encoding
       const encodedToken = encodeURIComponent(verificationToken);

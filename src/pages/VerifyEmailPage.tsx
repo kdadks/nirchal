@@ -54,13 +54,15 @@ const VerifyEmailPage: React.FC = () => {
           return;
         }
 
-        // Debug logging
-        console.log('Verification Debug:', {
-          receivedToken: token,
-          receivedTokenLength: token?.length,
-          storedToken: customer.reset_token,
-          storedTokenLength: (customer.reset_token as any)?.length,
-          tokenMatch: customer.reset_token === token,
+        // Debug logging - show actual values
+        const storedTokenStr = String(customer.reset_token || 'null');
+        const tokenStr = String(token || 'null');
+        console.log('Verification Debug - RAW VALUES:', {
+          receivedToken: tokenStr,
+          receivedTokenLength: tokenStr.length,
+          storedToken: storedTokenStr,
+          storedTokenLength: storedTokenStr.length,
+          tokenMatch: storedTokenStr === tokenStr,
           customerEmail: customer.email,
           emailVerified: customer.email_verified
         });
@@ -77,12 +79,27 @@ const VerifyEmailPage: React.FC = () => {
         }
 
         // Check if token matches (handle URL encoding)
-        const decodedToken = decodeURIComponent(token);
-        if (customer.reset_token !== token && customer.reset_token !== decodedToken) {
+        const decodedToken = decodeURIComponent(tokenStr);
+        const storedTokenTrimmed = storedTokenStr.trim();
+        const tokenTrimmed = tokenStr.trim();
+        
+        console.log('Token comparison details:', {
+          storedTokenTrimmed,
+          tokenTrimmed,
+          decodedToken,
+          match1: storedTokenTrimmed === tokenTrimmed,
+          match2: storedTokenTrimmed === decodedToken,
+          storedFirst20: storedTokenTrimmed.substring(0, 20),
+          receivedFirst20: tokenTrimmed.substring(0, 20),
+          decodedFirst20: decodedToken.substring(0, 20)
+        });
+        
+        if (storedTokenTrimmed !== tokenTrimmed && storedTokenTrimmed !== decodedToken) {
           console.error('Token mismatch:', {
-            receivedToken: token,
+            receivedToken: tokenStr,
             decodedToken: decodedToken,
-            storedToken: customer.reset_token
+            storedToken: storedTokenStr,
+            storedTokenTrimmed
           });
           setStatus({
             loading: false,
