@@ -4,6 +4,7 @@ import { useProductSuggestions } from '../hooks/useProductSuggestions';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search, Facebook, Linkedin, MessageCircle, Link2, Check, ShoppingBag, Heart, Share2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { useProductBySlug } from '../hooks/useProductBySlug';
 import { useWishlist } from '../contexts/WishlistContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
@@ -47,6 +48,7 @@ const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { product, loading } = useProductBySlug(slug);
   const { addItem } = useCart();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { customer } = useCustomerAuth();
   
@@ -955,15 +957,15 @@ const ProductDetailPage: React.FC = () => {
                 {/* Price */}
                 <div className="flex items-baseline gap-2 sm:gap-3 mb-4 sm:mb-6">
                   <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
-                    ₹{adjustedPrice.toLocaleString()}
+                    {getCurrencySymbol()}{getConvertedPrice(adjustedPrice).toLocaleString(undefined)}
                   </span>
                   {product.originalPrice && product.originalPrice > product.price && (
                     <>
                       <span className="text-base sm:text-lg lg:text-xl text-gray-500 line-through">
-                        ₹{product.originalPrice.toLocaleString()}
+                        {getCurrencySymbol()}{getConvertedPrice(product.originalPrice).toLocaleString(undefined)}
                       </span>
                       <span className="bg-gradient-to-r from-red-100 to-red-50 text-red-700 px-2 sm:px-3 py-1 rounded-full text-xs font-medium border border-red-200">
-                        Save ₹{(product.originalPrice - product.price).toLocaleString()}
+                        Save {getCurrencySymbol()}{getConvertedPrice(product.originalPrice - product.price).toLocaleString(undefined)}
                       </span>
                     </>
                   )}
@@ -1471,7 +1473,7 @@ const ProductDetailPage: React.FC = () => {
                     {selectedColor && <span>Color: {selectedColor}</span>}
                   </div>
                 )}
-                <p className="text-amber-600 font-semibold text-sm sm:text-base">₹{adjustedPrice.toLocaleString()}</p>
+                <p className="text-amber-600 font-semibold text-sm sm:text-base">{getCurrencySymbol()}{getConvertedPrice(adjustedPrice).toLocaleString(undefined)}</p>
               </div>
             </div>
 

@@ -8,6 +8,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { CustomerAuthProvider } from './contexts/CustomerAuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { WishlistProvider } from './contexts/WishlistContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 import { AIAssistantButton } from './components/ai/AIAssistantButton';
 import TawkToChat from './components/common/TawkToChat';
 import { preloadCategories } from './utils/categoryCache';
@@ -133,39 +134,41 @@ const App: React.FC = () => {
         <CustomerAuthProvider>
           <CartProvider>
             <WishlistProvider>
-              <VisitorTracker>
-                <RouterProvider router={router} />
-                <CookieConsentBanner />
-                <AIAssistantButton />
-                <TawkToChat />
-                <Toaster
-                  position="top-right"
-                  toastOptions={{
-                    duration: 4000,
-                    style: {
-                      background: '#ffffff',
-                      color: '#1f2937',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                    },
-                    success: {
+              <CurrencyProvider>
+                <VisitorTracker>
+                  <RouterProvider router={router} />
+                  <CookieConsentBanner />
+                  <AIAssistantButton />
+                  <TawkToChat />
+                  <Toaster
+                    position="top-right"
+                    toastOptions={{
+                      duration: 4000,
                       style: {
-                        background: '#f0fdf4',
-                        color: '#166534',
-                        border: '1px solid #bbf7d0',
+                        background: '#ffffff',
+                        color: '#1f2937',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                       },
-                    },
-                    error: {
-                      style: {
-                        background: '#fef2f2',
-                        color: '#dc2626',
-                        border: '1px solid #fecaca',
+                      success: {
+                        style: {
+                          background: '#f0fdf4',
+                          color: '#166534',
+                          border: '1px solid #bbf7d0',
+                        },
                       },
-                    },
-                  }}
-                />
-              </VisitorTracker>
+                      error: {
+                        style: {
+                          background: '#fef2f2',
+                          color: '#dc2626',
+                          border: '1px solid #fecaca',
+                        },
+                      },
+                    }}
+                  />
+                </VisitorTracker>
+              </CurrencyProvider>
             </WishlistProvider>
           </CartProvider>
         </CustomerAuthProvider>

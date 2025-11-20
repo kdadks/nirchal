@@ -7,6 +7,7 @@ import { useCustomerAuth } from '../../contexts/CustomerAuthContext';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 import { useProductSearch } from '../../hooks/useProductSearch';
 import { MENU_CATEGORIES } from '../../constants/categories';
+import CurrencySwitcher from './CurrencySwitcher';
 
 const promotionalMessages = [
   //{
@@ -659,6 +660,11 @@ const Header: React.FC = () => {
                   )}
                 </AnimatePresence>
               </motion.div>
+
+              {/* Currency Switcher */}
+              <div className="hidden md:block">
+                <CurrencySwitcher />
+              </div>
 
               {/* Wishlist Icon */}
               <motion.div

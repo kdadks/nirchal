@@ -2,12 +2,14 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, ShoppingBag, Plus, Minus, ArrowLeft } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import CartAddOns from '../components/CartAddOns';
 import SEO from '../components/SEO';
 import { trackViewCart } from '../utils/analytics';
 
 const CartPage: React.FC = () => {
   const { state: { items, total }, updateQuantity, removeFromCart } = useCart();
+  const { getConvertedPrice, getCurrencySymbol, isInternational } = useCurrency();
   
   // Track view cart event when cart has items
   useEffect(() => {
@@ -154,10 +156,10 @@ const CartPage: React.FC = () => {
                       {/* Price */}
                       <div className="text-right">
                         <p className="text-base font-bold text-gray-900 mb-0.5">
-                          ₹{(item.price * item.quantity).toLocaleString()}
+                          {getCurrencySymbol()}{getConvertedPrice(item.price * item.quantity).toLocaleString()}
                         </p>
                         <p className="text-xs text-gray-500">
-                          ₹{item.price.toLocaleString()} each
+                          {getCurrencySymbol()}{getConvertedPrice(item.price).toLocaleString()} each
                         </p>
                       </div>
                     </div>
@@ -184,16 +186,20 @@ const CartPage: React.FC = () => {
               <div className="p-3 space-y-2">
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Subtotal ({items.length} items)</span>
-                  <span>₹{total.toLocaleString()}</span>
+                  <span>{getCurrencySymbol()}{getConvertedPrice(total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Delivery</span>
-                  <span className="text-green-600 font-semibold">Free 🇮🇳</span>
+                  {!isInternational ? (
+                    <span className="text-green-600 font-semibold">Free 🇮🇳</span>
+                  ) : (
+                    <span className="text-orange-600 font-semibold">Added at checkout</span>
+                  )}
                 </div>
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>Total</span>
-                    <span>₹{total.toLocaleString()}</span>
+                    <span>{getCurrencySymbol()}{getConvertedPrice(total).toLocaleString()}</span>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 text-center pt-1">

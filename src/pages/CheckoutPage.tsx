@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile, markWelcomeEmailSent } from '@utils/orders';
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 import { transactionalEmailService } from '../services/transactionalEmailService';
@@ -74,6 +75,7 @@ const CheckoutPage: React.FC = () => {
   const { state: { items, total }, clearCart } = useCart();
   const { supabase } = useAuth();
   const { customer } = useCustomerAuth();
+  const { isInternational, getConvertedPrice, getCurrencySymbol } = useCurrency();
   const { isLoaded: isRazorpayLoaded, createOrder: createRazorpayOrder, openCheckout: openRazorpayCheckout, verifyPayment: verifyRazorpayPayment } = useRazorpay();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
@@ -526,19 +528,20 @@ const CheckoutPage: React.FC = () => {
 
       // 3) Create order with items
       // Calculate shipping cost based on method selected
+      const standardDeliveryFee = isInternational ? 88 : 0; // ₹88 for international users, free for INR
       const expressDeliveryFee = form.shippingMethod === 'express' ? 250 : 0;
-      const deliveryCountry = form.deliveryAddress ? 'India' : 'India'; // Will be updated when country selection is added
-      const deliveryCost = deliveryCountry === 'India' ? expressDeliveryFee : expressDeliveryFee; // International shipping will be calculated later
+      const deliveryCost = form.shippingMethod === 'express' ? expressDeliveryFee : standardDeliveryFee;
       // Calculate payment amounts based on split choice
-      const { productTotal, serviceTotal } = calculatePaymentSplit();
-      const isPaymentSplit = paymentSplit === 'split' && serviceTotal > 0;
-      const upfrontPaymentAmount = isPaymentSplit ? productTotal : total;
-      const codPaymentAmount = isPaymentSplit ? serviceTotal : 0;
-      const finalTotal = upfrontPaymentAmount + deliveryCost;
+      const { productTotal: splitProductTotal, serviceTotal: splitServiceTotal } = calculatePaymentSplit();
+      const isPaymentSplit = paymentSplit === 'split' && splitServiceTotal > 0;
+      const upfrontPaymentAmount = isPaymentSplit ? splitProductTotal : total;
+      const codPaymentAmount = isPaymentSplit ? splitServiceTotal : 0;
+      // For international users, don't include delivery cost in the order total (will be added later)
+      const finalTotal = isInternational ? upfrontPaymentAmount : (upfrontPaymentAmount + deliveryCost);
       
       // Create payment note to track split payment
       const paymentNote = isPaymentSplit
-        ? `Split Payment: Products ₹${productTotal} (Paid Online) + Services ₹${serviceTotal} (COD)`
+        ? `Split Payment: Products ₹${splitProductTotal} (Paid Online) + Services ₹${splitServiceTotal} (COD)`
         : 'Full Payment Online';
       
       const billingAddress = sanitizeOrderAddress({
@@ -1277,13 +1280,17 @@ const CheckoutPage: React.FC = () => {
   };
 
   // Calculate shipping cost based on selected method
+  // For non-INR (international) users, delivery cost will be calculated later - NOT included in order total
+  // For INR users, standard delivery is free, express is ₹250
+  const standardDeliveryFee = isInternational ? 88 : 0; // ₹88 for international users, free for INR
   const expressDeliveryFee = form.shippingMethod === 'express' ? 250 : 0;
-  const deliveryCost = expressDeliveryFee; // Standard is free, Express is ₹250
+  const deliveryCost = form.shippingMethod === 'express' ? expressDeliveryFee : standardDeliveryFee;
   
   // Calculate final total based on payment split choice
+  // For international users, don't include delivery cost in the order total (will be added later)
   const upfrontAmount = paymentSplit === 'split' && hasServices ? productTotal : total;
   const codAmount = paymentSplit === 'split' && hasServices ? serviceTotal : 0;
-  const finalTotal = upfrontAmount + deliveryCost;
+  const finalTotal = isInternational ? upfrontAmount : (upfrontAmount + deliveryCost);
 
   return (
     <PaymentSecurityWrapper>
@@ -1590,7 +1597,8 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Shipping Method Selection */}
+                {/* Shipping Method Selection - Only show for India */}
+                {!isInternational && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="p-4 border-b border-gray-200">
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -1622,7 +1630,7 @@ const CheckoutPage: React.FC = () => {
                           </div>
                           <p className="text-xs text-gray-600 mt-0.5">3-7 business days</p>
                         </div>
-                        <span className="text-base font-bold text-green-600">₹0</span>
+                        <span className="text-base font-bold text-green-600">{getCurrencySymbol()}0</span>
                       </div>
                     </label>
 
@@ -1648,11 +1656,38 @@ const CheckoutPage: React.FC = () => {
                           </div>
                           <p className="text-xs text-gray-600 mt-0.5">1-3 business days • Priority processing</p>
                         </div>
-                        <span className="text-base font-bold text-orange-600">₹250</span>
+                        <span className="text-base font-bold text-orange-600">{getCurrencySymbol()}{getConvertedPrice(250).toLocaleString()}</span>
                       </div>
                     </label>
                   </div>
                 </div>
+                )}
+
+                {/* International Shipping Notice */}
+                {isInternational && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-200 overflow-hidden">
+                  <div className="p-4">
+                    <h2 className="text-lg font-semibold text-blue-900 flex items-center gap-2 mb-3">
+                      <Package size={18} className="text-blue-600" />
+                      International Shipping
+                    </h2>
+                    <div className="space-y-2 text-sm text-blue-800">
+                      <p>
+                        ✓ Delivery cost will be calculated based on your country/region and our shipping partner's rates.
+                      </p>
+                      <p>
+                        ✓ You will be informed of the exact shipping charges via email before your order is shipped.
+                      </p>
+                      <p>
+                        ✓ The delivery cost must be paid upfront along with your product order amount.
+                      </p>
+                      <p className="font-semibold mt-3">
+                        Please keep this in mind when reviewing your final order amount.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                )}
 
                 {/* Billing Information */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1913,7 +1948,7 @@ const CheckoutPage: React.FC = () => {
                   ) : (
                     <>
                       <CheckCircle size={20} />
-                      Place Order - ₹{finalTotal.toLocaleString()}
+                      Place Order - {getCurrencySymbol()}{getConvertedPrice(finalTotal).toLocaleString()}
                     </>
                   )}
                 </button>
@@ -1956,7 +1991,7 @@ const CheckoutPage: React.FC = () => {
                   ) : (
                     <>
                       <CheckCircle size={18} />
-                      Place Order - ₹{finalTotal.toLocaleString()}
+                      Place Order - {getCurrencySymbol()}{getConvertedPrice(finalTotal).toLocaleString()}
                     </>
                   )}
                 </button>
@@ -1990,7 +2025,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="flex justify-between items-center mt-1.5">
                           <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
                           <span className="font-semibold text-gray-900 text-sm">
-                            ₹{(item.price * item.quantity).toLocaleString()}
+                            {getCurrencySymbol()}{getConvertedPrice(item.price * item.quantity).toLocaleString(undefined)}
                           </span>
                         </div>
                       </div>
@@ -1998,8 +2033,8 @@ const CheckoutPage: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Payment Split Option - Only show if cart has both products and services */}
-                {hasServices && hasProducts && (
+                {/* Payment Split Option - Only show if cart has both products and services AND currency is INR */}
+                {hasServices && hasProducts && !isInternational && (
                   <div className="border-t border-gray-200 pt-3 pb-3">
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">Payment Options</h3>
                     <div className="space-y-2">
@@ -2018,7 +2053,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="flex-1">
                           <div className="font-medium text-sm text-gray-900">Pay Full Amount Now</div>
                           <div className="text-xs text-gray-600 mt-0.5">
-                            Pay ₹{(productTotal + serviceTotal).toLocaleString()} (Products + Services)
+                            Pay {getCurrencySymbol()}{getConvertedPrice(productTotal + serviceTotal).toLocaleString(undefined)} (Products + Services)
                           </div>
                         </div>
                       </label>
@@ -2041,8 +2076,8 @@ const CheckoutPage: React.FC = () => {
                             <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">Recommended</span>
                           </div>
                           <div className="text-xs text-gray-600 mt-0.5">
-                            Pay ₹{productTotal.toLocaleString()} now (Products)<br/>
-                            Pay ₹{serviceTotal.toLocaleString()} on delivery (Services)
+                            Pay {getCurrencySymbol()}{getConvertedPrice(productTotal).toLocaleString(undefined)} now (Products)<br/>
+                            Pay {getCurrencySymbol()}{getConvertedPrice(serviceTotal).toLocaleString(undefined)} on delivery (Services)
                           </div>
                         </div>
                       </label>
@@ -2056,50 +2091,54 @@ const CheckoutPage: React.FC = () => {
                     <>
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>Products Subtotal</span>
-                        <span>₹{productTotal.toLocaleString()}</span>
+                        <span>{getCurrencySymbol()}{getConvertedPrice(productTotal).toLocaleString(undefined)}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>Services Subtotal</span>
-                        <span>₹{serviceTotal.toLocaleString()}</span>
+                        <span>{getCurrencySymbol()}{getConvertedPrice(serviceTotal).toLocaleString(undefined)}</span>
                       </div>
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Delivery</span>
-                        <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
-                          {deliveryCost === 0 ? 'Free' : `₹${deliveryCost}`}
-                        </span>
-                      </div>
+                      {!isInternational && (
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>Delivery</span>
+                          <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
+                            {deliveryCost === 0 ? 'Free' : `${getCurrencySymbol()}${getConvertedPrice(deliveryCost)}`}
+                          </span>
+                        </div>
+                      )}
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
                         <div className="flex justify-between text-sm font-semibold text-amber-900">
                           <span>Pay Now (Products)</span>
-                          <span>₹{upfrontAmount.toLocaleString()}</span>
+                          <span>{getCurrencySymbol()}{getConvertedPrice(upfrontAmount).toLocaleString(undefined)}</span>
                         </div>
                       </div>
                       <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                         <div className="flex justify-between text-sm font-semibold text-green-900">
                           <span>Pay on Delivery (Services)</span>
-                          <span>₹{codAmount.toLocaleString()}</span>
+                          <span>{getCurrencySymbol()}{getConvertedPrice(codAmount).toLocaleString(undefined)}</span>
                         </div>
                       </div>
                       <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
                         <span>Order Total</span>
-                        <span className="text-amber-600">₹{(upfrontAmount + codAmount).toLocaleString()}</span>
+                        <span className="text-amber-600">{getCurrencySymbol()}{getConvertedPrice(upfrontAmount + codAmount).toLocaleString(undefined)}</span>
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>Subtotal</span>
-                        <span>₹{total.toLocaleString()}</span>
+                        <span>{getCurrencySymbol()}{getConvertedPrice(total).toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Delivery</span>
-                        <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
-                          {deliveryCost === 0 ? 'Free' : `₹${deliveryCost}`}
-                        </span>
-                      </div>
+                      {!isInternational && (
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>Delivery</span>
+                          <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
+                            {deliveryCost === 0 ? 'Free' : `${getCurrencySymbol()}${getConvertedPrice(deliveryCost)}`}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
                         <span>Total</span>
-                        <span className="text-amber-600">₹{finalTotal.toLocaleString()}</span>
+                        <span className="text-amber-600">{getCurrencySymbol()}{getConvertedPrice(finalTotal).toLocaleString()}</span>
                       </div>
                     </>
                   )}

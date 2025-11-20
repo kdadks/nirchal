@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Star, Eye } from 'lucide-react';
 import { useWishlist } from '../../contexts/WishlistContext';
-import { formatCurrency } from '../../utils/formatCurrency';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import { getProductStockInfo } from '../../utils/inventoryUtils';
 import CustomerAuthModal from '../auth/CustomerAuthModal';
 import QuickViewModal from './QuickViewModal';
@@ -18,6 +18,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   showActionButtons = false // Default to false - only featured products will have this
 }) => {
   const { addToWishlist, isInWishlist } = useWishlist();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const primaryImage = product.images && product.images.length > 0 ? product.images[0] : '/placeholder-product.jpg';
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageSrc, setImageSrc] = useState(primaryImage);
@@ -281,12 +282,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {/* Price Section */}
             <div className="flex items-center gap-2 mb-2 min-h-[1.25rem]">
               <span className="text-sm font-bold text-gray-900">
-                {formatCurrency(getDefaultAdjustedPrice())}
+                {getCurrencySymbol()}{getConvertedPrice(getDefaultAdjustedPrice()).toLocaleString()}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
                 <>
                   <span className="text-xs text-gray-500 line-through">
-                    {formatCurrency(product.originalPrice)}
+                    {getCurrencySymbol()}{getConvertedPrice(product.originalPrice).toLocaleString()}
                   </span>
                   <span className="text-xs font-semibold text-orange-600">
                     ({discountPercentage}% OFF)

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, X, ChevronDown, ChevronUp, Plus } from 'lucide-react';
-import { getCartAddOnSuggestions, formatPriceRange, AddOnItem, AddOnSuggestion } from '../utils/cartAddOns';
+import { getCartAddOnSuggestions, AddOnItem, AddOnSuggestion } from '../utils/cartAddOns';
 import { useCart } from '../contexts/CartContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import toast from 'react-hot-toast';
 import type { Product } from '../types';
@@ -27,6 +28,7 @@ const CartAddOns: React.FC<CartAddOnsProps> = ({ cartItems }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedService, setSelectedService] = useState<AddOnItem | null>(null);
   const { addToCart } = useCart();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
 
   useEffect(() => {
     const addOnSuggestions = getCartAddOnSuggestions(cartItems);
@@ -136,7 +138,13 @@ const CartAddOns: React.FC<CartAddOnsProps> = ({ cartItems }) => {
 
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-purple-600">
-                          {formatPriceRange(item.priceRange, item.price)}
+                          {item.price ? (
+                            `${getCurrencySymbol()}${getConvertedPrice(item.price).toLocaleString()}`
+                          ) : item.priceRange ? (
+                            `${getCurrencySymbol()}${getConvertedPrice(item.priceRange.min).toLocaleString()} - ${getCurrencySymbol()}${getConvertedPrice(item.priceRange.max).toLocaleString()}`
+                          ) : (
+                            'Price on request'
+                          )}
                         </span>
 
                         <button
@@ -261,6 +269,7 @@ const FaalPicoService: React.FC<{
   onClose: () => void;
   addToCart: (item: any) => void;
 }> = ({ cartItems, triggerCategory, onClose, addToCart }) => {
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const [notes, setNotes] = useState('');
 
   // Get all relevant items based on trigger category - using actual product category from database
@@ -370,7 +379,7 @@ const FaalPicoService: React.FC<{
             <img src={selectedItem.image} alt={selectedItem.name} className="w-12 h-12 object-cover rounded flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 break-words">{selectedItem.name}</p>
-              <p className="text-xs text-gray-600">Faal & Pico Service - ₹150</p>
+              <p className="text-xs text-gray-600">Faal & Pico Service - {getCurrencySymbol()}{getConvertedPrice(150).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -392,7 +401,7 @@ const FaalPicoService: React.FC<{
       <div className="bg-green-50 border border-green-200 rounded-md p-2">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-700">Service Charge:</span>
-          <span className="font-semibold text-green-600">₹150</span>
+          <span className="font-semibold text-green-600">{getCurrencySymbol()}{getConvertedPrice(150).toLocaleString()}</span>
         </div>
       </div>
 
@@ -423,6 +432,7 @@ const ProductSelectionModal: React.FC<{
   addToCart: (item: any) => void;
 }> = ({ category, onClose, addToCart }) => {
   const { products, loading } = usePublicProducts();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -592,7 +602,7 @@ const ProductSelectionModal: React.FC<{
             <h4 className="font-semibold text-xs text-gray-900 line-clamp-2 mb-0.5">
               {product.name}
             </h4>
-            <p className="text-purple-600 text-xs font-bold">₹{product.price.toLocaleString()}</p>
+            <p className="text-purple-600 text-xs font-bold">{getCurrencySymbol()}{getConvertedPrice(product.price).toLocaleString()}</p>
           </div>
         ))}
       </div>
@@ -701,6 +711,7 @@ const CustomStitchingForm: React.FC<{
   onClose: () => void;
   addToCart: (item: any) => void;
 }> = ({ cartItems, onClose, addToCart }) => {
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   // Filter out services and sarees from cart items
   const stitchableItems = cartItems.filter(item => {
     // Exclude services (items with "Service" in name or size)
@@ -846,7 +857,7 @@ const CustomStitchingForm: React.FC<{
       <div className="bg-purple-50 border border-purple-200 rounded-md p-2">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-700">Stitching Charges:</span>
-          <span className="font-semibold text-purple-600">₹1,499</span>
+          <span className="font-semibold text-purple-600">{getCurrencySymbol()}{getConvertedPrice(1499).toLocaleString()}</span>
         </div>
       </div>
 
@@ -876,6 +887,7 @@ const CustomBlouseForm: React.FC<{
   onClose: () => void;
   addToCart: (item: any) => void;
 }> = ({ cartItems, triggerCategory, onClose, addToCart }) => {
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const [blousePattern, setBlousePattern] = useState('');
   const [measurements, setMeasurements] = useState({
     backLength: '',
@@ -1026,13 +1038,13 @@ const CustomBlouseForm: React.FC<{
           required
         >
           <option value="">Select pattern...</option>
-          <option value="Simple Round Neck">Simple Round Neck - ₹650</option>
-          <option value="Boat Neck">Boat Neck - ₹850</option>
-          <option value="Sweetheart Neck">Sweetheart Neck - ₹850</option>
-          <option value="Backless">Backless - ₹1,200</option>
-          <option value="Choli Cut">Choli Cut - ₹950</option>
-          <option value="Princess Cut">Princess Cut - ₹1,050</option>
-          <option value="Raglan Cut">Raglan Cut - ₹1,100</option>
+          <option value="Simple Round Neck">Simple Round Neck - {getCurrencySymbol()}{getConvertedPrice(650).toLocaleString()}</option>
+          <option value="Boat Neck">Boat Neck - {getCurrencySymbol()}{getConvertedPrice(850).toLocaleString()}</option>
+          <option value="Sweetheart Neck">Sweetheart Neck - {getCurrencySymbol()}{getConvertedPrice(850).toLocaleString()}</option>
+          <option value="Backless">Backless - {getCurrencySymbol()}{getConvertedPrice(1200).toLocaleString()}</option>
+          <option value="Choli Cut">Choli Cut - {getCurrencySymbol()}{getConvertedPrice(950).toLocaleString()}</option>
+          <option value="Princess Cut">Princess Cut - {getCurrencySymbol()}{getConvertedPrice(1050).toLocaleString()}</option>
+          <option value="Raglan Cut">Raglan Cut - {getCurrencySymbol()}{getConvertedPrice(1100).toLocaleString()}</option>
           <option value="Custom">Custom - Price On Request</option>
         </select>
       </div>
@@ -1227,7 +1239,7 @@ const CustomBlouseForm: React.FC<{
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-700">Blouse Stitching:</span>
           <span className="font-semibold text-purple-600">
-            {typeof blousePrice === 'number' ? `₹${blousePrice.toLocaleString()}` : blousePrice}
+            {typeof blousePrice === 'number' ? `${getCurrencySymbol()}${getConvertedPrice(blousePrice).toLocaleString()}` : blousePrice}
           </span>
         </div>
       </div>

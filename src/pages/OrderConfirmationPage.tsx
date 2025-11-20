@@ -3,12 +3,14 @@ import { Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { SecurityUtils } from '../utils/securityUtils';
 import toast from 'react-hot-toast';
 import SEO from '../components/SEO';
 
 const OrderConfirmationPage: React.FC = () => {
   const { customer } = useCustomerAuth();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
   const [shouldRedirect, setShouldRedirect] = useState(false);
@@ -254,20 +256,20 @@ const OrderConfirmationPage: React.FC = () => {
                   <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                     <span className="text-gray-600 font-medium">✅ Paid Online (Products)</span>
                     <span className="text-amber-600 font-bold text-lg">
-                      ₹{((sessionStorage.getItem('online_paid_amount') || '0') as any) - 0}
+                      {getCurrencySymbol()}{getConvertedPrice((sessionStorage.getItem('online_paid_amount') || '0') as any).toLocaleString(undefined)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-900 font-semibold">💵 Pay on Delivery (Services)</span>
                     <span className="text-green-600 font-bold text-xl">
-                      ₹{codAmount.toFixed(2)}
+                      {getCurrencySymbol()}{getConvertedPrice(codAmount).toLocaleString(undefined)}
                     </span>
                   </div>
                 </div>
                 
                 <div className="mt-4 bg-green-100 border border-green-300 rounded-lg p-3">
                   <p className="text-sm text-green-800 font-medium">
-                    📦 <strong>Please keep ₹{codAmount.toFixed(2)} ready</strong> for payment when your order arrives. 
+                    📦 <strong>Please keep {getCurrencySymbol()}{getConvertedPrice(codAmount).toLocaleString(undefined)} ready</strong> for payment when your order arrives. 
                     Our delivery partner will collect this amount for the services.
                   </p>
                 </div>
