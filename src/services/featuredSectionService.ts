@@ -37,6 +37,9 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               price,
               sale_price,
               category_id,
+              category:categories (
+                name
+              ),
               product_images (
                 id,
                 image_url,
@@ -173,6 +176,7 @@ export async function getActiveFeaturedSections(): Promise<FeaturedSectionWithPr
               rating: rating,
               reviewCount: reviewCount,
               display_order: item.display_order,
+              category: product.category?.name || 'Uncategorized',
             };
           });
 
