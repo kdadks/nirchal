@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
-import { formatCurrency } from '../../utils/formatCurrency';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import { getSortedProductSizes } from '../../utils/sizeUtils';
 import type { Product } from '../../types';
 
@@ -37,6 +37,7 @@ const getColorValue = (colorName: string): string => {
 
 const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClose }) => {
   const { addToCart } = useCart();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -299,7 +300,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               {/* Price */}
               <div className="flex items-center gap-3">
                 <span className="text-3xl font-bold text-gray-900">
-                  {formatCurrency(adjustedPrice)}
+                  {getCurrencySymbol()}{getConvertedPrice(adjustedPrice).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                 </span>
               </div>
 

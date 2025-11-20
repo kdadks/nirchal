@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import { usePublicProducts } from '../hooks/usePublicProducts';
 import { useUserReviews } from '../hooks/useUserReviews';
 import { Link, useLocation } from 'react-router-dom';
@@ -74,6 +75,7 @@ const AccountPage: React.FC = () => {
   const { customer } = useCustomerAuth();
   
   const { wishlist, removeFromWishlist } = useWishlist();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const { products } = usePublicProducts();
   const { reviews: userReviews, loading: reviewsLoading, totalReviews } = useUserReviews();
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -135,6 +137,8 @@ const AccountPage: React.FC = () => {
   const [expandedRefundDetails, setExpandedRefundDetails] = useState<Set<string>>(new Set());  // UUID type for refund details
   const [expandedReturnForms, setExpandedReturnForms] = useState<Set<string>>(new Set());  // UUID type for return forms
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'wishlist' | 'reviews' | 'addresses' | 'returns' | 'settings'>('profile');
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const reviewsPerPage = 20;
   const location = useLocation();
 
   // Check URL parameters for tab selection
@@ -706,7 +710,7 @@ const AccountPage: React.FC = () => {
                               
                               {/* Price */}
                               <span className="font-semibold text-gray-900">
-                                ₹{order.total_amount?.toLocaleString()}
+                                {getCurrencySymbol()}{getConvertedPrice(order.total_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                               </span>
                               
                               {/* Status and Payment Status */}
@@ -799,7 +803,7 @@ const AccountPage: React.FC = () => {
                                   {formatDisplayDate(order.created_at)}
                                 </span>
                                 <span className="font-semibold text-gray-900">
-                                  ₹{order.total_amount?.toLocaleString()}
+                                  {getCurrencySymbol()}{getConvertedPrice(order.total_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                 </span>
                               </div>
                               {/* Request Return Button - Mobile */}
@@ -1054,7 +1058,7 @@ const AccountPage: React.FC = () => {
                                         <div className="flex items-center justify-between text-sm">
                                           <span className="text-gray-600">Refund Amount:</span>
                                           <span className="font-semibold text-green-600">
-                                            ₹{returnRequest.final_refund_amount.toLocaleString('en-IN')}
+                                            {getCurrencySymbol()}{getConvertedPrice(returnRequest.final_refund_amount).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                           </span>
                                         </div>
                                       )}
@@ -1111,25 +1115,25 @@ const AccountPage: React.FC = () => {
                                           {returnRequest.deduction_breakdown.inspection_charge > 0 && (
                                             <div className="flex justify-between text-xs">
                                               <span className="text-gray-600">Inspection Charge:</span>
-                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.inspection_charge}</span>
+                                              <span className="text-gray-900">-{getCurrencySymbol()}{getConvertedPrice(returnRequest.deduction_breakdown.inspection_charge).toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
                                             </div>
                                           )}
                                           {returnRequest.deduction_breakdown.shipping_charge > 0 && (
                                             <div className="flex justify-between text-xs">
                                               <span className="text-gray-600">Shipping Charge:</span>
-                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.shipping_charge}</span>
+                                              <span className="text-gray-900">-{getCurrencySymbol()}{getConvertedPrice(returnRequest.deduction_breakdown.shipping_charge).toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
                                             </div>
                                           )}
                                           {returnRequest.deduction_breakdown.restocking_fee > 0 && (
                                             <div className="flex justify-between text-xs">
                                               <span className="text-gray-600">Restocking Fee:</span>
-                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.restocking_fee}</span>
+                                              <span className="text-gray-900">-{getCurrencySymbol()}{getConvertedPrice(returnRequest.deduction_breakdown.restocking_fee).toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
                                             </div>
                                           )}
                                           {returnRequest.deduction_breakdown.other_deductions > 0 && (
                                             <div className="flex justify-between text-xs">
                                               <span className="text-gray-600">Other Deductions:</span>
-                                              <span className="text-gray-900">-₹{returnRequest.deduction_breakdown.other_deductions}</span>
+                                              <span className="text-gray-900">-{getCurrencySymbol()}{getConvertedPrice(returnRequest.deduction_breakdown.other_deductions).toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
                                             </div>
                                           )}
                                         </div>
@@ -1187,11 +1191,11 @@ const AccountPage: React.FC = () => {
                                 </h3>
                                 <div className="flex items-center justify-between">
                                   <span className="text-lg font-semibold text-primary-600">
-                                    ₹{product.price}
+                                    {getCurrencySymbol()}{getConvertedPrice(product.price).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                   </span>
                                   {product.originalPrice && (
                                     <span className="text-sm text-gray-500 line-through">
-                                      ₹{product.originalPrice}
+                                      {getCurrencySymbol()}{getConvertedPrice(product.originalPrice).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                     </span>
                                   )}
                                 </div>
@@ -1239,7 +1243,16 @@ const AccountPage: React.FC = () => {
                             <strong>Total Reviews:</strong> {totalReviews} review{totalReviews !== 1 ? 's' : ''}
                           </p>
                         </div>
-                        {userReviews.map((review) => (
+
+                        {/* Pagination Info */}
+                        <div className="flex justify-between items-center mb-4 px-2">
+                          <p className="text-sm text-gray-600">
+                            Showing {((reviewsPage - 1) * reviewsPerPage) + 1} - {Math.min(reviewsPage * reviewsPerPage, totalReviews)} of {totalReviews} reviews
+                          </p>
+                        </div>
+
+                        {/* Reviews List */}
+                        {userReviews.slice((reviewsPage - 1) * reviewsPerPage, reviewsPage * reviewsPerPage).map((review) => (
                           <div key={review.id} className="border border-gray-200 rounded-lg p-6 bg-white">
                             <div className="flex gap-4">
                               {/* Product Image - Clickable */}
@@ -1271,12 +1284,12 @@ const AccountPage: React.FC = () => {
                                         {[1, 2, 3, 4, 5].map((star) => (
                                           <Star
                                             key={star}
-                                            size={16}
                                             className={
                                               star <= review.rating
                                                 ? 'text-yellow-400 fill-current'
                                                 : 'text-gray-300'
                                             }
+                                            size={16}
                                           />
                                         ))}
                                       </div>
@@ -1333,6 +1346,56 @@ const AccountPage: React.FC = () => {
                             </div>
                           </div>
                         ))}
+
+                        {/* Pagination Controls */}
+                        {totalReviews > reviewsPerPage && (
+                          <div className="flex items-center justify-center gap-2 mt-8 pt-6 border-t">
+                            <button
+                              onClick={() => setReviewsPage(prev => Math.max(prev - 1, 1))}
+                              disabled={reviewsPage === 1}
+                              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Previous
+                            </button>
+
+                            {/* Page Numbers */}
+                            <div className="flex gap-1">
+                              {Array.from({ length: Math.ceil(totalReviews / reviewsPerPage) }).map((_, index) => {
+                                const pageNum = index + 1;
+                                const isCurrentPage = pageNum === reviewsPage;
+                                const isNearCurrent = Math.abs(pageNum - reviewsPage) <= 1;
+                                const isFirstOrLast = pageNum === 1 || pageNum === Math.ceil(totalReviews / reviewsPerPage);
+
+                                if (isNearCurrent || isFirstOrLast) {
+                                  return (
+                                    <button
+                                      key={pageNum}
+                                      onClick={() => setReviewsPage(pageNum)}
+                                      className={`px-3 py-2 rounded-lg transition-colors ${
+                                        isCurrentPage
+                                          ? 'bg-primary-600 text-white'
+                                          : 'border border-gray-300 text-gray-700 hover:bg-gray-100'
+                                      }`}
+                                    >
+                                      {pageNum}
+                                    </button>
+                                  );
+                                } else if (Math.abs(pageNum - reviewsPage) === 2) {
+                                  return <span key={pageNum} className="px-2 py-2">...</span>;
+                                }
+                                return null;
+                              })}
+                            </div>
+
+                            <button
+                              onClick={() => setReviewsPage(prev => Math.min(prev + 1, Math.ceil(totalReviews / reviewsPerPage)))}
+                              disabled={reviewsPage === Math.ceil(totalReviews / reviewsPerPage)}
+                              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Next
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

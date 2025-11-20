@@ -19,6 +19,7 @@ import SEO from '../components/SEO';
 import { trackBeginCheckout, trackPurchase } from '../utils/analytics';
 import { markCheckoutStarted, markCheckoutCompleted } from '../hooks/useCartAbandonment';
 import { trackInitiateCheckout, trackPurchase as trackMetaPurchase } from '../utils/metaPixel';
+import { countriesData, getFilteredCountries } from '../data/countriesData';
 
 interface CheckoutForm {
   // Contact Information
@@ -28,14 +29,17 @@ interface CheckoutForm {
   phone: string;
   
   // Delivery Address
+  deliveryCountry?: string; // For international users
   deliveryAddress: string;
   deliveryAddressLine2?: string;
   deliveryCity: string;
   deliveryState: string;
   deliveryPincode: string;
+  deliveryCustomCity?: string; // For "Not in List" option
   selectedDeliveryAddressId?: string;
   
   // Billing Address
+  billingCountry?: string; // For international users
   billingFirstName: string;
   billingLastName: string;
   billingAddress: string;
@@ -44,6 +48,7 @@ interface CheckoutForm {
   billingState: string;
   billingPincode: string;
   billingPhone: string;
+  billingCustomCity?: string; // For "Not in List" option
   selectedBillingAddressId?: string;
   billingIsSameAsDelivery: boolean;
   
@@ -70,12 +75,36 @@ interface CustomerAddress {
   is_billing: boolean;
 }
 
+// Helper function to get phone placeholder and label based on currency
+const getPhoneFormatForCurrency = (currency: string): { placeholder: string; label: string; pattern: string } => {
+  switch (currency) {
+    case 'USD':
+      return {
+        placeholder: '+1 (555) 123-4567',
+        label: 'Phone Number (US Format) *',
+        pattern: '^[+]?1?[0-9]{10}$'
+      };
+    case 'EUR':
+      return {
+        placeholder: '+49 30 12345678',
+        label: 'Phone Number (EU Format) *',
+        pattern: '^[+]?[0-9]{7,15}$'
+      };
+    default: // INR or other
+      return {
+        placeholder: '+91 98765 43210',
+        label: 'Phone Number (India Format) *',
+        pattern: '^[+]?91?[0-9]{10}$'
+      };
+  }
+};
+
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const { state: { items, total }, clearCart } = useCart();
   const { supabase } = useAuth();
   const { customer } = useCustomerAuth();
-  const { isInternational, getConvertedPrice, getCurrencySymbol } = useCurrency();
+  const { isInternational, getConvertedPrice, getCurrencySymbol, currency } = useCurrency();
   const { isLoaded: isRazorpayLoaded, createOrder: createRazorpayOrder, openCheckout: openRazorpayCheckout, verifyPayment: verifyRazorpayPayment } = useRazorpay();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
@@ -88,14 +117,17 @@ const CheckoutPage: React.FC = () => {
     phone: '',
     
     // Delivery Address
+    deliveryCountry: 'IN',
     deliveryAddress: '',
     deliveryAddressLine2: '',
     deliveryCity: '',
     deliveryState: '',
     deliveryPincode: '',
+    deliveryCustomCity: '',
     selectedDeliveryAddressId: '',
     
     // Billing Address
+    billingCountry: 'IN',
     billingFirstName: '',
     billingLastName: '',
     billingAddress: '',
@@ -1505,7 +1537,7 @@ const CheckoutPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Phone Number *
+                          {getPhoneFormatForCurrency(currency).label}
                         </label>
                         <input
                           type="tel"
@@ -1514,7 +1546,7 @@ const CheckoutPage: React.FC = () => {
                           onChange={handleInputChange}
                           required
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                          placeholder="+91 98765 43210"
+                          placeholder={getPhoneFormatForCurrency(currency).placeholder}
                         />
                       </div>
                     </div>
@@ -1548,34 +1580,122 @@ const CheckoutPage: React.FC = () => {
                       />
                     </div>
 
+                    {/* Country, State, City Selection - International Users */}
+                    {isInternational && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Country *
+                      </label>
+                      <select
+                        name="deliveryCountry"
+                        value={form.deliveryCountry || 'IN'}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            deliveryCountry: e.target.value,
+                            deliveryState: '', // Reset state when country changes
+                            deliveryCity: '', // Reset city when country changes
+                            deliveryCustomCity: ''
+                          }));
+                        }}
+                        required
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                      >
+                        <option value="">Select Country</option>
+                        {getFilteredCountries(currency).map(country => (
+                          <option key={country.code} value={country.code}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                      {/* State Selection - Show for both India and International */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          State *
+                          {isInternational ? 'State/Province' : 'State'} *
                         </label>
-                        <StateDropdown
-                          name="deliveryState"
-                          value={form.deliveryState}
-                          onChange={handleDeliveryStateChange}
-                          required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                          placeholder="Select State"
-                        />
+                        {isInternational ? (
+                          <select
+                            name="deliveryState"
+                            value={form.deliveryState}
+                            onChange={(e) => {
+                              setForm(prev => ({
+                                ...prev,
+                                deliveryState: e.target.value,
+                                deliveryCity: '', // Reset city when state changes
+                                deliveryCustomCity: ''
+                              }));
+                            }}
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                          >
+                            <option value="">Select State/Province</option>
+                            {countriesData
+                              .find(c => c.code === (form.deliveryCountry || 'IN'))
+                              ?.states.map(state => (
+                                <option key={state.code} value={state.code}>
+                                  {state.name}
+                                </option>
+                              ))}
+                          </select>
+                        ) : (
+                          <StateDropdown
+                            name="deliveryState"
+                            value={form.deliveryState}
+                            onChange={handleDeliveryStateChange}
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Select State"
+                          />
+                        )}
                       </div>
+                      
+                      {/* City Selection */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           City *
                         </label>
-                        <CityDropdown
-                          name="deliveryCity"
-                          value={form.deliveryCity}
-                          onChange={handleDeliveryCityChange}
-                          selectedState={form.deliveryState}
-                          required
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                          placeholder="Select City"
-                        />
+                        {isInternational ? (
+                          <select
+                            name="deliveryCity"
+                            value={form.deliveryCity}
+                            onChange={(e) => {
+                              setForm(prev => ({ ...prev, deliveryCity: e.target.value }));
+                            }}
+                            disabled={!form.deliveryState}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100"
+                          >
+                            <option value="">
+                              {form.deliveryState ? 'Select City' : 'Select State First'}
+                            </option>
+                            {form.deliveryState && countriesData
+                              .find(c => c.code === (form.deliveryCountry || 'IN'))
+                              ?.states.find(s => s.code === form.deliveryState)
+                              ?.cities.map(city => (
+                                <option key={city} value={city}>
+                                  {city}
+                                </option>
+                              ))}
+                            {form.deliveryState && (
+                              <option value="NOT_IN_LIST">⊕ Not in List</option>
+                            )}
+                          </select>
+                        ) : (
+                          <CityDropdown
+                            name="deliveryCity"
+                            value={form.deliveryCity}
+                            onChange={handleDeliveryCityChange}
+                            selectedState={form.deliveryState}
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                            placeholder="Select City"
+                          />
+                        )}
                       </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         PIN Code *
@@ -1586,12 +1706,32 @@ const CheckoutPage: React.FC = () => {
                         value={form.deliveryPincode}
                         onChange={handleInputChange}
                         required
-                        pattern="[0-9]{6}"
+                        pattern={isInternational ? undefined : "[0-9]{6}"}
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                        placeholder="123456"
+                        placeholder={isInternational ? "Postal code" : "123456"}
                       />
                     </div>
                     </div>
+
+                    {/* Custom City Input - Only show when "Not in List" is selected */}
+                    {isInternational && form.deliveryCity === 'NOT_IN_LIST' && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Enter City Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="deliveryCustomCity"
+                        value={form.deliveryCustomCity || ''}
+                        onChange={(e) => setForm(prev => ({ ...prev, deliveryCustomCity: e.target.value }))}
+                        required
+                        placeholder="Type your city name"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                      />
+                    </div>
+                    )}
+
+                    {/* Billing Address - rest of form continues below */}
                     </>
                     )}
                   </div>
@@ -1821,7 +1961,7 @@ const CheckoutPage: React.FC = () => {
 
                         <div className="mt-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Phone Number *
+                            {getPhoneFormatForCurrency(currency).label}
                           </label>
                           <input
                             type="tel"
@@ -1830,7 +1970,7 @@ const CheckoutPage: React.FC = () => {
                             onChange={handleInputChange}
                             required
                             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                            placeholder="Enter phone number"
+                            placeholder={getPhoneFormatForCurrency(currency).placeholder}
                           />
                         </div>
 
@@ -1863,33 +2003,117 @@ const CheckoutPage: React.FC = () => {
                           />
                         </div>
 
+                        {/* Country, State, City Selection - International Users */}
+                        {isInternational && (
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Country *
+                          </label>
+                          <select
+                            name="billingCountry"
+                            value={form.billingCountry || 'IN'}
+                            onChange={(e) => {
+                              setForm(prev => ({
+                                ...prev,
+                                billingCountry: e.target.value,
+                                billingState: '', // Reset state when country changes
+                                billingCity: '', // Reset city when country changes
+                                billingCustomCity: ''
+                              }));
+                            }}
+                            required
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                          >
+                            <option value="">Select Country</option>
+                            {getFilteredCountries(currency).map(country => (
+                              <option key={country.code} value={country.code}>
+                                {country.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              State *
+                              {isInternational ? 'State/Province' : 'State'} *
                             </label>
-                            <StateDropdown
-                              name="billingState"
-                              value={form.billingState}
-                              onChange={handleBillingStateChange}
-                              required
-                              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                              placeholder="Select State"
-                            />
+                            {isInternational ? (
+                              <select
+                                name="billingState"
+                                value={form.billingState}
+                                onChange={(e) => {
+                                  setForm(prev => ({
+                                    ...prev,
+                                    billingState: e.target.value,
+                                    billingCity: '', // Reset city when state changes
+                                    billingCustomCity: ''
+                                  }));
+                                }}
+                                required
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                              >
+                                <option value="">Select State/Province</option>
+                                {countriesData
+                                  .find(c => c.code === (form.billingCountry || 'IN'))
+                                  ?.states.map(state => (
+                                    <option key={state.code} value={state.code}>
+                                      {state.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            ) : (
+                              <StateDropdown
+                                name="billingState"
+                                value={form.billingState}
+                                onChange={handleBillingStateChange}
+                                required
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                                placeholder="Select State"
+                              />
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               City *
                             </label>
-                            <CityDropdown
-                              name="billingCity"
-                              value={form.billingCity}
-                              onChange={handleBillingCityChange}
-                              selectedState={form.billingState}
-                              required
-                              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                              placeholder="Select City"
-                            />
+                            {isInternational ? (
+                              <select
+                                name="billingCity"
+                                value={form.billingCity}
+                                onChange={(e) => {
+                                  setForm(prev => ({ ...prev, billingCity: e.target.value }));
+                                }}
+                                disabled={!form.billingState}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100"
+                              >
+                                <option value="">
+                                  {form.billingState ? 'Select City' : 'Select State First'}
+                                </option>
+                                {form.billingState && countriesData
+                                  .find(c => c.code === (form.billingCountry || 'IN'))
+                                  ?.states.find(s => s.code === form.billingState)
+                                  ?.cities.map(city => (
+                                    <option key={city} value={city}>
+                                      {city}
+                                    </option>
+                                  ))}
+                                {form.billingState && (
+                                  <option value="NOT_IN_LIST">⊕ Not in List</option>
+                                )}
+                              </select>
+                            ) : (
+                              <CityDropdown
+                                name="billingCity"
+                                value={form.billingCity}
+                                onChange={handleBillingCityChange}
+                                selectedState={form.billingState}
+                                required
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                                placeholder="Select City"
+                              />
+                            )}
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1901,12 +2125,30 @@ const CheckoutPage: React.FC = () => {
                               value={form.billingPincode}
                               onChange={handleInputChange}
                               required
-                              pattern="[0-9]{6}"
+                              pattern={isInternational ? undefined : "[0-9]{6}"}
                               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
-                              placeholder="123456"
+                              placeholder={isInternational ? "Postal code" : "123456"}
                             />
                           </div>
                         </div>
+
+                        {/* Custom City Input - Only show when "Not in List" is selected */}
+                        {isInternational && form.billingCity === 'NOT_IN_LIST' && (
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Enter City Name *
+                          </label>
+                          <input
+                            type="text"
+                            name="billingCustomCity"
+                            value={form.billingCustomCity || ''}
+                            onChange={(e) => setForm(prev => ({ ...prev, billingCustomCity: e.target.value }))}
+                            required
+                            placeholder="Type your city name"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                          />
+                        </div>
+                        )}
                         </>
                         )}
                       </>
