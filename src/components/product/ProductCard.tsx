@@ -282,12 +282,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {/* Price Section */}
             <div className="flex items-center gap-2 mb-2 min-h-[1.25rem]">
               <span className="text-sm font-bold text-gray-900">
-                {getCurrencySymbol()}{getConvertedPrice(getDefaultAdjustedPrice()).toLocaleString()}
+                {getCurrencySymbol()}{getConvertedPrice(getDefaultAdjustedPrice(), product.category).toLocaleString()}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
                 <>
                   <span className="text-xs text-gray-500 line-through">
-                    {getCurrencySymbol()}{getConvertedPrice(product.originalPrice).toLocaleString()}
+                    {getCurrencySymbol()}{getConvertedPrice(product.originalPrice, product.category).toLocaleString()}
                   </span>
                   <span className="text-xs font-semibold text-orange-600">
                     ({discountPercentage}% OFF)

@@ -5,7 +5,7 @@ export type Currency = 'INR' | 'USD' | 'EUR';
 interface CurrencyContextType {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
-  getConvertedPrice: (price: number) => number;
+  getConvertedPrice: (price: number, category?: string) => number;
   getCurrencySymbol: () => string;
   getCurrencyLabel: () => string;
   isInternational: boolean; // Whether user is outside India
@@ -13,6 +13,18 @@ interface CurrencyContextType {
 }
 
 const CurrencyContext = createContext<CurrencyContextType | null>(null);
+
+// Category-specific minimum prices in EUR
+const CATEGORY_MIN_PRICES_EUR: Record<string, number> = {
+  'Dupatta': 15,
+  'dupatta': 15,
+  'Womens Kurta Sets': 20,
+  'Womens Lehenga Choli': 40,
+  'Womens Gown': 30,
+  'Womens Sarees': 25,
+  'Blouses': 20,
+  'blouses': 20,
+};
 
 // Exchange rates cache with timestamp
 interface ExchangeRatesCache {
@@ -269,7 +281,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('preferredCurrency', newCurrency);
   };
 
-  const getConvertedPrice = (inrPrice: number): number => {
+  const getConvertedPrice = (inrPrice: number, category?: string): number => {
     if (currency === 'INR') {
       return inrPrice;
     }
@@ -298,7 +310,17 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const multiplier = currency === 'USD' ? 2 : (currency === 'EUR' ? 1.5 : 1);
     const convertedPrice = (inrPrice / rateWithMarkup) * multiplier;
     
-    return Math.round(convertedPrice); // Round to whole number
+    let finalPrice = Math.round(convertedPrice);
+    
+    // Apply category-specific minimum prices for EUR
+    if (currency === 'EUR' && category && CATEGORY_MIN_PRICES_EUR[category]) {
+      const minPrice = CATEGORY_MIN_PRICES_EUR[category];
+      if (finalPrice < minPrice) {
+        finalPrice = minPrice;
+      }
+    }
+    
+    return finalPrice;
   };
 
   const getCurrencySymbol = (): string => {

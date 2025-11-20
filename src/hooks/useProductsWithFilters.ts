@@ -47,6 +47,7 @@ export const useProductsWithFilters = (
         .from('products')
         .select(`
           *,
+          category:categories(name),
           product_images(id, image_url, is_primary, created_at, alt_text, display_order),
           product_variants(
             id,
@@ -524,7 +525,7 @@ export const useProductsWithFilters = (
           originalPrice,
           discountPercentage,
           images: uniqueImages,
-          category: 'Category ' + (product.category_id || '1'), // Temporary category mapping
+          category: product.category?.name || 'Uncategorized',
           subcategory: product.subcategory,
           occasion: (() => {
             // Handle both JSON array and comma-separated text formats

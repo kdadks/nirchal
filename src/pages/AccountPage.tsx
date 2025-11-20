@@ -1191,11 +1191,11 @@ const AccountPage: React.FC = () => {
                                 </h3>
                                 <div className="flex items-center justify-between">
                                   <span className="text-lg font-semibold text-primary-600">
-                                    {getCurrencySymbol()}{getConvertedPrice(product.price).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                    {getCurrencySymbol()}{getConvertedPrice(product.price, product.category).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                   </span>
                                   {product.originalPrice && (
                                     <span className="text-sm text-gray-500 line-through">
-                                      {getCurrencySymbol()}{getConvertedPrice(product.originalPrice).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                      {getCurrencySymbol()}{getConvertedPrice(product.originalPrice, product.category).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                                     </span>
                                   )}
                                 </div>
