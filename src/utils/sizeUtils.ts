@@ -16,11 +16,35 @@ const SIZE_ORDER = [
 const getSizeOrderPriority = (size: string): number => {
   const normalizedSize = size.trim().toUpperCase();
   const index = SIZE_ORDER.indexOf(normalizedSize);
-  return index === -1 ? 999 : index;
+  
+  if (index !== -1) {
+    return index; // Standard size found
+  }
+  
+  // Check if it's an age-based size (e.g., "3 yrs", "4 yrs", "12-18 months")
+  const ageMatch = normalizedSize.match(/^(\d+)\s*(YRS?|YEARS?|MONTHS?|M)?$/i);
+  if (ageMatch) {
+    const age = parseInt(ageMatch[1], 10);
+    // Return a priority based on age (starting from 100 to avoid conflicts with standard sizes)
+    // This ensures age sizes sort numerically
+    return 100 + age;
+  }
+  
+  // Check for month-based sizes (e.g., "6-12 months", "12-18 months")
+  const monthMatch = normalizedSize.match(/^(\d+)-(\d+)\s*MONTHS?$/i);
+  if (monthMatch) {
+    const startMonth = parseInt(monthMatch[1], 10);
+    // Return a priority based on starting month
+    return 50 + startMonth;
+  }
+  
+  // Unknown size - sort alphabetically
+  return 999;
 };
 
 /**
  * Sort an array of sizes according to the standard sequence: XS, S, M, L, XL, 2XL, 3XL, etc.
+ * Also handles age-based sizes (3 yrs, 4 yrs, etc.) in numeric order
  * @param sizes - Array of size strings to sort
  * @returns Sorted array of sizes in the correct sequence
  */

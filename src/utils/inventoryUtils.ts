@@ -132,12 +132,11 @@ export const hasAnyVariantInStock = (product: Product): boolean => {
 };
 
 /**
- * Get available sizes for a product (only sizes with stock)
+ * Get available sizes for a product (shows ALL sizes, regardless of stock)
  */
 export const getAvailableSizes = (product: Product, selectedColor?: string): string[] => {
   if (!product.variants || product.variants.length === 0) {
-    const stockInfo = getProductStockInfo(product);
-    return stockInfo.isAvailable ? sortSizesByOrder(product.sizes || ['Free Size']) : [];
+    return sortSizesByOrder(product.sizes || ['Free Size']);
   }
   
   const availableSizes = new Set<string>();
@@ -148,8 +147,8 @@ export const getAvailableSizes = (product: Product, selectedColor?: string): str
       return;
     }
     
-    const stockInfo = getVariantStockInfo(variant);
-    if (stockInfo.isAvailable && variant.size) {
+    // Always add the size, regardless of stock status
+    if (variant.size) {
       availableSizes.add(variant.size);
     }
   });
@@ -158,12 +157,11 @@ export const getAvailableSizes = (product: Product, selectedColor?: string): str
 };
 
 /**
- * Get available colors for a product (only colors with stock)
+ * Get available colors for a product (shows ALL colors, regardless of stock)
  */
 export const getAvailableColors = (product: Product, selectedSize?: string): string[] => {
   if (!product.variants || product.variants.length === 0) {
-    const stockInfo = getProductStockInfo(product);
-    return stockInfo.isAvailable ? (product.colors || []) : [];
+    return product.colors || [];
   }
   
   const availableColors = new Set<string>();
@@ -174,8 +172,8 @@ export const getAvailableColors = (product: Product, selectedSize?: string): str
       return;
     }
     
-    const stockInfo = getVariantStockInfo(variant);
-    if (stockInfo.isAvailable && variant.color) {
+    // Always add the color, regardless of stock status
+    if (variant.color) {
       availableColors.add(variant.color);
     }
   });
@@ -184,19 +182,91 @@ export const getAvailableColors = (product: Product, selectedSize?: string): str
 };
 
 /**
- * Check if a specific size is available for a product
+ * Check if a color exists for a product (shows all colors, even if out of stock)
  */
-export const isSizeAvailable = (product: Product, size: string, selectedColor?: string): boolean => {
-  const availableSizes = getAvailableSizes(product, selectedColor);
-  return availableSizes.includes(size);
+export const colorExists = (product: Product, color: string): boolean => {
+  const allColors = getAvailableColors(product);
+  return allColors.includes(color);
 };
 
 /**
- * Check if a specific color is available for a product
+ * Check if a specific color has any variant in stock
+ */
+export const isColorInStock = (product: Product, color: string, selectedSize?: string): boolean => {
+  if (!product.variants || product.variants.length === 0) {
+    return true; // Product-level products are always considered in stock if they exist
+  }
+  
+  // Check if there's any variant with this color that has stock
+  // If selectedSize is provided, only check that size
+  const variantsToCheck = product.variants.filter(v => v.color === color);
+  
+  if (selectedSize) {
+    // If size is selected, check if that specific size+color combination has stock
+    const variant = variantsToCheck.find(v => v.size === selectedSize);
+    if (!variant) return false;
+    return variant.quantity > 0;
+  }
+  
+  // If no size specified, check if ANY size variant for this color has stock
+  return variantsToCheck.some(v => v.quantity > 0);
+};
+
+/**
+ * Check if a specific color is available for a product (can click on it)
  */
 export const isColorAvailable = (product: Product, color: string, selectedSize?: string): boolean => {
-  const availableColors = getAvailableColors(product, selectedSize);
-  return availableColors.includes(color);
+  // First check if the color exists
+  if (!colorExists(product, color)) {
+    return false;
+  }
+  
+  // Then check if it has stock
+  return isColorInStock(product, color, selectedSize);
+};
+
+/**
+ * Check if a size exists for a product (shows all sizes, even if out of stock)
+ */
+export const sizeExists = (product: Product, size: string, selectedColor?: string): boolean => {
+  const allSizes = getAvailableSizes(product, selectedColor);
+  return allSizes.includes(size);
+};
+
+/**
+ * Check if a specific size has any variant in stock
+ */
+export const isSizeInStock = (product: Product, size: string, selectedColor?: string): boolean => {
+  if (!product.variants || product.variants.length === 0) {
+    return true; // Product-level products are always considered in stock if they exist
+  }
+  
+  // Check if there's any variant with this size that has stock
+  // If selectedColor is provided, only check that color
+  const variantsToCheck = product.variants.filter(v => v.size === size);
+  
+  if (selectedColor) {
+    // If color is selected, check if that specific size+color combination has stock
+    const variant = variantsToCheck.find(v => v.color === selectedColor);
+    if (!variant) return false;
+    return variant.quantity > 0;
+  }
+  
+  // If no color specified, check if ANY color variant for this size has stock
+  return variantsToCheck.some(v => v.quantity > 0);
+};
+
+/**
+ * Check if a specific size is available for a product (can click on it)
+ */
+export const isSizeAvailable = (product: Product, size: string, selectedColor?: string): boolean => {
+  // First check if the size exists
+  if (!sizeExists(product, size, selectedColor)) {
+    return false;
+  }
+  
+  // Then check if it has stock
+  return isSizeInStock(product, size, selectedColor);
 };
 
 /**

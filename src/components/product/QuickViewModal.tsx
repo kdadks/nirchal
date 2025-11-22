@@ -4,6 +4,7 @@ import { X, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { getSortedProductSizes } from '../../utils/sizeUtils';
+import { isColorInStock, isSizeInStock } from '../../utils/inventoryUtils';
 import type { Product } from '../../types';
 
 interface QuickViewModalProps {
@@ -350,6 +351,9 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                         }
                       };
                       
+                      // Check if this color has stock
+                      const colorHasStock = isColorInStock(product, color, selectedSize);
+                      
                       if (hasSwatchImage) {
                         // Show only swatch image without text for variants with swatch (40x40 for quick view)
                         return (
@@ -361,12 +365,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                                 ? 'border-amber-500 ring-2 ring-amber-200'
                                 : 'border-gray-300 hover:border-amber-300'
                             }`}
-                            title={color}
+                            title={`${color}${!colorHasStock ? ' (Out of Stock)' : ''}`}
                           >
                             <img
                               src={swatchImageUrl}
                               alt={`${color} swatch`}
-                              className="w-full h-full object-cover"
+                              className={`w-full h-full object-cover ${!colorHasStock ? 'grayscale' : ''}`}
                               onError={(e) => {
                                 if (import.meta.env.DEV) {
                                   console.warn(`[QuickViewModal] Swatch image failed to load for ${color}:`, swatchImageUrl);
@@ -382,7 +386,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                             />
                             {/* Fallback colored swatch when image fails to load */}
                             <div 
-                              className="w-full h-full rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-inner"
+                              className={`w-full h-full rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-inner ${!colorHasStock ? 'grayscale' : ''}`}
                               style={{ 
                                 backgroundColor: hex || getColorValue(color),
                                 display: 'none' // Initially hidden, shown when image fails
@@ -395,6 +399,12 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                                 <div className="w-2 h-2 bg-white rounded-full shadow-md"></div>
                               </div>
                             )}
+                            {!colorHasStock && (
+                              <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
+                                <div className="w-4 h-0.5 bg-red-500 rotate-45"></div>
+                                <div className="w-4 h-0.5 bg-red-500 -rotate-45 absolute"></div>
+                              </div>
+                            )}
                           </button>
                         );
                       } else {
@@ -404,10 +414,16 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                             <button
                               key={color}
                               onClick={handleSwatchClick}
-          className={`relative w-10 h-10 overflow-hidden border border-black`}
-                              title={color}
+          className={`relative w-10 h-10 overflow-hidden border border-black ${!colorHasStock ? 'opacity-50' : ''}`}
+                              title={`${color}${!colorHasStock ? ' (Out of Stock)' : ''}`}
                             >
-                              <div className="w-full h-full" style={{ backgroundColor: hex }} />
+                              <div className={`w-full h-full ${!colorHasStock ? 'grayscale' : ''}`} style={{ backgroundColor: hex }} />
+                              {!colorHasStock && (
+                                <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
+                                  <div className="w-4 h-0.5 bg-red-500 rotate-45"></div>
+                                  <div className="w-4 h-0.5 bg-red-500 -rotate-45 absolute"></div>
+                                </div>
+                              )}
                             </button>
                           );
                         }
@@ -421,7 +437,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                                 ? 'border-amber-500 bg-amber-50 text-amber-700'
                                 : 'border-gray-300 hover:border-gray-400'
                             }`}
-                            title={color}
+                            title={`${color}${!colorHasStock ? ' (Out of Stock)' : ''}`}
                           >
                             {color}
                           </button>
@@ -439,19 +455,23 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-2">Size</h4>
                       <div className="flex flex-wrap gap-2">
-                        {validSizes.map((size) => (
-                          <button
-                            key={size}
-                            onClick={() => setSelectedSize(size)}
-                            className={`px-3 py-1 text-sm border rounded transition-colors ${
-                              selectedSize === size
-                                ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
-                          >
-                            {size}
-                          </button>
-                        ))}
+                        {validSizes.map((size) => {
+                          const sizeHasStock = isSizeInStock(product, size, selectedColor);
+                          return (
+                            <button
+                              key={size}
+                              onClick={() => setSelectedSize(size)}
+                              className={`px-3 py-1 text-sm border rounded transition-colors ${
+                                selectedSize === size
+                                  ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                  : 'border-gray-300 hover:border-gray-400'
+                              }`}
+                              title={`${size}${!sizeHasStock ? ' (Out of Stock)' : ''}`}
+                            >
+                              {size}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   );

@@ -982,15 +982,15 @@ const ProductDetailPage: React.FC = () => {
                       return (
                         <button
                           key={size}
-                          onClick={() => isAvailable && setSelectedSize(size!)}
-                          disabled={!isAvailable}
+                          onClick={() => setSelectedSize(size!)}
                           className={`px-3 sm:px-4 py-2 sm:py-2 text-sm border rounded transition-colors ${
                             selectedSize === size
                               ? 'border-amber-500 bg-amber-50 text-amber-700'
                               : isAvailable
                                 ? 'border-gray-300 hover:border-gray-400'
-                                : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'border-gray-300 hover:border-gray-400'
                           }`}
+                          title={`${size}${!isAvailable ? ' (Out of Stock)' : ''}`}
                         >
                           {size}
                         </button>
@@ -1043,8 +1043,7 @@ const ProductDetailPage: React.FC = () => {
                       const isAvailable = isColorAvailable(product, color!, selectedSize);
                       
                       const handleSwatchClick = () => {
-                        if (!isAvailable) return;
-                        
+                        // Allow clicking even if out of stock - user should see all colors
                         setHasUserInteractedWithColor(true);
                         setSelectedColor(color!);
                         // If swatch has an image, try to find it in main product images
@@ -1074,13 +1073,12 @@ const ProductDetailPage: React.FC = () => {
                           <button
                             key={color}
                             onClick={handleSwatchClick}
-                            disabled={!isAvailable}
                             className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                               selectedColor === color
                                 ? 'border-amber-500 ring-2 ring-amber-200'
                                 : isAvailable
-                                  ? 'border-gray-300 hover:border-amber-300'
-                                  : 'border-gray-200 opacity-50 cursor-not-allowed'
+                                  ? 'border-gray-300 hover:border-amber-300 cursor-pointer'
+                                  : 'border-gray-300 hover:border-amber-300 cursor-pointer'
                             }`}
                             title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
                           >
@@ -1110,8 +1108,7 @@ const ProductDetailPage: React.FC = () => {
                             <button
                               key={color}
                               onClick={handleSwatchClick}
-                              disabled={!isAvailable}
-          className={`relative w-20 h-20 overflow-hidden border border-black ${!isAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`relative w-20 h-20 overflow-hidden border border-black ${!isAvailable ? 'opacity-50' : ''}`}
                               title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
                             >
                               <div className={`w-full h-full ${!isAvailable ? 'grayscale' : ''}`} style={{ backgroundColor: hex }} />
@@ -1129,13 +1126,12 @@ const ProductDetailPage: React.FC = () => {
                           <button
                             key={color}
                             onClick={handleSwatchClick}
-                            disabled={!isAvailable}
                             className={`px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg transition-colors ${
                               selectedColor === color
                                 ? 'border-amber-500 bg-amber-50 text-amber-700'
                                 : isAvailable
                                   ? 'border-gray-300 hover:border-gray-400'
-                                  : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'border-gray-300 hover:border-gray-400'
                             }`}
                             title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
                           >
