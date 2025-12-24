@@ -15,6 +15,7 @@ import { preloadCategories } from './utils/categoryCache';
 import AppRoutes from './routes';
 import VisitorTracker from './components/VisitorTracker';
 import CookieConsentBanner from './components/CookieConsentBanner';
+import SnowflakesEffect from './components/seasonal/SnowflakesEffect';
 import { initGA4, initFacebookPixel } from './utils/analytics';
 import { cookieConsentManager } from './utils/cookieConsentManager';
 import { supabase } from './config/supabase';
@@ -138,6 +139,7 @@ const App: React.FC = () => {
                 <VisitorTracker>
                   <RouterProvider router={router} />
                   <CookieConsentBanner />
+                  <SnowflakesEffect />
                   <AIAssistantButton />
                   <TawkToChat />
                   <Toaster

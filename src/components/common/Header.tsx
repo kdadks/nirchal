@@ -151,6 +151,33 @@ const Header: React.FC = () => {
                         transform: 'translateZ(0)'
                       }}
                     />
+                    {/* Christmas Santa Cap - positioned at top left corner */}
+                    {(() => {
+                      const now = new Date();
+                      const month = now.getMonth();
+                      const day = now.getDate();
+                      const isChristmasSeason = (month === 11 && day >= 15) || (month === 0 && day <= 10);
+                      
+                      if (isChristmasSeason) {
+                        return (
+                          <div className="absolute -top-3 -left-3 pointer-events-none z-10" style={{ width: '40px', height: '40px' }}>
+                            <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%', transform: 'rotate(-30deg)', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
+                              {/* Main red hat cone */}
+                              <path d="M 35 85 L 60 15 L 85 85 Z" fill="#DC2626" stroke="#B91C1C" strokeWidth="2"/>
+                              {/* Darker red for depth on left side */}
+                              <path d="M 35 85 L 60 15 L 60 85 Z" fill="#B91C1C" opacity="0.3"/>
+                              {/* White fuzzy trim band at bottom */}
+                              <rect x="30" y="80" width="60" height="10" rx="5" fill="#FFFFFF"/>
+                              <ellipse cx="60" cy="85" rx="32" ry="8" fill="#F3F4F6"/>
+                              {/* White fluffy pom-pom at the tip */}
+                              <circle cx="60" cy="15" r="10" fill="#FFFFFF"/>
+                              <circle cx="63" cy="13" r="7" fill="#F9FAFB" opacity="0.8"/>
+                            </svg>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
 
