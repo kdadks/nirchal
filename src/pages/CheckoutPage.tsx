@@ -17,7 +17,7 @@ import CityDropdown from '../components/common/CityDropdown';
 import { SecurityUtils } from '../utils/securityUtils';
 import SEO from '../components/SEO';
 import { trackBeginCheckout, trackPurchase } from '../utils/analytics';
-import { markCheckoutStarted, markCheckoutCompleted } from '../hooks/useCartAbandonment';
+import { markCheckoutStarted, markCheckoutCompleted, savePaymentFailedCart } from '../hooks/useCartAbandonment';
 import { trackInitiateCheckout, trackPurchase as trackMetaPurchase } from '../utils/metaPixel';
 import { countriesData, getFilteredCountries } from '../data/countriesData';
 
@@ -651,6 +651,16 @@ const CheckoutPage: React.FC = () => {
         throw new Error('Order creation failed - no order returned');
       }
 
+      // Notify admin immediately on order creation (regardless of payment outcome)
+      transactionalEmailService.sendOrderNotificationToSupport({
+        order_number: order.order_number,
+        customer_name: `${form.firstName} ${form.lastName}`,
+        customer_email: form.email,
+        total_amount: finalTotal + codPaymentAmount,
+        items_count: items.length,
+        payment_method: form.paymentMethod
+      }).catch(err => console.error('Failed to send order creation notification:', err));
+
       // 4) Handle Razorpay payment if selected
       if (form.paymentMethod === 'razorpay') {
         if (!isRazorpayLoaded) {
@@ -809,7 +819,19 @@ const CheckoutPage: React.FC = () => {
                 } catch (emailError) {
                   console.error('Failed to send payment failure email:', emailError);
                 }
-                
+
+                // Save to abandoned carts as payment_failed
+                savePaymentFailedCart({
+                  customerName: `${form.firstName} ${form.lastName}`,
+                  customerEmail: form.email,
+                  customerPhone: form.phone,
+                  userId: customer?.id,
+                  items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image || '', size: i.size, color: i.color, variantId: i.variantId })),
+                  totalValue: finalTotal,
+                  orderNumber: order.order_number,
+                  failureReason: errorMessage,
+                }).catch(() => {});
+
                 toast.error('❌ Payment verification failed. Please contact support.', {
                   duration: 6000,
                 });
@@ -832,7 +854,19 @@ const CheckoutPage: React.FC = () => {
                 } catch (emailError) {
                   console.error('Failed to send payment cancellation email:', emailError);
                 }
-                
+
+                // Save to abandoned carts as payment_failed
+                savePaymentFailedCart({
+                  customerName: `${form.firstName} ${form.lastName}`,
+                  customerEmail: form.email,
+                  customerPhone: form.phone,
+                  userId: customer?.id,
+                  items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image || '', size: i.size, color: i.color, variantId: i.variantId })),
+                  totalValue: finalTotal,
+                  orderNumber: order.order_number,
+                  failureReason: 'Payment cancelled by user',
+                }).catch(() => {});
+
                 // Save order details for confirmation page
                 if (order?.order_number) {
                   sessionStorage.setItem('last_order_number', order.order_number);
@@ -893,7 +927,19 @@ const CheckoutPage: React.FC = () => {
           } catch (emailError) {
             console.error('Failed to send payment initialization failure email:', emailError);
           }
-          
+
+          // Save to abandoned carts as payment_failed
+          savePaymentFailedCart({
+            customerName: `${form.firstName} ${form.lastName}`,
+            customerEmail: form.email,
+            customerPhone: form.phone,
+            userId: customer?.id,
+            items: items.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image || '', size: i.size, color: i.color, variantId: i.variantId })),
+            totalValue: finalTotal,
+            orderNumber: order.order_number,
+            failureReason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed',
+          }).catch(() => {});
+
           toast.error('⚠️ Payment initialization failed. Please try again.', {
             duration: 5000,
           });
@@ -1028,23 +1074,6 @@ const CheckoutPage: React.FC = () => {
       }
     };
 
-    // Send order notification to support team
-    const sendOrderNotification = async () => {
-      try {
-        await transactionalEmailService.sendOrderNotificationToSupport({
-          order_number: order.order_number,
-          customer_name: `${form.firstName} ${form.lastName}`,
-          customer_email: form.email,
-          total_amount: finalTotal,
-          items_count: items.length,
-          payment_method: form.paymentMethod
-        });
-
-      } catch (emailError) {
-        console.error('Failed to send order notification to support:', emailError);
-      }
-    };
-    
     if (tempPassword && shouldSendWelcomeEmail) {
       // New customer with temp password: Send order received email after 30 seconds delay
 
@@ -1055,9 +1084,6 @@ const CheckoutPage: React.FC = () => {
       await sendOrderReceived();
     }
 
-    // Send order notification to support team (always immediate)
-    await sendOrderNotification();
-    
     // Save basics for confirmation screen
 
     

@@ -15,9 +15,10 @@ interface AbandonedCart {
   total_items: number;
   total_value: number;
   abandoned_at: string;
-  status: 'abandoned' | 'recovered' | 'expired' | 'contacted';
+  status: 'abandoned' | 'recovered' | 'expired' | 'contacted' | 'payment_failed';
   email_sent: boolean;
   sms_sent: boolean;
+  notes: string | null;
   created_at: string;
 }
 
@@ -130,6 +131,8 @@ const AbandonedCartsPage: React.FC = () => {
         return 'bg-green-100 text-green-800';
       case 'expired':
         return 'bg-gray-100 text-gray-800';
+      case 'payment_failed':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -182,6 +185,7 @@ const AbandonedCartsPage: React.FC = () => {
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Statuses</option>
+                  <option value="payment_failed">Payment Failed</option>
                   <option value="abandoned">Abandoned</option>
                   <option value="contacted">Contacted</option>
                   <option value="recovered">Recovered</option>
@@ -290,8 +294,13 @@ const AbandonedCartsPage: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(cart.status)}`}>
-                          {cart.status}
+                          {cart.status === 'payment_failed' ? 'Payment Failed' : cart.status}
                         </span>
+                        {cart.notes && (
+                          <div className="text-xs text-gray-500 mt-1 max-w-[160px] truncate" title={cart.notes}>
+                            {cart.notes}
+                          </div>
+                        )}
                         {cart.email_sent && (
                           <div className="text-xs text-gray-500 mt-1">✓ Email sent</div>
                         )}
@@ -306,7 +315,7 @@ const AbandonedCartsPage: React.FC = () => {
                               Mark Email Sent
                             </button>
                           )}
-                          {cart.status === 'abandoned' && (
+                          {(cart.status === 'abandoned' || cart.status === 'payment_failed') && (
                             <button
                               onClick={() => updateCartStatus(cart.id, 'recovered')}
                               className="text-xs text-green-600 hover:text-green-800"

@@ -13,6 +13,11 @@ interface Env {
   // Razorpay
   RAZORPAY_KEY_ID: string;
   RAZORPAY_KEY_SECRET: string;
+
+  // Email
+  RESEND_API_KEY: string;
+  EMAIL_FROM: string;
+  EMAIL_FROM_NAME: string;
 }
 
 interface VerifyPaymentRequest {
@@ -259,6 +264,87 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     }
 
     console.log('✅ Payment verified and order updated:', order_id);
+
+    // Fetch full order details to send admin notification
+    try {
+      const fullOrderResponse = await fetch(
+        `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}&select=order_number,billing_first_name,billing_last_name,billing_email,total_amount,payment_method`,
+        {
+          headers: {
+            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          }
+        }
+      );
+
+      if (fullOrderResponse.ok && env.RESEND_API_KEY) {
+        const fullOrderData = await fullOrderResponse.json();
+        const fullOrder = fullOrderData[0];
+
+        if (fullOrder) {
+          const customerName = `${fullOrder.billing_first_name || ''} ${fullOrder.billing_last_name || ''}`.trim() || 'Customer';
+          const orderNumber = fullOrder.order_number || order_id;
+          const totalAmount = (fullOrder.total_amount || 0).toLocaleString('en-IN');
+          const paymentMethod = fullOrder.payment_method || 'Razorpay';
+          const fromName = env.EMAIL_FROM_NAME || 'Nirchal';
+          const fromAddress = env.EMAIL_FROM || 'support@nirchal.com';
+
+          const adminHtml = `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              <div style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">🎉 New Order Received!</h1>
+              </div>
+              <div style="padding: 30px; background-color: #ffffff;">
+                <div style="background-color: #f8fafc; border-radius: 12px; padding: 25px; margin-bottom: 25px;">
+                  <h2 style="color: #1f2937; margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Order Details</h2>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Order Number:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${orderNumber}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Customer:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${customerName}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Email:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${fullOrder.billing_email || 'N/A'}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Total Amount:</td><td style="padding: 8px 0; color: #10b981; font-weight: 700; font-size: 18px;">₹${totalAmount}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Payment Method:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${paymentMethod}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Payment ID:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${razorpay_payment_id}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Time:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</td></tr>
+                  </table>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                  <p style="color: #6b7280; margin: 0; font-size: 14px;">Please process this order promptly and update the customer with shipping details.</p>
+                </div>
+              </div>
+              <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="color: #6b7280; margin: 0; font-size: 12px;">This is an automated notification from Nirchal e-commerce system.</p>
+              </div>
+            </div>
+          `;
+
+          const resendPayload = {
+            from: `${fromName} <${fromAddress}>`,
+            to: ['amit.ranjan78@gmail.com'],
+            subject: `🛍️ New Order #${orderNumber} - ₹${totalAmount} - Nirchal`,
+            html: adminHtml
+          };
+
+          const adminEmailResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(resendPayload)
+          });
+
+          if (adminEmailResponse.ok) {
+            console.log('✅ Admin order notification email sent for order:', orderNumber);
+          } else {
+            const errText = await adminEmailResponse.text();
+            console.error('❌ Failed to send admin order notification:', errText);
+          }
+        }
+      }
+    } catch (notifyError) {
+      console.error('❌ Error sending admin order notification:', notifyError);
+      // Non-fatal: don't fail the payment verification response
+    }
 
     return new Response(
       JSON.stringify({ 

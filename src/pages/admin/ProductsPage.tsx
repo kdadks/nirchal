@@ -275,7 +275,10 @@ const ProductsPage: React.FC = () => {
                   <th scope="col" className="admin-table-col-5 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th scope="col" className="admin-table-col-6 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="admin-table-col-6 px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th scope="col" className="admin-table-col-7 px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -365,7 +368,14 @@ const ProductsPage: React.FC = () => {
                           {product.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="admin-table-col-6 px-4 py-2 whitespace-nowrap text-sm font-medium">
+                      <td className="admin-table-col-6 px-4 py-2 whitespace-nowrap">
+                        <div className="text-xs text-gray-700">
+                          {product.created_at
+                            ? new Date(product.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                            : <span className="text-gray-400">—</span>}
+                        </div>
+                      </td>
+                      <td className="admin-table-col-7 px-4 py-2 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center justify-center">
                           <button
                             onClick={() => handleDeleteProduct(product.id.toString())}

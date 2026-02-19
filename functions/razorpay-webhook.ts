@@ -14,6 +14,11 @@ interface Env {
   RAZORPAY_KEY_ID: string;
   RAZORPAY_KEY_SECRET: string;
   RAZORPAY_WEBHOOK_SECRET: string;
+
+  // Email (Resend)
+  RESEND_API_KEY: string;
+  EMAIL_FROM: string;
+  EMAIL_FROM_NAME: string;
 }
 
 function createBasicAuthHeader(keyId: string, keySecret: string) {
@@ -629,6 +634,96 @@ async function handlePaymentFailed(env: Env, payment: any) {
       console.error('Failed to update order status to failed');
     } else {
       console.log('Order status updated to failed:', order.order_number);
+    }
+
+    // Send admin notification email for payment failure
+    try {
+      const failureReason = payment.error_description || payment.error_reason || 'Payment failed';
+      const amountInRupees = (payment.amount ? payment.amount / 100 : 0).toLocaleString('en-IN');
+      const adminHtml = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">⚠️ Payment Failed Alert</h1>
+          </div>
+          
+          <div style="padding: 30px; background-color: #ffffff;">
+            <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 25px; margin-bottom: 25px;">
+              <h2 style="color: #991b1b; margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Payment Failure Details</h2>
+              
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Order Number:</td>
+                  <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${order.order_number}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Razorpay Payment ID:</td>
+                  <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${payment.id}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Razorpay Order ID:</td>
+                  <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${payment.order_id}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Amount:</td>
+                  <td style="padding: 8px 0; color: #ef4444; font-weight: 700; font-size: 18px;">₹${amountInRupees}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Failure Reason:</td>
+                  <td style="padding: 8px 0; color: #ef4444; font-weight: 600;">${failureReason}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Error Code:</td>
+                  <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${payment.error_code || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Time:</td>
+                  <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${new Date().toISOString()}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+              <p style="color: #6b7280; margin: 0; font-size: 14px;">
+                The customer can retry payment from their account. Check Razorpay dashboard for more details.
+              </p>
+            </div>
+          </div>
+          
+          <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; margin: 0; font-size: 12px;">
+              This is an automated notification from Nirchal e-commerce system.
+            </p>
+          </div>
+        </div>
+      `;
+
+      const fromName = env.EMAIL_FROM_NAME || 'Nirchal';
+      const fromAddress = env.EMAIL_FROM || 'support@nirchal.com';
+
+      const resendPayload = {
+        from: `${fromName} <${fromAddress}>`,
+        to: ['amit.ranjan78@gmail.com'],
+        subject: `⚠️ Payment Failed - Order #${order.order_number} - ₹${amountInRupees} - Nirchal`,
+        html: adminHtml
+      };
+
+      const adminEmailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(resendPayload)
+      });
+
+      if (adminEmailResponse.ok) {
+        console.log('✅ Admin payment failure notification sent for order:', order.order_number);
+      } else {
+        const errText = await adminEmailResponse.text();
+        console.error('❌ Failed to send admin payment failure notification:', errText);
+      }
+    } catch (adminEmailError) {
+      console.error('❌ Error sending admin payment failure notification:', adminEmailError);
     }
 
   } catch (error) {

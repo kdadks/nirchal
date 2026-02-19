@@ -86,6 +86,70 @@ const isCheckoutActive = (): boolean => {
   return isCheckoutInProgress || sessionStorage.getItem('checkout_in_progress') === 'true';
 };
 
+// Save a payment-failed cart record so it appears in Abandoned Carts admin
+export const savePaymentFailedCart = async ({
+  customerName,
+  customerEmail,
+  customerPhone,
+  userId,
+  items,
+  totalValue,
+  orderNumber,
+  failureReason,
+}: {
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+  userId?: string;
+  items: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    image: string;
+    size?: string;
+    color?: string;
+    variantId?: string;
+  }>;
+  totalValue: number;
+  orderNumber?: string;
+  failureReason?: string;
+}): Promise<void> => {
+  try {
+    const visitorId = getVisitorId();
+    const notes = [
+      orderNumber ? `Order: ${orderNumber}` : null,
+      failureReason ? `Reason: ${failureReason}` : null,
+    ].filter(Boolean).join(' | ') || null;
+
+    const cartData = {
+      guest_name: customerName || 'Anonymous',
+      guest_email: customerEmail || null,
+      guest_phone: customerPhone || null,
+      visitor_id: visitorId,
+      user_id: userId || null,
+      cart_items: items,
+      total_items: items.reduce((sum, item) => sum + item.quantity, 0),
+      total_value: totalValue,
+      abandoned_at: new Date().toISOString(),
+      status: 'payment_failed',
+      notes,
+    };
+
+    const { error } = await supabase
+      .from('abandoned_carts')
+      .insert([cartData]);
+
+    if (error) {
+      console.error('[Cart Abandonment] Error saving payment_failed cart:', error);
+    } else {
+      console.log('[Cart Abandonment] Payment-failed cart saved:', orderNumber);
+    }
+  } catch (err) {
+    console.error('[Cart Abandonment] Exception saving payment_failed cart:', err);
+  }
+};
+
 export const useCartAbandonment = ({ 
   cartItems, 
   isAuthenticated, 

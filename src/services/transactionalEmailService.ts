@@ -421,6 +421,76 @@ export class TransactionalEmailService {
         console.error('TransactionalEmailService: Payment failure email failed with response:', errorText);
       }
 
+      // Send admin notification for payment failure
+      try {
+        const adminHtml = `
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">⚠️ Payment Failed Alert</h1>
+            </div>
+            
+            <div style="padding: 30px; background-color: #ffffff;">
+              <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 25px; margin-bottom: 25px;">
+                <h2 style="color: #991b1b; margin: 0 0 20px 0; font-size: 20px; font-weight: 600;">Payment Failure Details</h2>
+                
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Order Number:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${paymentData.order_number}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Customer Name:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${paymentData.customer_name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Customer Email:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${paymentData.customer_email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Amount:</td>
+                    <td style="padding: 8px 0; color: #ef4444; font-weight: 700; font-size: 18px;">₹${paymentData.amount.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Failure Reason:</td>
+                    <td style="padding: 8px 0; color: #ef4444; font-weight: 600;">${paymentData.error_reason}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Time:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</td>
+                  </tr>
+                </table>
+              </div>
+              
+              <div style="text-align: center; margin-top: 20px;">
+                <p style="color: #6b7280; margin: 0; font-size: 14px;">
+                  The customer has been notified and can retry payment from their account.
+                </p>
+              </div>
+            </div>
+            
+            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="color: #6b7280; margin: 0; font-size: 12px;">
+                This is an automated notification from Nirchal e-commerce system.
+              </p>
+            </div>
+          </div>
+        `;
+
+        const adminEmailPayload = {
+          to: 'amit.ranjan78@gmail.com',
+          subject: `⚠️ Payment Failed - Order #${paymentData.order_number} - ₹${paymentData.amount.toLocaleString()} - Nirchal`,
+          html: adminHtml
+        };
+
+        await fetch(`${this.baseUrl}/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(adminEmailPayload)
+        });
+      } catch (adminEmailError) {
+        console.error('TransactionalEmailService: Failed to send admin payment failure notification:', adminEmailError);
+      }
+
       return response.ok;
     } catch (error) {
       console.error('TransactionalEmailService: Failed to send payment failure email:', error);
@@ -494,7 +564,7 @@ export class TransactionalEmailService {
       `;
 
       const emailPayload = {
-        to: ['support@nirchal.com', 'amit.ranjan78@gmail.com'], // Send to both support email and personal email
+        to: 'amit.ranjan78@gmail.com', // Primary admin email
         subject: `🛍️ New Order #${orderData.order_number} - ₹${orderData.total_amount.toLocaleString()} - Nirchal`,
         html
       };
