@@ -2,67 +2,67 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://nirchal.com/</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>1</priority>
   </url>
   <url>
     <loc>https://nirchal.com/products</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://nirchal.com/categories</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://nirchal.com/about</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://nirchal.com/contact</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://nirchal.com/faq</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://nirchal.com/size-guide</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://nirchal.com/shipping</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://nirchal.com/return-policy</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://nirchal.com/privacy-policy</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://nirchal.com/terms</loc>
-    <lastmod>2025-11-03</lastmod>
+    <lastmod>2026-02-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
@@ -151,12 +151,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta-4</loc>
-    <lastmod>2025-10-22</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://nirchal.com/product/banarasi-silk-dupatta9</loc>
     <lastmod>2025-10-23</lastmod>
     <changefreq>weekly</changefreq>
@@ -169,13 +163,19 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta5</loc>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta-3</loc>
     <lastmod>2025-10-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta7</loc>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta</loc>
+    <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta12</loc>
     <lastmod>2025-10-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -187,37 +187,19 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta8</loc>
-    <lastmod>2025-10-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta</loc>
-    <lastmod>2025-09-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta11</loc>
-    <lastmod>2025-10-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://nirchal.com/product/banarasi-silk-dupatta-2</loc>
     <lastmod>2025-10-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta13</loc>
-    <lastmod>2025-10-23</lastmod>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta-4</loc>
+    <lastmod>2025-10-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta-3</loc>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta5</loc>
     <lastmod>2025-10-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -229,7 +211,25 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/banarasi-silk-dupatta12</loc>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta13</loc>
+    <lastmod>2025-10-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta8</loc>
+    <lastmod>2025-10-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta11</loc>
+    <lastmod>2025-10-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/banarasi-silk-dupatta7</loc>
     <lastmod>2025-10-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -277,6 +277,18 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/black-butterfly-stud-earrings</loc>
+    <lastmod>2025-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/black-crystal-drop-earrings</loc>
+    <lastmod>2025-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/brocade-saree-kanchipuram-pattern-rich-zari-pallu</loc>
     <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -315,6 +327,12 @@
   <url>
     <loc>https://nirchal.com/product/crunchy-silk-saree-with-lehariya-work</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/dazzle-in-velvet-glamour-a-statement-ethnic-ensemble</loc>
+    <lastmod>2025-12-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -433,6 +451,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/desirable-womens-designer-lehenga-set-in-premium-vichitra-silk</loc>
+    <lastmod>2025-11-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/elegance-in-every-drape-premium-soft-silk-saree-with-maharani-pallu</loc>
     <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -451,6 +475,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/elegant-banarasi-tissue-saree-a-perfect-blend-of-tradition-luxury</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/elegant-beaded-bloom-gown-with-designer-dupatta</loc>
     <lastmod>2025-10-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -463,8 +493,44 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/elegant-designer-embroidered-gown-set-with-dupatta-perfect-for-parties-festive-occasions</loc>
+    <lastmod>2025-11-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/elegant-designer-fendy-lehenga-choli-with-shrug-style-dupatta</loc>
+    <lastmod>2025-11-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/elegant-dusty-coloured-embroidered-faux-georgette-gown-with-dupatta</loc>
+    <lastmod>2025-11-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/elegant-embroidered-gown-set-with-designer-dupatta</loc>
+    <lastmod>2025-12-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/elegant-embroidered-gown-set-with-dupatta</loc>
+    <lastmod>2026-02-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/elegant-ethnic-ensemble-in-soft-rayon-fabric</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/elegant-floral-embroidered-georgette-lehenga-set-fully-stitched-ready-to-wear</loc>
+    <lastmod>2025-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -499,6 +565,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/embroidered-grey-net-midi-dress-with-gold-floral-detailing</loc>
+    <lastmod>2025-11-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/ethereal-elegance-chinon-embroidered-gown-set</loc>
     <lastmod>2025-10-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -519,6 +591,12 @@
   <url>
     <loc>https://nirchal.com/product/exclusive-bridal-kanchipuram-saree</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/exclusive-designer-vichitra-silk-lehenga-set-elegance-in-every-detail</loc>
+    <lastmod>2025-11-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -549,6 +627,18 @@
   <url>
     <loc>https://nirchal.com/product/experience-timeless-elegance-with-our-soft-lichi-silk-saree-collection</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/exquisite-bandhani-paithani-saree-a-blend-of-heritage-and-luxury</loc>
+    <lastmod>2025-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/exquisite-designer-heavy-fox-georgette-lehenga-choli-set-with-dupatta</loc>
+    <lastmod>2025-11-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -675,6 +765,12 @@
   <url>
     <loc>https://nirchal.com/product/graceful-linen-digital-print-saree-with-all-over-kalamkari-design-elegant-tassel-detailing</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/green-crystal-drop-earrings</loc>
+    <lastmod>2025-11-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -979,6 +1075,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/new-festival-launch-designer-lehenga-choli-set</loc>
+    <lastmod>2026-02-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/new-launch-alert-designer-saree-in-luxurious-burberry-silk</loc>
     <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -1039,8 +1141,26 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/pearl-bow-drop-earrings</loc>
+    <lastmod>2025-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/pearl-stud-earrings</loc>
+    <lastmod>2025-11-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/poly-rayon-printed-gown</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/premium-chinon-embroidered-lehenga-set-fully-stitched-ready-to-wear</loc>
+    <lastmod>2025-11-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1063,6 +1183,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/premium-designer-co-ord-set-fully-stitched-sequins-thread-embroidery</loc>
+    <lastmod>2025-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/premium-designer-embroidered-readymade-gown</loc>
     <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -1071,6 +1197,12 @@
   <url>
     <loc>https://nirchal.com/product/premium-designer-embroidery-suit</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/premium-designer-party-wear-gown-elegance-with-stunning-embroidery</loc>
+    <lastmod>2025-11-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1129,6 +1261,18 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/premium-designer-sharara-set-fully-stitched-ready-to-wear</loc>
+    <lastmod>2025-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/premium-designer-vichitra-silk-lehenga-set-elegance-tailored-for-every-celebration</loc>
+    <lastmod>2025-11-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/premium-dola-silk-saree-original-look-unmatched-elegance</loc>
     <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -1141,8 +1285,32 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/premium-ethnic-wear-collection-perfect-for-every-occasion</loc>
+    <lastmod>2025-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/premium-faux-georgette-sequins-embroidered-kurtisharara-set-with-dupatta</loc>
+    <lastmod>2025-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/premium-gown-dupatta-set-made-from-vichitra-fabric</loc>
     <lastmod>2025-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/premium-heavy-embroidered-vichitra-lehenga-choli-set</loc>
+    <lastmod>2025-12-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/premium-kids-partywear-gown-set-designed-for-ages-3-to-15-years</loc>
+    <lastmod>2025-11-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1249,6 +1417,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/premium-readymade-kurti-pant-dupatta-set</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/premium-readymade-lehenga-choli</loc>
     <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -1341,6 +1515,12 @@
   <url>
     <loc>https://nirchal.com/product/pure-rayon-lehenga-choli-set-with-gamthi-work</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/pure-soft-rangoli-silk-saree-with-lehariya-digital-prints-heavy-embroidery</loc>
+    <lastmod>2026-02-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1507,6 +1687,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/soft-mal-mal-cotton-silk-sarees-with-pen-kalamkari-design</loc>
+    <lastmod>2025-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/soft-silk-maharani-paithani-saree</loc>
     <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
@@ -1549,6 +1735,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://nirchal.com/product/stitched-designer-lehenga-set-in-vichitra-silk</loc>
+    <lastmod>2026-01-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://nirchal.com/product/stunning-new-designer-party-wear-top-plazzo-dupatta-set</loc>
     <lastmod>2025-10-03</lastmod>
     <changefreq>weekly</changefreq>
@@ -1569,6 +1761,12 @@
   <url>
     <loc>https://nirchal.com/product/timeless-beauty-in-every-weave-kanjivaram-paithani-saree</loc>
     <lastmod>2025-09-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/timeless-elegance-in-every-drape-soft-pure-banarasi-silk-saree</loc>
+    <lastmod>2025-11-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1609,14 +1807,14 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/unstitched-banarasi-silk-suit-fabric-1</loc>
-    <lastmod>2025-10-22</lastmod>
+    <loc>https://nirchal.com/product/unstitched-banarasi-silk-suit-fabric</loc>
+    <lastmod>2025-09-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://nirchal.com/product/unstitched-banarasi-silk-suit-fabric</loc>
-    <lastmod>2025-09-10</lastmod>
+    <loc>https://nirchal.com/product/unstitched-banarasi-silk-suit-fabric-1</loc>
+    <lastmod>2025-10-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1641,6 +1839,12 @@
   <url>
     <loc>https://nirchal.com/product/where-elegance-meets-embroidery-crafted-for-the-woman-who-deserves-the-best</loc>
     <lastmod>2025-10-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://nirchal.com/product/white-pearls-stud-earrings</loc>
+    <lastmod>2025-11-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
