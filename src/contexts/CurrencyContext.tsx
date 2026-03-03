@@ -241,12 +241,12 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ];
 
         // Determine currency based on location and set allowed currencies
-        if (countryCode === 'IN') {
-          // India: show INR as default, with USD and EUR options
+        if (!countryCode || countryCode === 'IN') {
+          // India (or unknown country): show INR as default, with USD and EUR options
           setCurrencyState('INR');
           setIsInternational(false);
           setAllowedCurrencies(['INR', 'USD', 'EUR']);
-          console.log('[Currency] User in India - INR, USD, EUR all allowed');
+          console.log('[Currency] User in India (or unknown) - INR, USD, EUR all allowed');
         } else if (euCountries.includes(countryCode)) {
           // EU: show default EUR, but allow switching to USD
           setCurrencyState('EUR');
@@ -265,10 +265,11 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         localStorage.setItem('userCountry', countryCode);
       } catch (error) {
         console.error('Error detecting location:', error);
-        // Fallback to USD if geolocation fails (for international users)
-        setCurrencyState('USD');
-        setIsInternational(true);
-        setAllowedCurrencies(['USD', 'EUR']);
+        // Fallback to INR when geolocation fails — the majority of users are
+        // in India, so INR is by far the safest default.
+        setCurrencyState('INR');
+        setIsInternational(false);
+        setAllowedCurrencies(['INR', 'USD', 'EUR']);
       }
     };
 
