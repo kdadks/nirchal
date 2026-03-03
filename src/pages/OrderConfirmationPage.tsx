@@ -2,11 +2,24 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
 import ChangePasswordModal from '../components/auth/ChangePasswordModal';
+import GoogleCustomerReviews from '../components/GoogleCustomerReviews';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { SecurityUtils } from '../utils/securityUtils';
 import toast from 'react-hot-toast';
 import SEO from '../components/SEO';
+
+/** Returns a date string (YYYY-MM-DD) that is `businessDays` business days from today. */
+function addBusinessDays(days: number): string {
+  const date = new Date();
+  let added = 0;
+  while (added < days) {
+    date.setDate(date.getDate() + 1);
+    const day = date.getDay();
+    if (day !== 0 && day !== 6) added++; // skip Sunday (0) and Saturday (6)
+  }
+  return date.toISOString().split('T')[0];
+}
 
 const OrderConfirmationPage: React.FC = () => {
   const { customer } = useCustomerAuth();
@@ -16,13 +29,14 @@ const OrderConfirmationPage: React.FC = () => {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
-  const { orderNumber, email, tempPassword, codAmount, paymentSplit, paymentStatus } = useMemo(() => {
+  const { orderNumber, email, tempPassword, codAmount, paymentSplit, paymentStatus, deliveryCountry, estimatedDeliveryDate } = useMemo(() => {
     const on = sessionStorage.getItem('last_order_number') || '';
     const em = sessionStorage.getItem('last_order_email') || '';
     const tp = sessionStorage.getItem('new_customer_temp_password') || '';
     const cod = sessionStorage.getItem('cod_amount') || '0';
     const ps = sessionStorage.getItem('payment_split') === 'true';
     const status = sessionStorage.getItem('payment_status') || 'completed';
+    const country = sessionStorage.getItem('delivery_country') || 'IN';
     
     return { 
       orderNumber: on, 
@@ -30,7 +44,9 @@ const OrderConfirmationPage: React.FC = () => {
       tempPassword: tp ? SecurityUtils.decryptTempData(tp) : '',
       codAmount: parseFloat(cod),
       paymentSplit: ps,
-      paymentStatus: status
+      paymentStatus: status,
+      deliveryCountry: country,
+      estimatedDeliveryDate: addBusinessDays(5),
     };
   }, []);
 
@@ -365,6 +381,16 @@ const OrderConfirmationPage: React.FC = () => {
         />
       </div>
     </div>
+
+    {/* Google Customer Reviews Survey Opt-In – only for completed/confirmed orders */}
+    {paymentStatus !== 'pending' && (
+      <GoogleCustomerReviews
+        orderId={orderNumber}
+        email={email}
+        deliveryCountry={deliveryCountry}
+        estimatedDeliveryDate={estimatedDeliveryDate}
+      />
+    )}
     </>
   );
 };

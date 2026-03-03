@@ -886,6 +886,9 @@ const CheckoutPage: React.FC = () => {
                 if (form?.email) {
                   sessionStorage.setItem('last_order_email', form.email.trim());
                 }
+
+                // Save delivery country for Google Customer Reviews opt-in
+                sessionStorage.setItem('delivery_country', form.deliveryCountry || 'IN');
                 
                 // Clear cart
                 try {
@@ -1112,6 +1115,9 @@ const CheckoutPage: React.FC = () => {
       sessionStorage.setItem('last_order_email', form.email.trim());
 
     }
+
+    // Save delivery country for Google Customer Reviews opt-in
+    sessionStorage.setItem('delivery_country', form.deliveryCountry || 'IN');
     
     // Verify the values were saved
 
