@@ -411,6 +411,45 @@ const SettingsPage: React.FC = React.memo(() => {
           </div>
         </div>
       </div>
+
+      {/* Footer Copyright */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Footer Copyright</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Copyright Text</label>
+          <input
+            type="text"
+            value={tabSettings.shop?.copyright_text || ''}
+            onChange={(e) => handleTabSettingChange('shop', 'copyright_text', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder={`© ${new Date().getFullYear()} YourStore.com. All rights reserved.`}
+          />
+          <p className="text-xs text-gray-500 mt-1">Leave blank to auto-generate from Store Name.</p>
+        </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Made By Text</label>
+            <input
+              type="text"
+              value={tabSettings.shop?.made_by_text || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'made_by_text', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="ITwala"
+            />
+            <p className="text-xs text-gray-500 mt-1">Leave blank to hide the Made By link.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Made By URL</label>
+            <input
+              type="url"
+              value={tabSettings.shop?.made_by_url || ''}
+              onChange={(e) => handleTabSettingChange('shop', 'made_by_url', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://it-wala.com/"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 

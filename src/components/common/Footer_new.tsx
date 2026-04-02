@@ -16,11 +16,14 @@ import { useSettings } from '../../hooks/useSettings';
 const Footer: React.FC = () => {
   const { getSetting } = useSettings();
 
-  // Get social media URLs from settings
-  const facebookUrl = getSetting('shop', 'social_facebook_url') || 'https://facebook.com/nirchal';
-  const instagramUrl = getSetting('shop', 'social_instagram_url') || 'https://instagram.com/nirchal';
-  const twitterUrl = getSetting('shop', 'social_twitter_url') || 'https://twitter.com/nirchal';
-  const youtubeUrl = getSetting('shop', 'social_youtube_url') || 'https://youtube.com/nirchal';
+  // Get social media URLs from settings (empty = hidden)
+  const copyrightText = getSetting('shop', 'copyright_text') || '';
+  const madeByText = getSetting('shop', 'made_by_text') || '';
+  const madeByUrl = getSetting('shop', 'made_by_url') || '';
+  const facebookUrl = getSetting('shop', 'social_facebook_url') || '';
+  const instagramUrl = getSetting('shop', 'social_instagram_url') || '';
+  const twitterUrl = getSetting('shop', 'social_twitter_url') || '';
+  const youtubeUrl = getSetting('shop', 'social_youtube_url') || '';
 
   return (
     <footer className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white border-t border-gray-700/50">
@@ -93,38 +96,46 @@ const Footer: React.FC = () => {
 
             {/* Social Links */}
             <div className="flex justify-center lg:justify-end gap-2 mb-3">
-              <a
-                href={instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gray-800 p-2 rounded hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500 transition-all duration-300"
-              >
-                <Instagram size={14} />
-              </a>
-              <a
-                href={facebookUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gray-800 p-2 rounded hover:bg-blue-600 transition-all duration-300"
-              >
-                <Facebook size={14} />
-              </a>
-              <a
-                href={twitterUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gray-800 p-2 rounded hover:bg-blue-400 transition-all duration-300"
-              >
-                <Twitter size={14} />
-              </a>
-              <a
-                href={youtubeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gray-800 p-2 rounded hover:bg-red-600 transition-all duration-300"
-              >
-                <Youtube size={14} />
-              </a>
+              {instagramUrl && (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-800 p-2 rounded hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500 transition-all duration-300"
+                >
+                  <Instagram size={14} />
+                </a>
+              )}
+              {facebookUrl && (
+                <a
+                  href={facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-800 p-2 rounded hover:bg-blue-600 transition-all duration-300"
+                >
+                  <Facebook size={14} />
+                </a>
+              )}
+              {twitterUrl && (
+                <a
+                  href={twitterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-800 p-2 rounded hover:bg-blue-400 transition-all duration-300"
+                >
+                  <Twitter size={14} />
+                </a>
+              )}
+              {youtubeUrl && (
+                <a
+                  href={youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gray-800 p-2 rounded hover:bg-red-600 transition-all duration-300"
+                >
+                  <Youtube size={14} />
+                </a>
+              )}
             </div>
 
             {/* Payment Methods */}
@@ -153,15 +164,20 @@ const Footer: React.FC = () => {
         {/* Centered Copyright */}
         <div className="text-center mt-4">
           <p className="text-gray-400 text-xs">
-            © 2025 Nirchal.com. All rights reserved. Made by{' '}
-            <a
-              href="https://it-wala.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-accent-400 transition-colors"
-            >
-              ITwala
-            </a>
+            {copyrightText}
+            {madeByText && (
+              <>
+                {' · Made by '}
+                <a
+                  href={madeByUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-accent-400 transition-colors"
+                >
+                  {madeByText}
+                </a>
+              </>
+            )}
           </p>
         </div>
 

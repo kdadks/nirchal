@@ -154,16 +154,17 @@ export const useSettings = () => {
   // Batch update multiple settings
   const updateMultipleSettings = async (updates: Array<{ category: string; key: string; value: string }>) => {
     try {
-      // Use UPDATE instead of UPSERT to avoid constraint issues
       const promises = updates.map(update => 
         supabase
           .from('settings')
-          .update({ 
+          .upsert({ 
+            category: update.category,
+            key: update.key,
             value: update.value,
             updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'category,key'
           })
-          .eq('category', update.category)
-          .eq('key', update.key)
       );
 
       const results = await Promise.all(promises);
