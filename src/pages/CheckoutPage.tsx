@@ -2278,13 +2278,30 @@ const CheckoutPage: React.FC = () => {
                 </h2>
                 
                 <div className="space-y-2.5 mb-4">
-                  {items.map((item) => (
+                  {items.map((item) => {
+                    const colorLabel = item.colorHex
+                      ? `${item.color || ''} (${item.colorHex.toUpperCase()})`.trim()
+                      : item.color;
+
+                    return (
                     <div key={`${item.id}-${item.variantId}`} className="flex gap-2.5 p-2.5 rounded-lg bg-gray-50 border border-gray-100">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-12 h-12 object-cover rounded flex-shrink-0"
-                      />
+                      {item.colorHex ? (
+                        <div
+                          className="w-12 h-12 rounded border border-gray-200 flex-shrink-0 flex items-end justify-center pb-0.5"
+                          style={{ backgroundColor: item.colorHex }}
+                          title={item.colorHex.toUpperCase()}
+                        >
+                          <span className="bg-black/45 text-white text-[9px] px-1 py-0.5 rounded">
+                            {item.colorHex.toUpperCase()}
+                          </span>
+                        </div>
+                      ) : (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-12 h-12 object-cover rounded flex-shrink-0"
+                        />
+                      )}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 text-xs leading-tight">
                           {item.name}
@@ -2293,7 +2310,7 @@ const CheckoutPage: React.FC = () => {
                         {!(item.size === 'Service' || item.size === 'Custom') && (
                           <div className="flex gap-2 text-xs text-gray-600 mt-0.5">
                             {item.size && <span>Size: {item.size}</span>}
-                            {item.color && <span>Color: {item.color}</span>}
+                            {item.color && <span>Color: {colorLabel}</span>}
                           </div>
                         )}
                         <div className="flex justify-between items-center mt-1.5">
@@ -2304,7 +2321,8 @@ const CheckoutPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Payment Split Option - Only show if cart has both products and services AND currency is INR */}

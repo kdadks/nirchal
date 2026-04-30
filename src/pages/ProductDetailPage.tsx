@@ -64,6 +64,7 @@ const ProductDetailPage: React.FC = () => {
   
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSwatchHex, setSelectedSwatchHex] = useState<string>('');
   const [selectedImage, setSelectedImage] = useState<number>(0);
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -131,6 +132,7 @@ const ProductDetailPage: React.FC = () => {
     // Reset selections for new product
     setSelectedSize('');
     setSelectedColor('');
+    setSelectedSwatchHex('');
     setHasUserInteractedWithColor(false);
     
     // Get available sizes and colors (without filtering by current selection)
@@ -187,23 +189,24 @@ const ProductDetailPage: React.FC = () => {
     }
   }, [product]);
 
-  // When color changes (only after user interaction), switch main image to that color's swatch if present
+  // When color changes (only after user interaction), switch main display to that color's swatch
   useEffect(() => {
     if (!product || !selectedColor || !hasUserInteractedWithColor) return;
     const colorVariant = product.variants?.find(v => v.color === selectedColor);
     if (!colorVariant) return;
-    const swatchUrl = colorVariant.swatchImage;
-    const swatchId = colorVariant.swatchImageId;
-    if (!swatchUrl && !swatchId) return;
 
-    // Try exact URL match first
-    let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
-    if (idx === -1 && swatchId) {
-      const idNoDash = swatchId.replace(/-/g, '');
-      idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
-    }
-    if (idx >= 0) {
-      setSelectedImage(idx);
+    if (colorVariant.swatchImage) {
+      // Has image — find it in product images and show it
+      setSelectedSwatchHex('');
+      let idx = product.images.findIndex(img => img === colorVariant.swatchImage);
+      if (idx === -1 && colorVariant.swatchImageId) {
+        const idNoDash = colorVariant.swatchImageId.replace(/-/g, '');
+        idx = product.images.findIndex(img => img.includes(colorVariant.swatchImageId!) || img.includes(idNoDash));
+      }
+      if (idx >= 0) setSelectedImage(idx);
+    } else if (colorVariant.colorHex) {
+      // Has hex color — show it in the main container
+      setSelectedSwatchHex(colorVariant.colorHex);
     }
   }, [product, selectedColor, hasUserInteractedWithColor]);
 
@@ -354,9 +357,10 @@ const ProductDetailPage: React.FC = () => {
           id: product.id,
           name: product.name,
           price: adjustedPrice,
-          image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+          image: cartImage,
           size: selectedSize || undefined,
           color: selectedColor || product.color,
+          colorHex: selectedColorHex,
           variantId: selectedVariant?.id,
           category: product.category // Include category for add-ons detection
         });
@@ -380,9 +384,10 @@ const ProductDetailPage: React.FC = () => {
           id: product.id,
           name: product.name,
           price: adjustedPrice,
-          image: product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80',
+          image: cartImage,
           size: selectedSize || undefined,
           color: selectedColor || product.color,
+          colorHex: selectedColorHex,
           variantId: selectedVariant?.id,
           category: product.category // Include category for add-ons detection
         });
@@ -570,6 +575,16 @@ const ProductDetailPage: React.FC = () => {
     return minPositiveVariantPrice ?? product.price;
   })();
   const adjustedPrice = adjustedPriceRaw > 0 ? adjustedPriceRaw : product.price;
+  const selectedColorHex = (selectedVariant && !selectedVariant.swatchImage)
+    ? selectedVariant.colorHex
+    : product.variants?.find(v => v.color === selectedColor && !v.swatchImage && v.colorHex)?.colorHex
+    || (selectedSwatchHex || undefined);
+  const selectedColorLabel = selectedColorHex
+    ? `${selectedColor} (${selectedColorHex.toUpperCase()})`
+    : selectedColor;
+  const cartImage = selectedColorHex
+    ? (galleryImages[0] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80')
+    : (product.images[selectedImage] || product.images[0] || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80');
 
   const discountPercentage = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -717,31 +732,39 @@ const ProductDetailPage: React.FC = () => {
                 className="relative group overflow-hidden rounded-xl cursor-pointer"
                 onClick={openImageModal}
               >
-                {/* Main Image with Click to Open */}
-                <img
-                  src={getOptimizedImageUrl(product.images[selectedImage], 1200) || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
-                  {...(getImageSrcSet(product.images[selectedImage]) && {
-                    srcSet: getImageSrcSet(product.images[selectedImage]),
-                    sizes: "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
-                  })}
-                  alt={`${product.name}${selectedColor ? ` in ${selectedColor}` : ''}${selectedSize ? ` - ${selectedSize}` : ''} | ${product.category || 'Fashion'} | Buy Online at Nirchal`}
-                  className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer product-image hw-accelerate"
-                  loading="eager"
-                  decoding="async"
-                  {...({ fetchpriority: 'high' } as any)}
-                  style={{
-                    imageRendering: 'auto',
-                    filter: 'contrast(1.03) saturate(1.02) brightness(1.01)',
-                  }}
-                  onLoad={() => {
-                    // Preload only the next image for faster navigation
-                    const nextIndex = selectedImage + 1 < product.images.length ? selectedImage + 1 : 0;
-                    if (nextIndex !== selectedImage) {
-                      const preloadImg = new Image();
-                      preloadImg.src = getOptimizedImageUrl(product.images[nextIndex], 1200);
-                    }
-                  }}
-                />
+                {/* Main Image / Color Display */}
+                {selectedSwatchHex ? (
+                  <div
+                    className="w-full h-64 sm:h-80 lg:h-[500px] rounded-xl flex items-end justify-center pb-4"
+                    style={{ backgroundColor: selectedSwatchHex }}
+                  >
+                    <span className="bg-black/40 text-white text-sm px-3 py-1 rounded-full">{selectedColorLabel}</span>
+                  </div>
+                ) : (
+                  <img
+                    src={getOptimizedImageUrl(product.images[selectedImage], 1200) || 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
+                    {...(getImageSrcSet(product.images[selectedImage]) && {
+                      srcSet: getImageSrcSet(product.images[selectedImage]),
+                      sizes: "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+                    })}
+                    alt={`${product.name}${selectedColor ? ` in ${selectedColor}` : ''}${selectedSize ? ` - ${selectedSize}` : ''} | ${product.category || 'Fashion'} | Buy Online at Nirchal`}
+                    className="w-full h-64 sm:h-80 lg:h-[500px] object-cover transition-transform duration-500 ease-in-out hover:scale-110 cursor-pointer product-image hw-accelerate"
+                    loading="eager"
+                    decoding="async"
+                    {...({ fetchpriority: 'high' } as any)}
+                    style={{
+                      imageRendering: 'auto',
+                      filter: 'contrast(1.03) saturate(1.02) brightness(1.01)',
+                    }}
+                    onLoad={() => {
+                      const nextIndex = selectedImage + 1 < product.images.length ? selectedImage + 1 : 0;
+                      if (nextIndex !== selectedImage) {
+                        const preloadImg = new Image();
+                        preloadImg.src = getOptimizedImageUrl(product.images[nextIndex], 1200);
+                      }
+                    }}
+                  />
+                )}
 
                 {/* Click to Zoom Indicator */}
                 <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
@@ -1005,140 +1028,72 @@ const ProductDetailPage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <h3 className="text-sm font-semibold text-gray-900">Color</h3>
-                    <span className="text-xs text-gray-500 italic">(Select Here)</span>
+                    {selectedColor && <span className="text-xs text-gray-600">{selectedColorLabel}</span>}
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4 max-w-lg">
+                  <div className="flex flex-wrap gap-3">
                     {colors.map(color => {
-                      // Find ANY variant with this color that has a swatch image (prefer one with image)
-                      const colorVariant = product.variants?.find(v => v.color === color && v.swatchImage) 
+                      const colorVariant = product.variants?.find(v => v.color === color && v.swatchImage)
                         || product.variants?.find(v => v.color === color);
-                      // Show swatch image if variant has swatchImage URL
-                      const hasSwatchImage = !!(colorVariant?.swatchImage);
-                      
-                      // Debug logging for first color only to avoid spam
-                      if (color === colors[0] && import.meta.env.DEV) {
-                        console.log('[ProductDetailPage] Color swatch debug:', {
-                          color,
-                          hasSwatchImage,
-                          colorVariant: colorVariant ? {
-                            id: colorVariant.id,
-                            color: colorVariant.color,
-                            size: colorVariant.size,
-                            swatchImageId: colorVariant.swatchImageId,
-                            swatchImage: colorVariant.swatchImage,
-                            colorHex: colorVariant.colorHex
-                          } : null,
-                          allColors: colors,
-                          allVariants: product.variants?.map(v => ({
-                            id: v.id,
-                            color: v.color,
-                            size: v.size,
-                            swatchImageId: v.swatchImageId,
-                            hasSwatchImage: !!v.swatchImage
-                          }))
-                        });
-                      }
-                      
-                      // Check if this color is available based on selected size
+                      const swatchImage = colorVariant?.swatchImage;
+                      const colorHex = colorVariant?.colorHex;
                       const isAvailable = isColorAvailable(product, color!, selectedSize);
-                      
+                      const isSelected = selectedColor === color;
+
                       const handleSwatchClick = () => {
-                        // Allow clicking even if out of stock - user should see all colors
                         setHasUserInteractedWithColor(true);
                         setSelectedColor(color!);
-                        // If swatch has an image, try to find it in main product images
-                        if (hasSwatchImage && colorVariant.swatchImage) {
-                          // First try to find exact URL match
-                          let swatchImageIndex = product.images.findIndex(img => img === colorVariant.swatchImage);
-                          
-                          // If not found, try to find by checking if the image URL contains the swatch image ID
-                          if (swatchImageIndex === -1 && colorVariant.swatchImageId) {
-                            swatchImageIndex = product.images.findIndex(img => 
-                              img.includes(colorVariant.swatchImageId!) || 
-                              img.includes(colorVariant.swatchImageId!.replace(/-/g, ''))
+                        if (swatchImage) {
+                          setSelectedSwatchHex('');
+                          let idx = product.images.findIndex(img => img === swatchImage);
+                          if (idx === -1 && colorVariant?.swatchImageId) {
+                            const idNoDash = colorVariant.swatchImageId.replace(/-/g, '');
+                            idx = product.images.findIndex(img =>
+                              img.includes(colorVariant.swatchImageId!) || img.includes(idNoDash)
                             );
                           }
-                          
-                          // If we found the image in main gallery, switch to it
-                          if (swatchImageIndex !== -1) {
-                            setSelectedImage(swatchImageIndex);
-                          }
-                          // Note: If swatch image is not in main gallery, main image stays the same
+                          if (idx !== -1) setSelectedImage(idx);
+                        } else if (colorHex) {
+                          setSelectedSwatchHex(colorHex);
                         }
                       };
-                      
-                      if (hasSwatchImage) {
-                        // Show only swatch image without text for variants with swatch (80x80 for product detail)
-                        return (
-                          <button
-                            key={color}
-                            onClick={handleSwatchClick}
-                            className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                              selectedColor === color
-                                ? 'border-amber-500 ring-2 ring-amber-200'
-                                : isAvailable
-                                  ? 'border-gray-300 hover:border-amber-300 cursor-pointer'
-                                  : 'border-gray-300 hover:border-amber-300 cursor-pointer'
-                            }`}
-                            title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
-                          >
+
+                      return (
+                        <button
+                          key={color}
+                          onClick={handleSwatchClick}
+                          title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
+                          className={`relative w-14 h-14 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                            isSelected
+                              ? 'border-amber-500 ring-2 ring-amber-200'
+                              : 'border-gray-300 hover:border-amber-300'
+                          } ${!isAvailable ? 'opacity-50' : ''}`}
+                        >
+                          {swatchImage ? (
                             <img
-                              src={colorVariant.swatchImage}
-                              alt={`${color} swatch`}
+                              src={swatchImage}
+                              alt={color!}
                               className={`w-full h-full object-cover ${!isAvailable ? 'grayscale' : ''}`}
                             />
-                            {selectedColor === color && (
-                              <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
-                                <div className="w-3 h-3 bg-white rounded-full shadow-md"></div>
-                              </div>
-                            )}
-                            {!isAvailable && (
-                              <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-                                <div className="w-6 h-0.5 bg-red-500 rotate-45"></div>
-                                <div className="w-6 h-0.5 bg-red-500 -rotate-45 absolute"></div>
-                              </div>
-                            )}
-                          </button>
-                        );
-                      } else {
-                        // If no swatch image, try to use hex color if available for this color's variant
-                        const hex = colorVariant?.colorHex;
-        if (hex) {
-                          return (
-                            <button
-                              key={color}
-                              onClick={handleSwatchClick}
-          className={`relative w-20 h-20 overflow-hidden border border-black ${!isAvailable ? 'opacity-50' : ''}`}
-                              title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
-                            >
-                              <div className={`w-full h-full ${!isAvailable ? 'grayscale' : ''}`} style={{ backgroundColor: hex }} />
-                              {!isAvailable && (
-                                <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-                                  <div className="w-6 h-0.5 bg-red-500 rotate-45"></div>
-                                  <div className="w-6 h-0.5 bg-red-500 -rotate-45 absolute"></div>
-                                </div>
-                              )}
-                            </button>
-                          );
-                        }
-                        // Fallback to text button
-                        return (
-                          <button
-                            key={color}
-                            onClick={handleSwatchClick}
-                            className={`px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-lg transition-colors ${
-                              selectedColor === color
-                                ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                : isAvailable
-                                  ? 'border-gray-300 hover:border-gray-400'
-                                  : 'border-gray-300 hover:border-gray-400'
-                            }`}
-                            title={`${color}${!isAvailable ? ' (Out of Stock)' : ''}`}
-                          >
-                            {color}
-                          </button>
-                        );
-                      }
+                          ) : colorHex ? (
+                            <div className="w-full h-full" style={{ backgroundColor: colorHex }} />
+                          ) : (
+                            <span className="w-full h-full flex items-center justify-center text-xs text-gray-700 px-1 text-center leading-tight">
+                              {color}
+                            </span>
+                          )}
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
+                              <div className="w-3 h-3 bg-white rounded-full shadow-md" />
+                            </div>
+                          )}
+                          {!isAvailable && (
+                            <div className="absolute inset-0 bg-gray-500/50 flex items-center justify-center">
+                              <div className="w-6 h-0.5 bg-red-500 rotate-45 absolute" />
+                              <div className="w-6 h-0.5 bg-red-500 -rotate-45 absolute" />
+                            </div>
+                          )}
+                        </button>
+                      );
                     })}
                   </div>
                 </div>

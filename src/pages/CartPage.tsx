@@ -89,16 +89,33 @@ const CartPage: React.FC = () => {
               </div>
               
               <div className="divide-y divide-gray-200">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const colorLabel = item.colorHex
+                    ? `${item.color || ''} (${item.colorHex.toUpperCase()})`.trim()
+                    : item.color;
+
+                  return (
                   <div key={`${item.id}-${item.variantId}`} className="p-3">
                     <div className="flex items-start space-x-3">
                       {/* Product Image */}
                       <div className="flex-shrink-0">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
-                        />
+                        {item.colorHex ? (
+                          <div
+                            className="w-16 h-16 rounded-lg border border-gray-200 flex items-end justify-center pb-1"
+                            style={{ backgroundColor: item.colorHex }}
+                            title={item.colorHex.toUpperCase()}
+                          >
+                            <span className="bg-black/45 text-white text-[10px] px-1.5 py-0.5 rounded">
+                              {item.colorHex.toUpperCase()}
+                            </span>
+                          </div>
+                        ) : (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          />
+                        )}
                       </div>
 
                       {/* Product Details */}
@@ -116,7 +133,7 @@ const CartPage: React.FC = () => {
                             )}
                             {item.color && (
                               <p className="text-xs text-gray-600 line-clamp-1">
-                                <span className="font-medium">Color:</span> {item.color}
+                                <span className="font-medium">Color:</span> {colorLabel}
                               </p>
                             )}
                           </div>
@@ -164,7 +181,8 @@ const CartPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

@@ -13,6 +13,7 @@ interface CartItem {
   variantId?: string;
   size?: string;
   color?: string;
+  colorHex?: string;
   category?: string; // Product category for add-ons detection
 }
 

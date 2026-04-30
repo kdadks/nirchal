@@ -13,35 +13,13 @@ interface QuickViewModalProps {
   onClose: () => void;
 }
 
-// Helper function to get color value for fallback swatches
-const getColorValue = (colorName: string): string => {
-  const colorMap: { [key: string]: string } = {
-    'Red': '#DC2626',
-    'Green': '#16A34A', 
-    'Blue': '#2563EB',
-    'Yellow': '#FACC15',
-    'Orange': '#EA580C',
-    'Purple': '#9333EA',
-    'Pink': '#EC4899',
-    'Black': '#1F2937',
-    'White': '#F9FAFB',
-    'Gray': '#6B7280',
-    'Brown': '#92400E',
-    'Navy': '#1E3A8A',
-    'Maroon': '#7F1D1D',
-    'Teal': '#0F766E',
-    'Indigo': '#4338CA'
-  };
-  
-  return colorMap[colorName] || '#6B7280'; // Default to gray if color not found
-};
-
 const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClose }) => {
   const { addToCart } = useCart();
   const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSwatchHex, setSelectedSwatchHex] = useState('');
   const [userInteractedWithColor, setUserInteractedWithColor] = useState(false);
 
   // Get all swatch image URLs
@@ -123,24 +101,26 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       
       // Reset user interaction flag when modal opens
       setUserInteractedWithColor(false);
+      setSelectedSwatchHex('');
     }
   }, [isOpen, product.sizes, product.colors]);
 
-  // When color changes, switch image to swatch if available (only if user clicked a color)
+  // When color changes (user interaction), switch main display to that color's swatch
   React.useEffect(() => {
-    if (!isOpen) return;
-    if (!selectedColor) return;
-    if (!userInteractedWithColor) return; // Only switch if user clicked a color
+    if (!isOpen || !selectedColor || !userInteractedWithColor) return;
     const colorVariant = product.variants?.find(v => v.color === selectedColor);
-    const swatchUrl = colorVariant?.swatchImage;
-    const swatchId = colorVariant?.swatchImageId;
-    if (!swatchUrl && !swatchId) return;
-    let idx = swatchUrl ? product.images.findIndex(img => img === swatchUrl) : -1;
-    if (idx === -1 && swatchId) {
-      const idNoDash = swatchId.replace(/-/g, '');
-      idx = product.images.findIndex(img => img.includes(swatchId) || img.includes(idNoDash));
+    if (!colorVariant) return;
+    if (colorVariant.swatchImage) {
+      setSelectedSwatchHex('');
+      let idx = product.images.findIndex(img => img === colorVariant.swatchImage);
+      if (idx === -1 && colorVariant.swatchImageId) {
+        const idNoDash = colorVariant.swatchImageId.replace(/-/g, '');
+        idx = product.images.findIndex(img => img.includes(colorVariant.swatchImageId!) || img.includes(idNoDash));
+      }
+      if (idx >= 0) setCurrentImageIndex(idx);
+    } else if (colorVariant.colorHex) {
+      setSelectedSwatchHex(colorVariant.colorHex);
     }
-    if (idx >= 0) setCurrentImageIndex(idx);
   }, [isOpen, selectedColor, product.variants, product.images, userInteractedWithColor]);
 
   if (!isOpen) return null;
@@ -171,15 +151,26 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     return minPositiveVariantPrice ?? product.price;
   })();
   const adjustedPrice = adjustedPriceRaw > 0 ? adjustedPriceRaw : product.price;
+  const selectedColorHex = (selectedVariant && !selectedVariant.swatchImage)
+    ? selectedVariant.colorHex
+    : product.variants?.find(v => v.color === selectedColor && !v.swatchImage && v.colorHex)?.colorHex
+    || (selectedSwatchHex || undefined);
+  const selectedColorLabel = selectedColorHex
+    ? `${selectedColor} (${selectedColorHex.toUpperCase()})`
+    : selectedColor;
+  const cartImage = selectedColorHex
+    ? (galleryImages[0] || product.images[0] || '/placeholder-product.jpg')
+    : (product.images[currentImageIndex] || product.images[0] || '/placeholder-product.jpg');
 
   const handleAddToCart = () => {
     addToCart({
       id: product.id,
       name: product.name,
       price: adjustedPrice,
-      image: product.images[currentImageIndex] || product.images[0],
+      image: cartImage,
       size: selectedSize || undefined,
       color: selectedColor,
+      colorHex: selectedColorHex,
       variantId: selectedVariant?.id,
       category: product.category // Include category for add-ons detection
     });
@@ -225,11 +216,20 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
             {/* Images */}
             <div className="space-y-4">
               <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                <img
-                  src={product.images[currentImageIndex] || '/placeholder-product.jpg'}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+                {selectedSwatchHex ? (
+                  <div
+                    className="w-full h-full flex items-end justify-center pb-4"
+                    style={{ backgroundColor: selectedSwatchHex }}
+                  >
+                    <span className="bg-black/40 text-white text-xs px-3 py-1 rounded-full">{selectedColorLabel}</span>
+                  </div>
+                ) : (
+                  <img
+                    src={product.images[currentImageIndex] || '/placeholder-product.jpg'}
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 
                 {product.images.length > 1 && (
                   <>
@@ -308,144 +308,79 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               {/* Options Section - Always Show */}
               <div className="space-y-4">
                 
-                {/* Color Selection with Swatches - Only show if there are colors available */}
+                {/* Color Selection with Swatches */}
                 {colors.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Color</h4>
-                  <div className="grid grid-cols-6 gap-3 max-w-sm">
-                    {colors.map((color) => {
-                      // Find the variant for this color to check for swatch image
-                      const colorVariant = product.variants?.find(v => v.color === color);
-                      
-                      // Only show swatch image if variant has actual swatch_image_id in database
-                      let hasSwatchImage = !!(colorVariant?.swatchImageId && colorVariant?.swatchImage);
-                      let swatchImageUrl = colorVariant?.swatchImage;
-                      const hex = colorVariant?.colorHex;
-                      
-                      // Debug only during development
-                      if (import.meta.env.DEV) {
-                        // console.debug('QuickViewModal color variant', color, { colorVariant, hasSwatchImage });
-                      }
-                      
-                      const handleSwatchClick = () => {
-                        setSelectedColor(color);
-                        setUserInteractedWithColor(true); // Mark that user clicked a color
-                        // If swatch has an image, try to find it in main product images
-                        if (hasSwatchImage && swatchImageUrl) {
-                          // First try to find exact URL match
-                          let swatchImageIndex = product.images.findIndex(img => img === swatchImageUrl);
-                          
-                          // If not found, try to find by checking if the image URL contains the swatch image ID
-                          if (swatchImageIndex === -1 && colorVariant?.swatchImageId) {
-                            swatchImageIndex = product.images.findIndex(img => 
-                              img.includes(colorVariant.swatchImageId!) || 
-                              img.includes(colorVariant.swatchImageId!.replace(/-/g, ''))
-                            );
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Color{selectedColor && <span className="ml-2 font-normal text-gray-600">{selectedColorLabel}</span>}
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {colors.map((color) => {
+                        const colorVariant = product.variants?.find(v => v.color === color && v.swatchImage)
+                          || product.variants?.find(v => v.color === color);
+                        const swatchImage = colorVariant?.swatchImage;
+                        const colorHex = colorVariant?.colorHex;
+                        const colorHasStock = isColorInStock(product, color, selectedSize);
+                        const isSelected = selectedColor === color;
+
+                        const handleSwatchClick = () => {
+                          setSelectedColor(color);
+                          setUserInteractedWithColor(true);
+                          if (swatchImage) {
+                            setSelectedSwatchHex('');
+                            let idx = product.images.findIndex(img => img === swatchImage);
+                            if (idx === -1 && colorVariant?.swatchImageId) {
+                              const idNoDash = colorVariant.swatchImageId.replace(/-/g, '');
+                              idx = product.images.findIndex(img =>
+                                img.includes(colorVariant.swatchImageId!) || img.includes(idNoDash)
+                              );
+                            }
+                            if (idx !== -1) setCurrentImageIndex(idx);
+                          } else if (colorHex) {
+                            setSelectedSwatchHex(colorHex);
                           }
-                          
-                          // If we found the image in main gallery, switch to it
-                          if (swatchImageIndex !== -1) {
-                            setCurrentImageIndex(swatchImageIndex);
-                          }
-                          // Note: If swatch image is not in main gallery, main image stays the same
-                        }
-                      };
-                      
-                      // Check if this color has stock
-                      const colorHasStock = isColorInStock(product, color, selectedSize);
-                      
-                      if (hasSwatchImage) {
-                        // Show only swatch image without text for variants with swatch (40x40 for quick view)
+                        };
+
                         return (
                           <button
                             key={color}
                             onClick={handleSwatchClick}
+                            title={`${color}${!colorHasStock ? ' (Out of Stock)' : ''}`}
                             className={`relative w-10 h-10 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                              selectedColor === color
+                              isSelected
                                 ? 'border-amber-500 ring-2 ring-amber-200'
                                 : 'border-gray-300 hover:border-amber-300'
-                            }`}
-                            title={`${color}${!colorHasStock ? ' (Out of Stock)' : ''}`}
+                            } ${!colorHasStock ? 'opacity-50' : ''}`}
                           >
-                            <img
-                              src={swatchImageUrl}
-                              alt={`${color} swatch`}
-                              className={`w-full h-full object-cover ${!colorHasStock ? 'grayscale' : ''}`}
-                              onError={(e) => {
-                                if (import.meta.env.DEV) {
-                                  console.warn(`[QuickViewModal] Swatch image failed to load for ${color}:`, swatchImageUrl);
-                                }
-                                // Show colored fallback
-                                const imgElement = e.target as HTMLImageElement;
-                                const fallbackElement = imgElement.nextElementSibling as HTMLElement;
-                                imgElement.style.display = 'none';
-                                if (fallbackElement) {
-                                  fallbackElement.style.display = 'flex';
-                                }
-                              }}
-                            />
-                            {/* Fallback colored swatch when image fails to load */}
-                            <div 
-                              className={`w-full h-full rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-inner ${!colorHasStock ? 'grayscale' : ''}`}
-                              style={{ 
-                                backgroundColor: hex || getColorValue(color),
-                                display: 'none' // Initially hidden, shown when image fails
-                              }}
-                            >
-                              {color.charAt(0)}
-                            </div>
-                            {selectedColor === color && (
-                              <div className="absolute inset-0 bg-amber-500 bg-opacity-20 flex items-center justify-center">
-                                <div className="w-2 h-2 bg-white rounded-full shadow-md"></div>
+                            {swatchImage ? (
+                              <img
+                                src={swatchImage}
+                                alt={color}
+                                className={`w-full h-full object-cover ${!colorHasStock ? 'grayscale' : ''}`}
+                              />
+                            ) : colorHex ? (
+                              <div className="w-full h-full" style={{ backgroundColor: colorHex }} />
+                            ) : (
+                              <span className="w-full h-full flex items-center justify-center text-xs text-gray-700 px-0.5 text-center leading-tight">
+                                {color}
+                              </span>
+                            )}
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
+                                <div className="w-2 h-2 bg-white rounded-full shadow-md" />
                               </div>
                             )}
                             {!colorHasStock && (
-                              <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-                                <div className="w-4 h-0.5 bg-red-500 rotate-45"></div>
-                                <div className="w-4 h-0.5 bg-red-500 -rotate-45 absolute"></div>
+                              <div className="absolute inset-0 bg-gray-500/50 flex items-center justify-center">
+                                <div className="w-4 h-0.5 bg-red-500 rotate-45 absolute" />
+                                <div className="w-4 h-0.5 bg-red-500 -rotate-45 absolute" />
                               </div>
                             )}
                           </button>
                         );
-                      } else {
-                        // If no swatch image, use hex color if available
-        if (hex) {
-                          return (
-                            <button
-                              key={color}
-                              onClick={handleSwatchClick}
-          className={`relative w-10 h-10 overflow-hidden border border-black ${!colorHasStock ? 'opacity-50' : ''}`}
-                              title={`${color}${!colorHasStock ? ' (Out of Stock)' : ''}`}
-                            >
-                              <div className={`w-full h-full ${!colorHasStock ? 'grayscale' : ''}`} style={{ backgroundColor: hex }} />
-                              {!colorHasStock && (
-                                <div className="absolute inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center">
-                                  <div className="w-4 h-0.5 bg-red-500 rotate-45"></div>
-                                  <div className="w-4 h-0.5 bg-red-500 -rotate-45 absolute"></div>
-                                </div>
-                              )}
-                            </button>
-                          );
-                        }
-                        // Fallback to text button
-                        return (
-                          <button
-                            key={color}
-                            onClick={handleSwatchClick}
-                            className={`px-3 py-1 text-sm border rounded-lg transition-colors ${
-                              selectedColor === color
-                                ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
-                            title={`${color}${!colorHasStock ? ' (Out of Stock)' : ''}`}
-                          >
-                            {color}
-                          </button>
-                        );
-                      }
-                    })}
+                      })}
+                    </div>
                   </div>
-                </div>
                 )}
 
                 {/* Size Selection - Only show if sizes are defined and not empty */}
