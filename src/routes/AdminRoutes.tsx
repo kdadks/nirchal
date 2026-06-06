@@ -23,6 +23,7 @@ import { FeaturedSectionsPanel } from '../components/admin/FeaturedSectionsPanel
 import { ReturnManagementDashboard } from '../components/returns/ReturnManagementDashboard';
 import BulkEmailPage from '../pages/admin/BulkEmailPage';
 import CreateEmailCampaignPage from '../pages/admin/CreateEmailCampaignPage';
+import ExchangeRatesPage from '../pages/admin/ExchangeRatesPage';
 import ProtectedRoute from '../components/common/ProtectedRoute';
 import { AdminProvider } from '../contexts/AdminContext';
 import { AdminSearchProvider } from '../contexts/AdminSearchContext';
@@ -56,6 +57,7 @@ const AdminRoutes: React.FC = () => {
               <Route path="/email-campaigns" element={<BulkEmailPage />} />
               <Route path="/email-campaigns/new" element={<CreateEmailCampaignPage />} />
               <Route path="/email-campaigns/:id/edit" element={<CreateEmailCampaignPage />} />
+              <Route path="/exchange-rates" element={<ExchangeRatesPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>

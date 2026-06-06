@@ -1,8 +1,10 @@
 import React from 'react';
 import { RotateCcw, Shield, Clock } from 'lucide-react';
 import SEO from '../../components/SEO';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const ReturnPolicyPage: React.FC = () => {
+  const { currency } = useCurrency();
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
       <SEO
@@ -14,9 +16,26 @@ const ReturnPolicyPage: React.FC = () => {
       <div className="container mx-auto px-4 py-8 md:py-12">
         <div className="max-w-4xl mx-auto">
 
+          {/* International Orders Notice - Only show for non-INR currencies */}
+          {currency !== 'INR' && (
+            <div className="mb-6 md:mb-8 bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-4 md:p-6">
+              <div className="flex items-start gap-3 md:gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg md:text-xl font-bold text-red-800 mb-2">International Orders Policy</h3>
+                  <p className="text-sm md:text-base text-red-700">
+                    <strong>No returns are allowed on international orders.</strong> All sales for orders shipped outside India are final. Please review your order carefully before completing your purchase. For any concerns, please contact our support team before placing your order.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Return Options */}
           <section className="mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">Return & Refund Policy</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 md:mb-8">Return & Refund Policy{currency === 'INR' ? ' (India Only)' : ''}</h2>
             
             <div className="grid md:grid-cols-2 gap-6 md:gap-8">
               {/* Return Conditions */}
@@ -30,6 +49,10 @@ const ReturnPolicyPage: React.FC = () => {
                 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Applicable To</span>
+                    <span className="font-semibold text-green-600">India Orders Only 🇮🇳</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-gray-600">Item Condition</span>
                     <span className="font-semibold text-gray-800">Unused & Original</span>
                   </div>
@@ -41,15 +64,19 @@ const ReturnPolicyPage: React.FC = () => {
                     <span className="text-gray-600">Return Charge</span>
                     <span className="font-semibold text-orange-600">₹150</span>
                   </div>
-                  <div className="flex justify-between items-center py-2">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-gray-600">Custom Items</span>
                     <span className="font-semibold text-red-600">Not Eligible</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-600">International Orders</span>
+                    <span className="font-semibold text-red-600">No Returns</span>
                   </div>
                 </div>
                 
                 <div className="mt-6 p-4 bg-red-50 rounded-lg">
                   <p className="text-sm text-red-700">
-                    <strong>Important:</strong> Items must be unused, unwashed, and in original packaging with tags attached. A return processing fee of ₹150 will be deducted from your refund amount.
+                    <strong>Important:</strong> Returns are only available for orders shipped within India. Items must be unused, unwashed, and in original packaging with tags attached. A return processing fee of ₹150 will be deducted from your refund amount.
                   </p>
                 </div>
               </div>

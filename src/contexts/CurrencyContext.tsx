@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../config/supabase';
 
 export type Currency = 'INR' | 'USD' | 'EUR';
 
@@ -26,170 +27,73 @@ const CATEGORY_MIN_PRICES_EUR: Record<string, number> = {
   'blouses': 20,
 };
 
-// Exchange rates cache with timestamp
-interface ExchangeRatesCache {
-  rates: Record<string, number>;
-  timestamp: number;
-}
-
-// Store exchange rates in memory
-let exchangeRatesCache: ExchangeRatesCache | null = null;
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
 /**
- * Fetch live exchange rates from multiple reliable APIs
+ * Fetch exchange rates from database
  * Returns base rates for USD and EUR conversion
  */
-const fetchLiveExchangeRates = async (): Promise<Record<Currency, number>> => {
+const fetchExchangeRatesFromDB = async (): Promise<Record<Currency, number>> => {
   try {
-    // Check if cache is still valid (skip cache on first load to get fresh rates)
-    if (exchangeRatesCache && Date.now() - exchangeRatesCache.timestamp < CACHE_DURATION) {
-      console.log('[Currency] Using cached exchange rates');
-      return exchangeRatesCache.rates as Record<Currency, number>;
-    }
-
-    console.log('[Currency] Fetching live exchange rates...');
+    console.log('[Currency] Fetching exchange rates from database...');
     
-    // Try multiple APIs for better reliability
-    let usdRate: number | null = null;
-    let eurRate: number | null = null;
+    const { data, error } = await supabase
+      .from('exchange_rates')
+      .select('currency, rate')
+      .in('currency', ['USD', 'EUR']);
 
-    // API 1: Try exchangerate-api.com (free tier)
-    try {
-      const response1 = await fetch('https://api.exchangerate-api.com/v4/latest/INR');
-      if (response1.ok) {
-        const data1 = await response1.json();
-        if (data1.rates) {
-          const fetchedUsd = data1.rates.USD;
-          const fetchedEur = data1.rates.EUR;
-          
-          if (fetchedUsd && fetchedUsd > 0.005 && fetchedUsd < 0.02) {
-            usdRate = 1 / fetchedUsd; // Convert to INR per USD
-          }
-          if (fetchedEur && fetchedEur > 0.008 && fetchedEur < 0.015) {
-            eurRate = 1 / fetchedEur; // Convert to INR per EUR
-          }
-        }
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      throw new Error('No exchange rates found in database');
+    }
+
+    const rates: Record<Currency, number> = {
+      'INR': 1,
+      'USD': 88,  // Default fallback
+      'EUR': 102, // Default fallback
+    };
+
+    // Map database rates
+    data.forEach((row: any) => {
+      const currency = row.currency as Currency;
+      if (currency === 'USD' || currency === 'EUR') {
+        rates[currency] = parseFloat(row.rate.toString());
       }
-    } catch (error1) {
-      console.log('[Currency] exchangerate-api failed, trying backup API...');
-    }
+    });
 
-    // API 2: Backup - Try open.er-api.com
-    if (!usdRate || !eurRate) {
-      try {
-        const response2 = await fetch('https://open.er-api.com/v6/latest/INR');
-        if (response2.ok) {
-          const data2 = await response2.json();
-          if (data2.rates) {
-            const fetchedUsd = data2.rates.USD;
-            const fetchedEur = data2.rates.EUR;
-            
-            if (fetchedUsd && fetchedUsd > 0.005 && fetchedUsd < 0.02) {
-              usdRate = 1 / fetchedUsd;
-            }
-            if (fetchedEur && fetchedEur > 0.008 && fetchedEur < 0.015) {
-              eurRate = 1 / fetchedEur;
-            }
-          }
-        }
-      } catch (error2) {
-        console.log('[Currency] open.er-api failed, trying third API...');
-      }
-    }
-
-    // API 3: Backup - Try frankfurter.app (no API key needed)
-    if (!usdRate || !eurRate) {
-      try {
-        const response3 = await fetch('https://api.frankfurter.app/latest?from=INR&to=USD,EUR');
-        if (response3.ok) {
-          const data3 = await response3.json();
-          if (data3.rates) {
-            const fetchedUsd = data3.rates.USD;
-            const fetchedEur = data3.rates.EUR;
-            
-            if (fetchedUsd && fetchedUsd > 0.005 && fetchedUsd < 0.02) {
-              usdRate = 1 / fetchedUsd;
-            }
-            if (fetchedEur && fetchedEur > 0.008 && fetchedEur < 0.015) {
-              eurRate = 1 / fetchedEur;
-            }
-          }
-        }
-      } catch (error3) {
-        console.log('[Currency] frankfurter.app failed, will use hardcoded fallback');
-      }
-    }
-
-    // If we got at least one valid rate, use it. If not, will fall through to hardcoded defaults
-    if (usdRate && eurRate) {
-      // Store base rates (will be used with multipliers in conversion)
-      // Formula: (INR price / (base_rate - 5 markup)) × multiplier
-      const rates: Record<Currency, number> = {
-        'INR': 1,
-        'USD': Math.round(usdRate),  // Base rate for USD (rounded to nearest integer)
-        'EUR': Math.round(eurRate),  // Base rate for EUR (rounded to nearest integer)
-      };
-
-      // Store in cache
-      exchangeRatesCache = {
-        rates,
-        timestamp: Date.now(),
-      };
-
-      // Store exchange rates info in window for debugging
-      if (typeof window !== 'undefined') {
-        (window as any).__exchangeRates = {
-          usdRate: Math.round(usdRate),
-          eurRate: Math.round(eurRate),
-          formula: '(INR price / (base_rate - 5 markup)) × multiplier',
-          source: 'live_api',
-          usdMultiplier: 2,
-          eurMultiplier: 1.5,
-        };
-      }
-
-
-
-      return rates;
-    }
-
-    // If all APIs fail, throw error to use hardcoded fallback
-    throw new Error('Could not fetch valid rates from any API');
-  } catch (error) {
-    console.error('[Currency] Failed to fetch live rates, using hardcoded defaults:', error);
-    
-    // Hardcoded fallback rates when API fails
-    const usdRate = 88; // USD = 88 Rs (hardcoded)
-    const eurRate = 102; // EUR = 102 Rs (hardcoded)
-
-    // Store fallback rates in window for debugging
-    if (typeof window !== 'undefined') {
-      (window as any).__exchangeRates = {
-        usdRate,
-        eurRate,
-        formula: '(INR price / (base_rate - 5 markup)) × multiplier',
-        source: 'hardcoded_fallback',
-        usdMultiplier: 2,
-        eurMultiplier: 1.5,
-      };
-    }
-
-    console.log('[Currency] Using hardcoded fallback rates:', {
-      usdRate: `${usdRate} Rs`,
-      eurRate: `${eurRate} Rs`,
-      usdRateAfterMarkup: `${usdRate - 5} Rs (with 5 Rs markup subtracted)`,
-      eurRateAfterMarkup: `${eurRate - 5} Rs (with 5 Rs markup subtracted)`,
+    console.log('[Currency] Loaded exchange rates from database:', {
+      usdRate: `${rates.USD} Rs`,
+      eurRate: `${rates.EUR} Rs`,
       formula: '(INR price / (base_rate - 5 markup)) × multiplier',
       usdMultiplier: '2x',
       eurMultiplier: '1.5x',
     });
 
-    return {
-      'INR': 1,
-      'USD': usdRate,  // Base rate for USD
-      'EUR': eurRate,  // Base rate for EUR
+    // Store exchange rates info in window for debugging
+    if (typeof window !== 'undefined') {
+      (window as any).__exchangeRates = {
+        usdRate: rates.USD,
+        eurRate: rates.EUR,
+        formula: '(INR price / (base_rate - 5 markup)) × multiplier',
+        source: 'database',
+        usdMultiplier: 2,
+        eurMultiplier: 1.5,
+      };
+    }
+
+    return rates;
+  } catch (error) {
+    console.error('[Currency] Failed to fetch rates from database:', error);
+    
+    // Use default rates if database fetch fails
+    const defaultRates = {
+      'INR': 1 as number,
+      'USD': 88 as number,
+      'EUR': 102 as number,
     };
+
+    console.log('[Currency] Using default rates:', defaultRates);
+
+    return defaultRates;
   }
 };
 
@@ -207,11 +111,30 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Fetch exchange rates on mount
   useEffect(() => {
     const loadExchangeRates = async () => {
-      const rates = await fetchLiveExchangeRates();
+      const rates = await fetchExchangeRatesFromDB();
       setBaseExchangeRates(rates);
     };
 
     loadExchangeRates();
+
+    // Set up real-time subscription for rate changes
+    const subscription = supabase
+      .channel('exchange_rates_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'exchange_rates'
+      }, async (payload) => {
+        console.log('[Currency] Exchange rates updated:', payload);
+        // Reload rates when they change
+        const rates = await fetchExchangeRatesFromDB();
+        setBaseExchangeRates(rates);
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Detect user location on mount

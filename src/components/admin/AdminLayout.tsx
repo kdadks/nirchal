@@ -28,6 +28,7 @@ import {
   UserCheck,
   Receipt,
   RotateCcw,
+  TrendingUp,
   Star,
   Mail
 } from 'lucide-react';
@@ -169,6 +170,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       name: 'Bulk Email',
       path: '/admin/email-campaigns',
       icon: <Mail className="admin-nav-icon" />,
+      badge: null
+    },
+    {
+      name: 'Exchange Rates',
+      path: '/admin/exchange-rates',
+      icon: <TrendingUp className="admin-nav-icon" />,
       badge: null
     },
     {

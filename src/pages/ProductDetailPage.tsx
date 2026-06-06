@@ -48,7 +48,7 @@ const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { product, loading } = useProductBySlug(slug);
   const { addItem } = useCart();
-  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
+  const { getConvertedPrice, getCurrencySymbol, currency } = useCurrency();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { customer } = useCustomerAuth();
   
@@ -840,14 +840,24 @@ const ProductDetailPage: React.FC = () => {
               {/* Free Shipping Notes */}
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 sm:p-4 rounded-lg border border-amber-100">
                 <div className="space-y-2 sm:space-y-3">
-                  <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
-                    <Truck size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
-                    <span className="text-xs sm:text-sm font-medium">Free shipping on all orders across India 🇮🇳</span>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
-                    <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
-                    <span className="text-xs sm:text-sm font-medium">2-day easy returns</span>
-                  </div>
+                  {currency === 'INR' && (
+                    <>
+                      <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
+                        <Truck size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
+                        <span className="text-xs sm:text-sm font-medium">Free shipping on all orders across India 🇮🇳</span>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
+                        <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
+                        <span className="text-xs sm:text-sm font-medium">2-day easy returns</span>
+                      </div>
+                    </>
+                  )}
+                  {currency !== 'INR' && (
+                    <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
+                      <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
+                      <span className="text-xs sm:text-sm font-medium">No return allowed on International orders</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 sm:gap-3 text-amber-800">
                     <Shield size={16} className="sm:w-[18px] sm:h-[18px] text-amber-600" />
                     <span className="text-xs sm:text-sm font-medium">100% authentic products</span>
