@@ -8,6 +8,7 @@ import CustomerAuthModal from '../auth/CustomerAuthModal';
 import { useProductSearch } from '../../hooks/useProductSearch';
 import { MENU_CATEGORIES } from '../../constants/categories';
 import CurrencySwitcher from './CurrencySwitcher';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const promotionalMessages = [
   //{
@@ -40,6 +41,7 @@ const promotionalMessages = [
 const Header: React.FC = () => {
   const { totalItems } = useCart();
   const { customer, signOut } = useCustomerAuth();
+  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
   const isAuthenticated = !!customer;
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -466,7 +468,7 @@ const Header: React.FC = () => {
                               </div>
                             )}
                             <div className="text-sm text-gray-600 mt-1">
-                              {product.sale_price > 0 ? `₹${product.sale_price.toLocaleString()}` : 'Price not available'}
+                              {product.sale_price > 0 ? `${getCurrencySymbol()}${getConvertedPrice(product.sale_price).toLocaleString()}` : 'Price not available'}
                             </div>
                           </div>
                         </motion.button>
@@ -591,7 +593,7 @@ const Header: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900 truncate text-sm">{product.name}</div>
                           <div className="text-sm text-gray-600">
-                            {product.sale_price > 0 ? `₹${product.sale_price.toLocaleString()}` : 'Price not available'}
+                            {product.sale_price > 0 ? `${getCurrencySymbol()}${getConvertedPrice(product.sale_price).toLocaleString()}` : 'Price not available'}
                           </div>
                         </div>
                       </motion.button>

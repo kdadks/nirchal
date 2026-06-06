@@ -1023,7 +1023,7 @@ const CustomBlouseForm: React.FC<{
             <img src={selectedItem.image} alt={selectedItem.name} className="w-12 h-12 object-cover rounded" />
             <div>
               <p className="text-sm font-medium text-gray-900">{selectedItem.name}</p>
-              <p className="text-xs text-gray-600">Custom Stitched Blouse - ₹650 - ₹3,999</p>
+              <p className="text-xs text-gray-600">Custom Stitched Blouse - {getCurrencySymbol()}{getConvertedPrice(650).toLocaleString()} - {getCurrencySymbol()}{getConvertedPrice(3999).toLocaleString()}</p>
             </div>
           </div>
         </div>
