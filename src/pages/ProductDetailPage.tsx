@@ -133,26 +133,36 @@ const ProductDetailPage: React.FC = () => {
     const availableSizes = getAvailableSizes(product); // Don't filter by selectedColor initially
     
     // Check URL params for variant selection
-    const urlColor = searchParams.get('color');
-    const urlSize = searchParams.get('size');
+    const urlVariantId = searchParams.get('variant');
+    const urlCountry = searchParams.get('country') || 'IN';
+    const urlCurrency = searchParams.get('currency') || 'INR';
     
-    // Preselect size from URL or first available size
+    // If variant ID is in URL, find and select that variant
     let selectedSizeValue = '';
-    if (urlSize && availableSizes.includes(urlSize)) {
-      selectedSizeValue = urlSize;
-      setSelectedSize(urlSize);
-    } else if (availableSizes.length > 0) {
+    let selectedColorValue = '';
+    
+    if (urlVariantId && product.variants) {
+      const variant = product.variants.find(v => v.id === urlVariantId);
+      if (variant) {
+        if (variant.size) {
+          selectedSizeValue = variant.size;
+          setSelectedSize(variant.size);
+        }
+        if (variant.color) {
+          selectedColorValue = variant.color;
+          setSelectedColor(variant.color);
+        }
+        setHasUserInteractedWithColor(true); // Mark as interacted if coming from URL
+      }
+    }
+    
+    // If no valid variant in URL, use auto-selection
+    if (!selectedSizeValue && availableSizes.length > 0) {
       selectedSizeValue = availableSizes[0]!;
       setSelectedSize(selectedSizeValue);
     }
     
-    // Preselect color from URL or first color that has a swatch image
-    let selectedColorValue = '';
-    if (urlColor && availableColors.includes(urlColor)) {
-      selectedColorValue = urlColor;
-      setSelectedColor(urlColor);
-      setHasUserInteractedWithColor(true); // Mark as interacted if coming from URL
-    } else if (availableColors.length > 0) {
+    if (!selectedColorValue && availableColors.length > 0) {
       // Try to find the first color variant with a swatch image
       const colorWithSwatch = availableColors.find(color => {
         const variant = product.variants?.find(v => v.color === color);
@@ -192,25 +202,34 @@ const ProductDetailPage: React.FC = () => {
       setSelectedImage(0);
     }
 
-    // Update URL with auto-selected variants if no params were present
-    if (!urlColor && !urlSize && (selectedColorValue || selectedSizeValue)) {
-      const newParams = new URLSearchParams();
-      if (selectedColorValue) newParams.set('color', selectedColorValue);
-      if (selectedSizeValue) newParams.set('size', selectedSizeValue);
+    // Update URL with auto-selected variants if no variant param was present
+    if (!urlVariantId && (selectedColorValue || selectedSizeValue) && product.variants) {
+      // Find the variant that matches the selected color and size
+      const variant = product.variants.find(v => 
+        (v.color === selectedColorValue || !selectedColorValue) &&
+        (v.size === selectedSizeValue || !selectedSizeValue)
+      );
       
-      // Update URL without triggering navigation or reload
-      setSearchParams(newParams, { replace: true });
-      
-      // Track initial variant view in Google Analytics
-      if (window.gtag && product) {
-        window.gtag('event', 'view_item_variant', {
-          item_id: product.id,
-          item_name: product.name,
-          item_variant: `${selectedColorValue || ''}${selectedColorValue && selectedSizeValue ? '-' : ''}${selectedSizeValue || ''}`,
-          item_category: product.category,
-          price: product.price,
-          currency: 'INR'
-        });
+      if (variant) {
+        const newParams = new URLSearchParams();
+        newParams.set('variant', variant.id);
+        newParams.set('country', urlCountry);
+        newParams.set('currency', urlCurrency);
+        
+        // Update URL without triggering navigation or reload
+        setSearchParams(newParams, { replace: true });
+        
+        // Track initial variant view in Google Analytics
+        if (window.gtag && product) {
+          window.gtag('event', 'view_item_variant', {
+            item_id: product.id,
+            item_name: product.name,
+            item_variant: variant.id,
+            item_category: product.category,
+            price: product.price,
+            currency: urlCurrency
+          });
+        }
       }
     }
   }, [product, searchParams, setSearchParams]);
@@ -238,19 +257,24 @@ const ProductDetailPage: React.FC = () => {
 
   // Update URL when variant selection changes (for SEO and analytics)
   useEffect(() => {
-    if (!product || !hasUserInteractedWithColor) return;
+    if (!product || !hasUserInteractedWithColor || !product.variants) return;
+    
+    // Find the variant that matches the selected color and size
+    const variant = product.variants.find(v => 
+      (v.color === selectedColor || !selectedColor) &&
+      (v.size === selectedSize || !selectedSize)
+    );
+    
+    if (!variant) return;
     
     const newParams = new URLSearchParams();
+    newParams.set('variant', variant.id);
     
-    // Add color param if selected
-    if (selectedColor) {
-      newParams.set('color', selectedColor);
-    }
-    
-    // Add size param if selected
-    if (selectedSize) {
-      newParams.set('size', selectedSize);
-    }
+    // Preserve country and currency from current URL or use defaults
+    const currentCountry = searchParams.get('country') || 'IN';
+    const currentCurrency = searchParams.get('currency') || 'INR';
+    newParams.set('country', currentCountry);
+    newParams.set('currency', currentCurrency);
     
     // Only update if params actually changed
     const currentParams = searchParams.toString();
@@ -265,14 +289,14 @@ const ProductDetailPage: React.FC = () => {
         window.gtag('event', 'view_item_variant', {
           item_id: product.id,
           item_name: product.name,
-          item_variant: `${selectedColor || ''}${selectedColor && selectedSize ? '-' : ''}${selectedSize || ''}`,
+          item_variant: variant.id,
           item_category: product.category,
           price: product.price,
-          currency: 'INR'
+          currency: currentCurrency
         });
       }
     }
-  }, [selectedColor, selectedSize, product, hasUserInteractedWithColor, setSearchParams]);
+  }, [selectedColor, selectedSize, product, hasUserInteractedWithColor, setSearchParams, searchParams]);
 
   // Handle keyboard events for image modal and body scroll lock
   useEffect(() => {
@@ -658,13 +682,19 @@ const ProductDetailPage: React.FC = () => {
   const baseUrl = import.meta.env.VITE_BASE_URL || 'https://nirchal.com';
   const productUrl = `/products/${product.slug}`;
   
-  // Build variant-specific canonical URL
-  const variantParams = [];
-  if (selectedColor) variantParams.push(`color=${encodeURIComponent(selectedColor)}`);
-  if (selectedSize) variantParams.push(`size=${encodeURIComponent(selectedSize)}`);
-  const canonicalUrl = variantParams.length > 0 
-    ? `${productUrl}?${variantParams.join('&')}`
-    : productUrl;
+  // Build variant-specific canonical URL with variant ID, country, and currency
+  const currentVariant = getSelectedVariant();
+  const currentCountry = searchParams.get('country') || 'IN';
+  const currentCurrency = searchParams.get('currency') || 'INR';
+  
+  let canonicalUrl = productUrl;
+  if (currentVariant) {
+    const params = new URLSearchParams();
+    params.set('variant', currentVariant.id);
+    params.set('country', currentCountry);
+    params.set('currency', currentCurrency);
+    canonicalUrl = `${productUrl}?${params.toString()}`;
+  }
   
   // Product description for SEO (strip HTML and limit length)
   const seoDescription = product.description 
@@ -682,7 +712,7 @@ const ProductDetailPage: React.FC = () => {
     name: product.name,
     description: seoDescription,
     price: adjustedPrice,
-    currency: 'INR',
+    currency: currentCurrency,
     image: product.images[0] || '',
     images: product.images, // All product images for GMC
     sku: product.id, // Using product ID as SKU
@@ -1376,44 +1406,27 @@ const ProductDetailPage: React.FC = () => {
         {product.variants && product.variants.length > 1 && (
           <div className="hidden" itemScope itemType="https://schema.org/ItemList">
             <meta itemProp="name" content={`${product.name} - Available Variants`} />
-            {(() => {
-              // Generate all unique color-size combinations
-              const variantLinks: { color?: string; size?: string; position: number }[] = [];
-              const combinations = new Set<string>();
-              
-              product.variants.forEach((variant) => {
-                const key = `${variant.color || ''}-${variant.size || ''}`;
-                if (!combinations.has(key) && (variant.color || variant.size)) {
-                  combinations.add(key);
-                  variantLinks.push({
-                    color: variant.color,
-                    size: variant.size,
-                    position: variantLinks.length + 1
-                  });
-                }
-              });
+            {product.variants.map((variant, index) => {
+              const params = new URLSearchParams();
+              params.set('variant', variant.id);
+              params.set('country', 'IN');
+              params.set('currency', 'INR');
+              const variantUrl = `/products/${product.slug}?${params.toString()}`;
+              const variantName = [variant.color, variant.size].filter(Boolean).join(' - ');
 
-              return variantLinks.map((variant, index) => {
-                const params = new URLSearchParams();
-                if (variant.color) params.set('color', variant.color);
-                if (variant.size) params.set('size', variant.size);
-                const variantUrl = `/products/${product.slug}?${params.toString()}`;
-                const variantName = [variant.color, variant.size].filter(Boolean).join(' - ');
-
-                return (
-                  <div key={index} itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
-                    <meta itemProp="position" content={String(variant.position)} />
-                    <a 
-                      href={variantUrl}
-                      itemProp="url"
-                      aria-label={`${product.name} in ${variantName}`}
-                    >
-                      <span itemProp="name">{product.name} - {variantName}</span>
-                    </a>
-                  </div>
-                );
-              });
-            })()}
+              return (
+                <div key={variant.id} itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                  <meta itemProp="position" content={String(index + 1)} />
+                  <a 
+                    href={variantUrl}
+                    itemProp="url"
+                    aria-label={`${product.name} in ${variantName}`}
+                  >
+                    <span itemProp="name">{product.name} - {variantName}</span>
+                  </a>
+                </div>
+              );
+            })}
           </div>
         )}
 
