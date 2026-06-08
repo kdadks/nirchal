@@ -80,7 +80,11 @@ async function generateSitemap() {
     console.log('🛍️  Fetching products...');
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('slug, updated_at')
+      .select(`
+        slug, 
+        updated_at,
+        product_variants(id)
+      `)
       .eq('is_active', true)
       .order('updated_at', { ascending: false });
 
@@ -89,12 +93,41 @@ async function generateSitemap() {
     } else if (products) {
       console.log(`✅ Adding ${products.length} products...`);
       for (const product of products) {
+        const baseUrl = `${DOMAIN}/products/${product.slug}`;
+        const lastmod = formatDate(new Date(product.updated_at || Date.now()));
+
+        // Add base product URL
         xml += '  <url>\n';
-        xml += `    <loc>${escapeXmlSpecialChars(`${DOMAIN}/products/${product.slug}`)}</loc>\n`;
-        xml += `    <lastmod>${formatDate(new Date(product.updated_at || Date.now()))}</lastmod>\n`;
+        xml += `    <loc>${escapeXmlSpecialChars(baseUrl)}</loc>\n`;
+        xml += `    <lastmod>${lastmod}</lastmod>\n`;
         xml += `    <changefreq>weekly</changefreq>\n`;
-        xml += `    <priority>0.8</priority>\n`;
+        xml += `    <priority>0.7</priority>\n`;
         xml += '  </url>\n';
+
+        // Add variant URLs for all supported currencies
+        if (product.product_variants && Array.isArray(product.product_variants) && product.product_variants.length > 0) {
+          const currencyConfigs = [
+            { currency: 'INR', country: 'IN', priority: '0.65' },
+            { currency: 'USD', country: 'US', priority: '0.64' },
+            { currency: 'EUR', country: 'EU', priority: '0.64' },
+          ];
+
+          product.product_variants.forEach((variant) => {
+            currencyConfigs.forEach((config) => {
+              const variantParams = new URLSearchParams();
+              variantParams.set('variant', variant.id);
+              variantParams.set('country', config.country);
+              variantParams.set('currency', config.currency);
+              
+              xml += '  <url>\n';
+              xml += `    <loc>${escapeXmlSpecialChars(`${baseUrl}?${variantParams.toString()}`)}</loc>\n`;
+              xml += `    <lastmod>${lastmod}</lastmod>\n`;
+              xml += `    <changefreq>weekly</changefreq>\n`;
+              xml += `    <priority>${config.priority}</priority>\n`;
+              xml += '  </url>\n';
+            });
+          });
+        }
       }
     }
 

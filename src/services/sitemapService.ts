@@ -124,17 +124,26 @@ export async function generateSitemap(): Promise<{ success: boolean; message: st
 
         // Add variant URLs if product has variants
         if (product.product_variants && Array.isArray(product.product_variants) && product.product_variants.length > 0) {
+          // Create variant URLs for all supported currencies
+          const currencyConfigs = [
+            { currency: 'INR', country: 'IN', priority: 0.65 },
+            { currency: 'USD', country: 'US', priority: 0.64 },
+            { currency: 'EUR', country: 'EU', priority: 0.64 },
+          ];
+
           product.product_variants.forEach((variant: any) => {
-            const params = new URLSearchParams();
-            params.set('variant', variant.id);
-            params.set('country', 'IN');
-            params.set('currency', 'INR');
-            
-            urls.push({
-              loc: `${baseUrl}?${params.toString()}`,
-              lastmod,
-              changefreq: 'weekly',
-              priority: 0.65, // Slightly lower priority than base product
+            currencyConfigs.forEach((config) => {
+              const params = new URLSearchParams();
+              params.set('variant', variant.id);
+              params.set('country', config.country);
+              params.set('currency', config.currency);
+              
+              urls.push({
+                loc: `${baseUrl}?${params.toString()}`,
+                lastmod,
+                changefreq: 'weekly',
+                priority: config.priority,
+              });
             });
           });
         }
