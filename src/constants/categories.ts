@@ -53,6 +53,12 @@ export const CATEGORY_MAPPINGS: CategoryMapping[] = [
     description: "Complete kurta sets for women"
   },
   {
+    name: "Jewellery",
+    slug: "jewellery",
+    displayName: "Jewellery",
+    description: "Traditional and modern jewellery pieces"
+  },
+  {
     name: "Womens Lehenga Choli",
     slug: "womens-lehenga-choli", 
     displayName: "Lehenga Choli",
@@ -144,6 +150,11 @@ export const MENU_CATEGORIES = {
       name: "Womens Kurta Sets",
       slug: "womens-kurta-sets",
       displayName: "Kurta Sets" 
+    },
+    {
+      name: "Jewellery",
+      slug: "jewellery",
+      displayName: "Jewellery"
     },
     {
       name: "Womens Lehenga Choli",

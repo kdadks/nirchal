@@ -698,8 +698,18 @@ const ProductDetailPage: React.FC = () => {
         </>
       )}
 
-      {/* Breadcrumb - with top padding for mobile to avoid header overlap */}
+      {/* Back Button & Breadcrumb - with top padding for mobile to avoid header overlap */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pt-20 sm:pt-6">
+        {/* Back Button */}
+        <button 
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 text-amber-700 hover:text-amber-800 font-medium transition-colors duration-200 mb-3 group"
+        >
+          <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform duration-200" />
+          <span>Back</span>
+        </button>
+        
+        {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600 overflow-x-auto whitespace-nowrap">
           <button onClick={() => navigate('/')} className="hover:text-amber-600 transition-colors flex-shrink-0">Home</button>
           <span className="flex-shrink-0">/</span>

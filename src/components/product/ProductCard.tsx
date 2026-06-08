@@ -188,16 +188,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Open product detail page in new tab
-    window.open(`/products/${product.slug}`, '_blank', 'noopener,noreferrer');
+    // Navigate to product detail page
+    window.location.href = `/products/${product.slug}`;
   };
 
   return (
     <>
       <Link 
         to={`/products/${product.slug}`} 
-        target="_blank" 
-        rel="noopener noreferrer"
         ref={cardRef}
         className="group relative bg-white hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-200 hover:border-gray-300 w-full max-w-full flex flex-col h-full cursor-pointer"
         onMouseEnter={() => setIsHovering(true)}

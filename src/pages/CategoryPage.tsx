@@ -9,7 +9,7 @@ const CategoryPage = () => {
   const { categories, loading, error } = useCategories();
 
   const handleCategoryClick = (categorySlug: string) => {
-    window.open(`/category/${categorySlug}`, '_blank', 'noopener,noreferrer');
+    window.location.href = `/category/${categorySlug}`;
   };
 
   if (loading) {
