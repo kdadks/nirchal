@@ -37,6 +37,18 @@ const STATIC_PAGES = [
 ];
 
 /**
+ * Escape XML special characters
+ */
+function escapeXmlSpecialChars(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/**
  * Format date to W3C format (YYYY-MM-DD)
  */
 function formatDate(date) {
@@ -57,7 +69,7 @@ async function generateSitemap() {
     console.log('📄 Adding static pages...');
     for (const page of STATIC_PAGES) {
       xml += '  <url>\n';
-      xml += `    <loc>${DOMAIN}${page.path}</loc>\n`;
+      xml += `    <loc>${escapeXmlSpecialChars(DOMAIN + page.path)}</loc>\n`;
       xml += `    <lastmod>${formatDate(new Date())}</lastmod>\n`;
       xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
       xml += `    <priority>${page.priority}</priority>\n`;
@@ -78,7 +90,7 @@ async function generateSitemap() {
       console.log(`✅ Adding ${products.length} products...`);
       for (const product of products) {
         xml += '  <url>\n';
-        xml += `    <loc>${DOMAIN}/products/${product.slug}</loc>\n`;
+        xml += `    <loc>${escapeXmlSpecialChars(`${DOMAIN}/products/${product.slug}`)}</loc>\n`;
         xml += `    <lastmod>${formatDate(new Date(product.updated_at || Date.now()))}</lastmod>\n`;
         xml += `    <changefreq>weekly</changefreq>\n`;
         xml += `    <priority>0.8</priority>\n`;
@@ -100,7 +112,7 @@ async function generateSitemap() {
       console.log(`✅ Adding ${categories.length} categories...`);
       for (const category of categories) {
         xml += '  <url>\n';
-        xml += `    <loc>${DOMAIN}/category/${category.slug}</loc>\n`;
+        xml += `    <loc>${escapeXmlSpecialChars(`${DOMAIN}/category/${category.slug}`)}</loc>\n`;
         xml += `    <lastmod>${formatDate(new Date(category.updated_at || Date.now()))}</lastmod>\n`;
         xml += `    <changefreq>weekly</changefreq>\n`;
         xml += `    <priority>0.7</priority>\n`;

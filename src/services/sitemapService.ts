@@ -34,8 +34,17 @@ function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
+function escapeXmlSpecialChars(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 function generateXmlUrl(url: SitemapUrl): string {
-  let xml = `  <url>\n    <loc>${url.loc}</loc>\n`;
+  let xml = `  <url>\n    <loc>${escapeXmlSpecialChars(url.loc)}</loc>\n`;
   if (url.lastmod) xml += `    <lastmod>${url.lastmod}</lastmod>\n`;
   if (url.changefreq) xml += `    <changefreq>${url.changefreq}</changefreq>\n`;
   if (url.priority !== undefined) xml += `    <priority>${url.priority}</priority>\n`;
