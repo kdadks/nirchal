@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { useProductReviews } from '../hooks/useProductReviews';
 import { useProductSuggestions } from '../hooks/useProductSuggestions';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Truck, RefreshCw, Shield, Star, ChevronLeft, ChevronRight, X, Search, Facebook, Linkedin, MessageCircle, Link2, Check, ShoppingBag, Heart, Share2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useCurrency } from '../contexts/CurrencyContext';
@@ -46,21 +46,12 @@ const XIcon = ({ size = 20 }: { size?: number }) => (
 const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { product, loading } = useProductBySlug(slug);
   const { addItem } = useCart();
   const { getConvertedPrice, getCurrencySymbol, currency } = useCurrency();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { customer } = useCustomerAuth();
-  
-  // Handle legacy Shopify URLs with query parameters (e.g., ?variant=123)
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.has('variant') || searchParams.size > 0) {
-      // Strip query parameters and redirect to clean URL
-      const cleanPath = window.location.pathname;
-      navigate(cleanPath, { replace: true });
-    }
-  }, [navigate]);
   
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -125,7 +116,7 @@ const ProductDetailPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
-  // Default selections when product is loaded
+  // Default selections when product is loaded - check URL params first
   useEffect(() => {
     if (!product) return;
     
@@ -141,14 +132,27 @@ const ProductDetailPage: React.FC = () => {
       : [];
     const availableSizes = getAvailableSizes(product); // Don't filter by selectedColor initially
     
-    // Preselect first available size
-    if (availableSizes.length > 0) {
-      setSelectedSize(availableSizes[0]!);
+    // Check URL params for variant selection
+    const urlColor = searchParams.get('color');
+    const urlSize = searchParams.get('size');
+    
+    // Preselect size from URL or first available size
+    let selectedSizeValue = '';
+    if (urlSize && availableSizes.includes(urlSize)) {
+      selectedSizeValue = urlSize;
+      setSelectedSize(urlSize);
+    } else if (availableSizes.length > 0) {
+      selectedSizeValue = availableSizes[0]!;
+      setSelectedSize(selectedSizeValue);
     }
     
-    // Preselect first color that has a swatch image (to avoid non-image variants in cart)
+    // Preselect color from URL or first color that has a swatch image
     let selectedColorValue = '';
-    if (availableColors.length > 0) {
+    if (urlColor && availableColors.includes(urlColor)) {
+      selectedColorValue = urlColor;
+      setSelectedColor(urlColor);
+      setHasUserInteractedWithColor(true); // Mark as interacted if coming from URL
+    } else if (availableColors.length > 0) {
       // Try to find the first color variant with a swatch image
       const colorWithSwatch = availableColors.find(color => {
         const variant = product.variants?.find(v => v.color === color);
@@ -187,7 +191,29 @@ const ProductDetailPage: React.FC = () => {
       // Always set to primary image (index 0) when product first loads
       setSelectedImage(0);
     }
-  }, [product]);
+
+    // Update URL with auto-selected variants if no params were present
+    if (!urlColor && !urlSize && (selectedColorValue || selectedSizeValue)) {
+      const newParams = new URLSearchParams();
+      if (selectedColorValue) newParams.set('color', selectedColorValue);
+      if (selectedSizeValue) newParams.set('size', selectedSizeValue);
+      
+      // Update URL without triggering navigation or reload
+      setSearchParams(newParams, { replace: true });
+      
+      // Track initial variant view in Google Analytics
+      if (window.gtag && product) {
+        window.gtag('event', 'view_item_variant', {
+          item_id: product.id,
+          item_name: product.name,
+          item_variant: `${selectedColorValue || ''}${selectedColorValue && selectedSizeValue ? '-' : ''}${selectedSizeValue || ''}`,
+          item_category: product.category,
+          price: product.price,
+          currency: 'INR'
+        });
+      }
+    }
+  }, [product, searchParams, setSearchParams]);
 
   // When color changes (only after user interaction), switch main display to that color's swatch
   useEffect(() => {
@@ -209,6 +235,44 @@ const ProductDetailPage: React.FC = () => {
       setSelectedSwatchHex(colorVariant.colorHex);
     }
   }, [product, selectedColor, hasUserInteractedWithColor]);
+
+  // Update URL when variant selection changes (for SEO and analytics)
+  useEffect(() => {
+    if (!product || !hasUserInteractedWithColor) return;
+    
+    const newParams = new URLSearchParams();
+    
+    // Add color param if selected
+    if (selectedColor) {
+      newParams.set('color', selectedColor);
+    }
+    
+    // Add size param if selected
+    if (selectedSize) {
+      newParams.set('size', selectedSize);
+    }
+    
+    // Only update if params actually changed
+    const currentParams = searchParams.toString();
+    const newParamsString = newParams.toString();
+    
+    if (currentParams !== newParamsString) {
+      // Update URL without triggering navigation
+      setSearchParams(newParams, { replace: true });
+      
+      // Track variant view in Google Analytics
+      if (window.gtag) {
+        window.gtag('event', 'view_item_variant', {
+          item_id: product.id,
+          item_name: product.name,
+          item_variant: `${selectedColor || ''}${selectedColor && selectedSize ? '-' : ''}${selectedSize || ''}`,
+          item_category: product.category,
+          price: product.price,
+          currency: 'INR'
+        });
+      }
+    }
+  }, [selectedColor, selectedSize, product, hasUserInteractedWithColor, setSearchParams]);
 
   // Handle keyboard events for image modal and body scroll lock
   useEffect(() => {
@@ -593,7 +657,14 @@ const ProductDetailPage: React.FC = () => {
   // SEO Data
   const baseUrl = import.meta.env.VITE_BASE_URL || 'https://nirchal.com';
   const productUrl = `/products/${product.slug}`;
-  const canonicalUrl = productUrl;
+  
+  // Build variant-specific canonical URL
+  const variantParams = [];
+  if (selectedColor) variantParams.push(`color=${encodeURIComponent(selectedColor)}`);
+  if (selectedSize) variantParams.push(`size=${encodeURIComponent(selectedSize)}`);
+  const canonicalUrl = variantParams.length > 0 
+    ? `${productUrl}?${variantParams.join('&')}`
+    : productUrl;
   
   // Product description for SEO (strip HTML and limit length)
   const seoDescription = product.description 
@@ -1025,7 +1096,10 @@ const ProductDetailPage: React.FC = () => {
                       return (
                         <button
                           key={size}
-                          onClick={() => setSelectedSize(size!)}
+                          onClick={() => {
+                            setSelectedSize(size!);
+                            setHasUserInteractedWithColor(true); // Enable URL updates
+                          }}
                           className={`px-3 sm:px-4 py-2 sm:py-2 text-sm border rounded transition-colors ${
                             selectedSize === size
                               ? 'border-amber-500 bg-amber-50 text-amber-700'
@@ -1297,6 +1371,51 @@ const ProductDetailPage: React.FC = () => {
           </div>
 
         </div>
+
+        {/* SEO: All Variant Links for Google Crawling */}
+        {product.variants && product.variants.length > 1 && (
+          <div className="hidden" itemScope itemType="https://schema.org/ItemList">
+            <meta itemProp="name" content={`${product.name} - Available Variants`} />
+            {(() => {
+              // Generate all unique color-size combinations
+              const variantLinks: { color?: string; size?: string; position: number }[] = [];
+              const combinations = new Set<string>();
+              
+              product.variants.forEach((variant) => {
+                const key = `${variant.color || ''}-${variant.size || ''}`;
+                if (!combinations.has(key) && (variant.color || variant.size)) {
+                  combinations.add(key);
+                  variantLinks.push({
+                    color: variant.color,
+                    size: variant.size,
+                    position: variantLinks.length + 1
+                  });
+                }
+              });
+
+              return variantLinks.map((variant, index) => {
+                const params = new URLSearchParams();
+                if (variant.color) params.set('color', variant.color);
+                if (variant.size) params.set('size', variant.size);
+                const variantUrl = `/products/${product.slug}?${params.toString()}`;
+                const variantName = [variant.color, variant.size].filter(Boolean).join(' - ');
+
+                return (
+                  <div key={index} itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                    <meta itemProp="position" content={String(variant.position)} />
+                    <a 
+                      href={variantUrl}
+                      itemProp="url"
+                      aria-label={`${product.name} in ${variantName}`}
+                    >
+                      <span itemProp="name">{product.name} - {variantName}</span>
+                    </a>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        )}
 
         {/* You May Also Like Section */}
         {suggestions.length > 0 && (

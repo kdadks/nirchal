@@ -15,12 +15,6 @@ interface Category {
   updated_at: unknown;
 }
 
-interface Product {
-  id: unknown;
-  slug: unknown;
-  updated_at: unknown;
-}
-
 // Static pages with their priority and change frequency
 const STATIC_PAGES = [
   { path: '/', priority: 1.0, changefreq: 'daily' },
@@ -86,25 +80,62 @@ export async function generateSitemap(): Promise<{ success: boolean; message: st
       });
     }
 
-    // Fetch all active products
+    // Fetch all active products with their variants
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, slug, updated_at')
+      .select(`
+        id, 
+        slug, 
+        updated_at,
+        product_variants(
+          id,
+          color,
+          size
+        )
+      `)
       .eq('is_active', true)
       .order('name');
 
     if (productsError) {
       console.error('Error fetching products:', productsError);
     } else if (products) {
-      products.forEach((product: Product) => {
+      products.forEach((product: any) => {
+        const baseUrl = `${DOMAIN}/products/${String(product.slug)}`;
+        const lastmod = product.updated_at && typeof product.updated_at === 'string'
+          ? formatDate(new Date(product.updated_at))
+          : today;
+
+        // Add base product URL
         urls.push({
-          loc: `${DOMAIN}/product/${String(product.slug)}`,
-          lastmod: product.updated_at && typeof product.updated_at === 'string'
-            ? formatDate(new Date(product.updated_at))
-            : today,
+          loc: baseUrl,
+          lastmod,
           changefreq: 'weekly',
           priority: 0.7,
         });
+
+        // Add variant URLs if product has variants
+        if (product.product_variants && Array.isArray(product.product_variants) && product.product_variants.length > 0) {
+          // Group variants by color-size combinations to avoid duplicates
+          const variantCombinations = new Set<string>();
+          
+          product.product_variants.forEach((variant: any) => {
+            const params = new URLSearchParams();
+            if (variant.color) params.set('color', variant.color);
+            if (variant.size) params.set('size', variant.size);
+            
+            const paramsString = params.toString();
+            if (paramsString && !variantCombinations.has(paramsString)) {
+              variantCombinations.add(paramsString);
+              
+              urls.push({
+                loc: `${baseUrl}?${paramsString}`,
+                lastmod,
+                changefreq: 'weekly',
+                priority: 0.65, // Slightly lower priority than base product
+              });
+            }
+          });
+        }
       });
     }
 
