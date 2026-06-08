@@ -78,6 +78,16 @@ const ProductDetailPage: React.FC = () => {
     currentProduct: shouldLoadSuggestions ? (product || null) : null 
   });
 
+  // Helper function to normalize country code based on currency (for SEO canonical URLs)
+  const getNormalizedCountry = (currencyCode: string): string => {
+    const currencyToCountry: Record<string, string> = {
+      'INR': 'IN',
+      'USD': 'US',
+      'EUR': 'DE' // Standard EU country for canonical URLs
+    };
+    return currencyToCountry[currencyCode] || 'US';
+  };
+
   // Get category slug from database
   const categorySlug = product?.category 
     ? categories.find(cat => cat.name === product.category)?.slug || product.category.toLowerCase().replace(/\s+/g, '-')
@@ -134,8 +144,9 @@ const ProductDetailPage: React.FC = () => {
     
     // Check URL params for variant selection
     const urlVariantId = searchParams.get('variant');
-    const urlCountry = searchParams.get('country') || 'IN';
-    const urlCurrency = searchParams.get('currency') || 'INR';
+    // Use normalized country based on currency for SEO canonical URLs
+    const urlCurrency = searchParams.get('currency') || currency;
+    const urlCountry = getNormalizedCountry(urlCurrency);
     
     // If variant ID is in URL, find and select that variant
     let selectedSizeValue = '';
@@ -270,9 +281,9 @@ const ProductDetailPage: React.FC = () => {
     const newParams = new URLSearchParams();
     newParams.set('variant', variant.id);
     
-    // Preserve country and currency from current URL or use defaults
-    const currentCountry = searchParams.get('country') || 'IN';
-    const currentCurrency = searchParams.get('currency') || 'INR';
+    // Use normalized country based on currency for SEO canonical URLs
+    const currentCurrency = searchParams.get('currency') || currency;
+    const currentCountry = getNormalizedCountry(currentCurrency);
     newParams.set('country', currentCountry);
     newParams.set('currency', currentCurrency);
     
@@ -297,6 +308,25 @@ const ProductDetailPage: React.FC = () => {
       }
     }
   }, [selectedColor, selectedSize, product, hasUserInteractedWithColor, setSearchParams, searchParams]);
+
+  // Sync URL parameters with currency context changes
+  useEffect(() => {
+    const urlCurrency = searchParams.get('currency');
+    const urlCountry = searchParams.get('country');
+    
+    // Always normalize country based on currency for canonical URLs
+    const normalizedCountry = getNormalizedCountry(currency);
+    
+    // Update if currency differs OR if country is not normalized
+    if (currency !== urlCurrency || !urlCurrency || urlCountry !== normalizedCountry) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('currency', currency);
+      newParams.set('country', normalizedCountry);
+      
+      // Update URL without triggering navigation
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [currency, searchParams, setSearchParams]);
 
   // Handle keyboard events for image modal and body scroll lock
   useEffect(() => {
@@ -684,8 +714,8 @@ const ProductDetailPage: React.FC = () => {
   
   // Build variant-specific canonical URL with variant ID, country, and currency
   const currentVariant = getSelectedVariant();
-  const currentCountry = searchParams.get('country') || 'IN';
-  const currentCurrency = searchParams.get('currency') || 'INR';
+  const currentCurrency = searchParams.get('currency') || currency;
+  const currentCountry = getNormalizedCountry(currentCurrency);
   
   let canonicalUrl = productUrl;
   if (currentVariant) {
@@ -1409,8 +1439,8 @@ const ProductDetailPage: React.FC = () => {
             {product.variants.map((variant, index) => {
               const params = new URLSearchParams();
               params.set('variant', variant.id);
-              params.set('country', 'IN');
-              params.set('currency', 'INR');
+              params.set('country', currentCountry);
+              params.set('currency', currentCurrency);
               const variantUrl = `/products/${product.slug}?${params.toString()}`;
               const variantName = [variant.color, variant.size].filter(Boolean).join(' - ');
 

@@ -11,6 +11,7 @@ interface CurrencyContextType {
   getCurrencyLabel: () => string;
   isInternational: boolean; // Whether user is outside India
   allowedCurrencies: Currency[]; // Only currencies available in user's region
+  detectedCountry: string; // ISO country code detected from IP
 }
 
 const CurrencyContext = createContext<CurrencyContextType | null>(null);
@@ -101,6 +102,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currency, setCurrencyState] = useState<Currency>('INR');
   const [isInternational, setIsInternational] = useState(false);
   const [allowedCurrencies, setAllowedCurrencies] = useState<Currency[]>(['INR', 'USD', 'EUR']); // All currencies allowed by default
+  const [detectedCountry, setDetectedCountry] = useState<string>('IN'); // Store detected country code
   // Store base exchange rates: USD = 88 Rs, EUR = 102 Rs (with Rs 5 markup subtracted during conversion)
   const [baseExchangeRates, setBaseExchangeRates] = useState<Record<Currency, number>>({
     'INR': 1,
@@ -169,18 +171,21 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setCurrencyState('INR');
           setIsInternational(false);
           setAllowedCurrencies(['INR', 'USD', 'EUR']);
+          setDetectedCountry(countryCode || 'IN');
           console.log('[Currency] User in India (or unknown) - INR, USD, EUR all allowed');
         } else if (euCountries.includes(countryCode)) {
           // EU: show default EUR, but allow switching to USD
           setCurrencyState('EUR');
           setIsInternational(true);
           setAllowedCurrencies(['EUR', 'USD']);
+          setDetectedCountry(countryCode);
           console.log('[Currency] User in EU - EUR and USD allowed');
         } else {
           // Rest of world: show default USD, but allow switching to EUR
           setCurrencyState('USD');
           setIsInternational(true);
           setAllowedCurrencies(['USD', 'EUR']);
+          setDetectedCountry(countryCode);
           console.log('[Currency] User outside India/EU - USD and EUR allowed');
         }
 
@@ -274,6 +279,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         getCurrencyLabel,
         isInternational,
         allowedCurrencies,
+        detectedCountry,
       }}
     >
       {children}
