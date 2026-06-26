@@ -1663,12 +1663,15 @@ const CheckoutPage: React.FC = () => {
                                 deliveryCustomCity: ''
                               }));
                             }}
+                            disabled={!form.deliveryCountry}
                             required
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100"
                           >
-                            <option value="">Select State/Province</option>
-                            {countriesData
-                              .find(c => c.code === (form.deliveryCountry || 'IN'))
+                            <option value="">
+                              {form.deliveryCountry ? 'Select State/Province' : 'Select Country First'}
+                            </option>
+                            {form.deliveryCountry && countriesData
+                              .find(c => c.code === form.deliveryCountry)
                               ?.states.map(state => (
                                 <option key={state.code} value={state.code}>
                                   {state.name}
@@ -2085,12 +2088,15 @@ const CheckoutPage: React.FC = () => {
                                     billingCustomCity: ''
                                   }));
                                 }}
+                                disabled={!form.billingCountry}
                                 required
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all duration-200 disabled:bg-gray-100"
                               >
-                                <option value="">Select State/Province</option>
-                                {countriesData
-                                  .find(c => c.code === (form.billingCountry || 'IN'))
+                                <option value="">
+                                  {form.billingCountry ? 'Select State/Province' : 'Select Country First'}
+                                </option>
+                                {form.billingCountry && countriesData
+                                  .find(c => c.code === form.billingCountry)
                                   ?.states.map(state => (
                                     <option key={state.code} value={state.code}>
                                       {state.name}
