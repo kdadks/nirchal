@@ -10,6 +10,7 @@ interface OrderData {
   order_number: string;
   status: string;
   payment_status: string;
+  currency: string;
   subtotal: number;
   tax_amount: number;
   shipping_amount: number;
@@ -98,6 +99,7 @@ interface InvoiceData {
   orderNumber: string;
   invoiceDate: string;
   orderDate: string;
+  currency: string;
   company: CompanySettings;
   customer: {
     name: string;
@@ -279,6 +281,7 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
     orderNumber: order.order_number,
     invoiceDate: new Date().toLocaleDateString('en-IN'),
     orderDate: new Date(order.created_at).toLocaleDateString('en-IN'),
+    currency: order.currency || 'INR',
     company,
     customer: {
       name: `${order.billing_first_name} ${order.billing_last_name}`,
@@ -304,6 +307,18 @@ async function formatInvoiceData(order: OrderData, company: CompanySettings, inv
  * Generate PDF invoice using pdfMake
  */
 async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, footerImageUrl?: string): Promise<string> {
+  // Helper function to get currency symbol
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: { [key: string]: string } = {
+      'INR': '₹',
+      'USD': '$',
+      'EUR': '€'
+    };
+    return symbols[currency] || '₹';
+  };
+
+  const currencySymbol = getCurrencySymbol(data.currency);
+
   // Helper function to load image as base64
   const loadImageAsBase64 = async (url: string): Promise<string | null> => {
     try {
@@ -344,8 +359,18 @@ async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, fo
       descriptionParts.push({ text: `\nSKU: ${item.sku}`, fontSize: 8, color: '#666666' });
     }
 
-    // Format currency without extra spaces
-    const formatCurrency = (amount: number) => `₹ ${amount.toFixed(2)}`;
+    // Get currency symbol based on currency code
+    const getCurrencySymbol = (currency: string) => {
+      const symbols: { [key: string]: string } = {
+        'INR': '₹',
+        'USD': '$',
+        'EUR': '€'
+      };
+      return symbols[currency] || '₹';
+    };
+
+    // Format currency with appropriate symbol
+    const formatCurrency = (amount: number) => `${getCurrencySymbol(data.currency)} ${amount.toFixed(2)}`;
 
     tableBody.push([
       descriptionParts,
@@ -492,28 +517,28 @@ async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, fo
               {
                 columns: [
                   { width: '*', text: 'Subtotal:', fontSize: 10 },
-                  { width: 90, text: `₹ ${data.subtotal.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                  { width: 90, text: `${currencySymbol} ${data.subtotal.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
                 ],
                 margin: [0, 0, 0, 5]
               },
               {
                 columns: [
                   { width: '*', text: `GST (${data.gstRate}%):`, fontSize: 10 },
-                  { width: 90, text: `₹ ${data.gstAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                  { width: 90, text: `${currencySymbol} ${data.gstAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
                 ],
                 margin: [0, 0, 0, 5]
               },
               ...(data.shippingAmount > 0 ? [{
                 columns: [
                   { width: '*', text: 'Shipping:', fontSize: 10 },
-                  { width: 90, text: `₹ ${data.shippingAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                  { width: 90, text: `${currencySymbol} ${data.shippingAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
                 ],
                 margin: [0, 0, 0, 5]
               }] : []),
               ...(data.discountAmount > 0 ? [{
                 columns: [
                   { width: '*', text: 'Discount:', fontSize: 10 },
-                  { width: 90, text: `-₹ ${data.discountAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
+                  { width: 90, text: `-${currencySymbol} ${data.discountAmount.toFixed(2)}`, fontSize: 10, alignment: 'right', noWrap: true }
                 ],
                 margin: [0, 0, 0, 5]
               }] : []),
@@ -524,7 +549,7 @@ async function generateInvoicePDF(data: InvoiceData, headerImageUrl?: string, fo
               {
                 columns: [
                   { width: '*', text: 'Total Amount:', fontSize: 12, bold: true },
-                  { width: 90, text: `₹ ${data.totalAmount.toFixed(2)}`, fontSize: 12, bold: true, alignment: 'right', noWrap: true }
+                  { width: 90, text: `${currencySymbol} ${data.totalAmount.toFixed(2)}`, fontSize: 12, bold: true, alignment: 'right', noWrap: true }
                 ]
               }
             ]
@@ -804,6 +829,7 @@ export async function previewInvoice(invoiceId: string): Promise<{ success: bool
       shippingAmount: Number(invoice.shipping_amount || 0),
       discountAmount: Number(invoice.discount_amount || 0),
       totalAmount: Number(invoice.total_amount),
+      currency: String(invoice.currency || 'INR'), // Use currency from invoice or default to INR
     };
 
     // Regenerate PDF with current pdfMake implementation

@@ -28,6 +28,7 @@ interface OrderDetails {
   payment_status: string;
   payment_method?: string;
   payment_transaction_id?: string;
+  currency: string;
   subtotal: number;
   tax_amount: number;
   shipping_amount: number;
@@ -815,7 +816,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                           )}
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium">{formatCurrency(orderDetails.total_amount)}</span>
+                          <div>
+                            <span className="font-medium">{formatCurrency(orderDetails.total_amount)}</span>
+                            <span className="text-xs text-gray-500 ml-1">({orderDetails.currency || 'INR'})</span>
+                          </div>
                           {(orderDetails.payment_status === 'pending' || orderDetails.payment_status === 'failed') && (
                             <button
                               onClick={handleRetryPayment}
@@ -834,7 +838,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   
                   <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between font-semibold text-base">
                     <span>Total</span>
-                    <span>{formatCurrency(orderDetails.total_amount)}</span>
+                    <div>
+                      <span>{formatCurrency(orderDetails.total_amount)}</span>
+                      <span className="text-xs text-gray-500 ml-1">({orderDetails.currency || 'INR'})</span>
+                    </div>
                   </div>
                 </div>
               </div>

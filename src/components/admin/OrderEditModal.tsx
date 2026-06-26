@@ -41,6 +41,7 @@ interface OrderDetails {
   id: string;
   order_number: string;
   status: string;
+  currency: string;
   total_amount: number;
   created_at: string;
   customer_id?: string;

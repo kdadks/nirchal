@@ -560,16 +560,17 @@ const CheckoutPage: React.FC = () => {
 
       // 3) Create order with items
       // Calculate shipping cost based on method selected
-      const standardDeliveryFee = isInternational ? 88 : 0; // ₹88 for international users, free for INR
-      const expressDeliveryFee = form.shippingMethod === 'express' ? 250 : 0;
+      // TODO: Implement international shipping when ready
+      const standardDeliveryFee = 0; // No shipping to international users yet (not implemented)
+      const expressDeliveryFee = form.shippingMethod === 'express' && !isInternational ? 250 : 0;
       const deliveryCost = form.shippingMethod === 'express' ? expressDeliveryFee : standardDeliveryFee;
       // Calculate payment amounts based on split choice
       const { productTotal: splitProductTotal, serviceTotal: splitServiceTotal } = calculatePaymentSplit();
       const isPaymentSplit = paymentSplit === 'split' && splitServiceTotal > 0;
       const upfrontPaymentAmount = isPaymentSplit ? splitProductTotal : total;
       const codPaymentAmount = isPaymentSplit ? splitServiceTotal : 0;
-      // For international users, don't include delivery cost in the order total (will be added later)
-      const finalTotal = isInternational ? upfrontPaymentAmount : (upfrontPaymentAmount + deliveryCost);
+      // Always include shipping in total (currently 0 for international, can be added later)
+      const finalTotal = upfrontPaymentAmount + deliveryCost;
       
       // Create payment note to track split payment
       const paymentNote = isPaymentSplit
@@ -621,6 +622,7 @@ const CheckoutPage: React.FC = () => {
         total_amount: finalTotal + codPaymentAmount, // Total includes both online and COD amounts
         billing: billingAddress,
         delivery: deliveryAddress,
+        currency: currency, // Use currency from CurrencyContext
         items: items.map(it => {
           // Check if this is a service item (no product_id)
           const isService = it.size === 'Service' || it.size === 'Custom' || 
@@ -1344,17 +1346,17 @@ const CheckoutPage: React.FC = () => {
   };
 
   // Calculate shipping cost based on selected method
-  // For non-INR (international) users, delivery cost will be calculated later - NOT included in order total
-  // For INR users, standard delivery is free, express is ₹250
-  const standardDeliveryFee = isInternational ? 88 : 0; // ₹88 for international users, free for INR
-  const expressDeliveryFee = form.shippingMethod === 'express' ? 250 : 0;
+  // TODO: Implement international shipping when ready
+  // Currently: No shipping to international users (not implemented)
+  const standardDeliveryFee = 0; // No shipping to international users yet (not implemented)
+  const expressDeliveryFee = form.shippingMethod === 'express' && !isInternational ? 250 : 0;
   const deliveryCost = form.shippingMethod === 'express' ? expressDeliveryFee : standardDeliveryFee;
   
   // Calculate final total based on payment split choice
-  // For international users, don't include delivery cost in the order total (will be added later)
+  // Always include shipping in total (currently 0 for international, can be added later)
   const upfrontAmount = paymentSplit === 'split' && hasServices ? productTotal : total;
   const codAmount = paymentSplit === 'split' && hasServices ? serviceTotal : 0;
-  const finalTotal = isInternational ? upfrontAmount : (upfrontAmount + deliveryCost);
+  const finalTotal = upfrontAmount + deliveryCost;
 
   return (
     <PaymentSecurityWrapper>

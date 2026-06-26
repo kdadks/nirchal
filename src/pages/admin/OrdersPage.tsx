@@ -11,6 +11,7 @@ interface Order {
   order_number: string;
   status: string;
   payment_status: string;
+  currency: string;
   total_amount: number;
   created_at: string;
   billing_first_name: string;
@@ -63,6 +64,7 @@ const OrdersPage: React.FC = () => {
           order_number,
           status,
           payment_status,
+          currency,
           total_amount,
           created_at,
           billing_first_name,
@@ -814,7 +816,7 @@ const OrdersPage: React.FC = () => {
                     Tracking
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
+                    Total (Currency)
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-emerald-600 uppercase tracking-wider">
                     COD
@@ -916,7 +918,8 @@ const OrdersPage: React.FC = () => {
                       )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(order.total_amount)}
+                      <span className="font-medium">{formatCurrency(order.total_amount)}</span>
+                      <span className="text-xs text-gray-500 ml-1">({order.currency || 'INR'})</span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {order.cod_amount && order.cod_amount > 0 ? (

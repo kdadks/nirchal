@@ -36,6 +36,7 @@ export type OrderItemInput = {
 export type CreateOrderInput = {
   customer_id: string | number | null;
   payment_method: string;
+  currency: string; // Currency code (INR, USD, EUR)
   subtotal: number;
   shipping_amount: number;
   shipping_method?: 'standard' | 'express'; // Shipping method selected
@@ -214,6 +215,7 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
       status: 'pending',
       payment_status: 'pending',
       payment_method: input.payment_method,
+      currency: input.currency,
       subtotal: input.subtotal,
       tax_amount: 0,
       shipping_amount: input.shipping_amount,
