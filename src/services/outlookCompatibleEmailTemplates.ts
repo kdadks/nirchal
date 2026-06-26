@@ -396,7 +396,7 @@ export const outlookCompatibleOrderStatusEmail = (customerName: string, orderNum
     ].filter(Boolean),
     ctaText: '📱 Track Order',
     ctaUrl: `${websiteUrl}/myaccount`,
-    footerText: 'Reliable Delivery Service',
+    footerText: 'Reliable Garments and Textile Service',
     websiteUrl
   });
 };
