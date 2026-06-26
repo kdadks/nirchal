@@ -334,6 +334,21 @@ const CheckoutPage: React.FC = () => {
     }
   }, [customer]);
 
+  // Reset country selections for international users - require explicit country selection
+  useEffect(() => {
+    if (isInternational) {
+      setForm(prev => ({
+        ...prev,
+        deliveryCountry: '', // Clear to force selection
+        billingCountry: '',  // Clear to force selection
+        deliveryState: '',   // Clear dependent state
+        billingState: '',    // Clear dependent state
+        deliveryCity: '',    // Clear dependent city
+        billingCity: '',     // Clear dependent city
+      }));
+    }
+  }, [isInternational]);
+
   // Handle sticky sidebar positioning
   useEffect(() => {
     const sidebar = document.getElementById('order-summary-sidebar');
@@ -1622,7 +1637,7 @@ const CheckoutPage: React.FC = () => {
                       </label>
                       <select
                         name="deliveryCountry"
-                        value={form.deliveryCountry || 'IN'}
+                        value={form.deliveryCountry}
                         onChange={(e) => {
                           setForm(prev => ({
                             ...prev,
@@ -2048,7 +2063,7 @@ const CheckoutPage: React.FC = () => {
                           </label>
                           <select
                             name="billingCountry"
-                            value={form.billingCountry || 'IN'}
+                            value={form.billingCountry}
                             onChange={(e) => {
                               setForm(prev => ({
                                 ...prev,
