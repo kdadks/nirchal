@@ -20,6 +20,7 @@ interface Order {
   order_number: string;
   status: string;
   total_amount: number;
+  currency?: string; // USD, EUR, INR
   created_at: string;
   billing_first_name: string;
   billing_last_name: string;
@@ -64,10 +65,18 @@ const AdminDashboard: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
+  const formatCurrency = (amount: number, currency?: string) => {
+    const finalCurrency = currency || 'INR';
+    const localeMap: Record<string, string> = {
+      'INR': 'en-IN',
+      'USD': 'en-US',
+      'EUR': 'de-DE',
+    };
+    const locale = localeMap[finalCurrency] || 'en-IN';
+    
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: 'INR',
+      currency: finalCurrency,
       minimumFractionDigits: 0,
     }).format(amount);
   };
@@ -131,6 +140,7 @@ const AdminDashboard: React.FC = () => {
           order_number,
           status,
           total_amount,
+          currency,
           created_at,
           billing_first_name,
           billing_last_name,
@@ -514,7 +524,7 @@ const AdminDashboard: React.FC = () => {
                             )}
                           </td>
                         <td>
-                          <span className="admin-font-mono admin-text-sm">{formatCurrency(order.total_amount)}</span>
+                          <span className="admin-font-mono admin-text-sm">{formatCurrency(order.total_amount, order.currency)}</span>
                         </td>
                         <td>
                           <span className="admin-text-muted admin-text-sm">

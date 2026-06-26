@@ -45,6 +45,7 @@ type OrderRow = {
   order_number: string;
   status: string;
   total_amount: number;
+  currency?: string;  // Currency the order was placed in (INR/USD/EUR)
   created_at: string;
   delivered_at?: string | null;
   payment_status?: string;
@@ -75,12 +76,27 @@ const AccountPage: React.FC = () => {
   const { customer } = useCustomerAuth();
   
   const { wishlist, removeFromWishlist } = useWishlist();
-  const { getConvertedPrice, getCurrencySymbol } = useCurrency();
+  const { getConvertedPrice, getCurrencySymbol, currency } = useCurrency();
   const { products } = usePublicProducts();
   const { reviews: userReviews, loading: reviewsLoading, totalReviews } = useUserReviews();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [returnRequests, setReturnRequests] = useState<Map<string, any>>(new Map()); // Map order_id to return request
   const [addresses, setAddresses] = useState<AddressRow[]>([]);
+
+  // Helper to format order amount - only convert if currency differs or is missing (old orders)
+  const formatOrderAmount = (order: OrderRow): string => {
+    if (!order.currency || order.currency === 'INR') {
+      // Old orders without currency field, or INR orders - convert if needed
+      return getConvertedPrice(order.total_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    }
+    if (order.currency === currency) {
+      // Order already in current currency - no conversion
+      return (order.total_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    }
+    // Order in different currency - would need currency-to-currency conversion (not implemented yet)
+    // For now, just show the amount as-is with a note
+    return (order.total_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
 
   // Helper function to get return status badge
   const getReturnStatusBadge = (returnStatus: string) => {
@@ -166,7 +182,8 @@ const AccountPage: React.FC = () => {
             id, 
             order_number, 
             status, 
-            total_amount, 
+            total_amount,
+            currency,
             created_at, 
             delivered_at, 
             payment_status, 
@@ -710,7 +727,7 @@ const AccountPage: React.FC = () => {
                               
                               {/* Price */}
                               <span className="font-semibold text-gray-900">
-                                {getCurrencySymbol()}{getConvertedPrice(order.total_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                {getCurrencySymbol()}{formatOrderAmount(order)}
                               </span>
                               
                               {/* Status and Payment Status */}
@@ -803,7 +820,7 @@ const AccountPage: React.FC = () => {
                                   {formatDisplayDate(order.created_at)}
                                 </span>
                                 <span className="font-semibold text-gray-900">
-                                  {getCurrencySymbol()}{getConvertedPrice(order.total_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                                  {getCurrencySymbol()}{formatOrderAmount(order)}
                                 </span>
                               </div>
                               {/* Request Return Button - Mobile */}

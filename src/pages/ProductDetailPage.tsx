@@ -691,6 +691,7 @@ const ProductDetailPage: React.FC = () => {
     : [];
   const positiveVariantPrices = variantPrices.filter(p => p > 0);
   const minPositiveVariantPrice = positiveVariantPrices.length > 0 ? Math.min(...positiveVariantPrices) : undefined;
+  
   const adjustedPriceRaw = (() => {
     if (selectedVariant) {
       const pv = selectedVariant.priceAdjustment || 0;
@@ -699,6 +700,7 @@ const ProductDetailPage: React.FC = () => {
     return minPositiveVariantPrice ?? product.price;
   })();
   const adjustedPrice = adjustedPriceRaw > 0 ? adjustedPriceRaw : product.price;
+  
   const selectedColorHex = (selectedVariant && !selectedVariant.swatchImage)
     ? selectedVariant.colorHex
     : product.variants?.find(v => v.color === selectedColor && !v.swatchImage && v.colorHex)?.colorHex

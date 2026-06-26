@@ -49,8 +49,8 @@ const fetchExchangeRatesFromDB = async (): Promise<Record<Currency, number>> => 
 
     const rates: Record<Currency, number> = {
       'INR': 1,
-      'USD': 88,  // Default fallback
-      'EUR': 102, // Default fallback
+      'USD': 88,  // Default fallback (from /admin/exchange-rates)
+      'EUR': 102, // Default fallback (from /admin/exchange-rates)
     };
 
     // Map database rates
@@ -64,9 +64,11 @@ const fetchExchangeRatesFromDB = async (): Promise<Record<Currency, number>> => 
     console.log('[Currency] Loaded exchange rates from database:', {
       usdRate: `${rates.USD} Rs`,
       eurRate: `${rates.EUR} Rs`,
-      formula: '(INR price / (base_rate - 5 markup)) × multiplier',
+      formula: '(INR price / (admin_rate - 5 markup)) × strategic_multiplier',
+      source: 'Admin Panel: /admin/exchange-rates',
       usdMultiplier: '2x',
       eurMultiplier: '1.5x',
+      note: 'Admin rates with strategic pricing multipliers applied'
     });
 
     // Store exchange rates info in window for debugging
@@ -74,10 +76,11 @@ const fetchExchangeRatesFromDB = async (): Promise<Record<Currency, number>> => 
       (window as any).__exchangeRates = {
         usdRate: rates.USD,
         eurRate: rates.EUR,
-        formula: '(INR price / (base_rate - 5 markup)) × multiplier',
-        source: 'database',
+        formula: '(INR price / (admin_rate - 5 markup)) × strategic_multiplier',
+        source: 'Admin Panel: /admin/exchange-rates',
         usdMultiplier: 2,
         eurMultiplier: 1.5,
+        note: 'Admin rates from /admin/exchange-rates with pricing strategy multipliers'
       };
     }
 
@@ -103,11 +106,12 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isInternational, setIsInternational] = useState(false);
   const [allowedCurrencies, setAllowedCurrencies] = useState<Currency[]>(['INR', 'USD', 'EUR']); // All currencies allowed by default
   const [detectedCountry, setDetectedCountry] = useState<string>('IN'); // Store detected country code
-  // Store base exchange rates: USD = 88 Rs, EUR = 102 Rs (with Rs 5 markup subtracted during conversion)
+  // Store base exchange rates from admin panel, then apply strategic multipliers
+  // Formula: (INR / (admin_rate - 5 markup)) × multiplier (2x USD, 1.5x EUR)
   const [baseExchangeRates, setBaseExchangeRates] = useState<Record<Currency, number>>({
     'INR': 1,
-    'USD': 88,     // Base rate for USD
-    'EUR': 102,    // Base rate for EUR
+    'USD': 88,     // Admin rate for USD
+    'EUR': 102,    // Admin rate for EUR
   });
 
   // Fetch exchange rates on mount
@@ -219,7 +223,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     
     // Safety check - if baseRate is undefined or 0, use fallback
     if (!baseRate || baseRate === 0) {
-      console.warn(`[Currency] baseRate is missing for ${currency}, using fallback:`, {
+      console.warn(`[Currency] baseRate is missing for ${currency}, using fallback`, {
         baseRate,
         baseExchangeRates,
         currency
@@ -233,9 +237,9 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const markup = 5; // Rs 5 markup (subtracted from base rate)
     const rateWithMarkup = baseRate - markup;
     
-    // Apply multipliers: USD = 2x, EUR = 1.5x
-    // Formula: (INR price / (base_rate - 5 markup)) × multiplier
-    // Example: (₹1,365 / 88) × 2 = $31
+    // Apply strategic multipliers as part of pricing strategy
+    // Formula: (INR price / (admin_rate - 5 markup)) × multiplier
+    // Admin rates from /admin/exchange-rates, then multipliers applied
     const multiplier = currency === 'USD' ? 2 : (currency === 'EUR' ? 1.5 : 1);
     const convertedPrice = (inrPrice / rateWithMarkup) * multiplier;
     

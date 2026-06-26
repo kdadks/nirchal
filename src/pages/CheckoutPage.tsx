@@ -2266,7 +2266,7 @@ const CheckoutPage: React.FC = () => {
                   ) : (
                     <>
                       <CheckCircle size={20} />
-                      Place Order - {getCurrencySymbol()}{getConvertedPrice(finalTotal).toLocaleString()}
+                      Place Order - {getCurrencySymbol()}{finalTotal.toLocaleString()}
                     </>
                   )}
                 </button>
@@ -2309,7 +2309,7 @@ const CheckoutPage: React.FC = () => {
                   ) : (
                     <>
                       <CheckCircle size={18} />
-                      Place Order - {getCurrencySymbol()}{getConvertedPrice(finalTotal).toLocaleString()}
+                      Place Order - {getCurrencySymbol()}{finalTotal.toLocaleString()}
                     </>
                   )}
                 </button>
@@ -2360,7 +2360,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="flex justify-between items-center mt-1.5">
                           <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
                           <span className="font-semibold text-gray-900 text-sm">
-                            {getCurrencySymbol()}{getConvertedPrice(item.price * item.quantity).toLocaleString(undefined)}
+                            {getCurrencySymbol()}{(item.price * item.quantity).toLocaleString(undefined)}
                           </span>
                         </div>
                       </div>
@@ -2389,7 +2389,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="flex-1">
                           <div className="font-medium text-sm text-gray-900">Pay Full Amount Now</div>
                           <div className="text-xs text-gray-600 mt-0.5">
-                            Pay {getCurrencySymbol()}{getConvertedPrice(productTotal + serviceTotal).toLocaleString(undefined)} (Products + Services)
+                            Pay {getCurrencySymbol()}{(productTotal + serviceTotal).toLocaleString(undefined)} (Products + Services)
                           </div>
                         </div>
                       </label>
@@ -2412,8 +2412,8 @@ const CheckoutPage: React.FC = () => {
                             <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">Recommended</span>
                           </div>
                           <div className="text-xs text-gray-600 mt-0.5">
-                            Pay {getCurrencySymbol()}{getConvertedPrice(productTotal).toLocaleString(undefined)} now (Products)<br/>
-                            Pay {getCurrencySymbol()}{getConvertedPrice(serviceTotal).toLocaleString(undefined)} on delivery (Services)
+                            Pay {getCurrencySymbol()}{productTotal.toLocaleString(undefined)} now (Products)<br/>
+                            Pay {getCurrencySymbol()}{serviceTotal.toLocaleString(undefined)} on delivery (Services)
                           </div>
                         </div>
                       </label>
@@ -2427,54 +2427,54 @@ const CheckoutPage: React.FC = () => {
                     <>
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>Products Subtotal</span>
-                        <span>{getCurrencySymbol()}{getConvertedPrice(productTotal).toLocaleString(undefined)}</span>
+                        <span>{getCurrencySymbol()}{productTotal.toLocaleString(undefined)}</span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>Services Subtotal</span>
-                        <span>{getCurrencySymbol()}{getConvertedPrice(serviceTotal).toLocaleString(undefined)}</span>
+                        <span>{getCurrencySymbol()}{serviceTotal.toLocaleString(undefined)}</span>
                       </div>
                       {!isInternational && (
                         <div className="flex justify-between text-sm text-gray-600">
                           <span>Delivery</span>
                           <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
-                            {deliveryCost === 0 ? 'Free' : `${getCurrencySymbol()}${getConvertedPrice(deliveryCost)}`}
+                            {deliveryCost === 0 ? 'Free' : `${getCurrencySymbol()}${deliveryCost}`}
                           </span>
                         </div>
                       )}
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
                         <div className="flex justify-between text-sm font-semibold text-amber-900">
                           <span>Pay Now (Products)</span>
-                          <span>{getCurrencySymbol()}{getConvertedPrice(upfrontAmount).toLocaleString(undefined)}</span>
+                          <span>{getCurrencySymbol()}{upfrontAmount.toLocaleString(undefined)}</span>
                         </div>
                       </div>
                       <div className="bg-green-50 border border-green-200 rounded-lg p-2">
                         <div className="flex justify-between text-sm font-semibold text-green-900">
                           <span>Pay on Delivery (Services)</span>
-                          <span>{getCurrencySymbol()}{getConvertedPrice(codAmount).toLocaleString(undefined)}</span>
+                          <span>{getCurrencySymbol()}{codAmount.toLocaleString(undefined)}</span>
                         </div>
                       </div>
                       <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
                         <span>Order Total</span>
-                        <span className="text-amber-600">{getCurrencySymbol()}{getConvertedPrice(upfrontAmount + codAmount).toLocaleString(undefined)}</span>
+                        <span className="text-amber-600">{getCurrencySymbol()}{(upfrontAmount + codAmount).toLocaleString(undefined)}</span>
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>Subtotal</span>
-                        <span>{getCurrencySymbol()}{getConvertedPrice(total).toLocaleString()}</span>
+                        <span>{getCurrencySymbol()}{total.toLocaleString()}</span>
                       </div>
                       {!isInternational && (
                         <div className="flex justify-between text-sm text-gray-600">
                           <span>Delivery</span>
                           <span className={deliveryCost === 0 ? 'text-green-600 font-medium' : ''}>
-                            {deliveryCost === 0 ? 'Free' : `${getCurrencySymbol()}${getConvertedPrice(deliveryCost)}`}
+                            {deliveryCost === 0 ? 'Free' : `${getCurrencySymbol()}${deliveryCost}`}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
                         <span>Total</span>
-                        <span className="text-amber-600">{getCurrencySymbol()}{getConvertedPrice(finalTotal).toLocaleString()}</span>
+                        <span className="text-amber-600">{getCurrencySymbol()}{finalTotal.toLocaleString()}</span>
                       </div>
                     </>
                   )}
