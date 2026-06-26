@@ -590,6 +590,26 @@ const CheckoutPage: React.FC = () => {
         }
       }
 
+      // 2.5) Send welcome email to new customers BEFORE payment attempt
+      // This ensures they have login credentials even if payment fails
+      if (shouldSendWelcomeEmail && customerId && tempPassword) {
+        try {
+          await transactionalEmailService.sendWelcomeEmail({
+            first_name: form.firstName,
+            last_name: form.lastName,
+            email: form.email,
+            temp_password: SecurityUtils.decryptTempData(tempPassword) // Decrypt temp password for email
+          });
+
+          // Mark welcome email as sent in database
+          await markWelcomeEmailSent(supabase, customerId);
+        } catch (emailError: any) {
+          console.error('Failed to send welcome email:', emailError);
+          // Don't fail the entire checkout if welcome email fails
+          toast.error('Welcome email could not be sent, but you can still complete checkout. Check spam folder for email.');
+        }
+      }
+
       // 3) Create order with items
       // Calculate shipping cost based on method selected
       // TODO: Implement international shipping when ready
@@ -803,7 +823,7 @@ const CheckoutPage: React.FC = () => {
                   }
                   
                   // Payment successful - proceed with post-order actions
-                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, finalTotal, codPaymentAmount, isPaymentSplit);
                 } else {
                   // Check if this is a duplicate payment attempt
                   if (verificationResult.duplicate_payment || verificationResult.duplicate_payment_id) {
@@ -814,7 +834,7 @@ const CheckoutPage: React.FC = () => {
                       toast.success('✅ This order has already been paid successfully!', {
                         duration: 5000,
                       });
-                      await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
+                      await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, finalTotal, codPaymentAmount, isPaymentSplit);
                       return;
                     }
                     
@@ -851,7 +871,7 @@ const CheckoutPage: React.FC = () => {
                     duration: 4000,
                   });
                   // Redirect to confirmation for already paid orders
-                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
+                  await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, finalTotal, codPaymentAmount, isPaymentSplit);
                   return;
                 }
                 
@@ -1002,7 +1022,7 @@ const CheckoutPage: React.FC = () => {
         }
       } else {
         // For non-Razorpay payments (COD, etc.), proceed as usual
-        await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, customerId, finalTotal, codPaymentAmount, isPaymentSplit);
+        await handleSuccessfulOrder(order, shouldSendWelcomeEmail, tempPassword, finalTotal, codPaymentAmount, isPaymentSplit);
       }
       
     } catch (error) {
@@ -1031,7 +1051,6 @@ const CheckoutPage: React.FC = () => {
     order: any, 
     shouldSendWelcomeEmail: boolean, 
     tempPassword: string | null, 
-    customerId: string | null, 
     finalTotal: number,
     codAmount: number = 0,
     isPaymentSplit: boolean = false
@@ -1083,27 +1102,8 @@ const CheckoutPage: React.FC = () => {
       console.error('Failed to track purchase in Meta Pixel:', metaError);
     }
     
-    // Handle welcome email for customers who need it
-    if (shouldSendWelcomeEmail && customerId) {
-      // Send welcome email (with temp password if available)
-      try {
-        await transactionalEmailService.sendWelcomeEmail({
-          first_name: form.firstName,
-          last_name: form.lastName,
-          email: form.email,
-          temp_password: tempPassword ? SecurityUtils.decryptTempData(tempPassword) : undefined // Decrypt temp password for email
-        });
-
-        
-        // Mark welcome email as sent in database
-        if (customerId) {
-          await markWelcomeEmailSent(supabase, customerId);
-        }
-      } catch (emailError) {
-        console.error('Failed to send welcome email:', emailError);
-        // Don't block the checkout process if email fails
-      }
-    }
+    // NOTE: Welcome email is now sent BEFORE payment attempt (see step 2.5)
+    // This ensures new customers get login credentials even if payment fails
     
     // ALWAYS send order received email for successful orders (not confirmation yet)
     // For customers with temp password: Send after 30 seconds delay
