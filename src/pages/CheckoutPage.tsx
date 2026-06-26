@@ -550,7 +550,7 @@ const CheckoutPage: React.FC = () => {
             state: form.deliveryState,
             postal_code: form.deliveryPincode,
             phone: form.phone,
-            country: 'India',
+            country: form.deliveryCountry || 'India',
             is_default: true,
           });
 
@@ -572,7 +572,7 @@ const CheckoutPage: React.FC = () => {
               state: form.billingState,
               postal_code: form.billingPincode,
               phone: form.billingPhone,
-              country: 'India',
+              country: form.billingCountry || 'India',
               is_default: false,
             });
             await upsertAddressWithFlags(billingAddressData, false, true);
@@ -645,7 +645,7 @@ const CheckoutPage: React.FC = () => {
         city: form.billingIsSameAsDelivery ? form.deliveryCity : form.billingCity,
         state: form.billingIsSameAsDelivery ? form.deliveryState : form.billingState,
         postal_code: form.billingIsSameAsDelivery ? form.deliveryPincode : form.billingPincode,
-        country: 'India',
+        country: form.billingIsSameAsDelivery ? (form.deliveryCountry || 'India') : (form.billingCountry || 'India'),
         phone: form.billingIsSameAsDelivery ? form.phone : form.billingPhone,
         email: form.email,
       });
@@ -658,7 +658,7 @@ const CheckoutPage: React.FC = () => {
         city: form.deliveryCity,
         state: form.deliveryState,
         postal_code: form.deliveryPincode,
-        country: 'India',
+        country: form.deliveryCountry || 'India',
         phone: form.phone,
       });
 
