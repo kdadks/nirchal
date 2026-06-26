@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag, Package } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag, Package, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -346,6 +346,8 @@ const CheckoutPage: React.FC = () => {
         deliveryCity: '',    // Clear dependent city
         billingCity: '',     // Clear dependent city
       }));
+      // Force full payment for international customers (no COD/split payment allowed)
+      setPaymentSplit('full');
     }
   }, [isInternational]);
 
@@ -580,8 +582,9 @@ const CheckoutPage: React.FC = () => {
       const expressDeliveryFee = form.shippingMethod === 'express' && !isInternational ? 250 : 0;
       const deliveryCost = form.shippingMethod === 'express' ? expressDeliveryFee : standardDeliveryFee;
       // Calculate payment amounts based on split choice
+      // Note: Split payment (COD) is ONLY available for Indian customers (non-international)
       const { productTotal: splitProductTotal, serviceTotal: splitServiceTotal } = calculatePaymentSplit();
-      const isPaymentSplit = paymentSplit === 'split' && splitServiceTotal > 0;
+      const isPaymentSplit = paymentSplit === 'split' && splitServiceTotal > 0 && !isInternational;
       const upfrontPaymentAmount = isPaymentSplit ? splitProductTotal : total;
       const codPaymentAmount = isPaymentSplit ? splitServiceTotal : 0;
       // Always include shipping in total (currently 0 for international, can be added later)
@@ -2461,6 +2464,18 @@ const CheckoutPage: React.FC = () => {
                     </>
                   )}
                 </div>
+
+                {/* Prepayment Notice for International Customers with Custom Services */}
+                {isInternational && serviceTotal > 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-300 rounded-lg">
+                    <div className="flex gap-2">
+                      <AlertCircle size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-xs text-blue-800">
+                        <strong>Prepayment Required:</strong> All custom services must be paid upfront for international orders. No split payments or COD available.
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Security Features */}
                 <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
