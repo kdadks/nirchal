@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag, Package, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -101,11 +101,19 @@ const getPhoneFormatForCurrency = (currency: string): { placeholder: string; lab
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
-  const { state: { items, total }, clearCart } = useCart();
+  const { state: { items }, clearCart } = useCart();
   const { supabase } = useAuth();
   const { customer } = useCustomerAuth();
   const { isInternational, getConvertedPrice, getCurrencySymbol, currency } = useCurrency();
   const { isLoaded: isRazorpayLoaded, createOrder: createRazorpayOrder, openCheckout: openRazorpayCheckout, verifyPayment: verifyRazorpayPayment } = useRazorpay();
+  
+  // Calculate dynamic total based on original prices and current currency
+  // Fallback to item.price if originalPrice doesn't exist (for backward compatibility)
+  const dynamicTotal = items.reduce((sum, item) => {
+    const priceToConvert = item.originalPrice || item.price;
+    return sum + getConvertedPrice(priceToConvert, item.category) * item.quantity;
+  }, 0);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
   const [currentStep] = useState(1);
@@ -154,7 +162,8 @@ const CheckoutPage: React.FC = () => {
     let serviceTotal = 0;
 
     items.forEach(item => {
-      const itemTotal = item.price * item.quantity;
+      const priceToConvert = item.originalPrice || item.price;
+      const itemTotal = getConvertedPrice(priceToConvert, item.category) * item.quantity;
       // Check if item is a service (size is 'Service' or 'Custom')
       if (item.size === 'Service' || item.size === 'Custom') {
         serviceTotal += itemTotal;
@@ -178,27 +187,33 @@ const CheckoutPage: React.FC = () => {
     // Track begin checkout event in GA4
     if (items.length > 0) {
       trackBeginCheckout(
-        items.map(item => ({
-          item_id: item.id,
-          item_name: item.name,
-          item_category: item.category,
-          item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
-          price: item.price,
-          quantity: item.quantity,
-        })),
-        total
+        items.map(item => {
+          const priceToConvert = item.originalPrice || item.price;
+          return {
+            item_id: item.id,
+            item_name: item.name,
+            item_category: item.category,
+            item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
+            price: getConvertedPrice(priceToConvert, item.category),
+            quantity: item.quantity,
+          };
+        }),
+        dynamicTotal
       );
       
       // Track initiate checkout event in Meta Pixel
       trackInitiateCheckout({
         content_ids: items.map(item => item.id),
-        contents: items.map(item => ({
-          id: item.id,
-          quantity: item.quantity,
-          item_price: item.price
-        })),
+        contents: items.map(item => {
+          const priceToConvert = item.originalPrice || item.price;
+          return {
+            id: item.id,
+            quantity: item.quantity,
+            item_price: getConvertedPrice(priceToConvert, item.category)
+          };
+        }),
         num_items: items.reduce((sum, item) => sum + item.quantity, 0),
-        value: total,
+        value: dynamicTotal,
         currency: 'INR'
       });
     }
@@ -585,13 +600,13 @@ const CheckoutPage: React.FC = () => {
       // Note: Split payment (COD) is ONLY available for Indian customers (non-international)
       const { productTotal: splitProductTotal, serviceTotal: splitServiceTotal } = calculatePaymentSplit();
       const isPaymentSplit = paymentSplit === 'split' && splitServiceTotal > 0 && !isInternational;
-      const upfrontPaymentAmount = isPaymentSplit ? splitProductTotal : total;
+      const upfrontPaymentAmount = isPaymentSplit ? splitProductTotal : dynamicTotal;
       const codPaymentAmount = isPaymentSplit ? splitServiceTotal : 0;
       // Always include shipping in total (currently 0 for international, can be added later)
       const finalTotal = upfrontPaymentAmount + deliveryCost;
 
       // Cart already stores prices in customer's currency, so no conversion needed
-      const orderSubtotal = total;
+      const orderSubtotal = dynamicTotal;
       const orderShippingAmount = deliveryCost;
       const orderExpressFee = expressDeliveryFee;
       const orderTotalAmount = finalTotal + codPaymentAmount;
@@ -1028,14 +1043,17 @@ const CheckoutPage: React.FC = () => {
     try {
       trackPurchase(
         order.order_number,
-        items.map(item => ({
-          item_id: item.id,
-          item_name: item.name,
-          item_category: item.category || 'Ethnic Wear',
-          item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
-          price: item.price,
-          quantity: item.quantity,
-        })),
+        items.map(item => {
+          const priceToConvert = item.originalPrice || item.price;
+          return {
+            item_id: item.id,
+            item_name: item.name,
+            item_category: item.category || 'Ethnic Wear',
+            item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
+            price: getConvertedPrice(priceToConvert, item.category),
+            quantity: item.quantity,
+          };
+        }),
         finalTotal,
         0, // tax
         0  // shipping
@@ -1048,11 +1066,14 @@ const CheckoutPage: React.FC = () => {
     try {
       trackMetaPurchase({
         content_ids: items.map(item => item.id),
-        contents: items.map(item => ({
-          id: item.id,
-          quantity: item.quantity,
-          item_price: item.price
-        })),
+        contents: items.map(item => {
+          const priceToConvert = item.originalPrice || item.price;
+          return {
+            id: item.id,
+            quantity: item.quantity,
+            item_price: getConvertedPrice(priceToConvert, item.category)
+          };
+        }),
         content_type: 'product',
         value: finalTotal,
         currency: 'INR',
@@ -1097,14 +1118,17 @@ const CheckoutPage: React.FC = () => {
           total_amount: finalTotal,
           status: 'received',
           currency: currency,
-          items: items.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            price: (item.price * item.quantity).toFixed(2),
-            size: item.size,
-            color: item.color,
-            image: item.image
-          })),
+          items: items.map(item => {
+            const priceToConvert = item.originalPrice || item.price;
+            return {
+              name: item.name,
+              quantity: item.quantity,
+              price: (getConvertedPrice(priceToConvert, item.category) * item.quantity).toFixed(2),
+              size: item.size,
+              color: item.color,
+              image: item.image
+            };
+          }),
           cod_amount: codAmount,
           payment_split: isPaymentSplit,
           online_amount: finalTotal
@@ -1390,7 +1414,7 @@ const CheckoutPage: React.FC = () => {
   
   // Calculate final total based on payment split choice
   // Always include shipping in total (currently 0 for international, can be added later)
-  const upfrontAmount = paymentSplit === 'split' && hasServices ? productTotal : total;
+  const upfrontAmount = paymentSplit === 'split' && hasServices ? productTotal : dynamicTotal;
   const codAmount = paymentSplit === 'split' && hasServices ? serviceTotal : 0;
   const finalTotal = upfrontAmount + deliveryCost;
 
@@ -1892,7 +1916,7 @@ const CheckoutPage: React.FC = () => {
                         ✓ You will be informed of the exact shipping charges via email before your order is shipped.
                       </p>
                       <p>
-                        ✓ The delivery cost must be paid upfront along with your product order amount.
+                        ✓ The delivery cost must be paid upfront before your order is shipped.
                       </p>
                       <p className="font-semibold mt-3">
                         Please keep this in mind when reviewing your final order amount.
@@ -2360,7 +2384,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="flex justify-between items-center mt-1.5">
                           <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
                           <span className="font-semibold text-gray-900 text-sm">
-                            {getCurrencySymbol()}{(item.price * item.quantity).toLocaleString(undefined)}
+                            {getCurrencySymbol()}{(getConvertedPrice(item.originalPrice || item.price, item.category) * item.quantity).toLocaleString(undefined)}
                           </span>
                         </div>
                       </div>
@@ -2460,10 +2484,6 @@ const CheckoutPage: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Subtotal</span>
-                        <span>{getCurrencySymbol()}{total.toLocaleString()}</span>
-                      </div>
                       {!isInternational && (
                         <div className="flex justify-between text-sm text-gray-600">
                           <span>Delivery</span>
@@ -2480,18 +2500,6 @@ const CheckoutPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Prepayment Notice for International Customers with Custom Services */}
-                {isInternational && serviceTotal > 0 && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-300 rounded-lg">
-                    <div className="flex gap-2">
-                      <AlertCircle size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div className="text-xs text-blue-800">
-                        <strong>Prepayment Required:</strong> All custom services must be paid upfront for international orders. No split payments or COD available.
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Security Features */}
                 <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
                   <div className="flex items-center gap-2 text-xs text-green-700 bg-gradient-to-r from-green-50 to-blue-50 p-2 rounded-lg border border-green-200">
@@ -2503,6 +2511,23 @@ const CheckoutPage: React.FC = () => {
                     <span className="font-medium">Free shipping on all orders across India 🇮🇳</span>
                   </div>
                 </div>
+
+                {/* Custom Stitching/Services Delivery Timeline */}
+                {hasServices && (
+                  <div className={`mt-4 p-3 rounded-lg border ${
+                    isInternational
+                      ? 'bg-blue-50 border-blue-300'
+                      : 'bg-orange-50 border-orange-300'
+                  }`}>
+                    <p className={`text-xs font-medium ${
+                      isInternational
+                        ? 'text-blue-800'
+                        : 'text-orange-800'
+                    }`}>
+                      ⏱️ {isInternational ? 'Custom Stitching or services will take around 2-3 weeks' : 'Custom Stitching or services will take around 1 week'}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

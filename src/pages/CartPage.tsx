@@ -8,8 +8,15 @@ import SEO from '../components/SEO';
 import { trackViewCart } from '../utils/analytics';
 
 const CartPage: React.FC = () => {
-  const { state: { items, total }, updateQuantity, removeFromCart } = useCart();
-  const { getCurrencySymbol, isInternational } = useCurrency();
+  const { state: { items }, updateQuantity, removeFromCart } = useCart();
+  const { getCurrencySymbol, isInternational, getConvertedPrice } = useCurrency();
+  
+  // Calculate dynamic total based on original prices and current currency
+  // Fallback to item.price if originalPrice doesn't exist (for backward compatibility)
+  const dynamicTotal = items.reduce((sum, item) => {
+    const priceToConvert = item.originalPrice || item.price;
+    return sum + getConvertedPrice(priceToConvert, item.category) * item.quantity;
+  }, 0);
   
   // Track view cart event when cart has items
   useEffect(() => {
@@ -20,10 +27,10 @@ const CartPage: React.FC = () => {
           item_name: item.name,
           item_category: item.category || 'Ethnic Wear',
           item_variant: item.size && item.color ? `${item.size}-${item.color}` : item.size || item.color,
-          price: item.price,
+          price: getConvertedPrice(item.originalPrice || item.price, item.category),
           quantity: item.quantity,
         })),
-        total
+        dynamicTotal
       );
     }
   }, []); // Only track on mount
@@ -173,10 +180,10 @@ const CartPage: React.FC = () => {
                       {/* Price */}
                       <div className="text-right">
                         <p className="text-base font-bold text-gray-900 mb-0.5">
-                          {getCurrencySymbol()}{(item.price * item.quantity).toLocaleString()}
+                          {getCurrencySymbol()}{(getConvertedPrice(item.originalPrice || item.price, item.category) * item.quantity).toLocaleString()}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {getCurrencySymbol()}{item.price.toLocaleString()} each
+                          {getCurrencySymbol()}{getConvertedPrice(item.originalPrice || item.price, item.category).toLocaleString()} each
                         </p>
                       </div>
                     </div>
@@ -203,10 +210,6 @@ const CartPage: React.FC = () => {
               
               <div className="p-3 space-y-2">
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Subtotal ({items.length} items)</span>
-                  <span>{getCurrencySymbol()}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600">
                   <span>Delivery</span>
                   {!isInternational ? (
                     <span className="text-green-600 font-semibold">Free 🇮🇳</span>
@@ -217,13 +220,30 @@ const CartPage: React.FC = () => {
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>Total</span>
-                    <span>{getCurrencySymbol()}{total.toLocaleString()}</span>
+                    <span>{getCurrencySymbol()}{dynamicTotal.toLocaleString()}</span>
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 text-center pt-1">
                   Taxes calculated at checkout
                 </p>
               </div>
+
+              {/* Custom Stitching/Services Delivery Timeline */}
+              {items.some(item => item.size === 'Service' || item.size === 'Custom') && (
+                <div className={`p-3 border-t ${
+                  isInternational
+                    ? 'bg-blue-50 border-blue-300'
+                    : 'bg-orange-50 border-orange-300'
+                }`}>
+                  <p className={`text-xs font-medium text-center ${
+                    isInternational
+                      ? 'text-blue-800'
+                      : 'text-orange-800'
+                  }`}>
+                    ⏱️ {isInternational ? 'Custom Stitching or services will take around 2-3 weeks' : 'Custom Stitching or services will take around 1 week'}
+                  </p>
+                </div>
+              )}
 
               <div className="p-3 bg-gray-50 space-y-2">
                 <Link

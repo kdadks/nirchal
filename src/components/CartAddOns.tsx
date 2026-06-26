@@ -65,7 +65,8 @@ const CartAddOns: React.FC<CartAddOnsProps> = ({ cartItems }) => {
         addToCart({
           id: `faal-pico-${selectedItem.id}-${Date.now()}`,
           name: 'Faal & Pico Service',
-          price: 150,
+          price: getConvertedPrice(250), // Use 250 to match displayed price in add-ons list
+          originalPrice: 250, // INR price for recalculation on currency change
           image: selectedItem.image,
           size: 'Service',
           color: 'Standard finishing'
@@ -314,7 +315,8 @@ const FaalPicoService: React.FC<{
     addToCart({
       id: `faal-pico-${selectedItem.id}-${Date.now()}`,
       name: 'Faal & Pico Service',
-      price: 250,
+      price: getConvertedPrice(250), // Service pricing with strategic multiplier
+      originalPrice: 250, // INR price for recalculation on currency change
       image: selectedItem.image,
       size: 'Service',
       color: notes || 'Standard finishing'
@@ -379,7 +381,7 @@ const FaalPicoService: React.FC<{
             <img src={selectedItem.image} alt={selectedItem.name} className="w-12 h-12 object-cover rounded flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 break-words">{selectedItem.name}</p>
-              <p className="text-xs text-gray-600">Faal & Pico Service - {getCurrencySymbol()}{getConvertedPrice(150).toLocaleString()}</p>
+              <p className="text-xs text-gray-600">Faal & Pico Service - {getCurrencySymbol()}{getConvertedPrice(250).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -401,7 +403,7 @@ const FaalPicoService: React.FC<{
       <div className="bg-green-50 border border-green-200 rounded-md p-2">
         <div className="flex items-center justify-between text-xs">
           <span className="text-gray-700">Service Charge:</span>
-          <span className="font-semibold text-green-600">{getCurrencySymbol()}{getConvertedPrice(150).toLocaleString()}</span>
+          <span className="font-semibold text-green-600">{getCurrencySymbol()}{getConvertedPrice(250).toLocaleString()}</span>
         </div>
       </div>
 
@@ -523,10 +525,14 @@ const ProductSelectionModal: React.FC<{
     // Use swatch image if available, otherwise fall back to first product image
     const imageToUse = selectedVariant?.swatchImage || selectedProduct.images?.[0] || '';
 
+    // Convert price to customer's currency (same as ProductDetailPage does)
+    const cartPrice = getConvertedPrice(selectedProduct.price, selectedProduct.category);
+
     addToCart({
       id: selectedProduct.id,
       name: selectedProduct.name,
-      price: selectedProduct.price,
+      price: cartPrice,
+      originalPrice: selectedProduct.price, // Store INR price for recalculation on currency change
       image: imageToUse,
       size: selectedSize || selectedProduct.sizes?.[0] || 'One Size',
       color: selectedColor || selectedProduct.colors?.[0] || 'Default'
@@ -602,7 +608,7 @@ const ProductSelectionModal: React.FC<{
             <h4 className="font-semibold text-xs text-gray-900 line-clamp-2 mb-0.5">
               {product.name}
             </h4>
-            <p className="text-purple-600 text-xs font-bold">{getCurrencySymbol()}{getConvertedPrice(product.price).toLocaleString()}</p>
+            <p className="text-purple-600 text-xs font-bold">{getCurrencySymbol()}{getConvertedPrice(product.price, product.category).toLocaleString()}</p>
           </div>
         ))}
       </div>
@@ -760,7 +766,8 @@ const CustomStitchingForm: React.FC<{
     addToCart({
       id: `stitching-${item.id}-${Date.now()}`,
       name: 'Custom Stitching Service',
-      price: 1499,
+      price: getConvertedPrice(1499), // Service pricing with strategic multiplier
+      originalPrice: 1499, // INR price for recalculation on currency change
       image: item.image,
       size: 'Custom',
       color: measurementText + (notes ? ` | Notes: ${notes}` : '')
@@ -971,7 +978,8 @@ const CustomBlouseForm: React.FC<{
     addToCart({
       id: `custom-blouse-${selectedItem.id}-${Date.now()}`,
       name: 'Custom Blouse Stitching Service',
-      price: finalPrice,
+      price: getConvertedPrice(finalPrice), // Service pricing with strategic multiplier
+      originalPrice: finalPrice, // INR price for recalculation on currency change
       image: selectedItem.image,
       size: 'Custom',
       color: detailsText

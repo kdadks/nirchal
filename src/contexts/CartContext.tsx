@@ -7,7 +7,8 @@ import { trackAddToCart as trackMetaAddToCart } from '../utils/metaPixel';
 interface CartItem {
   id: string;
   name: string;
-  price: number;
+  price: number; // Current converted price
+  originalPrice: number; // Original INR price for recalculation on currency change
   image: string;
   quantity: number;
   variantId?: string;

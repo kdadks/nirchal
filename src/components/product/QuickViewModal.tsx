@@ -167,6 +167,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       id: product.id,
       name: product.name,
       price: adjustedPrice,
+      originalPrice: adjustedPriceRaw, // INR price for recalculation on currency change
       image: cartImage,
       size: selectedSize || undefined,
       color: selectedColor,

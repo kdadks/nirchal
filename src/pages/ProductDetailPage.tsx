@@ -478,6 +478,7 @@ const ProductDetailPage: React.FC = () => {
           id: product.id,
           name: product.name,
           price: cartPrice,
+          originalPrice: adjustedPrice, // Store INR price for recalculation on currency change
           image: cartImage,
           size: selectedSize || undefined,
           color: selectedColor || product.color,
@@ -508,6 +509,7 @@ const ProductDetailPage: React.FC = () => {
           id: product.id,
           name: product.name,
           price: cartPrice,
+          originalPrice: adjustedPrice, // Store INR price for recalculation on currency change
           image: cartImage,
           size: selectedSize || undefined,
           color: selectedColor || product.color,
