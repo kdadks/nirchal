@@ -13,6 +13,16 @@
  * - Proper cellpadding/cellspacing/border attributes
  */
 
+// Helper function to get currency symbol and format amounts
+const getCurrencySymbol = (currency?: string): string => {
+  const currencySymbols: Record<string, string> = {
+    'INR': '₹',
+    'USD': '$',
+    'EUR': '€'
+  };
+  return currencySymbols[currency?.toUpperCase() || 'INR'] || '₹';
+};
+
 interface OutlookCompatibleEmailData {
   title: string;
   headerText: string;
@@ -192,8 +202,10 @@ export const outlookCompatibleOrderConfirmationEmail = (
   items?: Array<{ name: string; quantity: number; price: string; size?: string; color?: string; image?: string }>,
   codAmount?: number,
   paymentSplit?: boolean,
-  onlineAmount?: number
+  onlineAmount?: number,
+  currency?: string
 ) => {
+  const currencySymbol = getCurrencySymbol(currency);
   // Build items HTML
   let itemsHtml = '';
   if (items && items.length > 0) {
@@ -220,7 +232,7 @@ export const outlookCompatibleOrderConfirmationEmail = (
               <strong>${item.name}</strong>${detailsText}
               <div style="color: #666; font-size: 13px; margin-top: 4px;">Quantity: ${item.quantity}</div>
             </div>
-            <div style="font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px;">₹${item.price}</div>
+            <div style="font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px;">${currencySymbol}${item.price}</div>
           </div>
         </div>
       `;
@@ -237,16 +249,16 @@ export const outlookCompatibleOrderConfirmationEmail = (
         <div style="margin-top: 12px; padding: 12px; background-color: #ffffff; border-radius: 6px;">
           <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
             <span>✅ <strong>Paid Online (Products)</strong></span>
-            <span style="color: #f59e0b; font-weight: bold;">₹${onlineAmount?.toFixed(2) || '0.00'}</span>
+            <span style="color: #f59e0b; font-weight: bold;">${currencySymbol}${onlineAmount?.toFixed(2) || '0.00'}</span>
           </div>
           <div style="display: flex; justify-content: space-between; padding: 8px 0; margin-top: 8px;">
             <span>💵 <strong>Pay on Delivery (Services)</strong></span>
-            <span style="color: #10b981; font-weight: bold; font-size: 18px;">₹${codAmount.toFixed(2)}</span>
+            <span style="color: #10b981; font-weight: bold; font-size: 18px;">${currencySymbol}${codAmount.toFixed(2)}</span>
           </div>
         </div>
         <div style="margin-top: 12px; padding: 10px; background-color: #fef3c7; border-radius: 6px; border: 1px solid #f59e0b;">
           <span style="color: #92400e; font-size: 14px;">
-            📦 <strong>Important:</strong> Please keep ₹${codAmount.toFixed(2)} ready for payment when your order is delivered. 
+            📦 <strong>Important:</strong> Please keep ${currencySymbol}${codAmount.toFixed(2)} ready for payment when your order is delivered. 
             Our delivery partner will collect this amount for the services.
           </span>
         </div>
@@ -263,7 +275,7 @@ export const outlookCompatibleOrderConfirmationEmail = (
   if (paymentInfoHtml) {
     contentItems.push(paymentInfoHtml);
   } else {
-    contentItems.push(`<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ₹${orderTotal}</strong></div>`);
+    contentItems.push(`<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ${currencySymbol}${orderTotal}</strong></div>`);
   }
 
   contentItems.push(
@@ -288,9 +300,11 @@ export const outlookCompatibleOrderReceivedEmail = (
   orderNumber: string, 
   orderTotal: string, 
   websiteUrl: string,
-  items?: Array<{ name: string; quantity: number; price: string; size?: string; color?: string; image?: string }>
+  items?: Array<{ name: string; quantity: number; price: string; size?: string; color?: string; image?: string }>,
+  currency?: string
 ) => {
   // Build items HTML
+  const currencySymbol = getCurrencySymbol(currency);
   let itemsHtml = '';
   if (items && items.length > 0) {
     itemsHtml = '<div style="margin: 20px 0;"><strong>📦 Order Items:</strong><div style="margin-top: 10px;">';
@@ -316,7 +330,7 @@ export const outlookCompatibleOrderReceivedEmail = (
               <strong>${item.name}</strong>${detailsText}
               <div style="color: #666; font-size: 13px; margin-top: 4px;">Quantity: ${item.quantity}</div>
             </div>
-            <div style="font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px;">₹${item.price}</div>
+            <div style="font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px;">${currencySymbol}${item.price}</div>
           </div>
         </div>
       `;
@@ -332,7 +346,7 @@ export const outlookCompatibleOrderReceivedEmail = (
     content: [
       `Thank you for placing your order with us! We have successfully received your order <strong>${orderNumber}</strong> and it is now being processed.`,
       itemsHtml,
-      `<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ₹${orderTotal}</strong></div>`,
+      `<div style="margin: 15px 0; padding: 12px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fbbf24;"><strong style="color: #92400e;">Order Total: ${currencySymbol}${orderTotal}</strong></div>`,
       '<strong>🔄 What happens next?</strong><br>• Our team will review and process your order<br>• You\'ll receive an order confirmation once processed<br>• We\'ll send tracking details when your order ships',
       'Thank you for choosing us! We\'ll keep you updated on your order status.'
     ],
@@ -448,8 +462,10 @@ export const outlookCompatiblePaymentSuccessEmail = (
   orderNumber: string, 
   amount: string, 
   paymentId: string,
-  websiteUrl: string
+  websiteUrl: string,
+  currency?: string
 ) => {
+  const currencySymbol = getCurrencySymbol(currency);
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Payment Successful',
     headerText: '✅ Payment Confirmed',
@@ -458,7 +474,7 @@ export const outlookCompatiblePaymentSuccessEmail = (
     content: [
       `We're happy to confirm that your payment has been successfully processed!`,
       `<strong>Order Number:</strong> ${orderNumber}`,
-      `<strong>Amount Paid:</strong> ₹${amount}`,
+      `<strong>Amount Paid:</strong> ${currencySymbol}${amount}`,
       `<strong>Payment ID:</strong> ${paymentId}`,
       `<strong>Payment Status:</strong> <span style="color: #10b981; font-weight: bold;">Successful</span>`,
       '',
@@ -477,8 +493,10 @@ export const outlookCompatiblePaymentFailedEmail = (
   orderNumber: string, 
   amount: string, 
   errorReason: string,
-  websiteUrl: string
+  websiteUrl: string,
+  currency?: string
 ) => {
+  const currencySymbol = getCurrencySymbol(currency);
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Payment Failed',
     headerText: '❌ Payment Could Not Be Processed',
@@ -487,7 +505,7 @@ export const outlookCompatiblePaymentFailedEmail = (
     content: [
       `We're sorry, but we couldn't process your payment for the following order:`,
       `<strong>Order Number:</strong> ${orderNumber}`,
-      `<strong>Amount:</strong> ₹${amount}`,
+      `<strong>Amount:</strong> ${currencySymbol}${amount}`,
       `<strong>Payment Status:</strong> <span style="color: #ef4444; font-weight: bold;">Failed</span>`,
       `<strong>Reason:</strong> ${errorReason}`,
       '',

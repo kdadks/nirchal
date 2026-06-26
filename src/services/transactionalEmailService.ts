@@ -18,6 +18,7 @@ interface OrderData {
   customer_email: string;
   total_amount: number;
   status: string;
+  currency?: string; // Currency of the order (INR, USD, EUR)
   items?: Array<{
     name: string;
     quantity: number;
@@ -176,7 +177,8 @@ export class TransactionalEmailService {
         order.items,
         order.cod_amount,
         order.payment_split,
-        order.online_amount
+        order.online_amount,
+        order.currency
       );
 
       const emailPayload = {
@@ -218,7 +220,8 @@ export class TransactionalEmailService {
         orderNumber,
         (order.total_amount || 0).toString(),
         websiteUrl,
-        order.items
+        order.items,
+        order.currency
       );
 
       const emailPayload = {
@@ -341,6 +344,7 @@ export class TransactionalEmailService {
     order_number: string;
     amount: number;
     payment_id: string;
+    currency?: string;
   }): Promise<boolean> {
     try {
 
@@ -350,7 +354,8 @@ export class TransactionalEmailService {
         paymentData.order_number,
         paymentData.amount.toString(),
         paymentData.payment_id,
-        this.getWebsiteUrl()
+        this.getWebsiteUrl(),
+        paymentData.currency
       );
 
       const emailPayload = {
@@ -388,6 +393,7 @@ export class TransactionalEmailService {
     order_number: string;
     amount: number;
     error_reason: string;
+    currency?: string;
   }): Promise<boolean> {
     try {
 
@@ -397,7 +403,8 @@ export class TransactionalEmailService {
         paymentData.order_number,
         paymentData.amount.toString(),
         paymentData.error_reason,
-        this.getWebsiteUrl()
+        this.getWebsiteUrl(),
+        paymentData.currency
       );
 
       const emailPayload = {

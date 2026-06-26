@@ -1078,6 +1078,7 @@ const CheckoutPage: React.FC = () => {
           customer_email: form.email,
           total_amount: finalTotal,
           status: 'received',
+          currency: currency,
           items: items.map(item => ({
             name: item.name,
             quantity: item.quantity,
