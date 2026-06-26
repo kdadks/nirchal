@@ -691,9 +691,11 @@ const CheckoutPage: React.FC = () => {
           });
           
           // Create Razorpay order
+          // Convert finalTotal to customer's currency for Razorpay
+          const razorpayAmount = isInternational ? getConvertedPrice(finalTotal) : finalTotal;
           const razorpayOrderData = await createRazorpayOrder({
-            amount: finalTotal,
-            currency: 'INR',
+            amount: razorpayAmount,
+            currency: currency, // Use actual currency from CurrencyContext
             receipt: order.order_number,
             customer_email: form.email,
             customer_phone: form.phone,

@@ -455,6 +455,39 @@ const OrdersPage: React.FC = () => {
     }).format(amount);
   };
 
+  // Exchange rates (same as CurrencyContext)
+  const EXCHANGE_RATES: Record<string, number> = {
+    'INR': 1,
+    'USD': 88,
+    'EUR': 102,
+  };
+
+  const MULTIPLIERS: Record<string, number> = {
+    'USD': 2,
+    'EUR': 1.5,
+  };
+
+  // Convert INR amount back to original currency
+  const convertFromINRToOriginalCurrency = (inrAmount: number, currency: string): string => {
+    if (currency === 'INR' || !currency) {
+      return formatCurrency(inrAmount);
+    }
+
+    const baseRate = EXCHANGE_RATES[currency] || 88;
+    const multiplier = MULTIPLIERS[currency] || 1;
+    
+    // Reverse the conversion: originalAmount = (inrAmount * multiplier) / (baseRate - 5)
+    const originalAmount = (inrAmount * multiplier) / (baseRate - 5);
+    
+    const formatter = new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+    });
+    
+    return formatter.format(originalAmount);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       year: 'numeric',
@@ -918,14 +951,13 @@ const OrdersPage: React.FC = () => {
                       )}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                      <span className="font-medium">{formatCurrency(order.total_amount)}</span>
-                      <span className="text-xs text-gray-500 ml-1">({order.currency || 'INR'})</span>
+                      <span className="font-medium">{convertFromINRToOriginalCurrency(order.total_amount, order.currency)}</span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       {order.cod_amount && order.cod_amount > 0 ? (
                         <div className="space-y-1">
                           <div className={`text-sm font-semibold ${order.cod_collected ? 'text-green-700' : 'text-orange-700'}`}>
-                            {formatCurrency(order.cod_amount)}
+                            {convertFromINRToOriginalCurrency(order.cod_amount, order.currency)}
                           </div>
                           {order.cod_collected ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
