@@ -470,11 +470,14 @@ const ProductDetailPage: React.FC = () => {
   const handleAddToCart = async () => {
     setIsAdding(true);
     try {
+      // Convert price to customer's currency before adding to cart
+      const cartPrice = getConvertedPrice(adjustedPrice, product.category);
+      
       for (let i = 0; i < quantity; i++) {
         addItem({
           id: product.id,
           name: product.name,
-          price: adjustedPrice,
+          price: cartPrice,
           image: cartImage,
           size: selectedSize || undefined,
           color: selectedColor || product.color,
@@ -496,12 +499,15 @@ const ProductDetailPage: React.FC = () => {
   const handleBuyNow = async () => {
     setIsAdding(true);
     try {
+      // Convert price to customer's currency before adding to cart
+      const cartPrice = getConvertedPrice(adjustedPrice, product.category);
+      
       // Add to cart first
       for (let i = 0; i < quantity; i++) {
         addItem({
           id: product.id,
           name: product.name,
-          price: adjustedPrice,
+          price: cartPrice,
           image: cartImage,
           size: selectedSize || undefined,
           color: selectedColor || product.color,

@@ -589,10 +589,17 @@ const CheckoutPage: React.FC = () => {
       const codPaymentAmount = isPaymentSplit ? splitServiceTotal : 0;
       // Always include shipping in total (currently 0 for international, can be added later)
       const finalTotal = upfrontPaymentAmount + deliveryCost;
+
+      // Cart already stores prices in customer's currency, so no conversion needed
+      const orderSubtotal = total;
+      const orderShippingAmount = deliveryCost;
+      const orderExpressFee = expressDeliveryFee;
+      const orderTotalAmount = finalTotal + codPaymentAmount;
+      const orderCodAmount = codPaymentAmount;
       
       // Create payment note to track split payment
       const paymentNote = isPaymentSplit
-        ? `Split Payment: Products ₹${splitProductTotal} (Paid Online) + Services ₹${splitServiceTotal} (COD)`
+        ? `Split Payment: Products ${getCurrencySymbol()}${splitProductTotal} (Paid Online) + Services ${getCurrencySymbol()}${splitServiceTotal} (COD)`
         : 'Full Payment Online';
       
       const billingAddress = sanitizeOrderAddress({
@@ -633,11 +640,11 @@ const CheckoutPage: React.FC = () => {
       const order = await createOrderWithItems(supabase, {
         customer_id: customerId,
         payment_method: form.paymentMethod,
-        subtotal: total,
-        shipping_amount: deliveryCost,
+        subtotal: orderSubtotal,
+        shipping_amount: orderShippingAmount,
         shipping_method: form.shippingMethod,
-        express_delivery_fee: expressDeliveryFee,
-        total_amount: finalTotal + codPaymentAmount, // Total includes both online and COD amounts
+        express_delivery_fee: orderExpressFee,
+        total_amount: orderTotalAmount, // Total includes both online and COD amounts
         billing: billingAddress,
         delivery: deliveryAddress,
         currency: currency, // Use currency from CurrencyContext
@@ -648,20 +655,24 @@ const CheckoutPage: React.FC = () => {
                            it.id.startsWith('custom-blouse-') || 
                            it.id.startsWith('stitching-');
           
+          // Cart items already store prices in customer's currency
+          const itemUnitPrice = it.price;
+          const itemTotalPrice = it.price * it.quantity;
+          
           return {
             product_id: isService ? null : it.id, // Services don't have product_id
             product_variant_id: isService ? null : (it.variantId ? it.variantId : null),
             product_name: it.name,
             product_sku: undefined,
-            unit_price: it.price,
+            unit_price: itemUnitPrice,
             quantity: it.quantity,
-            total_price: it.price * it.quantity,
+            total_price: itemTotalPrice,
             variant_size: it.size,
             variant_color: it.color,
           };
         }),
         // Split payment data
-        cod_amount: codPaymentAmount,
+        cod_amount: orderCodAmount,
         cod_collected: false,
         online_amount: finalTotal,
         payment_split: isPaymentSplit,
@@ -694,9 +705,8 @@ const CheckoutPage: React.FC = () => {
             duration: 3000,
           });
           
-          // Create Razorpay order
-          // Convert finalTotal to customer's currency for Razorpay
-          const razorpayAmount = isInternational ? getConvertedPrice(finalTotal) : finalTotal;
+          // Create Razorpay order - finalTotal is already in customer's currency
+          const razorpayAmount = finalTotal;
           const razorpayOrderData = await createRazorpayOrder({
             amount: razorpayAmount,
             currency: currency, // Use actual currency from CurrencyContext
