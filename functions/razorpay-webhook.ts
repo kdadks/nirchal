@@ -640,6 +640,10 @@ async function handlePaymentFailed(env: Env, payment: any) {
     try {
       const failureReason = payment.error_description || payment.error_reason || 'Payment failed';
       const amountInRupees = (payment.amount ? payment.amount / 100 : 0).toLocaleString('en-IN');
+      
+      // Get currency symbol
+      const currencyMap: { [key: string]: string } = { 'INR': '₹', 'USD': '$', 'EUR': '€' };
+      const currencySymbol = currencyMap[order.currency || 'INR'] || '₹';
       const adminHtml = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 30px; text-align: center;">
@@ -703,7 +707,7 @@ async function handlePaymentFailed(env: Env, payment: any) {
       const resendPayload = {
         from: `${fromName} <${fromAddress}>`,
         to: ['amit.ranjan78@gmail.com'],
-        subject: `⚠️ Payment Failed - Order #${order.order_number} - ₹${amountInRupees} - Nirchal`,
+        subject: `⚠️ Payment Failed - Order #${order.order_number} - ${currencySymbol}${amountInRupees} - Nirchal`,
         html: adminHtml
       };
 

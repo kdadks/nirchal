@@ -430,6 +430,11 @@ export class TransactionalEmailService {
 
       // Send admin notification for payment failure
       try {
+        const getCurrencySymbol = (currency?: string): string => {
+          const currencyMap: { [key: string]: string } = { 'INR': '₹', 'USD': '$', 'EUR': '€' };
+          return currencyMap[currency || 'INR'] || '₹';
+        };
+        const currencySymbol = getCurrencySymbol(paymentData.currency);
         const adminHtml = `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 30px; text-align: center;">
@@ -455,7 +460,7 @@ export class TransactionalEmailService {
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Amount:</td>
-                    <td style="padding: 8px 0; color: #ef4444; font-weight: 700; font-size: 18px;">₹${paymentData.amount.toLocaleString()}</td>
+                    <td style="padding: 8px 0; color: #ef4444; font-weight: 700; font-size: 18px;">${currencySymbol}${paymentData.amount.toLocaleString()}</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Failure Reason:</td>
@@ -485,7 +490,7 @@ export class TransactionalEmailService {
 
         const adminEmailPayload = {
           to: 'amit.ranjan78@gmail.com',
-          subject: `⚠️ Payment Failed - Order #${paymentData.order_number} - ₹${paymentData.amount.toLocaleString()} - Nirchal`,
+          subject: `⚠️ Payment Failed - Order #${paymentData.order_number} - ${currencySymbol}${paymentData.amount.toLocaleString()} - Nirchal`,
           html: adminHtml
         };
 
@@ -513,10 +518,16 @@ export class TransactionalEmailService {
     total_amount: number;
     items_count: number;
     payment_method: string;
+    currency?: string;
   }): Promise<boolean> {
     try {
 
       
+      const getCurrencySymbol = (currency?: string): string => {
+        const currencyMap: { [key: string]: string } = { 'INR': '₹', 'USD': '$', 'EUR': '€' };
+        return currencyMap[currency || 'INR'] || '₹';
+      };
+      const currencySymbol = getCurrencySymbol(orderData.currency);
       const html = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
           <div style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); padding: 30px; text-align: center;">
@@ -542,7 +553,7 @@ export class TransactionalEmailService {
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Total Amount:</td>
-                  <td style="padding: 8px 0; color: #10b981; font-weight: 700; font-size: 18px;">₹${orderData.total_amount.toLocaleString()}</td>
+                  <td style="padding: 8px 0; color: #10b981; font-weight: 700; font-size: 18px;">${currencySymbol}${orderData.total_amount.toLocaleString()}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Items Count:</td>
@@ -572,7 +583,7 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: 'amit.ranjan78@gmail.com', // Primary admin email
-        subject: `🛍️ New Order #${orderData.order_number} - ₹${orderData.total_amount.toLocaleString()} - Nirchal`,
+        subject: `🛍️ New Order #${orderData.order_number} - ${currencySymbol}${orderData.total_amount.toLocaleString()} - Nirchal`,
         html
       };
       

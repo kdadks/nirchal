@@ -678,7 +678,8 @@ const CheckoutPage: React.FC = () => {
         customer_email: form.email,
         total_amount: finalTotal + codPaymentAmount,
         items_count: items.length,
-        payment_method: form.paymentMethod
+        payment_method: form.paymentMethod,
+        currency: currency
       }).catch(err => console.error('Failed to send order creation notification:', err));
 
       // 4) Handle Razorpay payment if selected
@@ -768,7 +769,8 @@ const CheckoutPage: React.FC = () => {
                       customer_email: form.email,
                       order_number: order.order_number,
                       amount: finalTotal,
-                      payment_id: response.razorpay_payment_id
+                      payment_id: response.razorpay_payment_id,
+                      currency: currency
                     });
 
                   } catch (emailError) {
@@ -835,7 +837,8 @@ const CheckoutPage: React.FC = () => {
                     customer_email: form.email,
                     order_number: order.order_number,
                     amount: finalTotal,
-                    error_reason: errorMessage
+                    error_reason: errorMessage,
+                    currency: currency
                   });
 
                 } catch (emailError) {
@@ -871,7 +874,8 @@ const CheckoutPage: React.FC = () => {
                     customer_email: form.email,
                     order_number: order.order_number,
                     amount: finalTotal,
-                    error_reason: 'Payment cancelled by user'
+                    error_reason: 'Payment cancelled by user',
+                    currency: currency
                   });
                 } catch (emailError) {
                   console.error('Failed to send payment cancellation email:', emailError);
@@ -946,7 +950,8 @@ const CheckoutPage: React.FC = () => {
               customer_email: form.email,
               order_number: order.order_number,
               amount: finalTotal,
-              error_reason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed'
+              error_reason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed',
+              currency: currency
             });
 
           } catch (emailError) {

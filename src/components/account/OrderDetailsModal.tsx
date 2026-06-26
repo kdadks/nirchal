@@ -428,7 +428,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   customer_email: orderDetails.billing_email,
                   order_number: orderDetails.order_number,
                   amount: amountToPay,
-                  payment_id: response.razorpay_payment_id
+                  payment_id: response.razorpay_payment_id,
+                  currency: orderDetails.currency
                 });
                 console.log('✅ Payment success email sent for retry payment');
               } catch (emailError) {

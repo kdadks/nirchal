@@ -288,6 +288,10 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           const paymentMethod = fullOrder.payment_method || 'Razorpay';
           const fromName = env.EMAIL_FROM_NAME || 'Nirchal';
           const fromAddress = env.EMAIL_FROM || 'support@nirchal.com';
+          
+          // Get currency symbol
+          const currencyMap: { [key: string]: string } = { 'INR': '₹', 'USD': '$', 'EUR': '€' };
+          const currencySymbol = currencyMap[fullOrder.currency || 'INR'] || '₹';
 
           const adminHtml = `
             <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
@@ -301,7 +305,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
                     <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Order Number:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${orderNumber}</td></tr>
                     <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Customer:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${customerName}</td></tr>
                     <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Email:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${fullOrder.billing_email || 'N/A'}</td></tr>
-                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Total Amount:</td><td style="padding: 8px 0; color: #10b981; font-weight: 700; font-size: 18px;">₹${totalAmount}</td></tr>
+                    <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Total Amount:</td><td style="padding: 8px 0; color: #10b981; font-weight: 700; font-size: 18px;">${currencySymbol}${totalAmount}</td></tr>
                     <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Payment Method:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${paymentMethod}</td></tr>
                     <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Payment ID:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${razorpay_payment_id}</td></tr>
                     <tr><td style="padding: 8px 0; color: #6b7280; font-weight: 500;">Time:</td><td style="padding: 8px 0; color: #1f2937; font-weight: 600;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</td></tr>
@@ -320,7 +324,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           const resendPayload = {
             from: `${fromName} <${fromAddress}>`,
             to: ['amit.ranjan78@gmail.com'],
-            subject: `🛍️ New Order #${orderNumber} - ₹${totalAmount} - Nirchal`,
+            subject: `🛍️ New Order #${orderNumber} - ${currencySymbol}${totalAmount} - Nirchal`,
             html: adminHtml
           };
 
