@@ -70,7 +70,7 @@ const AdminDashboard: React.FC = () => {
     const localeMap: Record<string, string> = {
       'INR': 'en-IN',
       'USD': 'en-US',
-      'EUR': 'de-DE',
+      'EUR': 'en-US',  // Use en-US to put € before the amount (€100 instead of 100 €)
     };
     const locale = localeMap[finalCurrency] || 'en-IN';
     

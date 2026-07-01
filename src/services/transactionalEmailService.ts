@@ -394,6 +394,7 @@ export class TransactionalEmailService {
     amount: number;
     error_reason: string;
     currency?: string;
+    recovery_link?: string;
   }): Promise<boolean> {
     try {
 
@@ -404,7 +405,8 @@ export class TransactionalEmailService {
         paymentData.amount.toString(),
         paymentData.error_reason,
         this.getWebsiteUrl(),
-        paymentData.currency
+        paymentData.currency,
+        paymentData.recovery_link
       );
 
       const emailPayload = {

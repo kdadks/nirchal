@@ -2,6 +2,7 @@ import React from 'react';
 import { Minus, Plus, X } from 'lucide-react';
 import { CartItem as CartItemType } from '../../types';
 import { useCart } from '../../contexts/CartContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface CartItemProps {
   item: CartItemType;
@@ -9,6 +10,7 @@ interface CartItemProps {
 
 const CartItem: React.FC<CartItemProps> = ({ item }) => {
   const { updateQuantity, removeFromCart } = useCart();
+  const { formatCurrency } = useCurrency();
   const { product, quantity, size } = item;
 
   const incrementQuantity = () => {
@@ -42,10 +44,10 @@ const CartItem: React.FC<CartItemProps> = ({ item }) => {
           </div>
           
           <div className="text-right">
-            <p className="text-lg font-medium text-gray-900">₹{product.price.toLocaleString()}</p>
+            <p className="text-lg font-medium text-gray-900">{formatCurrency(product.price)}</p>
             {product.originalPrice && (
               <p className="text-sm text-gray-500 line-through">
-                ₹{product.originalPrice.toLocaleString()}
+                {formatCurrency(product.originalPrice)}
               </p>
             )}
           </div>

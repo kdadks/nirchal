@@ -14,6 +14,7 @@ interface AbandonedCart {
   cart_items: any[];
   total_items: number;
   total_value: number;
+  currency?: 'INR' | 'USD' | 'EUR';
   abandoned_at: string;
   status: 'abandoned' | 'recovered' | 'expired' | 'contacted' | 'payment_failed';
   email_sent: boolean;
@@ -274,7 +275,7 @@ const AbandonedCartsPage: React.FC = () => {
                           <Package className="h-4 w-4 mr-1 text-gray-400" />
                           <span className="mr-2">{cart.total_items} items</span>
                           <DollarSign className="h-4 w-4 mr-1 text-gray-400" />
-                          {formatCurrency(cart.total_value)}
+                          {formatCurrency(cart.total_value, cart.currency || 'INR')}
                         </div>
                         <button
                           onClick={() => setSelectedCart(cart)}
@@ -375,7 +376,7 @@ const AbandonedCartsPage: React.FC = () => {
                       {item.size && <p className="text-xs text-gray-500">Size: {item.size}</p>}
                       {item.color && <p className="text-xs text-gray-500">Color: {item.color}</p>}
                       <p className="text-sm text-gray-900 mt-1">
-                        {formatCurrency(item.price)} × {item.quantity} = {formatCurrency(item.price * item.quantity)}
+                        {formatCurrency(item.price, selectedCart.currency || 'INR')} × {item.quantity} = {formatCurrency(item.price * item.quantity, selectedCart.currency || 'INR')}
                       </p>
                     </div>
                   </div>
@@ -384,7 +385,7 @@ const AbandonedCartsPage: React.FC = () => {
               <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between items-center font-semibold text-gray-900">
                   <span>Total</span>
-                  <span>{formatCurrency(selectedCart.total_value)}</span>
+                  <span>{formatCurrency(selectedCart.total_value, selectedCart.currency || 'INR')}</span>
                 </div>
               </div>
             </div>

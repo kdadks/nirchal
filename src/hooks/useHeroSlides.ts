@@ -52,11 +52,14 @@ export const useAdminHeroSlides = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  if (!adminClient) {
-    throw new Error('Admin client not available. Please check VITE_SUPABASE_SERVICE_ROLE_KEY environment variable.');
-  }
-
   const fetchHeroSlides = async () => {
+    // Check if admin client is available
+    if (!adminClient) {
+      setError('Admin client not available. Please check VITE_SUPABASE_SERVICE_ROLE_KEY environment variable.');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -80,6 +83,10 @@ export const useAdminHeroSlides = () => {
   };
 
   const createHeroSlide = async (slideData: Omit<HeroSlide, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!adminClient) {
+      return { data: null, error: 'Admin client not available' };
+    }
+
     try {
       const { data, error } = await adminClient
         .from('hero_slides')
@@ -99,6 +106,10 @@ export const useAdminHeroSlides = () => {
   };
 
   const updateHeroSlide = async (id: string, updates: Partial<HeroSlide>) => {
+    if (!adminClient) {
+      return { data: null, error: 'Admin client not available' };
+    }
+
     try {
       const { data, error } = await adminClient
         .from('hero_slides')
@@ -130,6 +141,10 @@ export const useAdminHeroSlides = () => {
   };
 
   const deleteHeroSlide = async (id: string) => {
+    if (!adminClient) {
+      return { error: 'Admin client not available' };
+    }
+
     try {
       const { error } = await adminClient
         .from('hero_slides')
@@ -152,6 +167,10 @@ export const useAdminHeroSlides = () => {
   };
 
   const reorderSlides = async (slides: HeroSlide[]) => {
+    if (!adminClient) {
+      return { error: 'Admin client not available' };
+    }
+
     try {
       const updates = slides.map((slide, index) => ({
         id: slide.id,

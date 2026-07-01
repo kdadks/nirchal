@@ -29,7 +29,13 @@ const OrderConfirmationPage: React.FC = () => {
   const [shouldRedirect, setShouldRedirect] = useState(false);
   const [hasCheckedRedirect, setHasCheckedRedirect] = useState(false);
   
-  const { orderNumber, email, tempPassword, codAmount, paymentSplit, paymentStatus, deliveryCountry, estimatedDeliveryDate } = useMemo(() => {
+  // Guest account creation states
+  const [isCreatingGuestAccount, setIsCreatingGuestAccount] = useState(false);
+  const [guestAccountCreated, setGuestAccountCreated] = useState(false);
+  const [guestAccountPassword, setGuestAccountPassword] = useState('');
+  const [guestAccountError, setGuestAccountError] = useState('');
+  
+  const { orderNumber, email, tempPassword, codAmount, paymentSplit, paymentStatus, deliveryCountry, estimatedDeliveryDate, guestCheckout, guestFirstName, guestLastName, guestEmail, guestPhone } = useMemo(() => {
     const on = sessionStorage.getItem('last_order_number') || '';
     const em = sessionStorage.getItem('last_order_email') || '';
     const tp = sessionStorage.getItem('new_customer_temp_password') || '';
@@ -37,6 +43,13 @@ const OrderConfirmationPage: React.FC = () => {
     const ps = sessionStorage.getItem('payment_split') === 'true';
     const status = sessionStorage.getItem('payment_status') || 'completed';
     const country = sessionStorage.getItem('delivery_country') || 'IN';
+    
+    // Guest checkout info
+    const gc = sessionStorage.getItem('guest_checkout') === 'true';
+    const gfn = sessionStorage.getItem('guest_first_name') || '';
+    const gln = sessionStorage.getItem('guest_last_name') || '';
+    const ge = sessionStorage.getItem('guest_email') || '';
+    const gp = sessionStorage.getItem('guest_phone') || '';
     
     return { 
       orderNumber: on, 
@@ -47,6 +60,11 @@ const OrderConfirmationPage: React.FC = () => {
       paymentStatus: status,
       deliveryCountry: country,
       estimatedDeliveryDate: addBusinessDays(5),
+      guestCheckout: gc,
+      guestFirstName: gfn,
+      guestLastName: gln,
+      guestEmail: ge,
+      guestPhone: gp,
     };
   }, []);
 
@@ -110,6 +128,159 @@ const OrderConfirmationPage: React.FC = () => {
     setTimeout(() => {
       window.location.href = '/myaccount?tab=orders';
     }, 500);
+  };
+
+  const handleCreateGuestAccount = async () => {
+    if (!guestEmail) {
+      setGuestAccountError('Email is required');
+      return;
+    }
+
+    setIsCreatingGuestAccount(true);
+    setGuestAccountError('');
+
+    try {
+      // Import the function from utils
+      const { upsertCustomerByEmail } = await import('../utils/orders');
+      const { createClient } = await import('@supabase/supabase-js');
+
+      const supabase = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY
+      );
+
+      // Note: Customer record already exists (created after payment)
+      // This just ensures password setup and sends welcome email
+      const customerRes = await upsertCustomerByEmail(supabase, {
+        email: guestEmail.trim(),
+        first_name: guestFirstName.trim() || 'Guest',
+        last_name: guestLastName.trim() || 'User',
+        phone: guestPhone.trim() || undefined,
+      });
+
+      if (!customerRes?.id) {
+        throw new Error('Failed to verify account');
+      }
+
+      // Get the decrypted password if this is a new account
+      const decryptedPassword = customerRes?.tempPassword 
+        ? SecurityUtils.decryptTempData(customerRes.tempPassword) 
+        : '';
+
+      setGuestAccountPassword(decryptedPassword);
+      setGuestAccountCreated(true);
+
+      // Send welcome email with temporary password (if new)
+      if (decryptedPassword) {
+        const { transactionalEmailService } = await import('../services/transactionalEmailService');
+        try {
+          await transactionalEmailService.sendWelcomeEmail({
+            first_name: guestFirstName,
+            last_name: guestLastName,
+            email: guestEmail,
+            temp_password: decryptedPassword
+          });
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+        }
+      }
+
+      toast.success('Account is ready! Check your email for login details.');
+      
+      // Fetch order to extract addresses if not already saved
+      try {
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('order_number', orderNumber)
+          .single();
+
+        if (orderData) {
+          // Check if addresses already exist
+          const { data: existingAddresses } = await supabase
+            .from('customer_addresses')
+            .select('id')
+            .eq('customer_id', customerRes.id)
+            .limit(1);
+
+          // Only save addresses if none exist yet
+          if (!existingAddresses || existingAddresses.length === 0) {
+            // Save delivery address from order
+            if (orderData.shipping_address_line_1) {
+              const deliveryAddressData = {
+                customer_id: customerRes.id,
+                first_name: orderData.shipping_first_name || guestFirstName,
+                last_name: orderData.shipping_last_name || guestLastName,
+                address_line_1: orderData.shipping_address_line_1,
+                address_line_2: orderData.shipping_address_line_2,
+                city: orderData.shipping_city,
+                state: orderData.shipping_state,
+                postal_code: orderData.shipping_postal_code,
+                country: orderData.shipping_country || 'India',
+                phone: orderData.shipping_phone || guestPhone,
+                is_default: true,
+                is_shipping: true,
+                is_billing: orderData.billing_address_line_1 === orderData.shipping_address_line_1,
+              };
+
+              const { error: deliveryError } = await supabase
+                .from('customer_addresses')
+                .insert(deliveryAddressData);
+
+              if (deliveryError) {
+                console.warn('Failed to save delivery address:', deliveryError);
+              }
+            }
+
+            // Save billing address if different from delivery
+            if (
+              orderData.billing_address_line_1 &&
+              orderData.billing_address_line_1 !== orderData.shipping_address_line_1
+            ) {
+              const billingAddressData = {
+                customer_id: customerRes.id,
+                first_name: orderData.billing_first_name || guestFirstName,
+                last_name: orderData.billing_last_name || guestLastName,
+                address_line_1: orderData.billing_address_line_1,
+                address_line_2: orderData.billing_address_line_2,
+                city: orderData.billing_city,
+                state: orderData.billing_state,
+                postal_code: orderData.billing_postal_code,
+                country: orderData.billing_country || 'India',
+                phone: orderData.billing_phone || guestPhone,
+                is_default: false,
+                is_shipping: false,
+                is_billing: true,
+              };
+
+              const { error: billingError } = await supabase
+                .from('customer_addresses')
+                .insert(billingAddressData);
+
+              if (billingError) {
+                console.warn('Failed to save billing address:', billingError);
+              }
+            }
+          }
+        }
+      } catch (addressError) {
+        console.warn('Error verifying/saving addresses:', addressError);
+      }
+      
+      // Clear guest checkout info from sessionStorage after successful setup
+      sessionStorage.removeItem('guest_checkout');
+      sessionStorage.removeItem('guest_first_name');
+      sessionStorage.removeItem('guest_last_name');
+      sessionStorage.removeItem('guest_email');
+      sessionStorage.removeItem('guest_phone');
+
+    } catch (error: any) {
+      console.error('Failed to complete account setup:', error);
+      setGuestAccountError(error.message || 'Failed to complete account setup. Please try again or contact support.');
+      toast.error('Failed to complete account setup. Please try again.');
+    } finally {
+      setIsCreatingGuestAccount(false);
+    }
   };
 
   return (
@@ -324,6 +495,91 @@ const OrderConfirmationPage: React.FC = () => {
                   )}
                 </ul>
               </div>
+              
+              {/* Guest Account Creation Section */}
+              {guestCheckout && !guestAccountCreated && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-lg p-6 text-left">
+                  <div className="flex items-start mb-4">
+                    <div className="flex-shrink-0">
+                      <svg className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        🔐 Secure Your Account
+                      </h3>
+                      <p className="text-gray-700 mb-4">
+                        Your order is linked to {guestEmail}. Set a password now to secure your account and access all your orders anytime.
+                      </p>
+                      
+                      {guestAccountError && (
+                        <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+                          <p className="text-sm text-red-700">{guestAccountError}</p>
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={handleCreateGuestAccount}
+                        disabled={isCreatingGuestAccount}
+                        className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white font-medium px-6 py-2 rounded-md transition-colors flex items-center"
+                      >
+                        {isCreatingGuestAccount ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"></circle>
+                              <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" opacity="0.75"></path>
+                            </svg>
+                            Setting Up...
+                          </>
+                        ) : (
+                          'Set Password Now'
+                        )}
+                      </button>
+                      <p className="text-xs text-gray-600 mt-3">
+                        You can skip this now and set your password anytime from your account dashboard.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Account Successfully Created */}
+              {guestAccountCreated && (
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6 text-left">
+                  <div className="flex items-start">
+                    <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="ml-3 flex-1">
+                      <h3 className="text-lg font-semibold text-green-900 mb-2">
+                        ✅ Account Secured!
+                      </h3>
+                      <p className="text-green-800 mb-3">
+                        Your account is now active. You can log in with your email and the credentials we've sent to <strong>{guestEmail}</strong>.
+                      </p>
+                      <div className="bg-white rounded p-3 border border-green-200 mb-4">
+                        <p className="text-sm font-medium text-gray-800 mb-2">📧 Your Email:</p>
+                        <p className="text-sm text-gray-600">{guestEmail}</p>
+                        {guestAccountPassword && (
+                          <>
+                            <p className="text-sm font-medium text-gray-800 mt-2 mb-1">🔐 Temporary Password:</p>
+                            <p className="text-sm font-mono bg-gray-100 p-2 rounded break-all">{guestAccountPassword}</p>
+                            <p className="text-xs text-gray-600 mt-2">
+                              ⚠️ This is your temporary password. Please change it after logging in for security.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => window.location.href = '/myaccount?tab=orders'}
+                        className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-md transition-colors"
+                      >
+                        Go to My Account
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <p className="text-gray-600">
                 If you have any questions about your order, please contact our customer support.
               </p>

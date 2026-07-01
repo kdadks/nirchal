@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { upsertCustomerByEmail, createOrderWithItems, updateCustomerProfile, markWelcomeEmailSent } from '../utils/orders';
+import { createOrderWithItems, updateCustomerProfile } from '../utils/orders';
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 import { transactionalEmailService } from '../services/transactionalEmailService';
 import { useRazorpay } from '../hooks/useRazorpay';
@@ -14,7 +14,6 @@ import PaymentSecurityWrapper from '../components/security/PaymentSecurityWrappe
 import SecurePaymentForm from '../components/security/SecurePaymentForm';
 import StateDropdown from '../components/common/StateDropdown';
 import CityDropdown from '../components/common/CityDropdown';
-import { SecurityUtils } from '../utils/securityUtils';
 import SEO from '../components/SEO';
 import { trackBeginCheckout, trackPurchase } from '../utils/analytics';
 import { markCheckoutStarted, markCheckoutCompleted, savePaymentFailedCart } from '../hooks/useCartAbandonment';
@@ -101,18 +100,26 @@ const getPhoneFormatForCurrency = (currency: string): { placeholder: string; lab
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { state: { items }, clearCart } = useCart();
   const { supabase } = useAuth();
   const { customer } = useCustomerAuth();
   const { isInternational, getConvertedPrice, getCurrencySymbol, currency } = useCurrency();
   const { isLoaded: isRazorpayLoaded, createOrder: createRazorpayOrder, openCheckout: openRazorpayCheckout, verifyPayment: verifyRazorpayPayment } = useRazorpay();
   
+  // Recovery mode tracking
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [recoveryOrderNumber, setRecoveryOrderNumber] = useState<string | null>(null);
+  
   // Calculate dynamic total based on original prices and current currency
-  // Fallback to item.price if originalPrice doesn't exist (for backward compatibility)
-  const dynamicTotal = items.reduce((sum, item) => {
-    const priceToConvert = item.originalPrice || item.price;
-    return sum + getConvertedPrice(priceToConvert, item.category) * item.quantity;
-  }, 0);
+  // Use unrounded conversion prices and sum them, then round the final total
+  // This prevents compounding rounding errors on multi-item orders
+  const dynamicTotal = Math.round(
+    items.reduce((sum, item) => {
+      const priceToConvert = item.originalPrice || item.price;
+      return sum + getConvertedPrice(priceToConvert, item.category, true) * item.quantity;
+    }, 0)
+  );
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOrderProcessing, setIsOrderProcessing] = useState(false);
@@ -156,14 +163,16 @@ const CheckoutPage: React.FC = () => {
   const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
   const [paymentSplit, setPaymentSplit] = useState<'full' | 'split'>('full'); // full = pay all now, split = products now + services COD
 
-  // Calculate product and service totals separately
+  // Calculate product and service totals separately using unrounded prices
+  // Round final amounts to prevent compounding rounding errors
   const calculatePaymentSplit = () => {
     let productTotal = 0;
     let serviceTotal = 0;
 
     items.forEach(item => {
       const priceToConvert = item.originalPrice || item.price;
-      const itemTotal = getConvertedPrice(priceToConvert, item.category) * item.quantity;
+      // Use unrounded prices during summation
+      const itemTotal = getConvertedPrice(priceToConvert, item.category, true) * item.quantity;
       // Check if item is a service (size is 'Service' or 'Custom')
       if (item.size === 'Service' || item.size === 'Custom') {
         serviceTotal += itemTotal;
@@ -172,12 +181,70 @@ const CheckoutPage: React.FC = () => {
       }
     });
 
-    return { productTotal, serviceTotal };
+    // Round final totals to prevent fractional currency units
+    return { productTotal: Math.round(productTotal), serviceTotal: Math.round(serviceTotal) };
   };
 
   const { productTotal, serviceTotal } = calculatePaymentSplit();
   const hasServices = serviceTotal > 0;
   const hasProducts = productTotal > 0;
+
+  // Detect recovery mode and pre-fill form from order
+  useEffect(() => {
+    const recoveryOrderParam = searchParams.get('recover_order');
+    if (recoveryOrderParam) {
+      setRecoveryOrderNumber(recoveryOrderParam);
+      setIsRecoveryMode(true);
+      loadRecoveryOrder(recoveryOrderParam);
+    }
+  }, [searchParams]);
+
+  // Load order data for recovery mode
+  const loadRecoveryOrder = async (orderNumber: string) => {
+    try {
+      const { data: order, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('order_number', orderNumber)
+        .single();
+      
+      if (error || !order) {
+        console.error('Failed to load recovery order:', error);
+        toast.error('❌ Could not find order. Please enter details again.');
+        return;
+      }
+      
+      // Pre-fill form with order details
+      setForm(prev => ({
+        ...prev,
+        firstName: order.shipping_first_name || '',
+        lastName: order.shipping_last_name || '',
+        email: order.email || '',
+        phone: order.shipping_phone || '',
+        deliveryCountry: order.shipping_country || 'IN',
+        deliveryAddress: order.shipping_address_line_1 || '',
+        deliveryAddressLine2: order.shipping_address_line_2 || '',
+        deliveryCity: order.shipping_city || '',
+        deliveryState: order.shipping_state || '',
+        deliveryPincode: order.shipping_postal_code || '',
+        billingFirstName: order.billing_first_name || '',
+        billingLastName: order.billing_last_name || '',
+        billingAddress: order.billing_address_line_1 || '',
+        billingAddressLine2: order.billing_address_line_2 || '',
+        billingCity: order.billing_city || '',
+        billingState: order.billing_state || '',
+        billingPincode: order.billing_postal_code || '',
+        billingPhone: order.billing_phone || '',
+        billingCountry: order.billing_country || 'IN',
+      }));
+      
+      console.log('✅ Recovery order loaded:', orderNumber);
+      toast.success('✅ Order details loaded. Please complete payment.', { duration: 3000 });
+    } catch (error) {
+      console.error('Error loading recovery order:', error);
+      toast.error('❌ Error loading order details.');
+    }
+  };
 
   // Load customer addresses if logged in
   useEffect(() => {
@@ -503,41 +570,26 @@ const CheckoutPage: React.FC = () => {
 
     try {
       // 1) If logged in, update their profile (email is read-only)
+      // For guests: skip account creation, allow checkout with null customer_id
       let customerId: string | null = customer?.id || null;
       let shouldSendWelcomeEmail = false;
       let tempPassword: string | null = null;
       
       if (customer) {
+        // Logged-in user: update profile
         await updateCustomerProfile(supabase, {
           id: customer.id,
           first_name: form.firstName.trim() || 'Guest',
           last_name: form.lastName.trim() || 'User',
           phone: form.phone.trim() || undefined,
         });
-      } else {
-        // Not logged in: upsert by email to create a customer record
-        const customerRes = await upsertCustomerByEmail(supabase, {
-          email: form.email.trim(),
-          first_name: form.firstName.trim() || 'Guest',
-          last_name: form.lastName.trim() || 'User',
-          phone: form.phone.trim() || undefined,
-        });
-        customerId = customerRes?.id || null;
-        
-        // Determine if we should send welcome email
-        shouldSendWelcomeEmail = customerRes?.needsWelcomeEmail || false;
-        tempPassword = customerRes?.tempPassword || null;
-        
-
-        
-        // Store temp password info if this is a new customer with temp password
-        if (tempPassword && !customerRes?.existingCustomer) {
-          sessionStorage.setItem('new_customer_temp_password', tempPassword);
-          sessionStorage.setItem('new_customer_email', form.email.trim());
-        }
       }
+      // For guests: DO NOT create account automatically
+      // They can create account after successful payment if they choose to
 
-      // 2) Create/Upsert delivery address with proper flags
+      // 2) Skip address saving for guest users
+      // Guest addresses are not persisted until they create an account after purchase
+      // Logged-in users: Save/upsert delivery address with proper flags
       if (customerId) {
         try {
           // Save delivery address
@@ -590,25 +642,9 @@ const CheckoutPage: React.FC = () => {
         }
       }
 
-      // 2.5) Send welcome email to new customers BEFORE payment attempt
-      // This ensures they have login credentials even if payment fails
-      if (shouldSendWelcomeEmail && customerId && tempPassword) {
-        try {
-          await transactionalEmailService.sendWelcomeEmail({
-            first_name: form.firstName,
-            last_name: form.lastName,
-            email: form.email,
-            temp_password: SecurityUtils.decryptTempData(tempPassword) // Decrypt temp password for email
-          });
-
-          // Mark welcome email as sent in database
-          await markWelcomeEmailSent(supabase, customerId);
-        } catch (emailError: any) {
-          console.error('Failed to send welcome email:', emailError);
-          // Don't fail the entire checkout if welcome email fails
-          toast.error('Welcome email could not be sent, but you can still complete checkout. Check spam folder for email.');
-        }
-      }
+      // 2.5) Skip pre-payment welcome emails
+      // For guests: account creation (and welcome email) happens AFTER payment confirms
+      // For logged-in users: welcome email was already sent during signup
 
       // 3) Create order with items
       // Calculate shipping cost based on method selected
@@ -877,13 +913,17 @@ const CheckoutPage: React.FC = () => {
                 
                 // Send payment failure email for actual failures
                 try {
+                  // Generate recovery link for guest checkout
+                  const recoveryLink = `${window.location.origin}/checkout?recover_order=${order.order_number}`;
+                  
                   await transactionalEmailService.sendPaymentFailureEmail({
                     customer_name: `${form.firstName} ${form.lastName}`,
                     customer_email: form.email,
                     order_number: order.order_number,
                     amount: finalTotal,
                     error_reason: errorMessage,
-                    currency: currency
+                    currency: currency,
+                    recovery_link: recoveryLink
                   });
 
                 } catch (emailError) {
@@ -900,6 +940,7 @@ const CheckoutPage: React.FC = () => {
                   totalValue: finalTotal,
                   orderNumber: order.order_number,
                   failureReason: errorMessage,
+                  currency: currency,
                 }).catch(() => {});
 
                 toast.error('❌ Payment verification failed. Please contact support.', {
@@ -914,13 +955,17 @@ const CheckoutPage: React.FC = () => {
                 
                 // Send payment failure email for cancelled payments
                 try {
+                  // Generate recovery link for guest checkout
+                  const recoveryLink = `${window.location.origin}/checkout?recover_order=${order.order_number}`;
+                  
                   await transactionalEmailService.sendPaymentFailureEmail({
                     customer_name: `${form.firstName} ${form.lastName}`,
                     customer_email: form.email,
                     order_number: order.order_number,
                     amount: finalTotal,
                     error_reason: 'Payment cancelled by user',
-                    currency: currency
+                    currency: currency,
+                    recovery_link: recoveryLink
                   });
                 } catch (emailError) {
                   console.error('Failed to send payment cancellation email:', emailError);
@@ -936,6 +981,7 @@ const CheckoutPage: React.FC = () => {
                   totalValue: finalTotal,
                   orderNumber: order.order_number,
                   failureReason: 'Payment cancelled by user',
+                  currency: currency,
                 }).catch(() => {});
 
                 // Save order details for confirmation page
@@ -1013,6 +1059,7 @@ const CheckoutPage: React.FC = () => {
             totalValue: finalTotal,
             orderNumber: order.order_number,
             failureReason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed',
+            currency: currency,
           }).catch(() => {});
 
           toast.error('⚠️ Payment initialization failed. Please try again.', {
@@ -1102,9 +1149,34 @@ const CheckoutPage: React.FC = () => {
       console.error('Failed to track purchase in Meta Pixel:', metaError);
     }
     
-    // NOTE: Welcome email is now sent BEFORE payment attempt (see step 2.5)
-    // This ensures new customers get login credentials even if payment fails
-    
+    // NOTE: For guests, automatically create customer record after payment success
+    // This ensures all guest orders are linked to a customer and all details are captured
+    // When guest decides to create account later with same email, they'll see all their orders
+    if (!customer) {
+      try {
+        const { upsertCustomerByEmail } = await import('../utils/orders');
+        const guestCustomerRes = await upsertCustomerByEmail(supabase, {
+          email: form.email.trim(),
+          first_name: form.firstName.trim() || 'Guest',
+          last_name: form.lastName.trim() || 'User',
+          phone: form.phone.trim() || undefined,
+        });
+
+        if (guestCustomerRes?.id) {
+          // Update the order to link it to this customer
+          await supabase
+            .from('orders')
+            .update({ customer_id: guestCustomerRes.id })
+            .eq('id', order.id);
+
+          console.log('✅ Guest customer record created and linked to order:', guestCustomerRes.id);
+        }
+      } catch (guestAccountError) {
+        console.error('Failed to create guest customer record (non-fatal):', guestAccountError);
+        // Order is still created, just not linked to customer yet
+      }
+    }
+
     // ALWAYS send order received email for successful orders (not confirmation yet)
     // For customers with temp password: Send after 30 seconds delay
     // For all other customers: Send immediately
@@ -1175,7 +1247,22 @@ const CheckoutPage: React.FC = () => {
     
     if (form?.email) {
       sessionStorage.setItem('last_order_email', form.email.trim());
+    }
 
+    // Save guest checkout info for post-payment account creation
+    if (!customer) {
+      sessionStorage.setItem('guest_checkout', 'true');
+      sessionStorage.setItem('guest_first_name', form.firstName.trim());
+      sessionStorage.setItem('guest_last_name', form.lastName.trim());
+      sessionStorage.setItem('guest_email', form.email.trim());
+      sessionStorage.setItem('guest_phone', form.phone.trim());
+      // Guest can create account after confirming payment
+    } else {
+      sessionStorage.removeItem('guest_checkout');
+      sessionStorage.removeItem('guest_first_name');
+      sessionStorage.removeItem('guest_last_name');
+      sessionStorage.removeItem('guest_email');
+      sessionStorage.removeItem('guest_phone');
     }
 
     // Save delivery country for Google Customer Reviews opt-in
@@ -1459,6 +1546,19 @@ const CheckoutPage: React.FC = () => {
               Back to Cart
             </Link>
           </div>
+
+          {/* Recovery Mode Banner */}
+          {isRecoveryMode && recoveryOrderNumber && (
+            <div className="mb-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+              <div className="flex items-center gap-2">
+                <div className="text-blue-500">ℹ️</div>
+                <div>
+                  <p className="text-blue-900 font-semibold">Payment Recovery Mode</p>
+                  <p className="text-blue-800 text-sm">Retrying payment for order <span className="font-mono font-semibold">#{recoveryOrderNumber}</span>. Your details have been pre-filled.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Progress Steps */}
           <div className="flex items-center justify-center mb-8">

@@ -96,6 +96,7 @@ export const savePaymentFailedCart = async ({
   totalValue,
   orderNumber,
   failureReason,
+  currency,
 }: {
   customerName: string;
   customerEmail: string;
@@ -114,6 +115,7 @@ export const savePaymentFailedCart = async ({
   totalValue: number;
   orderNumber?: string;
   failureReason?: string;
+  currency?: string;
 }): Promise<void> => {
   try {
     const visitorId = getVisitorId();
@@ -131,6 +133,7 @@ export const savePaymentFailedCart = async ({
       cart_items: items,
       total_items: items.reduce((sum, item) => sum + item.quantity, 0),
       total_value: totalValue,
+      currency: currency || 'INR',
       abandoned_at: new Date().toISOString(),
       status: 'payment_failed',
       notes,

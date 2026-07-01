@@ -494,9 +494,13 @@ export const outlookCompatiblePaymentFailedEmail = (
   amount: string, 
   errorReason: string,
   websiteUrl: string,
-  currency?: string
+  currency?: string,
+  recoveryLink?: string
 ) => {
   const currencySymbol = getCurrencySymbol(currency);
+  // Use recovery link if provided, otherwise fall back to myaccount/orders
+  const ctaUrl = recoveryLink || `${websiteUrl}/myaccount/orders`;
+  
   return OutlookCompatibleEmailTemplate.generate({
     title: 'Payment Failed',
     headerText: '❌ Payment Could Not Be Processed',
@@ -517,7 +521,7 @@ export const outlookCompatiblePaymentFailedEmail = (
       'Please try again or contact our support team if you continue to experience issues.'
     ],
     ctaText: '🔄 Retry Payment',
-    ctaUrl: `${websiteUrl}/myaccount/orders`,
+    ctaUrl: ctaUrl,
     footerText: 'Need help? Contact our support team',
     websiteUrl
   });

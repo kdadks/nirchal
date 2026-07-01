@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
+import { formatCurrency as formatCurrencyUtil } from '../utils/formatCurrency';
 
 export type Currency = 'INR' | 'USD' | 'EUR';
 
 interface CurrencyContextType {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
-  getConvertedPrice: (price: number, category?: string) => number;
+  getConvertedPrice: (price: number, category?: string, skipRounding?: boolean) => number;
   getCurrencySymbol: () => string;
   getCurrencyLabel: () => string;
+  formatCurrency: (amount: number) => string; // Formats amount with current currency
   isInternational: boolean; // Whether user is outside India
   allowedCurrencies: Currency[]; // Only currencies available in user's region
   detectedCountry: string; // ISO country code detected from IP
@@ -214,7 +216,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('preferredCurrency', newCurrency);
   };
 
-  const getConvertedPrice = (inrPrice: number, category?: string): number => {
+  const getConvertedPrice = (inrPrice: number, category?: string, skipRounding = false): number => {
     if (currency === 'INR') {
       return inrPrice;
     }
@@ -231,7 +233,8 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const fallback = currency === 'USD' ? 88 : 102;
       const fallbackWithMarkup = fallback - 5;
       const multiplier = currency === 'USD' ? 2 : 1.5;
-      return Math.round((inrPrice / fallbackWithMarkup) * multiplier);
+      const result = (inrPrice / fallbackWithMarkup) * multiplier;
+      return skipRounding ? result : Math.round(result);
     }
     
     const markup = 5; // Rs 5 markup (subtracted from base rate)
@@ -243,7 +246,8 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const multiplier = currency === 'USD' ? 2 : (currency === 'EUR' ? 1.5 : 1);
     const convertedPrice = (inrPrice / rateWithMarkup) * multiplier;
     
-    let finalPrice = Math.round(convertedPrice);
+    // Round if not skipping rounding
+    let finalPrice = skipRounding ? convertedPrice : Math.round(convertedPrice);
     
     // Apply category-specific minimum prices for EUR
     if (currency === 'EUR' && category && CATEGORY_MIN_PRICES_EUR[category]) {
@@ -273,6 +277,10 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return currency;
   };
 
+  const formatCurrency = (amount: number): string => {
+    return formatCurrencyUtil(amount, currency);
+  };
+
   return (
     <CurrencyContext.Provider
       value={{
@@ -281,6 +289,7 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         getConvertedPrice,
         getCurrencySymbol,
         getCurrencyLabel,
+        formatCurrency,
         isInternational,
         allowedCurrencies,
         detectedCountry,

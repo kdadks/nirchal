@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Mail, Phone, MapPin, Calendar, Package, User, AlertCircle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import toast from 'react-hot-toast';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 
 interface CustomerAddress {
   id: number;
@@ -26,6 +27,7 @@ interface CustomerOrder {
   id: string | number;
   order_number: string;
   total_amount: number;
+  currency?: string;
   payment_status: string;
   status: string;
   created_at: string;
@@ -114,6 +116,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
           id,
           order_number,
           total_amount,
+          currency,
           payment_status,
           status,
           created_at
@@ -494,7 +497,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
                               })}
                             </td>
                             <td className="py-3 px-4 text-gray-900 font-medium">
-                              ₹{(order.total_amount || 0).toLocaleString('en-IN')}
+                              {getCurrencySymbol((order.currency || 'INR') as any)}{(order.total_amount || 0).toLocaleString('en-IN')}
                             </td>
                             <td className="py-3 px-4">
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${

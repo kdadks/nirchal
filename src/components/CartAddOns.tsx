@@ -534,6 +534,7 @@ const ProductSelectionModal: React.FC<{
       price: cartPrice,
       originalPrice: selectedProduct.price, // Store INR price for recalculation on currency change
       image: imageToUse,
+      variantId: selectedVariant?.id || undefined, // Add variantId from selected variant
       size: selectedSize || selectedProduct.sizes?.[0] || 'One Size',
       color: selectedColor || selectedProduct.colors?.[0] || 'Default'
     });

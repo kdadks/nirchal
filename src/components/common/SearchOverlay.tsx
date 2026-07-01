@@ -3,6 +3,7 @@ import { Search, X, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { usePublicProducts } from '../../hooks/usePublicProducts';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose }) => {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();
   const { products } = usePublicProducts();
 
   // Load recent searches from localStorage
@@ -201,11 +203,11 @@ const SearchOverlay: React.FC<SearchOverlayProps> = ({ isOpen, onClose }) => {
                           <div className="flex items-center space-x-2">
                             {result.sale_price && (
                               <span className="text-sm line-through text-gray-400">
-                                ₹{result.price}
+                                {formatCurrency(result.price)}
                               </span>
                             )}
                             <span className="font-semibold text-primary-600">
-                              ₹{result.sale_price || result.price}
+                              {formatCurrency(result.sale_price || result.price)}
                             </span>
                           </div>
                         </div>

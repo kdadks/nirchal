@@ -1,7 +1,15 @@
-export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-IN', {
+export const formatCurrency = (amount: number, currency: 'INR' | 'USD' | 'EUR' = 'INR'): string => {
+  // Get locale based on currency
+  let locale = 'en-IN';
+  if (currency === 'USD') {
+    locale = 'en-US';
+  } else if (currency === 'EUR') {
+    locale = 'de-DE';
+  }
+
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'INR',
+    currency: currency,
     maximumFractionDigits: 0
   }).format(amount);
 };

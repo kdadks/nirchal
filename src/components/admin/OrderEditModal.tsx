@@ -7,6 +7,7 @@ import { useLogisticsPartners } from '../../hooks/useAdmin';
 import StateDropdown from '../common/StateDropdown';
 import CityDropdown from '../common/CityDropdown';
 import toast from 'react-hot-toast';
+import { getCurrencySymbol } from '../../utils/currencyUtils';
 
 interface OrderItem {
   id: string;
@@ -382,8 +383,9 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
 
   const isReadOnly = orderDetails?.status === 'shipped' || orderDetails?.status === 'delivered' || orderDetails?.status === 'cancelled';
   const formatCurrency = (amount: number | undefined | null) => {
-    if (amount == null) return '₹0';
-    return `₹${amount.toLocaleString('en-IN')}`;
+    if (amount == null) return `${getCurrencySymbol((orderDetails?.currency || 'INR') as any)}0`;
+    const symbol = getCurrencySymbol((orderDetails?.currency || 'INR') as any);
+    return `${symbol}${amount.toLocaleString('en-IN')}`;
   };
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-IN');
   const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString('en-IN', {
