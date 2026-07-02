@@ -1049,13 +1049,17 @@ const CheckoutPage: React.FC = () => {
           
           // Send payment failure email for Razorpay initialization errors
           try {
+            // Generate recovery link for guest checkout
+            const recoveryLink = `${window.location.origin}/checkout?recover_order=${order.order_number}`;
+            
             await transactionalEmailService.sendPaymentFailureEmail({
               customer_name: `${form.firstName} ${form.lastName}`,
               customer_email: form.email,
               order_number: order.order_number,
               amount: finalTotal,
               error_reason: razorpayError instanceof Error ? razorpayError.message : 'Payment initialization failed',
-              currency: currency
+              currency: currency,
+              recovery_link: recoveryLink
             });
 
           } catch (emailError) {

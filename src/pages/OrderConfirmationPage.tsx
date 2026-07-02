@@ -330,8 +330,8 @@ const OrderConfirmationPage: React.FC = () => {
                   <p className="text-sm font-medium text-gray-900 mb-2">📌 What happens next?</p>
                   <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside">
                     <li>Your order is saved and reserved for you</li>
-                    <li>Go to <strong>My Account → Orders</strong> to view order details</li>
-                    <li>Click on the order to see full details and <strong className="text-orange-700">retry payment</strong></li>
+                    <li>Check your email for a payment link to complete your order</li>
+                    <li>Click the <strong>"Retry Payment"</strong> link in the email to return to checkout</li>
                     <li>Complete payment within 24 hours to avoid order cancellation</li>
                   </ul>
                 </div>
@@ -468,15 +468,11 @@ const OrderConfirmationPage: React.FC = () => {
         <div className="space-y-4">
           {paymentStatus === 'pending' ? (
             <div className="bg-blue-50 border-2 border-blue-300 text-blue-900 rounded-lg p-5 text-left">
-              <p className="font-semibold mb-3 text-lg">💡 How to Complete Payment:</p>
-              <ol className="list-decimal list-inside space-y-2 text-sm">
-                <li>Go to <strong>My Account</strong> page (click button below)</li>
-                <li>Navigate to the <strong>"Orders"</strong> tab</li>
-                <li>Find order <strong>#{orderNumber}</strong> and click to view details</li>
-                <li>Click the <strong>"Retry Payment"</strong> button in the order details</li>
-                <li>Complete payment to confirm your order</li>
-              </ol>
-              <p className="mt-4 text-xs text-blue-800 bg-blue-100 p-3 rounded">
+              <p className="font-semibold mb-3 text-lg">💡 Complete Your Payment:</p>
+              <p className="text-sm mb-4">
+                We've sent you a payment link via email. Click the <strong>"🔄 Retry Payment"</strong> button in that email to return to checkout with all your details pre-filled.
+              </p>
+              <p className="text-xs text-blue-800 bg-blue-100 p-3 rounded">
                 ⏰ <strong>Note:</strong> Orders with pending payment will be automatically cancelled after 24 hours. 
                 Please complete payment soon to secure your order.
               </p>
