@@ -373,9 +373,11 @@ const OrderConfirmationPage: React.FC = () => {
           </div>
         )}
         
-        <p className="text-lg text-gray-600 mb-8">
-          Your order has been successfully placed and will be processed shortly.
-        </p>
+        {paymentStatus !== 'failed' && (
+          <p className="text-lg text-gray-600 mb-8">
+            Your order has been successfully placed and will be processed shortly.
+          </p>
+        )}
 
         <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Order Details</h2>
