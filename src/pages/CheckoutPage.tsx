@@ -583,7 +583,26 @@ const CheckoutPage: React.FC = () => {
       navigate('/cart', { replace: true });
     }
   }, [items.length, navigate, isRecoveryMode, searchParams]);
-  if (items.length === 0 && !isRecoveryMode) return null;
+  
+  // Check recovery param directly to avoid timing issues with state updates
+  const hasRecoveryParam = searchParams.get('recover_order');
+  
+  // Only return null if cart is empty AND we're not in recovery mode
+  if (items.length === 0 && !isRecoveryMode && !hasRecoveryParam) {
+    return null;
+  }
+  
+  // If loading recovery order (cart empty but recovery param exists), show loading screen
+  if (items.length === 0 && hasRecoveryParam && !recoveryOrderItems.length) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your order details...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
