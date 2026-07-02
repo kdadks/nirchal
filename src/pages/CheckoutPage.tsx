@@ -111,13 +111,18 @@ const CheckoutPage: React.FC = () => {
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [recoveryOrderNumber, setRecoveryOrderNumber] = useState<string | null>(null);
   const [recoveryOrderItems, setRecoveryOrderItems] = useState<any[]>([]);
+  const [recoveryOrderData, setRecoveryOrderData] = useState<any>(null);
   
   // Calculate dynamic total using pre-converted prices from cart
   // item.price is already converted to customer's currency, so use it directly
   // This prevents double-conversion and rounding errors
+  // In recovery mode, use recovery items; otherwise use cart items
+  const itemsToCalculate = isRecoveryMode && recoveryOrderItems.length > 0 ? recoveryOrderItems : items;
   const dynamicTotal = Math.round(
-    items.reduce((sum, item) => {
-      return sum + item.price * item.quantity;
+    itemsToCalculate.reduce((sum, item) => {
+      const itemPrice = isRecoveryMode ? item.unit_price : item.price;
+      const quantity = item.quantity;
+      return sum + itemPrice * quantity;
     }, 0)
   );
   
@@ -169,11 +174,17 @@ const CheckoutPage: React.FC = () => {
     let productTotal = 0;
     let serviceTotal = 0;
 
-    items.forEach(item => {
+    // In recovery mode, use recovery items; otherwise use cart items
+    const itemsForSplit = isRecoveryMode && recoveryOrderItems.length > 0 ? recoveryOrderItems : items;
+    
+    itemsForSplit.forEach(item => {
       // Use pre-converted item.price directly (already in customer's currency)
-      const itemTotal = item.price * item.quantity;
+      // Recovery items use unit_price, cart items use price
+      const itemPrice = isRecoveryMode ? item.unit_price : item.price;
+      const itemTotal = itemPrice * item.quantity;
       // Check if item is a service (size is 'Service' or 'Custom')
-      if (item.size === 'Service' || item.size === 'Custom') {
+      const itemSize = isRecoveryMode ? item.variant_size : item.size;
+      if (itemSize === 'Service' || itemSize === 'Custom') {
         serviceTotal += itemTotal;
       } else {
         productTotal += itemTotal;
@@ -241,6 +252,9 @@ const CheckoutPage: React.FC = () => {
       
       // Store recovery order items
       setRecoveryOrderItems(orderItems || []);
+      
+      // Store recovery order data for access to totals
+      setRecoveryOrderData(order);
       
       // Pre-fill form with order details
       setForm(prev => ({
@@ -722,9 +736,9 @@ const CheckoutPage: React.FC = () => {
       
       // Calculate totals from items being used for order
       let totalAmount = 0;
-      if (isRecoveryMode && recoveryOrderItems.length > 0) {
-        // Sum up recovery order items totals
-        totalAmount = recoveryOrderItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
+      if (isRecoveryMode && recoveryOrderData) {
+        // Use the original order's total (already in customer's currency)
+        totalAmount = recoveryOrderData.total_amount || 0;
       } else {
         // Use cart totals
         totalAmount = dynamicTotal;
