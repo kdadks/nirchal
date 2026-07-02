@@ -11,11 +11,10 @@ const CartPage: React.FC = () => {
   const { state: { items }, updateQuantity, removeFromCart } = useCart();
   const { getCurrencySymbol, isInternational, getConvertedPrice } = useCurrency();
   
-  // Calculate dynamic total based on original prices and current currency
-  // Fallback to item.price if originalPrice doesn't exist (for backward compatibility)
+  // Calculate dynamic total using pre-converted prices from cart
+  // item.price is already converted to customer's currency, so use it directly
   const dynamicTotal = items.reduce((sum, item) => {
-    const priceToConvert = item.originalPrice || item.price;
-    return sum + getConvertedPrice(priceToConvert, item.category) * item.quantity;
+    return sum + item.price * item.quantity;
   }, 0);
   
   // Track view cart event when cart has items

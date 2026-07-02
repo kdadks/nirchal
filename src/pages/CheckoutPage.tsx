@@ -111,13 +111,12 @@ const CheckoutPage: React.FC = () => {
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [recoveryOrderNumber, setRecoveryOrderNumber] = useState<string | null>(null);
   
-  // Calculate dynamic total based on original prices and current currency
-  // Use unrounded conversion prices and sum them, then round the final total
-  // This prevents compounding rounding errors on multi-item orders
+  // Calculate dynamic total using pre-converted prices from cart
+  // item.price is already converted to customer's currency, so use it directly
+  // This prevents double-conversion and rounding errors
   const dynamicTotal = Math.round(
     items.reduce((sum, item) => {
-      const priceToConvert = item.originalPrice || item.price;
-      return sum + getConvertedPrice(priceToConvert, item.category, true) * item.quantity;
+      return sum + item.price * item.quantity;
     }, 0)
   );
   
@@ -170,9 +169,8 @@ const CheckoutPage: React.FC = () => {
     let serviceTotal = 0;
 
     items.forEach(item => {
-      const priceToConvert = item.originalPrice || item.price;
-      // Use unrounded prices during summation
-      const itemTotal = getConvertedPrice(priceToConvert, item.category, true) * item.quantity;
+      // Use pre-converted item.price directly (already in customer's currency)
+      const itemTotal = item.price * item.quantity;
       // Check if item is a service (size is 'Service' or 'Custom')
       if (item.size === 'Service' || item.size === 'Custom') {
         serviceTotal += itemTotal;
