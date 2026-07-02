@@ -2484,7 +2484,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="flex justify-between items-center mt-1.5">
                           <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
                           <span className="font-semibold text-gray-900 text-sm">
-                            {getCurrencySymbol()}{(getConvertedPrice(item.originalPrice || item.price, item.category) * item.quantity).toLocaleString(undefined)}
+                            {getCurrencySymbol()}{(item.price * item.quantity).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </span>
                         </div>
                       </div>

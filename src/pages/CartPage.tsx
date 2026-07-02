@@ -180,10 +180,10 @@ const CartPage: React.FC = () => {
                       {/* Price */}
                       <div className="text-right">
                         <p className="text-base font-bold text-gray-900 mb-0.5">
-                          {getCurrencySymbol()}{(getConvertedPrice(item.originalPrice || item.price, item.category) * item.quantity).toLocaleString()}
+                          {getCurrencySymbol()}{(item.price * item.quantity).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {getCurrencySymbol()}{getConvertedPrice(item.originalPrice || item.price, item.category).toLocaleString()} each
+                          {getCurrencySymbol()}{item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })} each
                         </p>
                       </div>
                     </div>
