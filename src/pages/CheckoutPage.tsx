@@ -188,6 +188,21 @@ const CheckoutPage: React.FC = () => {
   const hasServices = serviceTotal > 0;
   const hasProducts = productTotal > 0;
 
+  // For recovery mode: use recovery items; for normal mode: use cart items
+  const displayItems = isRecoveryMode && recoveryOrderItems.length > 0 
+    ? recoveryOrderItems.map(item => ({
+        id: item.product_id,
+        name: item.product_name,
+        quantity: item.quantity,
+        price: item.unit_price,
+        size: item.variant_size,
+        color: item.variant_color,
+        colorHex: undefined, // Recovery items don't have color hex data
+        image: '', // Recovery items don't have images, will show placeholder
+        variantId: item.product_variant_id,
+      }))
+    : items;
+
   // Detect recovery mode and pre-fill form from order
   useEffect(() => {
     const recoveryOrderParam = searchParams.get('recover_order');
@@ -251,7 +266,7 @@ const CheckoutPage: React.FC = () => {
         billingCountry: order.billing_country || 'IN',
       }));
       
-      console.log('✅ Recovery order loaded:', orderNumber, 'with', orderItems?.length || 0, 'items');
+      console.log('✅ Recovery order loaded:', orderNumber, 'with', orderItems?.length || 0, 'items', orderItems);
       toast.success('✅ Order details loaded. Please complete payment.', { duration: 3000 });
     } catch (error) {
       console.error('Error loading recovery order:', error);
@@ -563,10 +578,11 @@ const CheckoutPage: React.FC = () => {
   // Redirect to cart if empty (avoid navigating during render)
   // BUT allow recovery mode to proceed without cart items
   useEffect(() => {
-    if (items.length === 0 && !isRecoveryMode) {
+    const hasRecoveryParam = searchParams.get('recover_order');
+    if (items.length === 0 && !isRecoveryMode && !hasRecoveryParam) {
       navigate('/cart', { replace: true });
     }
-  }, [items.length, navigate, isRecoveryMode]);
+  }, [items.length, navigate, isRecoveryMode, searchParams]);
   if (items.length === 0 && !isRecoveryMode) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2509,7 +2525,7 @@ const CheckoutPage: React.FC = () => {
                 </h2>
                 
                 <div className="space-y-2.5 mb-4">
-                  {items.map((item) => {
+                  {displayItems.map((item) => {
                     const colorLabel = item.colorHex
                       ? `${item.color || ''} (${item.colorHex.toUpperCase()})`.trim()
                       : item.color;
@@ -2531,6 +2547,10 @@ const CheckoutPage: React.FC = () => {
                           src={item.image}
                           alt={item.name}
                           className="w-12 h-12 object-cover rounded flex-shrink-0"
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48"%3E%3Crect fill="%23e5e7eb" width="48" height="48"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="12" fill="%239ca3af"%3E📦%3C/text%3E%3C/svg%3E';
+                          }}
                         />
                       )}
                       <div className="flex-1 min-w-0">
