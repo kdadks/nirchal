@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Truck, Shield, CheckCircle, ShoppingBag, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCart } from '../contexts/CartContext';
@@ -101,7 +101,7 @@ const getPhoneFormatForCurrency = (currency: string): { placeholder: string; lab
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { state: { items }, clearCart } = useCart();
+  const { state: { items }, clearCart, addToCart } = useCart();
   const { supabase } = useAuth();
   const { customer } = useCustomerAuth();
   const { isInternational, getConvertedPrice, getCurrencySymbol, currency } = useCurrency();
@@ -208,8 +208,8 @@ const CheckoutPage: React.FC = () => {
         price: item.unit_price,
         size: item.variant_size,
         color: item.variant_color,
-        colorHex: undefined, // Recovery items don't have color hex data
-        image: '', // Recovery items don't have images, will show placeholder
+        colorHex: item.colorHex, // Now populated from product_variants
+        image: item.image || '', // Now populated from product_variants
         variantId: item.product_variant_id,
       }))
     : items;
@@ -239,7 +239,7 @@ const CheckoutPage: React.FC = () => {
         return;
       }
       
-      // Load order items
+      // Load order items with full product variant details
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select('*')
@@ -250,8 +250,38 @@ const CheckoutPage: React.FC = () => {
         toast.error('⚠️ Could not load order items. Please review your order.');
       }
       
-      // Store recovery order items
-      setRecoveryOrderItems(orderItems || []);
+      // Fetch product variant details (images, colorHex) for each item
+      let itemsWithDetails = orderItems || [];
+      if (itemsWithDetails.length > 0) {
+        itemsWithDetails = await Promise.all(
+          itemsWithDetails.map(async (item) => {
+            if (!item.product_variant_id) {
+              // Service item - no variant details needed
+              return { ...item, colorHex: undefined, image: '' };
+            }
+            
+            try {
+              const { data: variant } = await supabase
+                .from('product_variants')
+                .select('color_hex, images')
+                .eq('id', item.product_variant_id)
+                .single();
+              
+              return {
+                ...item,
+                colorHex: variant?.color_hex,
+                image: variant?.images?.[0] || ''
+              };
+            } catch (err) {
+              console.error('Failed to fetch variant details:', err);
+              return { ...item, colorHex: undefined, image: '' };
+            }
+          })
+        );
+      }
+      
+      // Store recovery order items with details
+      setRecoveryOrderItems(itemsWithDetails);
       
       // Store recovery order data for access to totals
       setRecoveryOrderData(order);
@@ -1650,13 +1680,37 @@ const CheckoutPage: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           {/* Back to Cart Link */}
           <div className="mb-8">
-            <Link
-              to="/cart"
-              className="inline-flex items-center gap-2 text-amber-700 hover:text-amber-800 font-medium transition-colors duration-200"
+            <button
+              onClick={() => {
+                // If in recovery mode, add recovery items to cart before going back
+                if (isRecoveryMode && recoveryOrderItems.length > 0) {
+                  recoveryOrderItems.forEach(item => {
+                    // Add each recovery item back to cart for each unit
+                    const itemToAdd = {
+                      id: item.product_id,
+                      name: item.product_name,
+                      price: item.unit_price,
+                      originalPrice: item.unit_price, // Use unit price as original (already in customer currency)
+                      size: item.variant_size,
+                      color: item.variant_color,
+                      image: item.image || '',
+                      colorHex: item.colorHex,
+                      variantId: item.product_variant_id,
+                    };
+                    // Add item quantity times
+                    for (let i = 0; i < item.quantity; i++) {
+                      addToCart(itemToAdd);
+                    }
+                  });
+                  toast.success('Order items added to cart', { duration: 2000 });
+                }
+                navigate('/cart');
+              }}
+              className="inline-flex items-center gap-2 text-amber-700 hover:text-amber-800 font-medium transition-colors duration-200 bg-none border-none cursor-pointer"
             >
               <ArrowLeft size={20} />
               Back to Cart
-            </Link>
+            </button>
           </div>
 
           {/* Recovery Mode Banner */}
