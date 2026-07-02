@@ -110,6 +110,7 @@ const CheckoutPage: React.FC = () => {
   // Recovery mode tracking
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [recoveryOrderNumber, setRecoveryOrderNumber] = useState<string | null>(null);
+  const [recoveryOrderItems, setRecoveryOrderItems] = useState<any[]>([]);
   
   // Calculate dynamic total using pre-converted prices from cart
   // item.price is already converted to customer's currency, so use it directly
@@ -212,6 +213,20 @@ const CheckoutPage: React.FC = () => {
         return;
       }
       
+      // Load order items
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', order.id);
+      
+      if (itemsError) {
+        console.error('Failed to load recovery order items:', itemsError);
+        toast.error('⚠️ Could not load order items. Please review your order.');
+      }
+      
+      // Store recovery order items
+      setRecoveryOrderItems(orderItems || []);
+      
       // Pre-fill form with order details
       setForm(prev => ({
         ...prev,
@@ -236,7 +251,7 @@ const CheckoutPage: React.FC = () => {
         billingCountry: order.billing_country || 'IN',
       }));
       
-      console.log('✅ Recovery order loaded:', orderNumber);
+      console.log('✅ Recovery order loaded:', orderNumber, 'with', orderItems?.length || 0, 'items');
       toast.success('✅ Order details loaded. Please complete payment.', { duration: 3000 });
     } catch (error) {
       console.error('Error loading recovery order:', error);
@@ -546,12 +561,13 @@ const CheckoutPage: React.FC = () => {
   }, [customer, supabase]);
 
   // Redirect to cart if empty (avoid navigating during render)
+  // BUT allow recovery mode to proceed without cart items
   useEffect(() => {
-    if (items.length === 0) {
+    if (items.length === 0 && !isRecoveryMode) {
       navigate('/cart', { replace: true });
     }
-  }, [items.length, navigate]);
-  if (items.length === 0) return null;
+  }, [items.length, navigate, isRecoveryMode]);
+  if (items.length === 0 && !isRecoveryMode) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -660,22 +676,36 @@ const CheckoutPage: React.FC = () => {
       // For logged-in users: welcome email was already sent during signup
 
       // 3) Create order with items
+      // In recovery mode, use loaded recovery items; otherwise use cart items
+      const itemsForOrder = isRecoveryMode && recoveryOrderItems.length > 0 ? recoveryOrderItems : items;
+      
       // Calculate shipping cost based on method selected
       // TODO: Implement international shipping when ready
       const standardDeliveryFee = 0; // No shipping to international users yet (not implemented)
       const expressDeliveryFee = form.shippingMethod === 'express' && !isInternational ? 250 : 0;
       const deliveryCost = form.shippingMethod === 'express' ? expressDeliveryFee : standardDeliveryFee;
+      
+      // Calculate totals from items being used for order
+      let totalAmount = 0;
+      if (isRecoveryMode && recoveryOrderItems.length > 0) {
+        // Sum up recovery order items totals
+        totalAmount = recoveryOrderItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
+      } else {
+        // Use cart totals
+        totalAmount = dynamicTotal;
+      }
+      
       // Calculate payment amounts based on split choice
       // Note: Split payment (COD) is ONLY available for Indian customers (non-international)
       const { productTotal: splitProductTotal, serviceTotal: splitServiceTotal } = calculatePaymentSplit();
       const isPaymentSplit = paymentSplit === 'split' && splitServiceTotal > 0 && !isInternational;
-      const upfrontPaymentAmount = isPaymentSplit ? splitProductTotal : dynamicTotal;
+      const upfrontPaymentAmount = isPaymentSplit ? splitProductTotal : totalAmount;
       const codPaymentAmount = isPaymentSplit ? splitServiceTotal : 0;
       // Always include shipping in total (currently 0 for international, can be added later)
       const finalTotal = upfrontPaymentAmount + deliveryCost;
 
       // Cart already stores prices in customer's currency, so no conversion needed
-      const orderSubtotal = dynamicTotal;
+      const orderSubtotal = totalAmount;
       const orderShippingAmount = deliveryCost;
       const orderExpressFee = expressDeliveryFee;
       const orderTotalAmount = finalTotal + codPaymentAmount;
@@ -711,14 +741,14 @@ const CheckoutPage: React.FC = () => {
         phone: form.phone,
       });
 
-      console.log('[Checkout] Cart items before order creation:', items);
-      console.log('[Checkout] Mapped order items:', items.map(it => ({
-        product_id: it.id,
-        product_variant_id: it.variantId,
-        product_name: it.name,
-        variant_size: it.size,
-        variant_color: it.color,
-        isService: it.size === 'Service' || it.size === 'Custom' || it.id.startsWith('faal-pico-') || it.id.startsWith('custom-blouse-') || it.id.startsWith('stitching-')
+      console.log('[Checkout] Items for order creation:', itemsForOrder);
+      console.log('[Checkout] Mapped order items:', itemsForOrder.map(it => ({
+        product_id: isRecoveryMode ? it.product_id : it.id,
+        product_variant_id: isRecoveryMode ? it.product_variant_id : it.variantId,
+        product_name: isRecoveryMode ? it.product_name : it.name,
+        variant_size: isRecoveryMode ? it.variant_size : it.size,
+        variant_color: isRecoveryMode ? it.variant_color : it.color,
+        isService: isRecoveryMode ? it.product_id === null : (it.size === 'Service' || it.size === 'Custom' || it.id?.startsWith('faal-pico-') || it.id?.startsWith('custom-blouse-') || it.id?.startsWith('stitching-'))
       })));
 
       const order = await createOrderWithItems(supabase, {
@@ -732,28 +762,44 @@ const CheckoutPage: React.FC = () => {
         billing: billingAddress,
         delivery: deliveryAddress,
         currency: currency, // Use currency from CurrencyContext
-        items: items.map(it => {
-          // Check if this is a service item (no product_id)
-          const isService = it.size === 'Service' || it.size === 'Custom' || 
-                           it.id.startsWith('faal-pico-') || 
-                           it.id.startsWith('custom-blouse-') || 
-                           it.id.startsWith('stitching-');
-          
-          // Cart items already store prices in customer's currency
-          const itemUnitPrice = it.price;
-          const itemTotalPrice = it.price * it.quantity;
-          
-          return {
-            product_id: isService ? null : it.id, // Services don't have product_id
-            product_variant_id: isService ? null : (it.variantId ? it.variantId : null),
-            product_name: it.name,
-            product_sku: undefined,
-            unit_price: itemUnitPrice,
-            quantity: it.quantity,
-            total_price: itemTotalPrice,
-            variant_size: it.size,
-            variant_color: it.color,
-          };
+        items: itemsForOrder.map(it => {
+          if (isRecoveryMode) {
+            // Recovery order items have different structure
+            return {
+              product_id: it.product_id,
+              product_variant_id: it.product_variant_id,
+              product_name: it.product_name,
+              product_sku: it.product_sku,
+              unit_price: it.unit_price,
+              quantity: it.quantity,
+              total_price: it.total_price,
+              variant_size: it.variant_size,
+              variant_color: it.variant_color,
+            };
+          } else {
+            // Cart items structure
+            // Check if this is a service item (no product_id)
+            const isService = it.size === 'Service' || it.size === 'Custom' || 
+                             it.id.startsWith('faal-pico-') || 
+                             it.id.startsWith('custom-blouse-') || 
+                             it.id.startsWith('stitching-');
+            
+            // Cart items already store prices in customer's currency
+            const itemUnitPrice = it.price;
+            const itemTotalPrice = it.price * it.quantity;
+            
+            return {
+              product_id: isService ? null : it.id, // Services don't have product_id
+              product_variant_id: isService ? null : (it.variantId ? it.variantId : null),
+              product_name: it.name,
+              product_sku: undefined,
+              unit_price: itemUnitPrice,
+              quantity: it.quantity,
+              total_price: itemTotalPrice,
+              variant_size: it.size,
+              variant_color: it.color,
+            };
+          }
         }),
         // Split payment data
         cod_amount: orderCodAmount,
