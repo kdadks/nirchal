@@ -6,7 +6,7 @@ import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
-import { createOrderWithItems, updateCustomerProfile } from '../utils/orders';
+import { createOrderWithItems, updateCustomerProfile, upsertCustomerByEmail } from '../utils/orders';
 import { sanitizeAddressData, sanitizeOrderAddress } from '../utils/formUtils';
 import { transactionalEmailService } from '../services/transactionalEmailService';
 import { useRazorpay } from '../hooks/useRazorpay';
@@ -567,8 +567,9 @@ const CheckoutPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // 1) If logged in, update their profile (email is read-only)
-      // For guests: skip account creation, allow checkout with null customer_id
+      // 1) Create/update customer - required for order creation (database constraint)
+      // For logged-in users: update profile
+      // For guests: create temporary guest account (they'll complete signup after payment)
       let customerId: string | null = customer?.id || null;
       let shouldSendWelcomeEmail = false;
       let tempPassword: string | null = null;
@@ -581,9 +582,23 @@ const CheckoutPage: React.FC = () => {
           last_name: form.lastName.trim() || 'User',
           phone: form.phone.trim() || undefined,
         });
+      } else {
+        // Guest user: create temporary customer account (required by database constraint)
+        const guestCustomer = await upsertCustomerByEmail(supabase, {
+          email: form.email.trim(),
+          first_name: form.firstName.trim() || 'Guest',
+          last_name: form.lastName.trim() || 'User',
+          phone: form.phone.trim() || undefined,
+        });
+
+        if (guestCustomer) {
+          customerId = guestCustomer.id;
+          tempPassword = guestCustomer.tempPassword || null;
+          shouldSendWelcomeEmail = guestCustomer.needsWelcomeEmail === true;
+        } else {
+          throw new Error('Failed to create guest customer account');
+        }
       }
-      // For guests: DO NOT create account automatically
-      // They can create account after successful payment if they choose to
 
       // 2) Skip address saving for guest users
       // Guest addresses are not persisted until they create an account after purchase
