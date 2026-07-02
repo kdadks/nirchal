@@ -374,10 +374,7 @@ const OrderConfirmationPage: React.FC = () => {
         )}
         
         <p className="text-lg text-gray-600 mb-8">
-          {paymentStatus === 'pending' 
-            ? 'Please complete payment from your account to confirm your order.'
-            : 'Your order has been successfully placed and will be processed shortly.'
-          }
+          Your order has been successfully placed and will be processed shortly.
         </p>
 
         <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
@@ -586,12 +583,6 @@ const OrderConfirmationPage: React.FC = () => {
         <div className="mt-8 space-x-4">
           {paymentStatus === 'pending' ? (
             <>
-              <button
-                onClick={handleGoToAccount}
-                className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 shadow-lg"
-              >
-                Go to My Account & Complete Payment
-              </button>
               <Link
                 to="/contact"
                 className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
