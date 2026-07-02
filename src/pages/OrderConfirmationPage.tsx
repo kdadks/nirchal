@@ -373,7 +373,7 @@ const OrderConfirmationPage: React.FC = () => {
           </div>
         )}
         
-        {paymentStatus !== 'failed' && (
+        {paymentStatus === 'completed' && (
           <p className="text-lg text-gray-600 mb-8">
             Your order has been successfully placed and will be processed shortly.
           </p>
