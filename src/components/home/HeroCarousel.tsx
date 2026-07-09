@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Play, Star, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useHeroSlides } from '../../hooks/useHeroSlides';
 
@@ -201,13 +201,6 @@ const HeroCarousel: React.FC = () => {
                       <span>{slide.cta_text}</span>
                       <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                     </Link>
-
-                    <button className="group inline-flex items-center text-white hover:text-accent-200 font-accent font-medium transition-all duration-300">
-                      <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mr-3 group-hover:bg-white/20 transition-all duration-300">
-                        <Play size={18} className="ml-0.5" />
-                      </div>
-                      Watch Collection Video
-                    </button>
                   </div>
                 </div>
               </div>

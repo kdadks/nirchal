@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { UserCheck, Mail, Phone, Calendar, Clock, Globe } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import toast from 'react-hot-toast';
+
+if (!supabaseAdmin) {
+	throw new Error('Supabase admin client not initialized');
+}
 
 interface GuestVisitor {
   id: string;
@@ -38,7 +42,7 @@ const GuestVisitorsPage: React.FC = () => {
   const fetchVisitors = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin!
         .from('guest_visitors')
         .select(`
           id,

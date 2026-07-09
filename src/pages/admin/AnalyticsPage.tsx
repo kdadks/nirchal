@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, IndianRupee, Package, Users, BarChart3, Eye, ShoppingCart, TrendingDown, AlertTriangle, Boxes } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { useInventory } from '../../hooks/useInventory';
+
+if (!supabaseAdmin) {
+	throw new Error('Supabase admin client not initialized');
+}
 
 interface AnalyticsData {
   overview: {
@@ -161,9 +165,9 @@ const AnalyticsPage: React.FC = () => {
 
       // Fetch overview data
       const [ordersData, productsData, customersData] = await Promise.all([
-        supabase.from('orders').select('total_amount, created_at, payment_status'),
-        supabase.from('products').select('id', { count: 'exact', head: true }),
-        supabase.from('customers').select('id, created_at')
+        supabaseAdmin!.from('orders').select('total_amount, created_at, payment_status'),
+        supabaseAdmin!.from('products').select('id', { count: 'exact', head: true }),
+        supabaseAdmin!.from('customers').select('id, created_at')
       ]);
 
       if (ordersData.error) throw ordersData.error;
@@ -238,7 +242,7 @@ const AnalyticsPage: React.FC = () => {
       }
 
       // Fetch top products with order items data
-      const { data: orderItemsData, error: orderItemsError } = await supabase
+      const { data: orderItemsData, error: orderItemsError } = await supabaseAdmin!
         .from('order_items')
         .select(`
           product_name,
@@ -253,7 +257,7 @@ const AnalyticsPage: React.FC = () => {
       // Calculate top products (excluding service items)
       const productSales = new Map();
       
-      (orderItemsData || []).forEach(item => {
+      (orderItemsData || []).forEach((item: any) => {
         // Skip service items
         if (item.variant_size === 'Service' || item.variant_size === 'Custom') {
           return;

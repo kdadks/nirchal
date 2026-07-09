@@ -12,7 +12,11 @@ import {
   Activity,
   Plus
 } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
+
+if (!supabaseAdmin) {
+  throw new Error('Supabase admin client not initialized');
+}
 import { useAdminContext } from '../../contexts/AdminContext';
 
 interface Order {
@@ -133,7 +137,7 @@ const AdminDashboard: React.FC = () => {
       setLoading(true);
 
       // Fetch recent orders with return request status
-      const { data: ordersData, error: ordersError } = await supabase
+      const { data: ordersData, error: ordersError } = await supabaseAdmin!
         .from('orders')
         .select(`
           id,
@@ -158,7 +162,7 @@ const AdminDashboard: React.FC = () => {
       setRecentOrders((ordersData as any) || []);
 
       // Fetch top products with sale_price and variants
-      const { data: productsData, error: productsError } = await supabase
+      const { data: productsData, error: productsError } = await supabaseAdmin!
         .from('products')
         .select(`
           id, 
@@ -187,7 +191,7 @@ const AdminDashboard: React.FC = () => {
       const yesterday = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
 
       // Orders today (exclude cancelled)
-      const { data: todayOrders, error: todayOrdersError } = await supabase
+      const { data: todayOrders, error: todayOrdersError } = await supabaseAdmin!
         .from('orders')
         .select('total_amount, status, payment_status')
         .gte('created_at', todayStart.toISOString());
@@ -195,7 +199,7 @@ const AdminDashboard: React.FC = () => {
       if (todayOrdersError) throw todayOrdersError;
 
       // Orders yesterday (exclude cancelled)
-      const { data: yesterdayOrders, error: yesterdayOrdersError } = await supabase
+      const { data: yesterdayOrders, error: yesterdayOrdersError } = await supabaseAdmin!
         .from('orders')
         .select('total_amount, status, payment_status')
         .gte('created_at', yesterday.toISOString())
@@ -204,7 +208,7 @@ const AdminDashboard: React.FC = () => {
       if (yesterdayOrdersError) throw yesterdayOrdersError;
 
       // Calculate total revenue (exclude cancelled orders and pending payments)
-      const { data: allOrders, error: allOrdersError } = await supabase
+      const { data: allOrders, error: allOrdersError } = await supabaseAdmin!
         .from('orders')
         .select('total_amount, status, payment_status')
         .neq('status', 'cancelled'); // Exclude cancelled orders
@@ -212,7 +216,7 @@ const AdminDashboard: React.FC = () => {
       if (allOrdersError) throw allOrdersError;
 
       // Get total refunded amount (only completed refunds)
-      const { data: refundData, error: refundError } = await supabase
+      const { data: refundData, error: refundError } = await supabaseAdmin!
         .from('return_requests')
         .select('final_refund_amount, calculated_refund_amount')
         .eq('status', 'refund_completed');
@@ -221,7 +225,7 @@ const AdminDashboard: React.FC = () => {
         console.error('Error fetching refunds:', refundError);
       }
 
-      const totalRefunded = (refundData || []).reduce((sum, refund) => {
+      const totalRefunded = (refundData || []).reduce((sum: number, refund: any) => {
         const amount = (refund.final_refund_amount as number) || (refund.calculated_refund_amount as number) || 0;
         return sum + amount;
       }, 0);
@@ -229,7 +233,7 @@ const AdminDashboard: React.FC = () => {
       console.log('[Admin Dashboard] Total refunded amount:', totalRefunded);
 
       // Calculate revenue excluding cancelled orders, pending payments, and subtracting refunds
-      const grossRevenue = (allOrders || []).reduce((sum, order) => {
+      const grossRevenue = (allOrders || []).reduce((sum: number, order: any) => {
         if ((order as any).payment_status === 'pending') return sum;
         return sum + ((order as any).total_amount || 0);
       }, 0);

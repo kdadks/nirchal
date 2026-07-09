@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Users, UserCheck, UserX, Mail, Phone, Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import CustomerDetailsModal from '../../components/admin/CustomerDetailsModal';
 import toast from 'react-hot-toast';
+
+if (!supabaseAdmin) {
+  throw new Error('Supabase admin client not initialized');
+}
 
 interface Customer {
   id: string;
@@ -32,7 +36,7 @@ const UsersPage: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin!
         .from('customers')
         .select(`
           id,
@@ -101,7 +105,7 @@ const UsersPage: React.FC = () => {
   const toggleCustomerStatus = async (customerId: string, currentStatus: boolean) => {
     try {
       setUpdating(customerId);
-      const { error } = await supabase
+      const { error } = await supabaseAdmin!
         .from('customers')
         .update({ is_active: !currentStatus })
         .eq('id', customerId);

@@ -16,6 +16,7 @@ import {
   Save
 } from 'lucide-react';
 import { useAdminHeroSlides } from '../../hooks/useHeroSlides';
+import { useCategories } from '../../hooks/useCategories';
 import type { HeroSlide } from '../../types/admin';
 
 const HeroSlidesPage: React.FC = () => {
@@ -29,10 +30,49 @@ const HeroSlidesPage: React.FC = () => {
     toggleActive 
   } = useAdminHeroSlides();
   
+  const { categories } = useCategories();
+  
   const [deletingSlide, setDeletingSlide] = useState<HeroSlide | null>(null);
   const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkType, setLinkType] = useState<'category' | 'custom'>('custom');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+
+  const handleEditSlide = (slide: HeroSlide) => {
+    setEditingSlide(slide);
+    
+    // Determine link type and set initial state
+    if (slide.cta_link.includes('?category=')) {
+      // Extract category slug from query parameter
+      const categorySlug = slide.cta_link.split('?category=')[1];
+      const matchingCategory = categories.find(c => c.slug === categorySlug);
+      
+      if (matchingCategory) {
+        setLinkType('category');
+        setSelectedCategoryId(matchingCategory.id);
+      } else {
+        setLinkType('custom');
+        setSelectedCategoryId('');
+      }
+    } else {
+      setLinkType('custom');
+      setSelectedCategoryId('');
+    }
+  };
+
+  const handleCloseModal = () => {
+    setEditingSlide(null);
+    setShowCreateModal(false);
+    setLinkType('custom');
+    setSelectedCategoryId('');
+  };
+
+  const handleOpenCreateModal = () => {
+    setShowCreateModal(true);
+    setLinkType('custom');
+    setSelectedCategoryId('');
+  };
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
@@ -82,12 +122,24 @@ const HeroSlidesPage: React.FC = () => {
     setIsSubmitting(true);
 
     const formData = new FormData(e.currentTarget);
+    
+    // Generate cta_link based on link type
+    let ctaLink = '';
+    if (linkType === 'category' && selectedCategoryId) {
+      const selectedCategory = categories.find(c => c.id === selectedCategoryId);
+      if (selectedCategory) {
+        ctaLink = `/products?category=${selectedCategory.slug}`;
+      }
+    } else {
+      ctaLink = formData.get('cta_link') as string;
+    }
+
     const slideData = {
       title: formData.get('title') as string,
       subtitle: formData.get('subtitle') as string,
       image_url: formData.get('image_url') as string,
       cta_text: formData.get('cta_text') as string,
-      cta_link: formData.get('cta_link') as string,
+      cta_link: ctaLink,
       display_order: parseInt(formData.get('display_order') as string) || 1,
       is_active: formData.get('is_active') === 'true'
     };
@@ -106,6 +158,8 @@ const HeroSlidesPage: React.FC = () => {
         toast.success(editingSlide ? 'Hero slide updated successfully' : 'Hero slide created successfully');
         setEditingSlide(null);
         setShowCreateModal(false);
+        setLinkType('custom');
+        setSelectedCategoryId('');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -158,7 +212,7 @@ const HeroSlidesPage: React.FC = () => {
           <p className="text-gray-600 mt-1">Manage the homepage hero carousel slides</p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => handleOpenCreateModal()}
           className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -194,7 +248,7 @@ const HeroSlidesPage: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Hero Slides</h3>
             <p className="text-gray-600 mb-4">Get started by creating your first hero slide</p>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => handleOpenCreateModal()}
               className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -270,7 +324,7 @@ const HeroSlidesPage: React.FC = () => {
 
                         {/* Edit */}
                         <button
-                          onClick={() => setEditingSlide(slide)}
+                          onClick={() => handleEditSlide(slide)}
                           className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                           title="Edit slide"
                         >
@@ -348,10 +402,7 @@ const HeroSlidesPage: React.FC = () => {
                 {editingSlide ? 'Edit Hero Slide' : 'Create New Hero Slide'}
               </h3>
               <button
-                onClick={() => {
-                  setEditingSlide(null);
-                  setShowCreateModal(false);
-                }}
+                onClick={() => handleCloseModal()}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-6 h-6" />
@@ -424,20 +475,89 @@ const HeroSlidesPage: React.FC = () => {
                 />
               </div>
 
-              {/* CTA Link */}
+              {/* CTA Link Type */}
               <div>
-                <label htmlFor="cta_link" className="block text-sm font-medium text-gray-700 mb-1">
-                  Call-to-Action Link
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Link Type
                 </label>
-                <input
-                  type="text"
-                  id="cta_link"
-                  name="cta_link"
-                  defaultValue={editingSlide?.cta_link || ''}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="/products"
-                />
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="link_type"
+                      value="category"
+                      checked={linkType === 'category'}
+                      onChange={() => {
+                        setLinkType('category');
+                        setSelectedCategoryId('');
+                      }}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700">Category</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="link_type"
+                      value="custom"
+                      checked={linkType === 'custom'}
+                      onChange={() => {
+                        setLinkType('custom');
+                        setSelectedCategoryId('');
+                      }}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-gray-700">Custom URL</span>
+                  </label>
+                </div>
               </div>
+
+              {/* Category Selector */}
+              {linkType === 'category' && (
+                <div>
+                  <label htmlFor="category_select" className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Category
+                  </label>
+                  <select
+                    id="category_select"
+                    value={selectedCategoryId}
+                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">-- Select a category --</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedCategoryId && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Preview: /products?category={categories.find(c => c.id === selectedCategoryId)?.slug}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Custom URL */}
+              {linkType === 'custom' && (
+                <div>
+                  <label htmlFor="cta_link" className="block text-sm font-medium text-gray-700 mb-1">
+                    Call-to-Action Link
+                  </label>
+                  <input
+                    type="text"
+                    id="cta_link"
+                    name="cta_link"
+                    defaultValue={editingSlide?.cta_link || ''}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="/products or /products?category=womens-sarees"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Examples: /products, /products?category=womens-sarees, /about
+                  </p>
+                </div>
+              )}
 
               {/* Display Order */}
               <div>
@@ -473,10 +593,7 @@ const HeroSlidesPage: React.FC = () => {
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
                   type="button"
-                  onClick={() => {
-                    setEditingSlide(null);
-                    setShowCreateModal(false);
-                  }}
+                  onClick={() => handleCloseModal()}
                   className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
                 >
                   Cancel

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import * as bcrypt from 'bcryptjs';
 import { supabase } from '../config/supabase';
 import { transactionalEmailService } from '../services/transactionalEmailService';
+import { setCustomerSession, clearCustomerSession } from '../utils/supabaseSessionHelper';
 
 interface Customer {
   id: string;
@@ -100,15 +102,34 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       setLoading(true);
       
-      // Fetch customer data directly from database
-      const { data: customerData, error } = await supabase
-        .from('customers')
-        .select('id, email, first_name, last_name, phone, date_of_birth, gender, password_hash, is_active')
-        .eq('email', email)
-        .single();
+      // Step 1: Call authenticate_customer RPC to get customer data and verify credentials
+      const { data: authResult, error: authError } = await supabase.rpc('authenticate_customer', {
+        p_email: email.trim()
+      });
 
-      if (error || !customerData) {
-        console.log('Customer not found or error:', error);
+      if (authError) {
+        console.error('Authentication RPC error:', authError);
+        return { success: false, error: 'Invalid email or password' };
+      }
+
+      if (!authResult) {
+        return { success: false, error: 'Invalid email or password' };
+      }
+
+      // Type assertion for RPC response
+      const customerData = authResult as {
+        id: string;
+        email: string;
+        first_name: string;
+        last_name: string;
+        phone?: string;
+        date_of_birth?: string;
+        gender?: string;
+        password_hash?: string;
+        is_active?: boolean;
+      } | null;
+
+      if (!customerData) {
         return { success: false, error: 'Invalid email or password' };
       }
 
@@ -122,28 +143,32 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: false, error: 'Password not set for this account' };
       }
 
-      // Import bcrypt dynamically for client-side password comparison
-      const bcrypt = await import('bcryptjs');
-      const isPasswordValid = await bcrypt.compare(password, customerData.password_hash as string);
+      // Step 2: Verify password client-side with bcryptjs
+      const isPasswordValid = await bcrypt.compare(password, customerData.password_hash);
 
       if (!isPasswordValid) {
         return { success: false, error: 'Invalid email or password' };
       }
 
-      // Successful login - prepare customer data
+      // Step 3: Successful login - prepare customer data
       const customer: Customer = {
-        id: customerData.id as string,
-        email: customerData.email as string,
-        first_name: customerData.first_name as string,
-        last_name: customerData.last_name as string,
-        phone: customerData.phone as string || undefined,
-        date_of_birth: customerData.date_of_birth as string || undefined,
-        gender: customerData.gender as string || undefined
+        id: customerData.id,
+        email: customerData.email,
+        first_name: customerData.first_name,
+        last_name: customerData.last_name,
+        phone: customerData.phone || undefined,
+        date_of_birth: customerData.date_of_birth || undefined,
+        gender: customerData.gender || undefined
       };
+      
+      // Step 4: Set customer session for RLS enforcement
+      // This allows Supabase RLS policies to restrict access based on app.current_customer_id
+      await setCustomerSession(customer.id);
       
       setCustomer(customer);
       localStorage.setItem('nirchal_customer', JSON.stringify(customer));
       
+      console.log('Customer signed in successfully:', customer.email);
       return { success: true };
     } catch (error) {
       console.error('Sign in error:', error);
@@ -242,6 +267,10 @@ export const CustomerAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const signOut = () => {
     setCustomer(null);
     localStorage.removeItem('nirchal_customer');
+    clearCustomerSession().catch(error => {
+      console.warn('Error clearing customer session:', error);
+    });
+    console.log('Customer signed out');
   };
 
   const resetPassword = async (email: string): Promise<{ success: boolean; error?: string; message?: string }> => {

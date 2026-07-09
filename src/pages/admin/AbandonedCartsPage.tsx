@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Phone, Calendar, DollarSign, Package, Filter, Search, RefreshCw } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import toast from 'react-hot-toast';
+
+if (!supabaseAdmin) {
+  throw new Error('Supabase admin client not initialized');
+}
 
 interface AbandonedCart {
   id: string;
@@ -34,7 +38,7 @@ const AbandonedCartsPage: React.FC = () => {
   const fetchAbandonedCarts = async () => {
     try {
       setLoading(true);
-      let query = supabase
+      let query = supabaseAdmin!
         .from('abandoned_carts')
         .select('*')
         .order('abandoned_at', { ascending: false });
@@ -85,7 +89,7 @@ const AbandonedCartsPage: React.FC = () => {
 
   const updateCartStatus = async (cartId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin!
         .from('abandoned_carts')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', cartId);
@@ -102,7 +106,7 @@ const AbandonedCartsPage: React.FC = () => {
 
   const markEmailSent = async (cartId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin!
         .from('abandoned_carts')
         .update({ 
           email_sent: true, 

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Euro, Save, RefreshCw, Clock, AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import toast from 'react-hot-toast';
+
+if (!supabaseAdmin) {
+	throw new Error('Supabase admin client not initialized');
+}
 
 interface DBExchangeRate {
   currency: string;
@@ -25,7 +29,7 @@ const ExchangeRatesPage: React.FC = () => {
   const fetchExchangeRates = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin!
         .from('exchange_rates')
         .select('*')
         .order('currency');
@@ -74,7 +78,7 @@ const ExchangeRatesPage: React.FC = () => {
       }
 
       // Update USD rate
-      const { error: usdError } = await supabase.rpc('update_exchange_rate', {
+      const { error: usdError } = await supabaseAdmin!.rpc('update_exchange_rate', {
         p_currency: 'USD',
         p_rate: usdValue,
         p_source: 'manual'
@@ -83,7 +87,7 @@ const ExchangeRatesPage: React.FC = () => {
       if (usdError) throw usdError;
 
       // Update EUR rate
-      const { error: eurError } = await supabase.rpc('update_exchange_rate', {
+      const { error: eurError } = await supabaseAdmin!.rpc('update_exchange_rate', {
         p_currency: 'EUR',
         p_rate: eurValue,
         p_source: 'manual'
@@ -108,7 +112,7 @@ const ExchangeRatesPage: React.FC = () => {
 
       // Try to call the edge function first
       try {
-        const { error } = await supabase.functions.invoke('fetch-exchange-rates');
+        const { error } = await supabaseAdmin!.functions.invoke('fetch-exchange-rates');
         
         if (!error) {
           toast.success('Exchange rates fetched and updated successfully', { id: 'fetch-rates' });
@@ -142,7 +146,7 @@ const ExchangeRatesPage: React.FC = () => {
       const finalEurRate = Math.round(eurRate * 100) / 100;
 
       // Update USD rate
-      const { error: usdError } = await supabase.rpc('update_exchange_rate', {
+      const { error: usdError } = await supabaseAdmin!.rpc('update_exchange_rate', {
         p_currency: 'USD',
         p_rate: finalUsdRate,
         p_source: 'xe.com'
@@ -151,7 +155,7 @@ const ExchangeRatesPage: React.FC = () => {
       if (usdError) throw usdError;
 
       // Update EUR rate
-      const { error: eurError } = await supabase.rpc('update_exchange_rate', {
+      const { error: eurError } = await supabaseAdmin!.rpc('update_exchange_rate', {
         p_currency: 'EUR',
         p_rate: finalEurRate,
         p_source: 'xe.com'

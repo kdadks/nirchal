@@ -18,6 +18,10 @@ import type {
 	ProductFormDataWithDelete
 } from '../types/admin';
 
+if (!supabaseAdmin) {
+	throw new Error('Supabase admin client not initialized');
+}
+
 // Categories
 export const useCategories = () => {
 	const { supabase } = useAuth();
@@ -251,16 +255,14 @@ export const useVendors = () => {
 
 // Logistics Partners
 export const useLogisticsPartners = () => {
-	const { supabase } = useAuth();
 	const [logisticsPartners, setLogisticsPartners] = useState<LogisticsPartner[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (!supabase) return;
 		fetchLogisticsPartners();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [supabase]);
+	}, []);
 
 	React.useEffect(() => {
 		if (error) console.error('[LogisticsPartners] Error:', error);
@@ -268,16 +270,15 @@ export const useLogisticsPartners = () => {
 	}, [logisticsPartners, error]);
 
 	const fetchLogisticsPartners = async () => {
-		if (!supabase) return;
 		setLoading(true);
 		try {
-			const { data, error } = await supabase
+			const { data, error } = await supabaseAdmin!
 				.from('logistics_partners')
 				.select('*')
 				.order('name');
 
 			if (error) throw error;
-			setLogisticsPartners(data || []);
+			setLogisticsPartners((data as unknown as LogisticsPartner[]) || []);
 		} catch (e) {
 			setError(e instanceof Error ? e.message : 'Error fetching logistics partners');
 		} finally {
@@ -286,9 +287,8 @@ export const useLogisticsPartners = () => {
 	};
 
 	const createLogisticsPartner = async (data: Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>) => {
-		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { data: partner, error } = await supabase
+			const { data: partner, error } = await supabaseAdmin!
 				.from('logistics_partners')
 				.insert([data])
 				.select()
@@ -303,15 +303,11 @@ export const useLogisticsPartners = () => {
 	};
 
 	const updateLogisticsPartner = async (id: string, data: Partial<Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>>) => {
-		if (!supabase) throw new Error('Supabase client not initialized');
-		
-		// Use admin client if available, fallback to regular client
-		const client = supabaseAdmin || supabase;
-		const clientType = supabaseAdmin ? 'ADMIN' : 'REGULAR';
+		const clientType = 'ADMIN';
 		
 		try {
 			console.log(`[${clientType}] Updating logistics partner with data:`, data);
-			const { data: result, error } = await client
+			const { data: result, error } = await supabaseAdmin!
 				.from('logistics_partners')
 				.update(data)
 				.eq('id', id)
@@ -331,9 +327,8 @@ export const useLogisticsPartners = () => {
 	};
 
 	const deleteLogisticsPartner = async (id: string) => {
-		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { error } = await supabase
+			const { error } = await supabaseAdmin!
 				.from('logistics_partners')
 				.delete()
 				.eq('id', id);

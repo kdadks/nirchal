@@ -3,7 +3,7 @@
  * Handles CRUD operations for return requests and items
  */
 
-import { supabase } from '../config/supabase';
+import { supabaseAdmin } from '../config/supabase';
 import { returnEmailService } from './returnEmailService';
 import type {
   ReturnRequest,
@@ -18,10 +18,14 @@ import type {
   RefundCalculation,
 } from '../types/return.types';
 
+if (!supabaseAdmin) {
+  throw new Error('Supabase admin client not initialized');
+}
+
 class ReturnService {
-  // Use regular supabase client - RLS policies allow all operations
+  // Use admin supabase client - return_requests table requires service_role
   private get db() {
-    return supabase;
+    return supabaseAdmin!;
   }
 
   /**
@@ -216,7 +220,7 @@ class ReturnService {
     includeHistory = false
   ): Promise<{ data: ReturnRequestComplete | null; error: Error | null }> {
     try {
-      let query = supabase.from('return_requests').select(
+      let query = this.db.from('return_requests').select(
         `
           *,
           return_items (*)
@@ -224,7 +228,7 @@ class ReturnService {
       );
 
       if (includeHistory) {
-        query = supabase.from('return_requests').select(
+        query = this.db.from('return_requests').select(
           `
             *,
             return_items (*),
@@ -418,7 +422,7 @@ class ReturnService {
     notes?: string
   ): Promise<{ data: ReturnRequest | null; error: Error | null }> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.db
         .from('return_requests')
         .update({
           status,
@@ -699,7 +703,7 @@ class ReturnService {
   ): Promise<{ data: ReturnRequest | null; error: Error | null }> {
     try {
       // Verify the return belongs to this customer and can be cancelled
-      const { data: existingReturn, error: fetchError } = await supabase
+      const { data: existingReturn, error: fetchError } = await this.db
         .from('return_requests')
         .select('id, status, customer_id')
         .eq('id', id)
@@ -721,7 +725,7 @@ class ReturnService {
         };
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await this.db
         .from('return_requests')
         .update({
           status: 'cancelled',

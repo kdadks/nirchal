@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Clock, IndianRupee, CheckCircle, Truck, XCircle, PlayCircle } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { useAdminSearch } from '../../contexts/AdminSearchContext';
 import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import OrderEditModal from '../../components/admin/OrderEditModal';
+
+if (!supabaseAdmin) {
+  throw new Error('Supabase admin client not initialized');
+}
 
 interface Order {
   id: string;
@@ -57,7 +61,7 @@ const OrdersPage: React.FC = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin!
         .from('orders')
         .select(`
           id,
@@ -154,7 +158,7 @@ const OrdersPage: React.FC = () => {
       console.log('🔄 Restoring inventory for cancelled order:', orderId);
 
       // Get order items
-      const { data: items, error: itemsError } = await supabase
+      const { data: items, error: itemsError } = await supabaseAdmin!
         .from('order_items')
         .select('*')
         .eq('order_id', orderId);
@@ -164,7 +168,7 @@ const OrdersPage: React.FC = () => {
       for (const item of (items || []) as any[]) {
         try {
           // Find inventory record for this product/variant
-          let inventoryQuery = supabase
+          let inventoryQuery = supabaseAdmin!
             .from('inventory')
             .select('*')
             .eq('product_id', item.product_id);
@@ -192,7 +196,7 @@ const OrdersPage: React.FC = () => {
           const newQuantity = oldQuantity + Number(item.quantity || 0);
 
           // Update inventory quantity
-          const { error: updateError } = await supabase
+          const { error: updateError } = await supabaseAdmin!
             .from('inventory')
             .update({
               quantity: newQuantity,
@@ -206,7 +210,7 @@ const OrdersPage: React.FC = () => {
           }
 
           // Create inventory history record
-          await supabase
+          await supabaseAdmin!
             .from('inventory_history')
             .insert({
               inventory_id: inventoryRecord.id,
@@ -237,7 +241,7 @@ const OrdersPage: React.FC = () => {
       setUpdating(orderId);
       
       // Get the order details for email - include logistics partner info for shipping emails
-      const { data: orderData, error: orderError } = await supabase
+      const { data: orderData, error: orderError } = await supabaseAdmin!
         .from('orders')
         .select(`
           id,
@@ -281,7 +285,7 @@ const OrdersPage: React.FC = () => {
       }
 
       // Update order status
-      const { error } = await supabase
+      const { error } = await supabaseAdmin!
         .from('orders')
         .update(updateData)
         .eq('id', orderId);
@@ -385,7 +389,7 @@ const OrdersPage: React.FC = () => {
               try {
                 toast.dismiss(t.id);
                 setUpdating(orderId);
-                const { error } = await supabase
+                const { error } = await supabaseAdmin!
                   .from('orders')
                   .update({ cod_collected: true })
                   .eq('id', orderId);

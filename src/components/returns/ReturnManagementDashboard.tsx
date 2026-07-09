@@ -13,7 +13,7 @@ import {
   Edit,
   Mail,
 } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { returnService } from '../../services/returnService';
 import { returnEmailService } from '../../services/returnEmailService';
 import { createRefund, syncRefundStatus } from '../../services/razorpayRefundService';
@@ -23,6 +23,10 @@ import toast from 'react-hot-toast';
 import { ReturnInspectionModal } from './ReturnInspectionModal';
 import { ReturnDetailsModal } from './ReturnDetailsModal';
 import { ReturnAddressEditModal } from './ReturnAddressEditModal';
+
+if (!supabaseAdmin) {
+  throw new Error('Supabase admin client not initialized');
+}
 
 const STATUS_FILTERS: { value: ReturnRequestStatus | 'all'; label: string; icon: React.ReactNode }[] = [
   { value: 'all', label: 'All Returns', icon: <Package className="h-4 w-4" /> },
@@ -147,7 +151,7 @@ export const ReturnManagementDashboard: React.FC = () => {
   const handleMarkAsReceived = async (returnId: string) => {
     try {
       // Get current admin user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseAdmin!.auth.getUser();
       if (!user) {
         toast.error('Not authenticated');
         return;
@@ -342,7 +346,7 @@ export const ReturnManagementDashboard: React.FC = () => {
 
   const handleInitiateRefund = async (returnRequest: ReturnRequestWithItems) => {
     // Check if order has payment details
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await supabaseAdmin!
       .from('orders')
       .select('razorpay_payment_id, payment_method')
       .eq('id', returnRequest.order_id)
