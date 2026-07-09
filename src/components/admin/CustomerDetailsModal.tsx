@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Phone, MapPin, Calendar, Package, User, AlertCircle } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import toast from 'react-hot-toast';
 import { getCurrencySymbol } from '../../utils/currencyUtils';
 
@@ -75,7 +75,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
       setError(null);
 
       // Fetch customer details
-      const { data: customerData, error: customerError } = await supabase
+      const { data: customerData, error: customerError } = await supabaseAdmin!
         .from('customers')
         .select(`
           id,
@@ -99,7 +99,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
       setCustomer(customerData as unknown as CustomerDetails);
 
       // Fetch customer addresses
-      const { data: addressesData, error: addressesError } = await supabase
+      const { data: addressesData, error: addressesError } = await supabaseAdmin!
         .from('customer_addresses')
         .select('*')
         .eq('customer_id', customerId)
@@ -110,7 +110,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
       }
 
       // Fetch customer orders (last 10)
-      const { data: ordersData, error: ordersError } = await supabase
+      const { data: ordersData, error: ordersError } = await supabaseAdmin!
         .from('orders')
         .select(`
           id,
@@ -159,7 +159,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ isOpen, onC
       expiryTime.setHours(expiryTime.getHours() + 24);
 
       // Use RPC function to store token (bypasses RLS restrictions)
-      const { data: rpcResult, error: tokenError } = await supabase
+      const { data: rpcResult, error: tokenError } = await supabaseAdmin!
         .rpc('store_email_verification_token', {
           p_customer_id: customer.id,
           p_token: verificationToken,

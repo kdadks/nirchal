@@ -7,7 +7,7 @@ import {
   updateFeaturedSection,
   deleteFeaturedSection,
 } from '../../services/featuredSectionService';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import type { FeaturedSection, CreateFeaturedSectionInput } from '../../types/featuredSection.types';
 
 interface Product {
@@ -60,7 +60,7 @@ export const FeaturedSectionsPanel: React.FC = () => {
   };
 
   const loadCategories = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin!
       .from('categories')
       .select('id, name')
       .eq('is_active', true)
@@ -74,7 +74,7 @@ export const FeaturedSectionsPanel: React.FC = () => {
   };
 
   const loadProducts = async () => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin!
       .from('products')
       .select('id, name, price, category_id, product_images(image_url)')
       .eq('is_active', true)
@@ -126,7 +126,7 @@ export const FeaturedSectionsPanel: React.FC = () => {
   };
 
   const loadSectionProducts = async (sectionId: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin!
       .from('featured_section_products')
       .select('product_id')
       .eq('section_id', sectionId)

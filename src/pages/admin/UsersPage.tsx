@@ -7,10 +7,6 @@ import Pagination from '../../components/common/Pagination';
 import CustomerDetailsModal from '../../components/admin/CustomerDetailsModal';
 import toast from 'react-hot-toast';
 
-if (!supabaseAdmin) {
-  throw new Error('Supabase admin client not initialized');
-}
-
 interface Customer {
   id: string;
   first_name: string;

@@ -3,10 +3,6 @@ import { DollarSign, Euro, Save, RefreshCw, Clock, AlertCircle, CheckCircle, Tre
 import { supabaseAdmin } from '../../config/supabase';
 import toast from 'react-hot-toast';
 
-if (!supabaseAdmin) {
-	throw new Error('Supabase admin client not initialized');
-}
-
 interface DBExchangeRate {
   currency: string;
   rate: number | string;

@@ -13,10 +13,6 @@ import {
   Plus
 } from 'lucide-react';
 import { supabaseAdmin } from '../../config/supabase';
-
-if (!supabaseAdmin) {
-  throw new Error('Supabase admin client not initialized');
-}
 import { useAdminContext } from '../../contexts/AdminContext';
 
 interface Order {

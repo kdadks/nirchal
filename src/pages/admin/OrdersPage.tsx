@@ -6,10 +6,6 @@ import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import OrderEditModal from '../../components/admin/OrderEditModal';
 
-if (!supabaseAdmin) {
-  throw new Error('Supabase admin client not initialized');
-}
-
 interface Order {
   id: string;
   order_number: string;
@@ -59,9 +55,14 @@ const OrdersPage: React.FC = () => {
   const [codFilter, setCodFilter] = useState<string>('all'); // all, pending_cod, collected_cod
 
   const fetchOrders = async () => {
+    if (!supabaseAdmin) {
+      setError('Admin client not initialized');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const { data, error } = await supabaseAdmin!
+      const { data, error } = await supabaseAdmin
         .from('orders')
         .select(`
           id,

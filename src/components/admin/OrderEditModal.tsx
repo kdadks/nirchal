@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Package, User, MapPin, Edit2, Lock, Truck } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { getStorageImageUrl, getProductImageUrls } from '../../utils/storageUtils';
 import { useLogisticsPartners } from '../../hooks/useAdmin';
 import StateDropdown from '../common/StateDropdown';
@@ -88,11 +88,16 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
   const { logisticsPartners } = useLogisticsPartners();
 
   const fetchOrderDetails = async () => {
+    if (!supabaseAdmin) {
+      toast.error('Admin client not initialized');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       
       // Fetch order details first
-      const { data: orderData, error: orderError } = await supabase
+      const { data: orderData, error: orderError } = await supabaseAdmin
         .from('orders')
         .select('*')
         .eq('id', orderId)
@@ -104,7 +109,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
       }
 
       // Fetch order items - first get all items without products join
-      const { data: items, error: itemsError } = await supabase
+      const { data: items, error: itemsError } = await supabaseAdmin
         .from('order_items')
         .select('*')
         .eq('order_id', orderId);
@@ -124,7 +129,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
           }
           
           // Fetch product details with images and variants
-          const { data: productData } = await supabase
+          const { data: productData } = await supabaseAdmin!
             .from('products')
             .select(`
               id,
@@ -219,8 +224,13 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
     try {
       setSaving(true);
       
+      if (!supabaseAdmin) {
+        toast.error('Admin client not initialized');
+        setSaving(false);
+        return;
+      }
       // Update the order
-      const { error: orderError } = await supabase
+      const { error: orderError } = await supabaseAdmin
         .from('orders')
         .update({
           billing_first_name: formData.billing_first_name,
@@ -256,7 +266,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
         // Update billing address - find existing billing address or create new one
         if (formData.billing_address_line_1) {
           // First try to find existing billing address
-          const { data: existingBilling } = await supabase
+          const { data: existingBilling } = await supabaseAdmin!
             .from('customer_addresses')
             .select('id')
             .eq('customer_id', orderDetails.customer_id)
@@ -281,7 +291,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
 
           if (existingBilling && existingBilling.id) {
             // Update existing billing address
-            const { error: billingError } = await supabase
+            const { error: billingError } = await supabaseAdmin!
               .from('customer_addresses')
               .update(billingAddressData)
               .eq('id', existingBilling.id as string);
@@ -291,7 +301,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
             }
           } else {
             // Create new billing address
-            const { error: billingError } = await supabase
+            const { error: billingError } = await supabaseAdmin!
               .from('customer_addresses')
               .insert(billingAddressData);
 
@@ -304,7 +314,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
         // Update shipping address (if different from billing)
         if (formData.shipping_address_line_1) {
           // First try to find existing shipping address
-          const { data: existingShipping } = await supabase
+          const { data: existingShipping } = await supabaseAdmin!
             .from('customer_addresses')
             .select('id')
             .eq('customer_id', orderDetails.customer_id)
@@ -329,7 +339,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
 
           if (existingShipping && existingShipping.id) {
             // Update existing shipping address
-            const { error: shippingError } = await supabase
+            const { error: shippingError } = await supabaseAdmin!
               .from('customer_addresses')
               .update(shippingAddressData)
               .eq('id', existingShipping.id as string);
@@ -339,7 +349,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
             }
           } else {
             // Create new shipping address
-            const { error: shippingError } = await supabase
+            const { error: shippingError } = await supabaseAdmin!
               .from('customer_addresses')
               .insert(shippingAddressData);
 

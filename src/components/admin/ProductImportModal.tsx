@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Upload, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabaseAdmin } from '../../config/supabase';
 import { saveImageToPublicFolder, generateProductImageFileName, generateCategoryImageFileName, getProductImageUrl, getCategoryImageUrl } from '../../utils/imageStorageAdapter';
 
 // Import types and helper functions
@@ -67,9 +68,9 @@ const getOptionValue = (row: any, type: 'color' | 'size', globalOption1Name = ''
   return null;
 };
 
-// Product import function that uses auth context
+// Product import function that uses admin client
 const useProductImport = () => {
-  const { supabase, user } = useAuth();
+  const { user } = useAuth();
   const [importing, setImporting] = useState(false);
 
   // Function to download image from URL and upload to local storage using server-side proxy
@@ -268,7 +269,7 @@ const useProductImport = () => {
     csvData: any[], 
     options: ImportOptions
   ): Promise<ImportResult> => {
-    if (!supabase) throw new Error('Supabase client not initialized');
+    if (!supabaseAdmin) throw new Error('Supabase admin client not initialized');
     if (!user) throw new Error('User not authenticated');
     
     setImporting(true);
@@ -313,8 +314,8 @@ const useProductImport = () => {
       // Get categories and vendors for reference
       onProgress?.(15, 'Loading reference data...');
       
-      const { data: categoriesData, error: categoriesError } = await supabase.from('categories').select('id, name');
-      const { data: vendorsData, error: vendorsError } = await supabase.from('vendors').select('id, name');
+      const { data: categoriesData, error: categoriesError } = await supabaseAdmin!.from('categories').select('id, name');
+      const { data: vendorsData, error: vendorsError } = await supabaseAdmin!.from('vendors').select('id, name');
 
       if (categoriesError) throw categoriesError;
       if (vendorsError) throw vendorsError;
@@ -379,7 +380,7 @@ const useProductImport = () => {
             }
           }
 
-          const { data: newCategory, error: categoryError } = await supabase
+          const { data: newCategory, error: categoryError } = await supabaseAdmin!
             .from('categories')
             .insert({ 
               name: categoryInfo.name,
@@ -415,7 +416,7 @@ const useProductImport = () => {
         console.log('Using existing uncategorized category:', defaultCategoryId);
       } else {
         // Check if uncategorized exists in database but wasn't loaded
-        const { data: existingCategory, error: checkError } = await supabase
+        const { data: existingCategory, error: checkError } = await supabaseAdmin!
           .from('categories')
           .select('id')
           .eq('slug', 'uncategorized')
@@ -423,13 +424,13 @@ const useProductImport = () => {
           
         if (existingCategory) {
           // Use existing uncategorized category
-          defaultCategoryId = existingCategory.id;
+          defaultCategoryId = (existingCategory as any)?.id;
           categoriesMap.set(defaultCategoryName, defaultCategoryId);
           console.log('Found existing uncategorized category in database:', defaultCategoryId);
         } else if (checkError?.code === 'PGRST116') {
           // Category doesn't exist, create it
           console.log('Creating new uncategorized category...');
-          const { data: newCategory, error: categoryError } = await supabase
+          const { data: newCategory, error: categoryError } = await supabaseAdmin!
             .from('categories')
             .insert({ 
               name: 'Uncategorized',
@@ -445,7 +446,7 @@ const useProductImport = () => {
             throw new Error('Failed to create default category for import');
           }
           
-          defaultCategoryId = newCategory.id;
+          defaultCategoryId = (newCategory as any)?.id;
           categoriesMap.set(defaultCategoryName, defaultCategoryId);
           console.log('Created new uncategorized category:', defaultCategoryId);
         } else {
@@ -548,17 +549,17 @@ const useProductImport = () => {
             
             // Transform the product data
             const productData = {
-              name: mainRow.name || mainRow.Title || '',
-              description: mainRow.description || mainRow['Body (HTML)'] || '',
+              name: (mainRow as any).name || (mainRow as any).Title || '',
+              description: (mainRow as any).description || (mainRow as any)['Body (HTML)'] || '',
               price: basePrice,
               sale_price: salePrice,
               sku: productSku,
-              category_id: categoriesMap.get((mainRow.category_name || mainRow['Product Type'] || mainRow.Type || mainRow.type || '').toLowerCase()) || defaultCategoryId,
-              vendor_id: vendorsMap.get((mainRow.vendor_name || mainRow.Vendor || '').toLowerCase()) || null,
-              is_active: (mainRow.status || mainRow.Status || 'active').toLowerCase() === 'active',
-              slug: generateSlug(mainRow.name || mainRow.Title || mainRow.Handle || ''),
-              meta_title: mainRow.meta_title || mainRow['SEO Title'] || '',
-              meta_description: mainRow.meta_description || mainRow['SEO Description'] || `imported-order-${displayOrder.toString().padStart(8, '0')}`,
+              category_id: categoriesMap.get(((mainRow as any).category_name || (mainRow as any)['Product Type'] || (mainRow as any).Type || (mainRow as any).type || '').toLowerCase()) || defaultCategoryId,
+              vendor_id: vendorsMap.get(((mainRow as any).vendor_name || (mainRow as any).Vendor || '').toLowerCase()) || null,
+              is_active: ((mainRow as any).status || (mainRow as any).Status || 'active').toLowerCase() === 'active',
+              slug: generateSlug((mainRow as any).name || (mainRow as any).Title || (mainRow as any).Handle || ''),
+              meta_title: (mainRow as any).meta_title || (mainRow as any)['SEO Title'] || '',
+              meta_description: (mainRow as any).meta_description || (mainRow as any)['SEO Description'] || `imported-order-${displayOrder.toString().padStart(8, '0')}`,
               created_by: user.id, // Current user's UUID
               updated_by: user.id  // Current user's UUID
             };
@@ -566,10 +567,10 @@ const useProductImport = () => {
             if (!validateOnly) {
               // Check for duplicates
               if (skipDuplicates && productData.sku) {
-                const { data: existingProduct } = await supabase
+                const { data: existingProduct } = await supabaseAdmin!
                   .from('products')
                   .select('id')
-                  .eq('sku', productData.sku)
+                  .eq('sku', (productData as any).sku)
                   .single();
 
                 if (existingProduct) {
@@ -591,39 +592,43 @@ const useProductImport = () => {
               while (attemptCount < maxAttempts) {
                 try {
                   if (updateExisting && productData.sku) {
-                    const { data: existingProduct } = await supabase
+                    const { data: existingProduct } = await supabaseAdmin!
                       .from('products')
                       .select('id')
                       .eq('sku', productData.sku)
                       .single();
 
                     if (existingProduct) {
-                      const { error: updateError } = await supabase
+                      const { error: updateError } = await (supabaseAdmin!
                         .from('products')
-                        .update(productData)
-                        .eq('id', existingProduct.id);
+                        .update(productData as any)
+                        .eq('id', (existingProduct as any).id) as any);
 
                       if (updateError) throw updateError;
-                      productId = existingProduct.id;
+                      productId = (existingProduct as any).id;
                     } else {
-                      const { data: newProduct, error: insertError } = await supabase
+                      const result = await supabaseAdmin!
                         .from('products')
-                        .insert(productData)
+                        .insert(productData as any)
                         .select('id')
-                        .single();
+                        .single() as any;
+                      const newProduct = result.data;
+                      const insertError = result.error;
 
                       if (insertError) throw insertError;
-                      productId = newProduct.id;
+                      productId = newProduct?.id;
                     }
                   } else {
-                    const { data: newProduct, error: insertError } = await supabase
+                    const result = await supabaseAdmin!
                       .from('products')
-                      .insert(productData)
+                      .insert(productData as any)
                       .select('id')
-                      .single();
+                      .single() as any;
+                    const newProduct = result.data;
+                    const insertError = result.error;
 
                     if (insertError) throw insertError;
-                    productId = newProduct.id;
+                    productId = newProduct?.id;
                   }
                   
                   // If we get here, the insert/update was successful
@@ -783,7 +788,7 @@ const useProductImport = () => {
                 for (const variantInfo of uniqueVariants.values()) {
                   const { quantity, low_stock_threshold, ...variantData } = variantInfo;
                   
-                  const { data: newVariant, error: variantError } = await supabase
+                  const { data: newVariant, error: variantError } = await supabaseAdmin!
                     .from('product_variants')
                     .insert(variantData)
                     .select()
@@ -817,7 +822,7 @@ const useProductImport = () => {
                   price_adjustment: 0, // No price adjustment for default variants
                 };
 
-                const { data: newVariant, error: variantError } = await supabase
+                const { data: newVariant, error: variantError } = await supabaseAdmin!
                   .from('product_variants')
                   .insert(defaultVariantData)
                   .select()
@@ -914,7 +919,7 @@ const useProductImport = () => {
 
                 // Insert successfully processed images
                 if (imageInserts.length > 0) {
-                  const { error: imageError } = await supabase
+                  const { error: imageError } = await supabaseAdmin!
                     .from('product_images')
                     .insert(imageInserts);
 
@@ -931,7 +936,7 @@ const useProductImport = () => {
                       console.log('Assigning swatch images to variants...');
                       
                       // Get the inserted images with their IDs
-                      const { data: insertedImages, error: fetchError } = await supabase
+                      const { data: insertedImages, error: fetchError } = await supabaseAdmin!
                         .from('product_images')
                         .select('id, image_url, is_primary, display_order')
                         .eq('product_id', productId)
@@ -944,10 +949,10 @@ const useProductImport = () => {
                         // Update variants with swatch image references
                         const variantUpdates = [];
                         for (const variant of createdVariants) {
-                          if (variant.color) {
+                          if ((variant as any).color) {
                             // For color variants, assign the primary image as swatch
                             variantUpdates.push({
-                              id: variant.id,
+                              id: (variant as any).id,
                               swatch_image_id: primaryImage.id
                             });
                           }
@@ -957,7 +962,7 @@ const useProductImport = () => {
                           console.log(`Updating ${variantUpdates.length} variants with swatch images`);
                           
                           for (const update of variantUpdates) {
-                            const { error: swatchError } = await supabase
+                            const { error: swatchError } = await supabaseAdmin!
                               .from('product_variants')
                               .update({ swatch_image_id: update.swatch_image_id })
                               .eq('id', update.id);
@@ -977,12 +982,12 @@ const useProductImport = () => {
               if (createdVariants.length > 0) {
                 const inventoryRows = createdVariants.map((variant) => ({
                   product_id: productId,
-                  variant_id: variant.id,
-                  quantity: variant.quantity,
-                  low_stock_threshold: variant.low_stock_threshold
+                  variant_id: (variant as any).id,
+                  quantity: (variant as any).quantity,
+                  low_stock_threshold: (variant as any).low_stock_threshold
                 }));
 
-                const { error: inventoryError } = await supabase
+                const { error: inventoryError } = await supabaseAdmin!
                   .from('inventory')
                   .insert(inventoryRows);
 

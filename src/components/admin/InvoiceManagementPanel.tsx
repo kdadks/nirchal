@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Send, CheckCircle, Clock, Search, Trash2 } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import { useInvoices } from '../../hooks/useInvoices';
 import { previewInvoice } from '../../services/invoiceService';
 import toast from 'react-hot-toast';
@@ -77,7 +77,7 @@ const InvoiceManagementPanel: React.FC = () => {
   const loadEligibleOrders = async () => {
     try {
       // Get orders with delivered status that don't have invoices yet
-      const { data: orders, error: ordersError } = await supabase
+      const { data: orders, error: ordersError } = await supabaseAdmin!
         .from('orders')
         .select('id, order_number, billing_first_name, billing_last_name, total_amount, payment_status, status, created_at')
         .eq('status', 'delivered')
@@ -86,7 +86,7 @@ const InvoiceManagementPanel: React.FC = () => {
       if (ordersError) throw ordersError;
 
       // Get existing invoices to filter out orders that already have them
-      const { data: existingInvoices, error: invoicesError } = await supabase
+      const { data: existingInvoices, error: invoicesError } = await supabaseAdmin!
         .from('invoices')
         .select('order_id');
 
@@ -115,7 +115,7 @@ const InvoiceManagementPanel: React.FC = () => {
 
   const loadGeneratedInvoices = async () => {
     try {
-      const { data: invoices, error } = await supabase
+      const { data: invoices, error } = await supabaseAdmin!
         .from('invoices')
         .select(`
           id,
@@ -156,7 +156,7 @@ const InvoiceManagementPanel: React.FC = () => {
 
   const loadRaisedInvoices = async () => {
     try {
-      const { data: invoices, error } = await supabase
+      const { data: invoices, error } = await supabaseAdmin!
         .from('invoices')
         .select(`
           id,

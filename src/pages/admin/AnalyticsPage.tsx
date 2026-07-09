@@ -3,10 +3,6 @@ import { TrendingUp, IndianRupee, Package, Users, BarChart3, Eye, ShoppingCart, 
 import { supabaseAdmin } from '../../config/supabase';
 import { useInventory } from '../../hooks/useInventory';
 
-if (!supabaseAdmin) {
-	throw new Error('Supabase admin client not initialized');
-}
-
 interface AnalyticsData {
   overview: {
     totalRevenue: number;

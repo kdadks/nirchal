@@ -6,10 +6,6 @@ import { usePagination } from '../../hooks/usePagination';
 import Pagination from '../../components/common/Pagination';
 import toast from 'react-hot-toast';
 
-if (!supabaseAdmin) {
-	throw new Error('Supabase admin client not initialized');
-}
-
 interface GuestVisitor {
   id: string;
   visitor_id: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, FileText, AlertCircle } from 'lucide-react';
-import { supabase } from '../../config/supabase';
+import { supabaseAdmin } from '../../config/supabase';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '../../utils/formatCurrency';
 
@@ -81,7 +81,7 @@ const InvoiceGenerationModal: React.FC<InvoiceGenerationModalProps> = ({
   const loadOrderDetails = async (orderId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin!
         .from('orders')
         .select(`
           id,
