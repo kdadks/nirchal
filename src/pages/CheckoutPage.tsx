@@ -117,10 +117,14 @@ const CheckoutPage: React.FC = () => {
   // item.price is already converted to customer's currency, so use it directly
   // This prevents double-conversion and rounding errors
   // In recovery mode, use recovery items; otherwise use cart items
-  const itemsToCalculate = isRecoveryMode && recoveryOrderItems.length > 0 ? recoveryOrderItems : items;
+  // IMPORTANT: use `usingRecoveryItems` (not `isRecoveryMode`) for price field selection.
+  // isRecoveryMode turns true instantly but recoveryOrderItems loads async.
+  // Using isRecoveryMode alone causes `item.unit_price = undefined` on cart items → NaN.
+  const usingRecoveryItems = isRecoveryMode && recoveryOrderItems.length > 0;
+  const itemsToCalculate = usingRecoveryItems ? recoveryOrderItems : items;
   const dynamicTotal = Math.round(
     itemsToCalculate.reduce((sum, item) => {
-      const itemPrice = isRecoveryMode ? item.unit_price : item.price;
+      const itemPrice = usingRecoveryItems ? Number(item.unit_price) : item.price;
       const quantity = item.quantity;
       return sum + itemPrice * quantity;
     }, 0)
@@ -175,15 +179,16 @@ const CheckoutPage: React.FC = () => {
     let serviceTotal = 0;
 
     // In recovery mode, use recovery items; otherwise use cart items
-    const itemsForSplit = isRecoveryMode && recoveryOrderItems.length > 0 ? recoveryOrderItems : items;
+    const usingRecoveryItemsForSplit = isRecoveryMode && recoveryOrderItems.length > 0;
+    const itemsForSplit = usingRecoveryItemsForSplit ? recoveryOrderItems : items;
     
     itemsForSplit.forEach(item => {
       // Use pre-converted item.price directly (already in customer's currency)
       // Recovery items use unit_price, cart items use price
-      const itemPrice = isRecoveryMode ? item.unit_price : item.price;
+      const itemPrice = usingRecoveryItemsForSplit ? Number(item.unit_price) : item.price;
       const itemTotal = itemPrice * item.quantity;
       // Check if item is a service (size is 'Service' or 'Custom')
-      const itemSize = isRecoveryMode ? item.variant_size : item.size;
+      const itemSize = usingRecoveryItemsForSplit ? item.variant_size : item.size;
       if (itemSize === 'Service' || itemSize === 'Custom') {
         serviceTotal += itemTotal;
       } else {
@@ -225,36 +230,35 @@ const CheckoutPage: React.FC = () => {
   }, [searchParams]);
 
   // Load order data for recovery mode
+  // Uses SECURITY DEFINER RPC to bypass RLS — the order_number itself is the
+  // authentication factor (high-entropy, hard to enumerate).
   const loadRecoveryOrder = async (orderNumber: string) => {
     try {
-      const { data: order, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('order_number', orderNumber)
-        .single();
-      
-      if (error || !order) {
-        console.error('Failed to load recovery order:', error);
+      const { data: rpcResult, error: rpcErr } = await supabase
+        .rpc('get_recovery_order', { p_order_number: orderNumber });
+
+      if (rpcErr || !rpcResult) {
+        console.error('Failed to load recovery order:', rpcErr);
         toast.error('❌ Could not find order. Please enter details again.');
         return;
       }
-      
-      // Load order items with full product variant details
-      const { data: orderItems, error: itemsError } = await supabase
-        .from('order_items')
-        .select('*')
-        .eq('order_id', order.id);
-      
-      if (itemsError) {
-        console.error('Failed to load recovery order items:', itemsError);
-        toast.error('⚠️ Could not load order items. Please review your order.');
+
+      const order = rpcResult.order;
+      const fetchedItems = rpcResult.items || [];
+
+      if (!order) {
+        toast.error('❌ Could not find order. Please enter details again.');
+        return;
       }
+
+      // Items come from the RPC response
+      const orderItems = fetchedItems;
       
       // Fetch product variant details (images, colorHex) for each item
       let itemsWithDetails = orderItems || [];
       if (itemsWithDetails.length > 0) {
         itemsWithDetails = await Promise.all(
-          itemsWithDetails.map(async (item) => {
+          itemsWithDetails.map(async (item: any) => {
             if (!item.product_variant_id) {
               // Service item - no variant details needed
               return { ...item, colorHex: undefined, image: '' };
@@ -291,7 +295,7 @@ const CheckoutPage: React.FC = () => {
         ...prev,
         firstName: order.shipping_first_name || '',
         lastName: order.shipping_last_name || '',
-        email: order.email || '',
+        email: order.billing_email || '',
         phone: order.shipping_phone || '',
         deliveryCountry: order.shipping_country || 'IN',
         deliveryAddress: order.shipping_address_line_1 || '',
