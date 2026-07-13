@@ -17,22 +17,22 @@ CREATE OR REPLACE FUNCTION public.create_order_checkout(
   p_billing_first_name text,
   p_billing_last_name text,
   p_billing_address_line_1 text,
-  p_billing_address_line_2 text,
-  p_billing_city text,
-  p_billing_state text,
-  p_billing_postal_code text,
-  p_billing_country text,
-  p_billing_phone text,
-  p_billing_email text,
-  p_shipping_first_name text,
-  p_shipping_last_name text,
-  p_shipping_address_line_1 text,
-  p_shipping_address_line_2 text,
-  p_shipping_city text,
-  p_shipping_state text,
-  p_shipping_postal_code text,
-  p_shipping_country text,
-  p_shipping_phone text,
+  p_billing_address_line_2 text DEFAULT NULL,
+  p_billing_city text DEFAULT NULL,
+  p_billing_state text DEFAULT NULL,
+  p_billing_postal_code text DEFAULT NULL,
+  p_billing_country text DEFAULT 'India',
+  p_billing_phone text DEFAULT NULL,
+  p_billing_email text DEFAULT NULL,
+  p_shipping_first_name text DEFAULT NULL,
+  p_shipping_last_name text DEFAULT NULL,
+  p_shipping_address_line_1 text DEFAULT NULL,
+  p_shipping_address_line_2 text DEFAULT NULL,
+  p_shipping_city text DEFAULT NULL,
+  p_shipping_state text DEFAULT NULL,
+  p_shipping_postal_code text DEFAULT NULL,
+  p_shipping_country text DEFAULT 'India',
+  p_shipping_phone text DEFAULT NULL,
   p_cod_amount numeric DEFAULT 0,
   p_cod_collected boolean DEFAULT false,
   p_online_amount numeric DEFAULT 0,
@@ -45,7 +45,7 @@ SECURITY DEFINER
 SET search_path = public, extensions, pg_temp
 AS $$
 DECLARE
-  v_order_id bigint;
+  v_order_id uuid;
   v_item jsonb;
 BEGIN
   -- Insert the order
@@ -144,8 +144,8 @@ BEGIN
         total_price
       ) VALUES (
         v_order_id,
-        v_item->>'product_id',
-        v_item->>'product_variant_id',
+        (v_item->>'product_id')::uuid,
+        (v_item->>'product_variant_id')::uuid,
         v_item->>'product_name',
         v_item->>'product_sku',
         v_item->>'variant_size',
