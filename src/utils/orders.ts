@@ -207,122 +207,64 @@ export async function createOrderWithItems(supabase: SupabaseClient, input: Crea
   // Pass customer_id directly as UUID (nullable)
   const customerIdForInsert: string | null = input.customer_id as string | null;
 
-  const { data: order, error: orderError } = await supabase
-    .from('orders')
-    .insert({
-      order_number,
-      customer_id: customerIdForInsert,
-      status: 'pending',
-      payment_status: 'pending',
-      payment_method: input.payment_method,
-      currency: input.currency,
-      subtotal: input.subtotal,
-      tax_amount: 0,
-      shipping_amount: input.shipping_amount,
-      shipping_method: input.shipping_method || 'standard',
-      express_delivery_fee: input.express_delivery_fee || 0,
-      discount_amount: 0,
-      total_amount: input.total_amount,
-      billing_first_name: input.billing.first_name,
-      billing_last_name: input.billing.last_name,
-      billing_address_line_1: input.billing.address_line_1,
-      billing_address_line_2: input.billing.address_line_2,
-      billing_city: input.billing.city,
-      billing_state: input.billing.state,
-      billing_postal_code: input.billing.postal_code,
-      billing_country: input.billing.country || 'India',
-      billing_phone: input.billing.phone,
-      billing_email: input.billing.email,
-      shipping_first_name: input.delivery.first_name,
-      shipping_last_name: input.delivery.last_name,
-      shipping_address_line_1: input.delivery.address_line_1,
-      shipping_address_line_2: input.delivery.address_line_2,
-      shipping_city: input.delivery.city,
-      shipping_state: input.delivery.state,
-      shipping_postal_code: input.delivery.postal_code,
-      shipping_country: input.delivery.country || 'India',
-      shipping_phone: input.delivery.phone,
-      // Split payment fields
-      cod_amount: input.cod_amount || 0,
-      cod_collected: input.cod_collected || false,
-      online_amount: input.online_amount || input.total_amount,
-      payment_split: input.payment_split || false,
-    })
-    .select('id, order_number')
-    .single();
+  // Prepare items payload as JSON
+  const itemsPayload = input.items?.map(it => ({
+    product_id: it.product_id,
+    product_variant_id: it.product_variant_id,
+    product_name: it.product_name,
+    product_sku: it.product_sku,
+    variant_size: it.variant_size,
+    variant_color: it.variant_color,
+    variant_material: it.variant_material,
+    unit_price: it.unit_price,
+    quantity: it.quantity,
+    total_price: it.total_price,
+  })) || [];
 
-  if (orderError || !order) {
-    console.error('createOrderWithItems: order insert failed:', orderError?.message);
+  // Use RPC function that bypasses RLS
+  const { data: result, error: rpcError } = await supabase.rpc('create_order_checkout', {
+    p_order_number: order_number,
+    p_customer_id: customerIdForInsert,
+    p_payment_method: input.payment_method,
+    p_currency: input.currency,
+    p_subtotal: input.subtotal,
+    p_shipping_amount: input.shipping_amount,
+    p_shipping_method: input.shipping_method || 'standard',
+    p_express_delivery_fee: input.express_delivery_fee || 0,
+    p_total_amount: input.total_amount,
+    p_billing_first_name: input.billing.first_name,
+    p_billing_last_name: input.billing.last_name,
+    p_billing_address_line_1: input.billing.address_line_1,
+    p_billing_address_line_2: input.billing.address_line_2,
+    p_billing_city: input.billing.city,
+    p_billing_state: input.billing.state,
+    p_billing_postal_code: input.billing.postal_code,
+    p_billing_country: input.billing.country || 'India',
+    p_billing_phone: input.billing.phone,
+    p_billing_email: input.billing.email,
+    p_shipping_first_name: input.delivery.first_name,
+    p_shipping_last_name: input.delivery.last_name,
+    p_shipping_address_line_1: input.delivery.address_line_1,
+    p_shipping_address_line_2: input.delivery.address_line_2,
+    p_shipping_city: input.delivery.city,
+    p_shipping_state: input.delivery.state,
+    p_shipping_postal_code: input.delivery.postal_code,
+    p_shipping_country: input.delivery.country || 'India',
+    p_shipping_phone: input.delivery.phone,
+    p_cod_amount: input.cod_amount || 0,
+    p_cod_collected: input.cod_collected || false,
+    p_online_amount: input.online_amount || input.total_amount,
+    p_payment_split: input.payment_split || false,
+    p_items_json: itemsPayload
+  });
+
+  if (rpcError || !result) {
+    console.error('createOrderWithItems: RPC call failed:', rpcError?.message);
     return null;
   }
 
-  if (input.items?.length) {
-    console.log('[createOrderWithItems] Inserting order items:', {
-      orderId: order.id,
-      itemsCount: input.items.length,
-      items: input.items
-    });
-
-    const itemsPayload = input.items.map(it => ({
-      order_id: order.id,
-      product_id: it.product_id,
-      product_variant_id: it.product_variant_id,
-      product_name: it.product_name,
-      product_sku: it.product_sku,
-      variant_size: it.variant_size,
-      variant_color: it.variant_color,
-      variant_material: it.variant_material,
-      unit_price: it.unit_price,
-      quantity: it.quantity,
-      total_price: it.total_price,
-    }));
-
-    console.log('[createOrderWithItems] Items payload:', itemsPayload);
-
-    // Log field lengths for debugging
-    if (itemsPayload.length > 0) {
-      console.log('[createOrderWithItems] Field lengths check:');
-      itemsPayload.forEach((item, idx) => {
-        console.log(`Item ${idx + 1}:`, {
-          product_name: item.product_name?.length || 0,
-          product_sku: item.product_sku?.length || 0,
-          variant_size: item.variant_size?.length || 0,
-          variant_color: item.variant_color?.length || 0,
-          variant_material: item.variant_material?.length || 0
-        });
-        
-        // Check for >50 chars
-        Object.entries(item).forEach(([key, value]) => {
-          if (typeof value === 'string' && value.length > 50) {
-            console.warn(`⚠️ Field "${key}" exceeds 50 chars (${value.length}):`, value);
-          }
-        });
-      });
-    }
-
-    const { data: insertedItems, error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsPayload)
-      .select();
-
-    if (itemsError) {
-      console.error('createOrderWithItems: inserting items failed:', itemsError);
-      console.error('createOrderWithItems: Error code:', itemsError.code);
-      console.error('createOrderWithItems: Error message:', itemsError.message);
-      console.error('createOrderWithItems: Error details:', itemsError.details);
-      console.error('createOrderWithItems: Error hint:', itemsError.hint);
-      console.error('createOrderWithItems: itemsPayload that failed:', itemsPayload);
-      // continue; order exists
-    } else {
-      console.log('[createOrderWithItems] Successfully inserted items:', insertedItems?.length);
-    }
-    
-    // ⚠️ IMPORTANT: Do NOT update inventory here!
-    // Inventory should only be decremented after payment confirmation from Razorpay webhook
-    // If user abandons cart or payment fails, inventory should not be affected
-  }
-
-  return order as any;
+  console.log('[createOrderWithItems] Successfully created order:', result);
+  return result as any;
 }
 
 // ⚠️ INVENTORY UPDATE REMOVED FROM HERE
