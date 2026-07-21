@@ -12,7 +12,7 @@ import { CurrencyProvider } from './contexts/CurrencyContext';
 import { AIAssistantButton } from './components/ai/AIAssistantButton';
 import TawkToChat from './components/common/TawkToChat';
 import { preloadCategories } from './utils/categoryCache';
-import AppRoutes from './routes';
+import AppRoutes, { ChunkLoadErrorPage } from './routes';
 import VisitorTracker from './components/VisitorTracker';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import SnowflakesEffect from './components/seasonal/SnowflakesEffect';
@@ -24,6 +24,7 @@ const router = createBrowserRouter([
   {
     path: '*',
     element: <Layout><AppRoutes /></Layout>,
+    errorElement: <ChunkLoadErrorPage />,
   },
 ]);
 

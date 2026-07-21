@@ -1,25 +1,50 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
+// Shown while the page reloads after a stale chunk error
+export const ChunkLoadErrorPage: React.FC = () => {
+  useEffect(() => {
+    const reloadKey = 'chunk_error_page_reload';
+    if (!sessionStorage.getItem(reloadKey)) {
+      sessionStorage.setItem(reloadKey, 'true');
+      window.location.reload();
+    }
+  }, []);
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="text-center px-6">
+        <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Updating application&hellip;</h2>
+        <p className="text-gray-500 text-sm">A new version is available. The page will refresh automatically.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-6 px-5 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors"
+        >
+          Refresh now
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // Helper function to handle lazy loading with retry mechanism
 const lazyWithRetry = (componentImport: () => Promise<any>) => {
-  return lazy(() => 
+  return lazy(() =>
     componentImport().catch((error) => {
-      console.error('Failed to load component, retrying...', error);
-      // Force a page reload if dynamic import fails completely
-      // Use sessionStorage to prevent infinite reload loops
-      if (error.message?.includes('Failed to fetch dynamically imported module')) {
+      console.error('[lazyWithRetry] Failed to load chunk:', error?.message);
+      if (error?.message?.includes('Failed to fetch dynamically imported module')) {
         const reloadKey = 'lazy_reload_attempted';
         if (!sessionStorage.getItem(reloadKey)) {
           sessionStorage.setItem(reloadKey, 'true');
-          console.log('Dynamic import failed, reloading page to clear cache...');
-          setTimeout(() => window.location.reload(), 1000);
-        } else {
-          console.warn('Dynamic import reload already attempted, skipping to prevent infinite loop.');
+          // Reload immediately; return a blank placeholder while reload is pending
+          window.location.reload();
+          return Promise.resolve({ default: () => null as any });
         }
+        // Already tried reloading — show the ChunkLoadErrorPage instead of crashing
+        return Promise.resolve({ default: ChunkLoadErrorPage as () => any });
       }
-      return componentImport(); // Retry once
+      throw error;
     })
   );
 };
