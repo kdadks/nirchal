@@ -1,5 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -10,8 +10,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Simple singleton pattern - the warning in dev is due to HMR, but it's harmless
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
-let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
+let supabaseInstance: SupabaseClient | null = null;
+let supabaseAdminInstance: SupabaseClient | null = null;
 
 // Suppress multiple client warnings (occurs due to HMR in dev or strict mode in prod)
 const originalWarn = console.warn;

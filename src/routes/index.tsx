@@ -8,10 +8,16 @@ const lazyWithRetry = (componentImport: () => Promise<any>) => {
     componentImport().catch((error) => {
       console.error('Failed to load component, retrying...', error);
       // Force a page reload if dynamic import fails completely
-      // This helps with cache/build mismatch issues
+      // Use sessionStorage to prevent infinite reload loops
       if (error.message?.includes('Failed to fetch dynamically imported module')) {
-        console.log('Dynamic import failed, reloading page to clear cache...');
-        setTimeout(() => window.location.reload(), 1000);
+        const reloadKey = 'lazy_reload_attempted';
+        if (!sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, 'true');
+          console.log('Dynamic import failed, reloading page to clear cache...');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          console.warn('Dynamic import reload already attempted, skipping to prevent infinite loop.');
+        }
       }
       return componentImport(); // Retry once
     })

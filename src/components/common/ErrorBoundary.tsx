@@ -28,11 +28,17 @@ class ErrorBoundary extends Component<Props, State> {
     // Check if it's a dynamic import failure
     if (error.message?.includes('Failed to fetch dynamically imported module')) {
       console.log('Dynamic import failure detected in ErrorBoundary');
-      // Auto-reload after a short delay for dynamic import failures
-      setTimeout(() => {
-        console.log('Auto-reloading page due to dynamic import failure');
-        window.location.reload();
-      }, 2000);
+      // Auto-reload only once to avoid infinite reload loops
+      const reloadKey = 'error_boundary_reload_attempted';
+      if (!sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, 'true');
+        setTimeout(() => {
+          console.log('Auto-reloading page due to dynamic import failure');
+          window.location.reload();
+        }, 2000);
+      } else {
+        console.warn('Error boundary reload already attempted, skipping to prevent infinite loop.');
+      }
     }
   }
 
