@@ -55,14 +55,9 @@ const OrdersPage: React.FC = () => {
   const [codFilter, setCodFilter] = useState<string>('all'); // all, pending_cod, collected_cod
 
   const fetchOrders = async () => {
-    if (!supabaseAdmin) {
-      setError('Admin client not initialized');
-      setLoading(false);
-      return;
-    }
     try {
       setLoading(true);
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabaseAdmin!
         .from('orders')
         .select(`
           id,

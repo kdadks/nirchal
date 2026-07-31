@@ -88,16 +88,11 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
   const { logisticsPartners } = useLogisticsPartners();
 
   const fetchOrderDetails = async () => {
-    if (!supabaseAdmin) {
-      toast.error('Admin client not initialized');
-      setLoading(false);
-      return;
-    }
     try {
       setLoading(true);
       
       // Fetch order details first
-      const { data: orderData, error: orderError } = await supabaseAdmin
+      const { data: orderData, error: orderError } = await supabaseAdmin!
         .from('orders')
         .select('*')
         .eq('id', orderId)
@@ -109,7 +104,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
       }
 
       // Fetch order items - first get all items without products join
-      const { data: items, error: itemsError } = await supabaseAdmin
+      const { data: items, error: itemsError } = await supabaseAdmin!
         .from('order_items')
         .select('*')
         .eq('order_id', orderId);
@@ -224,13 +219,8 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({ orderId, isOpen, onClos
     try {
       setSaving(true);
       
-      if (!supabaseAdmin) {
-        toast.error('Admin client not initialized');
-        setSaving(false);
-        return;
-      }
       // Update the order
-      const { error: orderError } = await supabaseAdmin
+      const { error: orderError } = await supabaseAdmin!
         .from('orders')
         .update({
           billing_first_name: formData.billing_first_name,

@@ -24,10 +24,6 @@ import { ReturnInspectionModal } from './ReturnInspectionModal';
 import { ReturnDetailsModal } from './ReturnDetailsModal';
 import { ReturnAddressEditModal } from './ReturnAddressEditModal';
 
-if (!supabaseAdmin) {
-  throw new Error('Supabase admin client not initialized');
-}
-
 const STATUS_FILTERS: { value: ReturnRequestStatus | 'all'; label: string; icon: React.ReactNode }[] = [
   { value: 'all', label: 'All Returns', icon: <Package className="h-4 w-4" /> },
   { value: 'pending_shipment', label: 'Pending Shipment', icon: <Clock className="h-4 w-4" /> },

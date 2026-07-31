@@ -269,7 +269,6 @@ const useProductImport = () => {
     csvData: any[], 
     options: ImportOptions
   ): Promise<ImportResult> => {
-    if (!supabaseAdmin) throw new Error('Supabase admin client not initialized');
     if (!user) throw new Error('User not authenticated');
     
     setImporting(true);

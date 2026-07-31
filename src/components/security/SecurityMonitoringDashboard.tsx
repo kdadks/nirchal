@@ -91,11 +91,20 @@ const SecurityMonitoringDashboard: React.FC = () => {
       });
     });
 
-    // Monitor for payment-related network requests
+    // Monitor for payment-related network requests (own origin only)
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const url = args[0]?.toString() || '';
-      
+
+      try {
+        const parsedUrl = new URL(url, window.location.origin);
+        if (parsedUrl.origin !== window.location.origin) {
+          return originalFetch.apply(window, args);
+        }
+      } catch {
+        return originalFetch.apply(window, args);
+      }
+
       if (url.includes('payment') || url.includes('razorpay') || url.includes('checkout')) {
         addSecurityEvent('payment_api_request', 'low', {
           url: url,
@@ -103,7 +112,7 @@ const SecurityMonitoringDashboard: React.FC = () => {
           timestamp: new Date().toISOString()
         });
       }
-      
+
       return originalFetch.apply(window, args);
     };
   };
