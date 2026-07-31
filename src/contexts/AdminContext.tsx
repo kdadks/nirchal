@@ -1,9 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabaseAdmin } from '../config/supabase';
-
-if (!supabaseAdmin) {
-  throw new Error('Supabase admin client not initialized');
-}
+import { supabase } from '../config/supabase';
 
 interface AdminCounts {
   vendors: number;
@@ -38,12 +34,12 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Fetch all counts in parallel
       const [vendorsResult, ordersResult, usersResult, productsResult, categoriesResult, logisticsPartnersResult] = await Promise.all([
-        supabaseAdmin!.from('vendors').select('id', { count: 'exact', head: true }),
-        supabaseAdmin!.from('orders').select('id', { count: 'exact', head: true }),
-        supabaseAdmin!.from('customers').select('id', { count: 'exact', head: true }),
-        supabaseAdmin!.from('products').select('id', { count: 'exact', head: true }),
-        supabaseAdmin!.from('categories').select('id', { count: 'exact', head: true }),
-        supabaseAdmin!.from('logistics_partners').select('id', { count: 'exact', head: true })
+        supabase.from('vendors').select('id', { count: 'exact', head: true }),
+        supabase.from('orders').select('id', { count: 'exact', head: true }),
+        supabase.from('customers').select('id', { count: 'exact', head: true }),
+        supabase.from('products').select('id', { count: 'exact', head: true }),
+        supabase.from('categories').select('id', { count: 'exact', head: true }),
+        supabase.from('logistics_partners').select('id', { count: 'exact', head: true })
       ]);
 
       return {
@@ -82,37 +78,37 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
       let count = 0;
       switch (type) {
         case 'vendors': {
-          const vendorsResult = await supabaseAdmin!.from('vendors').select('id', { count: 'exact', head: true });
+          const vendorsResult = await supabase.from('vendors').select('id', { count: 'exact', head: true });
           count = vendorsResult.count || 0;
           setCounts(prev => ({ ...prev, vendors: count }));
           break;
         }
         case 'orders': {
-          const ordersResult = await supabaseAdmin!.from('orders').select('id', { count: 'exact', head: true });
+          const ordersResult = await supabase.from('orders').select('id', { count: 'exact', head: true });
           count = ordersResult.count || 0;
           setCounts(prev => ({ ...prev, orders: count }));
           break;
         }
         case 'users': {
-          const usersResult = await supabaseAdmin!.from('customers').select('id', { count: 'exact', head: true });
+          const usersResult = await supabase.from('customers').select('id', { count: 'exact', head: true });
           count = usersResult.count || 0;
           setCounts(prev => ({ ...prev, users: count }));
           break;
         }
         case 'products': {
-          const productsResult = await supabaseAdmin!.from('products').select('id', { count: 'exact', head: true });
+          const productsResult = await supabase.from('products').select('id', { count: 'exact', head: true });
           count = productsResult.count || 0;
           setCounts(prev => ({ ...prev, products: count }));
           break;
         }
         case 'categories': {
-          const categoriesResult = await supabaseAdmin!.from('categories').select('id', { count: 'exact', head: true });
+          const categoriesResult = await supabase.from('categories').select('id', { count: 'exact', head: true });
           count = categoriesResult.count || 0;
           setCounts(prev => ({ ...prev, categories: count }));
           break;
         }
         case 'logisticsPartners': {
-          const logisticsResult = await supabaseAdmin!.from('logistics_partners').select('id', { count: 'exact', head: true });
+          const logisticsResult = await supabase.from('logistics_partners').select('id', { count: 'exact', head: true });
           count = logisticsResult.count || 0;
           setCounts(prev => ({ ...prev, logisticsPartners: count }));
           break;

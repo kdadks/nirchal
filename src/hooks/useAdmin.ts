@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabaseAdmin } from '../config/supabase';
-import { 
+import { supabase } from '../config/supabase';
+import {
 	extractFileName, 
 	deleteImageFromPublicFolder, 
 	saveImageToPublicFolder, 
@@ -17,10 +17,6 @@ import type {
 	CategoryFormData,
 	ProductFormDataWithDelete
 } from '../types/admin';
-
-if (!supabaseAdmin) {
-	throw new Error('Supabase admin client not initialized');
-}
 
 // Categories
 export const useCategories = () => {
@@ -44,7 +40,7 @@ export const useCategories = () => {
 		if (!supabase) return;
 		setLoading(true);
 		try {
-			const { data, error } = await supabaseAdmin!
+			const { data, error } = await supabase
 				.from('categories')
 				.select('*')
 				.order('name');
@@ -71,7 +67,7 @@ export const useCategories = () => {
 				console.log('[createCategory] No session user');
 			}
 
-			const { error } = await supabaseAdmin!
+			const { error } = await supabase
 				.from('categories')
 				.insert([data]);
 
@@ -89,7 +85,7 @@ export const useCategories = () => {
 	const updateCategory = async (id: string, data: Partial<CategoryFormData>) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { error } = await supabaseAdmin!
+			const { error } = await supabase
 				.from('categories')
 				.update(data)
 				.eq('id', id);
@@ -105,7 +101,7 @@ export const useCategories = () => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
 			// 1. Get category data including image URL for storage cleanup
-			const { data: category, error: categoryFetchError } = await supabaseAdmin!
+			const { data: category, error: categoryFetchError } = await supabase
 				.from('categories')
 				.select('image_url')
 				.eq('id', id)
@@ -133,7 +129,7 @@ export const useCategories = () => {
 			}
 			
 			// 3. Delete category from database
-			const { error } = await supabaseAdmin!
+			const { error } = await supabase
 				.from('categories')
 				.delete()
 				.eq('id', id);
@@ -181,7 +177,7 @@ export const useVendors = () => {
 		if (!supabase) return;
 		setLoading(true);
 		try {
-			const { data, error } = await supabaseAdmin!
+			const { data, error } = await supabase
 				.from('vendors')
 				.select('*')
 				.order('name');
@@ -198,7 +194,7 @@ export const useVendors = () => {
 	const createVendor = async (data: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { data: vendor, error } = await supabaseAdmin!
+			const { data: vendor, error } = await supabase
 				.from('vendors')
 				.insert([data])
 				.select()
@@ -215,7 +211,7 @@ export const useVendors = () => {
 	const updateVendor = async (id: string, data: Partial<Omit<Vendor, 'id' | 'created_at' | 'updated_at'>>) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { error } = await supabaseAdmin!
+			const { error } = await supabase
 				.from('vendors')
 				.update(data)
 				.eq('id', id);
@@ -230,7 +226,7 @@ export const useVendors = () => {
 	const deleteVendor = async (id: string) => {
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
-			const { error } = await supabaseAdmin!
+			const { error } = await supabase
 				.from('vendors')
 				.delete()
 				.eq('id', id);
@@ -272,7 +268,7 @@ export const useLogisticsPartners = () => {
 	const fetchLogisticsPartners = async () => {
 		setLoading(true);
 		try {
-			const { data, error } = await supabaseAdmin!
+			const { data, error } = await supabase
 				.from('logistics_partners')
 				.select('*')
 				.order('name');
@@ -288,7 +284,7 @@ export const useLogisticsPartners = () => {
 
 	const createLogisticsPartner = async (data: Omit<LogisticsPartner, 'id' | 'created_at' | 'updated_at'>) => {
 		try {
-			const { data: partner, error } = await supabaseAdmin!
+			const { data: partner, error } = await supabase
 				.from('logistics_partners')
 				.insert([data])
 				.select()
@@ -307,7 +303,7 @@ export const useLogisticsPartners = () => {
 		
 		try {
 			console.log(`[${clientType}] Updating logistics partner with data:`, data);
-			const { data: result, error } = await supabaseAdmin!
+			const { data: result, error } = await supabase
 				.from('logistics_partners')
 				.update(data)
 				.eq('id', id)
@@ -328,7 +324,7 @@ export const useLogisticsPartners = () => {
 
 	const deleteLogisticsPartner = async (id: string) => {
 		try {
-			const { error } = await supabaseAdmin!
+			const { error } = await supabase
 				.from('logistics_partners')
 				.delete()
 				.eq('id', id);
@@ -374,7 +370,7 @@ export const useProducts = () => {
 		setLoading(true);
 		try {
 			// Try JOIN query first (like frontend) for better reliability
-			const { data: joinedData, error: joinError } = await supabaseAdmin!
+			const { data: joinedData, error: joinError } = await supabase
 				.from('products')
 				.select(`
 					*,
@@ -391,7 +387,7 @@ export const useProducts = () => {
 			}
 
 			// Fallback to manual join (original method)
-			const { data: productsData, error: productsError } = await supabaseAdmin!
+			const { data: productsData, error: productsError } = await supabase
 				.from('products')
 				.select(`
 					*,
@@ -459,8 +455,7 @@ export const useProducts = () => {
 		}
 	};
 
-	const createProduct = async (data: ProductFormData): Promise<Product> => {
-		if (!supabaseAdmin) throw new Error('Supabase admin client not initialized');
+		const createProduct = async (data: ProductFormData): Promise<Product> => {
 		try {
 			const { images, variants, inventory, variantsToDelete, ...productDataRaw } = data as any;
 				// Convert empty string fields to null, and ensure sku is null if empty
@@ -476,7 +471,7 @@ export const useProducts = () => {
 			
 			let insertResult;
 			try {
-				insertResult = await supabaseAdmin!
+				insertResult = await supabase
 					.from('products')
 					.insert([productData])
 					.select()
@@ -515,7 +510,7 @@ export const useProducts = () => {
 						// Use the R2 URL from upload result
 						const imageUrl = uploadResult.url || fileName;
 						console.log(`[createProduct] Inserting image ${index + 1} record with product_id:`, newProduct.id, 'Image URL:', imageUrl);
-						const { error: imageError } = await supabaseAdmin!
+						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: newProduct.id,
@@ -563,7 +558,7 @@ export const useProducts = () => {
 					product_id: newProduct.id
 				}));
 				
-const { data: insertedVariants, error: variantError } = await supabaseAdmin!
+const { data: insertedVariants, error: variantError } = await supabase
 					.from('product_variants')
 					.insert(variantsToInsert)
 					.select();
@@ -593,7 +588,7 @@ const { data: insertedVariants, error: variantError } = await supabaseAdmin!
 					
 					console.log('[createProduct] Inserting inventory rows:', inventoryRows);
 					
-					const { error: inventoryError, data: inventoryData } = await supabaseAdmin!
+					const { error: inventoryError, data: inventoryData } = await supabase
 						.from('inventory')
 						.insert(inventoryRows)
 						.select();
@@ -623,7 +618,7 @@ const { data: insertedVariants, error: variantError } = await supabaseAdmin!
 					userEmail: sessionCheck.data.session?.user?.email
 				});
 				
-				const { error: inventoryError } = await supabaseAdmin!
+				const { error: inventoryError } = await supabase
 					.from('inventory')
 					.insert([{
 						product_id: newProduct.id,
@@ -662,8 +657,7 @@ const { data: insertedVariants, error: variantError } = await supabaseAdmin!
 
 	// (Removed unused uploadAndSaveProductImages helper)
 
-	const updateProduct = async (id: string, data: Partial<ProductFormDataWithDelete> & { imagesToDelete?: any[] }) => {
-		if (!supabaseAdmin) throw new Error('Supabase admin client not initialized');
+		const updateProduct = async (id: string, data: Partial<ProductFormDataWithDelete> & { imagesToDelete?: any[] }) => {
 				const { images, imagesToDelete = [], variants, inventory, variantsToDelete, ...updateData } = data;
 				
 				// Debug logging
@@ -681,7 +675,7 @@ const { data: insertedVariants, error: variantError } = await supabaseAdmin!
 				delete (updateData as any).variantsToDelete;
 		try {
 			// 1. Update product fields
-			const { error } = await supabaseAdmin!
+			const { error } = await supabase
 				.from('products')
 				.update(updateData)
 				.eq('id', id);
@@ -700,20 +694,20 @@ const { data: insertedVariants, error: variantError } = await supabaseAdmin!
 						}
 					}
 					// Remove from DB
-					await supabaseAdmin!.from('product_images').delete().eq('id', img.id);
+					await supabase.from('product_images').delete().eq('id', img.id);
 				}
 			}
 
 			// 3. Update metadata for existing images
 			if (images) {
 				// First, unset is_primary for all images of this product to ensure only one is primary
-				await supabaseAdmin!
+				await supabase
 					.from('product_images')
 					.update({ is_primary: false })
 					.eq('product_id', id);
 				for (const img of images) {
 					if (img.existing && img.id) {
-						await supabaseAdmin!.from('product_images').update({
+						await supabase.from('product_images').update({
 							alt_text: img.alt_text,
 							is_primary: img.is_primary
 						}).eq('id', img.id);
@@ -736,7 +730,7 @@ const { data: insertedVariants, error: variantError } = await supabaseAdmin!
 					}
 					
 					// Use the R2 URL from upload result
-					const imageUrl = uploadResult.url || fileName;						const { error: imageError } = await supabaseAdmin!
+					const imageUrl = uploadResult.url || fileName;						const { error: imageError } = await supabase
 							.from('product_images')
 							.insert([{
 								product_id: id,
@@ -757,7 +751,7 @@ const { data: insertedVariants, error: variantError } = await supabaseAdmin!
 				
 				// 1. Find inventory ids for these variants
 				console.log('[updateProduct] Step 1: Finding inventory records for variants...');
-const { data: invRows, error: invFetchError } = await supabaseAdmin!
+const { data: invRows, error: invFetchError } = await supabase
 					.from('inventory')
 					.select('id, variant_id')
 					.in('variant_id', variantsToDelete);
@@ -774,7 +768,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 				// 2. Delete inventory_history
 				if (inventoryIds.length > 0) {
 					console.log('[updateProduct] Step 2: Deleting inventory history...');
-					const { error: histDelError, data: histDelData } = await supabaseAdmin!
+					const { error: histDelError, data: histDelData } = await supabase
 						.from('inventory_history')
 						.delete()
 						.in('inventory_id', inventoryIds);
@@ -788,7 +782,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 				// 3. Delete inventory
 				if (inventoryIds.length > 0) {
 					console.log('[updateProduct] Step 3: Deleting inventory records...');
-					const { error: invDelError, data: invDelData } = await supabaseAdmin!
+					const { error: invDelError, data: invDelData } = await supabase
 						.from('inventory')
 						.delete()
 						.in('id', inventoryIds);
@@ -801,7 +795,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 				
 				// 4. Delete variants
 				console.log('[updateProduct] Step 4: Deleting product variants...');
-				const { error: varDelError, data: varDelData } = await supabaseAdmin!
+				const { error: varDelError, data: varDelData } = await supabase
 					.from('product_variants')
 					.delete()
 					.in('id', variantsToDelete);
@@ -815,7 +809,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 				console.log('[updateProduct] ✅ Variant deletion completed successfully');
 				
 				// Check if this was the last variant deletion - if so, clean up and ensure product-level inventory
-				const { data: remainingVariants } = await supabaseAdmin!
+				const { data: remainingVariants } = await supabase
 							.from('product_variants')
 							.select('id')
 							.eq('product_id', id);
@@ -823,13 +817,13 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 					console.log('[updateProduct] No variants remaining - cleaning up orphaned variant inventory');
 					
 					// Delete ALL variant inventory (variant_id !== null) for this product
-					await supabaseAdmin!
+					await supabase
 						.from('inventory')
 						.delete()
 						.eq('product_id', id)
 					console.log('[updateProduct] Ensuring product-level inventory exists');
 					// Check if product-level inventory exists
-				const { data: productInv } = await supabaseAdmin!
+				const { data: productInv } = await supabase
 						.from('inventory')
 						.select('*')
 						.eq('product_id', id)
@@ -839,7 +833,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 					if (!productInv && inventory) {
 						// Create product-level inventory if it doesn't exist
 						console.log('[updateProduct] Creating product-level inventory after variant deletion');
-						await supabaseAdmin!
+						await supabase
 							.from('inventory')
 							.insert({
 								product_id: id,
@@ -861,7 +855,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 									let variantId: string | undefined = undefined;
 									if (v.id) {
 										// Try to update existing variant
-										const { data: updateResult, error: updateVarError } = await supabaseAdmin!
+										const { data: updateResult, error: updateVarError } = await supabase
 											.from('product_variants')
 											.update({
 												sku: v.sku === '' ? null : v.sku,
@@ -883,7 +877,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 										} else {
 											// Variant with this ID doesn't exist, treat as new variant
 											console.log('[updateProduct] Variant ID not found, creating new variant:', v.id);
-											const { data: newVar, error: insertVarError } = await supabaseAdmin!
+											const { data: newVar, error: insertVarError } = await supabase
 												.from('product_variants')
 												.insert({
 													product_id: id,
@@ -902,7 +896,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 									} else {
 										// Insert new variant
 										// quantity and low_stock_threshold are unused
-										const { data: newVar, error: insertVarError } = await supabaseAdmin!
+										const { data: newVar, error: insertVarError } = await supabase
 											.from('product_variants')
 											.insert({
 												product_id: id,
@@ -922,7 +916,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 									if (variantId) {
 										// Check if inventory exists for this variant
 										console.log('[updateProduct] Checking inventory for variant_id:', variantId);
-										const { data: invList, error: fetchInvError } = await supabaseAdmin!
+										const { data: invList, error: fetchInvError } = await supabase
 											.from('inventory')
 											.select('*')
 											.eq('variant_id', variantId);
@@ -935,7 +929,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 											// Update inventory
 											// const prevQty = inv.quantity;
 											const newQty = v.quantity ?? 0;
-											const { error: updateInvError } = await supabaseAdmin!
+											const { error: updateInvError } = await supabase
 												.from('inventory')
 												.update({
 													quantity: newQty,
@@ -960,7 +954,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 											let lastError = null;
 											
 											while (insertAttempts < 3 && !insertSuccess) {
-												const { error: insertInvError } = await supabaseAdmin!
+												const { error: insertInvError } = await supabase
 													.from('inventory')
 													.insert(inventoryData)
 													.select();
@@ -994,7 +988,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			// Always update product-level inventory if provided (regardless of variants)
 			if (inventory !== undefined && inventory !== null) {
 				// Update or insert inventory for product level (variant_id = null)
-				const { data: inv, error: fetchInvError } = await supabaseAdmin!
+				const { data: inv, error: fetchInvError } = await supabase
 					.from('inventory')
 					.select('*')
 					.eq('product_id', id)
@@ -1002,7 +996,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 					.single();
 				if (fetchInvError && fetchInvError.code !== 'PGRST116') throw fetchInvError;
 				if (inv) {
-					const { error: updateInvError } = await supabaseAdmin!
+					const { error: updateInvError } = await supabase
 						.from('inventory')
 						.update({
 							quantity: inventory.quantity,
@@ -1011,7 +1005,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 						.eq('id', inv.id);
 					if (updateInvError) throw updateInvError;
 				} else {
-					const { error: insertInvError } = await supabaseAdmin!
+					const { error: insertInvError } = await supabase
 						.from('inventory')
 						.insert({
 							product_id: id,
@@ -1040,7 +1034,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 		if (!supabase) throw new Error('Supabase client not initialized');
 		try {
 			// 1. Get product_images for storage cleanup
-			const { data: productImages, error: imagesFetchError } = await supabaseAdmin!
+			const { data: productImages, error: imagesFetchError } = await supabase
 				.from('product_images')
 				.select('image_url')
 				.eq('product_id', id);
@@ -1050,7 +1044,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			}
 			
 			// 2. Get variant swatch images separately
-			const { data: variantImages, error: variantImagesFetchError } = await supabaseAdmin!
+			const { data: variantImages, error: variantImagesFetchError } = await supabase
 				.from('product_variants')
 				.select(`
 					swatch_image_id,
@@ -1105,7 +1099,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			}
 			
 			// 5. Delete inventory history records (get fresh list to ensure we catch all)
-			const { data: allInventoryForProduct, error: allInvError } = await supabaseAdmin!
+			const { data: allInventoryForProduct, error: allInvError } = await supabase
 				.from('inventory')
 				.select('id')
 				.eq('product_id', id);
@@ -1114,7 +1108,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			const allInventoryIds = allInventoryForProduct?.map(inv => inv.id) || [];
 			if (allInventoryIds.length > 0) {
 				// Delete all inventory history for these inventory records
-				const { error: historyDeleteError } = await supabaseAdmin!
+				const { error: historyDeleteError } = await supabase
 					.from('inventory_history')
 					.delete()
 					.in('inventory_id', allInventoryIds);
@@ -1122,7 +1116,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 					console.warn('Inventory history deletion error:', historyDeleteError.message);
 					// Try alternative approach - delete any remaining history records
 					try {
-						const { error: remainingHistoryError } = await supabaseAdmin!
+						const { error: remainingHistoryError } = await supabase
 							.from('inventory_history')
 							.delete()
 							.in('inventory_id', allInventoryIds);
@@ -1139,7 +1133,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			
 			// 8. Delete inventory records (both variant and product inventory)
 			try {
-				const { error: inventoryDeleteError } = await supabaseAdmin!
+				const { error: inventoryDeleteError } = await supabase
 					.from('inventory')
 					.delete()
 					.eq('product_id', id);
@@ -1150,7 +1144,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 						console.warn('[deleteProduct] Inventory deletion conflict, cleaning remaining history...');
 						
 						// Get current inventory IDs and clean up any remaining history AGGRESSIVELY
-						const { data: currentInventory } = await supabaseAdmin!
+						const { data: currentInventory } = await supabase
 							.from('inventory')
 							.select('id')
 							.eq('product_id', id);
@@ -1164,7 +1158,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 								console.log(`[deleteProduct] History cleanup attempt ${attempt + 1}/3`);
 								
 								// First, let's try to see ALL inventory_history without any filters
-								const { data: allHistory, error: allHistoryError } = await supabaseAdmin!
+								const { data: allHistory, error: allHistoryError } = await supabase
 									.from('inventory_history')
 									.select('id, inventory_id')
 									.limit(100);
@@ -1178,7 +1172,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 								}
 								
 								// Now check for our specific inventory IDs
-								const { data: remainingHistory, error: historyQueryError } = await supabaseAdmin!
+								const { data: remainingHistory, error: historyQueryError } = await supabase
 									.from('inventory_history')
 									.select('id, inventory_id')
 									.in('inventory_id', currentIds);
@@ -1186,7 +1180,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 								if (!historyQueryError && remainingHistory && remainingHistory.length > 0) {
 									console.log(`[deleteProduct] Found ${remainingHistory.length} remaining history records`, remainingHistory);
 									
-									const { error: cleanupError } = await supabaseAdmin!
+									const { error: cleanupError } = await supabase
 										.from('inventory_history')
 										.delete()
 										.in('inventory_id', currentIds);
@@ -1201,7 +1195,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 									console.log(`[deleteProduct] No more history records found on attempt ${attempt + 1}`);
 									
 									// Let's try a different approach - delete by product_id if possible
-									const { data: historyByProduct, error: productHistoryError } = await supabaseAdmin!
+									const { data: historyByProduct, error: productHistoryError } = await supabase
 										.from('inventory_history')
 										.select('id, inventory_id')
 										.eq('product_id', id);  // This might not exist, but let's try
@@ -1209,7 +1203,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 									if (!productHistoryError && historyByProduct && historyByProduct.length > 0) {
 										console.log(`[deleteProduct] Found history records by product_id: ${historyByProduct.length}`);
 										
-										const { error: productCleanupError } = await supabaseAdmin!
+										const { error: productCleanupError } = await supabase
 											.from('inventory_history')
 											.delete()
 											.eq('product_id', id);
@@ -1227,7 +1221,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 							}
 							
 							// Try inventory deletion again
-							const { error: retryInventoryError } = await supabaseAdmin!
+							const { error: retryInventoryError } = await supabase
 								.from('inventory')
 								.delete()
 								.eq('product_id', id);
@@ -1238,7 +1232,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 								console.log('[deleteProduct] Attempting last resort: RPC function for remaining cleanup...');
 								try {
 									// First try the helper function to clean inventory history
-									const { data: cleanupResult, error: cleanupRpcError } = await supabaseAdmin!.rpc('clean_inventory_history_for_product', {
+									const { data: cleanupResult, error: cleanupRpcError } = await supabase.rpc('clean_inventory_history_for_product', {
 										product_id: id
 									});
 									
@@ -1246,7 +1240,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 										console.log(`[deleteProduct] Helper function cleaned ${cleanupResult} inventory history records`);
 										
 										// Now try inventory deletion again
-										const { error: finalInventoryError } = await supabaseAdmin!
+										const { error: finalInventoryError } = await supabase
 											.from('inventory')
 											.delete()
 											.eq('product_id', id);
@@ -1257,7 +1251,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 											
 											// Clean up audit logs now that inventory is handled
 											try {
-												const { error: auditCleanupError } = await supabaseAdmin!
+												const { error: auditCleanupError } = await supabase
 													.from('product_audit_log')
 													.delete()
 													.eq('product_id', id);
@@ -1273,7 +1267,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 											console.log('[deleteProduct] Inventory deletion still failed, trying full RPC function...');
 											
 											// If helper didn't work, try the full RPC function
-											const { error: rpcError } = await supabaseAdmin!.rpc('delete_product_with_audit_cleanup', {
+											const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
 												product_id: id
 											});
 											
@@ -1289,7 +1283,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 										// Helper function failed, try the full RPC function
 										console.log('[deleteProduct] Helper function failed, trying full RPC function...');
 										
-										const { error: rpcError } = await supabaseAdmin!.rpc('delete_product_with_audit_cleanup', {
+										const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
 											product_id: id
 										});
 										
@@ -1321,7 +1315,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			
 			// 9. Handle order items that reference this product (set product_id to NULL) - OPTIONAL
 			try {
-				const { error: orderItemsUpdateError } = await supabaseAdmin!
+				const { error: orderItemsUpdateError } = await supabase
 					.from('order_items')
 					.update({ product_id: null })
 					.eq('product_id', id);
@@ -1336,7 +1330,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			
 			// 10. Delete product analytics records - OPTIONAL  
 			try {
-				const { error: analyticsDeleteError } = await supabaseAdmin!
+				const { error: analyticsDeleteError } = await supabase
 					.from('product_analytics')
 					.delete()
 					.eq('product_id', id);
@@ -1354,7 +1348,7 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 			
 			// First, try to delete using RPC (stored procedure) if available
 			try {
-				const { error: rpcError } = await supabaseAdmin!.rpc('delete_product_with_audit_cleanup', {
+				const { error: rpcError } = await supabase.rpc('delete_product_with_audit_cleanup', {
 					product_id: id
 				});
 				
@@ -1363,13 +1357,13 @@ const { data: invRows, error: invFetchError } = await supabaseAdmin!
 					
 					// Fallback to direct deletion with manual audit cleanup
 					// Temporarily delete audit logs to avoid trigger conflict
-					await supabaseAdmin!
+					await supabase
 						.from('product_audit_log')
 						.delete()
 						.eq('product_id', id);
 					
 					// Now delete the product (trigger will try to create audit log but we'll handle the error)
-					const { error: productDeleteError } = await supabaseAdmin!
+					const { error: productDeleteError } = await supabase
 						.from('products')
 						.delete()
 						.eq('id', id);
@@ -1502,7 +1496,7 @@ export const useDashboardAnalytics = () => {
 		setLoading(true);
 		try {
 			// Check if orders table exists
-			const { error: ordersCheckError } = await supabaseAdmin!
+			const { error: ordersCheckError } = await supabase
 				.from('orders')
 				.select('id')
 				.limit(1);
@@ -1587,7 +1581,7 @@ export const useDashboardAnalytics = () => {
 				const today = new Date().toISOString().split('T')[0];
 				
 				// Get today's analytics
-				const { data: todayAnalytics, error: analyticsError } = await supabaseAdmin!
+				const { data: todayAnalytics, error: analyticsError } = await supabase
 					.from('daily_analytics')
 					.select('*')
 					.eq('date', today)
@@ -1598,7 +1592,7 @@ export const useDashboardAnalytics = () => {
 				}
 
 				// Get total customers count
-				const { count: customersCount, error: customersError } = await supabaseAdmin!
+				const { count: customersCount, error: customersError } = await supabase
 					.from('customers')
 					.select('*', { count: 'exact', head: true });
 
@@ -1607,7 +1601,7 @@ export const useDashboardAnalytics = () => {
 				}
 
 				// Fetch recent orders
-				const { data: orders, error: ordersError } = await supabaseAdmin!
+				const { data: orders, error: ordersError } = await supabase
 					.from('recent_orders_view')
 					.select('*')
 					.limit(5);
@@ -1620,7 +1614,7 @@ export const useDashboardAnalytics = () => {
 				}
 
 				// Fetch top products
-				const { data: products, error: topProductsError } = await supabaseAdmin!
+				const { data: products, error: topProductsError } = await supabase
 					.from('top_products_view')
 					.select('*')
 					.limit(3);
@@ -1642,7 +1636,7 @@ export const useDashboardAnalytics = () => {
 			}
 
 			// Get total products count (this table exists)
-			const { count: productsCount, error: productsError } = await supabaseAdmin!
+			const { count: productsCount, error: productsError } = await supabase
 				.from('products')
 				.select('*', { count: 'exact', head: true });
 
@@ -1720,13 +1714,13 @@ export const importProducts = async (
 		// Get categories and vendors for reference
 		onProgress?.(10, 'Loading reference data...');
 		
-		if (!supabaseAdmin) {
-			throw new Error('Supabase admin client not initialized - missing service role key');
+		if (!supabase) {
+			throw new Error('Supabase client not initialized');
 		}
 		
 		const [categoriesResult, vendorsResult] = await Promise.all([
-			supabaseAdmin.from('categories').select('id, name'),
-			supabaseAdmin.from('vendors').select('id, name')
+			supabase.from('categories').select('id, name'),
+			supabase.from('vendors').select('id, name')
 		]);
 
 		if (categoriesResult.error) throw categoriesResult.error;
@@ -1778,7 +1772,7 @@ export const importProducts = async (
 
 					// Check for duplicates
 					if (skipDuplicates) {
-						const existingProduct = await supabaseAdmin
+						const existingProduct = await supabase
 							.from('products')
 							.select('id, name')
 							.or(`sku.eq.${row.sku || ''},slug.eq.${slug}`)
@@ -1837,7 +1831,7 @@ export const importProducts = async (
 					};
 
 					// Insert product
-					const { data: newProduct, error: productError } = await supabaseAdmin
+					const { data: newProduct, error: productError } = await supabase
 						.from('products')
 						.insert(productData)
 						.select()
@@ -1892,7 +1886,7 @@ export const importProducts = async (
 								swatch_image_id: null
 							}));
 
-							const { data: insertedVariants, error: variantError } = await supabaseAdmin
+							const { data: insertedVariants, error: variantError } = await supabase
 								.from('product_variants')
 								.insert(variantsToInsert)
 								.select();
@@ -1907,14 +1901,14 @@ export const importProducts = async (
 								low_stock_threshold: variants[index].low_stock_threshold
 							}));
 
-							const { error: inventoryError } = await supabaseAdmin
+							const { error: inventoryError } = await supabase
 								.from('inventory')
 								.insert(inventoryToInsert);
 
 							if (inventoryError) throw inventoryError;
 						} else {
 							// Product without variants - create base inventory
-							const { error: inventoryError } = await supabaseAdmin
+							const { error: inventoryError } = await supabase
 								.from('inventory')
 								.insert({
 									product_id: newProduct.id,
@@ -1927,7 +1921,7 @@ export const importProducts = async (
 						}
 					} else {
 						// Product without variants - create base inventory
-						const { error: inventoryError } = await supabaseAdmin
+						const { error: inventoryError } = await supabase
 							.from('inventory')
 							.insert({
 								product_id: newProduct.id,
