@@ -174,13 +174,13 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ];
 
         // Determine currency based on location and set allowed currencies
-        if (!countryCode || countryCode === 'IN') {
-          // India (or unknown country): show INR as default, with USD and EUR options
+        if (countryCode === 'IN') {
+          // India: show INR as default, with USD and EUR options
           setCurrencyState('INR');
           setIsInternational(false);
           setAllowedCurrencies(['INR', 'USD', 'EUR']);
-          setDetectedCountry(countryCode || 'IN');
-          console.log('[Currency] User in India (or unknown) - INR, USD, EUR all allowed');
+          setDetectedCountry('IN');
+          console.log('[Currency] User in India - INR, USD, EUR all allowed');
         } else if (euCountries.includes(countryCode)) {
           // EU: show default EUR, but allow switching to USD
           setCurrencyState('EUR');
@@ -188,24 +188,30 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setAllowedCurrencies(['EUR', 'USD']);
           setDetectedCountry(countryCode);
           console.log('[Currency] User in EU - EUR and USD allowed');
-        } else {
+        } else if (countryCode) {
           // Rest of world: show default USD, but allow switching to EUR
           setCurrencyState('USD');
           setIsInternational(true);
           setAllowedCurrencies(['USD', 'EUR']);
           setDetectedCountry(countryCode);
           console.log('[Currency] User outside India/EU - USD and EUR allowed');
+        } else {
+          // Unknown country: default to USD only (no INR to respect regional restriction)
+          setCurrencyState('USD');
+          setIsInternational(true);
+          setAllowedCurrencies(['USD', 'EUR']);
+          setDetectedCountry('unknown');
+          console.log('[Currency] Unknown country - USD and EUR allowed, INR hidden');
         }
 
         // Save to localStorage
         localStorage.setItem('userCountry', countryCode);
       } catch (error) {
         console.error('Error detecting location:', error);
-        // Fallback to INR when geolocation fails — the majority of users are
-        // in India, so INR is by far the safest default.
-        setCurrencyState('INR');
-        setIsInternational(false);
-        setAllowedCurrencies(['INR', 'USD', 'EUR']);
+        // Fallback to USD when geolocation fails — INR is restricted to India only
+        setCurrencyState('USD');
+        setIsInternational(true);
+        setAllowedCurrencies(['USD', 'EUR']);
       }
     };
 

@@ -104,12 +104,12 @@ begin
     where ip_address = client_ip
       and expires_at < now();
 
-    -- Fetch fresh data from ipapi.co (server-side — no CORS issues)
-    select content into response_content
-    from http_get('https://ipapi.co/json/');
+    -- Fetch fresh data from ipapi.co using the visitor's real IP (server-side — no CORS issues)
+    select content into response_text
+    from http_get('https://ipapi.co/' || client_ip || '/json/');
 
-    if response_content is not null then
-        api_response := response_content::json;
+    if response_text is not null then
+        api_response := response_text::json;
 
         -- Cache the result for 30 minutes
         insert into public.location_cache (ip_address, data, expires_at)
