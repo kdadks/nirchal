@@ -70,8 +70,10 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       },
     });
 
-    // Generate public URL
-    const publicUrl = `${env.R2_PUBLIC_URL}/${key}`;
+    // Generate public URL (fall back to standard R2 URL format if R2_PUBLIC_URL is not set)
+    const publicUrl = env.R2_PUBLIC_URL
+      ? `${env.R2_PUBLIC_URL}/${key}`
+      : `https://${env.R2_BUCKET_NAME}.${env.R2_ACCOUNT_ID}.r2.dev/${key}`;
 
     console.log(`[Upload R2] Successfully uploaded: ${fileName} to ${publicUrl}`);
 

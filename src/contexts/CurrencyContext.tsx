@@ -159,9 +159,11 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return;
         }
 
-        // Get IP location from GeoIP API
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
+        // Get IP location via Supabase Edge Function (avoids CORS/rate-limit)
+        const { data, error: locationError } = await supabase.functions.invoke('fetch-location');
+        if (locationError || !data) {
+          throw new Error('Location detection failed');
+        }
         const countryCode = data.country_code || '';
 
         // EU countries list

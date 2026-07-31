@@ -124,23 +124,17 @@ const isExcludedIP = (ipAddress?: string): boolean => {
   return EXCLUDED_IP_ADDRESSES.includes(ipAddress);
 };
 
-// Fetch IP and location data from ipapi.co (free tier: 1000 requests/day)
+// Fetch IP and location data via Supabase Edge Function (avoids CORS/rate-limit)
 const fetchLocationData = async (): Promise<LocationInfo | null> => {
   try {
-    console.log('🌍 Fetching location data from ipapi.co...');
-    const response = await fetch('https://ipapi.co/json/', {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    });
+    console.log('🌍 Fetching location data...');
+    const { data, error } = await supabase.functions.invoke('fetch-location');
     
-    if (!response.ok) {
-      console.warn(`⚠️ ipapi.co returned status ${response.status}`);
+    if (error || !data) {
+      console.warn('⚠️ fetch-location function failed:', error?.message);
       return null;
     }
     
-    const data = await response.json();
-    
-    // Ensure we have at least IP address
     if (!data.ip) {
       console.warn('⚠️ No IP address in response');
       return null;

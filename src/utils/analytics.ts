@@ -15,6 +15,7 @@
  */
 
 import { cookieConsentManager, CookieCategory } from './cookieConsentManager';
+import { supabase } from '../config/supabase';
 
 // Excluded IP addresses (admin/developer IPs that should not be tracked)
 const EXCLUDED_IP_ADDRESSES = [
@@ -66,9 +67,8 @@ const checkExcludedIP = async (): Promise<boolean> => {
   ipCheckInProgress = true;
   
   try {
-    const response = await fetch('https://ipapi.co/json/');
-    if (response.ok) {
-      const data = await response.json();
+    const { data, error } = await supabase.functions.invoke('fetch-location');
+    if (!error && data) {
       detectedIPAddress = data.ip;
       ipCheckInProgress = false;
       return detectedIPAddress ? EXCLUDED_IP_ADDRESSES.includes(detectedIPAddress) : false;

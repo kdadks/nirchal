@@ -17,6 +17,8 @@
  * - Cookie policy generator integration
  */
 
+import { supabase } from '../config/supabase';
+
 // Cookie categories
 export enum CookieCategory {
   ESSENTIAL = 'essential',
@@ -173,9 +175,8 @@ class CookieConsentManager {
    */
   private async getGeolocation(): Promise<string | undefined> {
     try {
-      const response = await fetch('https://ipapi.co/json/');
-      if (response.ok) {
-        const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('fetch-location');
+      if (!error && data) {
         return data.country_code;
       }
     } catch (error) {

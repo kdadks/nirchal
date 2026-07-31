@@ -256,11 +256,15 @@ export async function deleteMultipleReturnImages(fileNames: string[]): Promise<v
  */
 export function getReturnImageUrl(fileName: string): string {
   const publicUrl = import.meta.env.VITE_R2_PUBLIC_URL;
-  if (!publicUrl) {
-    console.error('R2_PUBLIC_URL not configured');
-    return '';
+  const bucketName = import.meta.env.VITE_R2_BUCKET_NAME || 'product-images';
+  const accountId = import.meta.env.VITE_R2_ACCOUNT_ID;
+  if (publicUrl) {
+    return `${publicUrl}/${RETURN_IMAGES_FOLDER}/${fileName}`;
   }
-  return `${publicUrl}/${RETURN_IMAGES_FOLDER}/${fileName}`;
+  if (accountId) {
+    return `https://${bucketName}.${accountId}.r2.dev/${RETURN_IMAGES_FOLDER}/${fileName}`;
+  }
+  return '';
 }
 
 /**
