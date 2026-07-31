@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../config/supabase';
+import { supabase } from '../config/supabase';
 import {
   FeaturedSection,
   FeaturedSectionWithProducts,
@@ -6,8 +6,8 @@ import {
   UpdateFeaturedSectionInput,
 } from '../types/featuredSection.types';
 
-// Get client (prefer admin for bypassing RLS)
-const getClient = () => supabaseAdmin || supabase;
+// Get client (authenticated client with session JWT for RLS)
+const getClient = () => supabase;
 
 /**
  * Get all active featured sections for homepage

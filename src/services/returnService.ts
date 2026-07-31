@@ -3,7 +3,7 @@
  * Handles CRUD operations for return requests and items
  */
 
-import { supabaseAdmin } from '../config/supabase';
+import { supabase as supabaseAdmin } from '../config/supabase';
 import { returnEmailService } from './returnEmailService';
 import type {
   ReturnRequest,
@@ -18,14 +18,10 @@ import type {
   RefundCalculation,
 } from '../types/return.types';
 
-if (!supabaseAdmin) {
-  throw new Error('Supabase admin client not initialized');
-}
-
 class ReturnService {
-  // Use admin supabase client - return_requests table requires service_role
+  // Uses authenticated client (relies on session JWT for RLS)
   private get db() {
-    return supabaseAdmin!;
+    return supabaseAdmin;
   }
 
   /**

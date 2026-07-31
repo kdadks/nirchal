@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, supabaseAdmin } from '../config/supabase';
+import { supabase } from '../config/supabase';
 import type { HeroSlide } from '../types/admin';
 
 export const useHeroSlides = () => {
@@ -44,18 +44,18 @@ export const useHeroSlides = () => {
   };
 };
 
-// Admin hook for managing hero slides
-export const useAdminHeroSlides = () => {
-  // Use service role client for admin operations (bypasses RLS)
-  const adminClient = supabaseAdmin;
+  // Admin hook for managing hero slides
+  export const useAdminHeroSlides = () => {
+  // Uses authenticated client (relies on admin session JWT for RLS)
+  const adminClient = supabase;
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchHeroSlides = async () => {
-    // Check if admin client is available
+    // Check if client is available
     if (!adminClient) {
-      setError('Admin client not available. Please check VITE_SUPABASE_SECRET_KEYS environment variable.');
+      setError('Client not available. Please ensure you are logged in.');
       setLoading(false);
       return;
     }

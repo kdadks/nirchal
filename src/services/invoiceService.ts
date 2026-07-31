@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from '../config/supabase';
+import { supabase } from '../config/supabase';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 
@@ -635,7 +635,7 @@ export async function generateInvoice(orderId: string): Promise<{
     }
 
     // Generate invoice number - use admin client for privileged operations
-    const client = supabaseAdmin || supabase;
+    const client = supabase;
     const { data: invoiceNumData, error: invoiceNumError } = await client
       .rpc('generate_invoice_number');
 
@@ -716,7 +716,7 @@ export async function generateInvoice(orderId: string): Promise<{
  */
 export async function raiseInvoice(invoiceId: string): Promise<{ success: boolean; message: string }> {
   try {
-    const client = supabaseAdmin || supabase;
+    const client = supabase;
     const { error } = await client
       .from('invoices')
       .update({
@@ -745,7 +745,7 @@ export async function raiseInvoice(invoiceId: string): Promise<{ success: boolea
  */
 export async function bulkRaiseInvoices(invoiceIds: string[]): Promise<{ success: boolean; message: string; count?: number }> {
   try {
-    const client = supabaseAdmin || supabase;
+    const client = supabase;
     const { data, error } = await client
       .from('invoices')
       .update({
@@ -874,7 +874,7 @@ export async function downloadInvoice(invoiceId: string, orderId?: string): Prom
 
     // Update downloaded status only if it's currently 'raised' - use admin client for privileged operations
     if (invoice.status === 'raised') {
-      const client = supabaseAdmin || supabase;
+      const client = supabase;
       await client
         .from('invoices')
         .update({
@@ -970,7 +970,7 @@ export async function bulkGenerateInvoices(orderIds: string[]): Promise<{
  */
 export async function deleteInvoice(invoiceId: string): Promise<{ success: boolean; message: string }> {
   try {
-    const client = supabaseAdmin || supabase;
+    const client = supabase;
     
     // Check if invoice is in 'generated' status (can only delete generated invoices, not raised ones)
     const { data: invoice, error: fetchError } = await supabase

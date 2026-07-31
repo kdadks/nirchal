@@ -11,7 +11,7 @@
  * - Update database with refund details
  */
 
-import { supabase, supabaseAdmin } from '../config/supabase';
+import { supabase } from '../config/supabase';
 import type { RazorpayRefundResponse } from '../types/razorpay-refund.types';
 
 // Refund status type based on database schema
@@ -59,9 +59,9 @@ interface RefundStatusResponse {
 }
 
 /**
- * Get database client - use admin client to bypass RLS
+ * Get database client - uses authenticated client (session JWT for RLS)
  */
-const getDbClient = () => supabaseAdmin || supabase;
+const getDbClient = () => supabase;
 
 /**
  * Create a refund via Razorpay API (called via serverless function)

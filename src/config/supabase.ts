@@ -3,15 +3,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEYS;
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SECRET_KEYS;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-	throw new Error('Missing Supabase environment variables');
+  throw new Error('Missing Supabase environment variables');
 }
 
 // Simple singleton pattern - the warning in dev is due to HMR, but it's harmless
 let supabaseInstance: SupabaseClient | null = null;
-let supabaseAdminInstance: SupabaseClient | null = null;
 
 // Suppress multiple client warnings (occurs due to HMR in dev or strict mode in prod)
 const originalWarn = console.warn;
@@ -41,23 +39,13 @@ function getSupabaseClient() {
   return supabaseInstance;
 }
 
-// Admin client for privileged operations
-function getSupabaseAdminClient() {
-  if (!supabaseServiceKey) return null;
-  
-  if (!supabaseAdminInstance) {
-    supabaseAdminInstance = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-        storageKey: 'nirchal-admin-auth'
-      }
-    });
-  }
-  return supabaseAdminInstance;
-}
-
-// Export the singleton instances
-export const supabase = getSupabaseClient();
-export const supabaseAdmin = getSupabaseAdminClient();
+// Admin client — uses the same authenticated client as regular client.
+// sb_secret_* keys cannot be used in the browser ("Forbidden use of secret API key in browser").
+// Admin operations use the user's session JWT with RLS policies instead.
+const supabase = getSupabaseClient();
+export { supabase };
+// Admin client — uses the same authenticated client as regular client.
+// sb_secret_* keys cannot be used in the browser ("Forbidden use of secret API key in browser").
+// Admin operations use the user's session JWT with RLS policies instead.
+export const supabaseAdmin: SupabaseClient | null = supabase;
 
