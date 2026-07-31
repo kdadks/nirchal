@@ -34,21 +34,23 @@ export class SecureFormHandler {
 
     // Additional validation based on field type
     switch (fieldType) {
-      case 'email':
+      case 'email': {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(sanitizedValue)) {
           warnings.push('Invalid email format');
           isValid = false;
         }
         break;
-        
-      case 'phone':
-        const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-        if (!phoneRegex.test(sanitizedValue.replace(/[\s\-\(\)]/g, ''))) {
+      }
+      
+      case 'phone': {
+        const phoneRegex = /^\+?[1-9][\d]{0,15}$/;
+        if (!phoneRegex.test(sanitizedValue.replace(/[\s-()]/g, ''))) {
           warnings.push('Invalid phone number format');
           isValid = false;
         }
         break;
+      }
         
       case 'text':
         // Basic length validation
@@ -136,7 +138,7 @@ export class SecureFormHandler {
       /(OR\s+1\s*=\s*1)/i,
       /(AND\s+1\s*=\s*1)/i,
       /(';\s*(DROP|DELETE|INSERT|UPDATE))/i,
-      /(--|\#|\/\*|\*\/)/
+      /(--|#|\/\*|\*\/)/
     ];
 
     return sqlPatterns.some(pattern => pattern.test(input));

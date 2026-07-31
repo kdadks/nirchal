@@ -1,4 +1,3 @@
-/* global URL */
 import { useState } from 'react';
 import type { Product, Review, ReviewFormData } from '../types';
 

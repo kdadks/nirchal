@@ -36,6 +36,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
+          // Invalid / expired refresh token at startup — clear the broken session
+          if (
+            error.message?.includes('Refresh Token Not Found') ||
+            error.message?.includes('Invalid Refresh Token') ||
+            error.name === 'AuthApiError'
+          ) {
+            console.warn('[Auth] Invalid refresh token at startup, clearing session.');
+            await supabase.auth.signOut();
+          }
           if (isMounted) {
             setUser(null);
             setIsAdmin(false);
@@ -69,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
-        
+
         if (event === 'SIGNED_IN' && session?.user) {
           setUser({ ...session.user, name: session.user.email?.split('@')[0] });
           setIsAdmin(true);

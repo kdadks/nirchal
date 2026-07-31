@@ -81,36 +81,42 @@ export const AdminProvider = ({ children }: { children: ReactNode }) => {
     try {
       let count = 0;
       switch (type) {
-        case 'vendors':
+        case 'vendors': {
           const vendorsResult = await supabaseAdmin!.from('vendors').select('id', { count: 'exact', head: true });
           count = vendorsResult.count || 0;
           setCounts(prev => ({ ...prev, vendors: count }));
           break;
-        case 'orders':
+        }
+        case 'orders': {
           const ordersResult = await supabaseAdmin!.from('orders').select('id', { count: 'exact', head: true });
           count = ordersResult.count || 0;
           setCounts(prev => ({ ...prev, orders: count }));
           break;
-        case 'users':
+        }
+        case 'users': {
           const usersResult = await supabaseAdmin!.from('customers').select('id', { count: 'exact', head: true });
           count = usersResult.count || 0;
           setCounts(prev => ({ ...prev, users: count }));
           break;
-        case 'products':
+        }
+        case 'products': {
           const productsResult = await supabaseAdmin!.from('products').select('id', { count: 'exact', head: true });
           count = productsResult.count || 0;
           setCounts(prev => ({ ...prev, products: count }));
           break;
-        case 'categories':
+        }
+        case 'categories': {
           const categoriesResult = await supabaseAdmin!.from('categories').select('id', { count: 'exact', head: true });
           count = categoriesResult.count || 0;
           setCounts(prev => ({ ...prev, categories: count }));
           break;
-        case 'logisticsPartners':
+        }
+        case 'logisticsPartners': {
           const logisticsResult = await supabaseAdmin!.from('logistics_partners').select('id', { count: 'exact', head: true });
           count = logisticsResult.count || 0;
           setCounts(prev => ({ ...prev, logisticsPartners: count }));
           break;
+        }
       }
     } catch (error) {
       console.error(`Error refreshing ${type} count:`, error);
