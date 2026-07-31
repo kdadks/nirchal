@@ -18,7 +18,11 @@ export const ChunkLoadErrorPage: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-800 mb-2">Updating application&hellip;</h2>
         <p className="text-gray-500 text-sm">A new version is available. The page will refresh automatically.</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            sessionStorage.removeItem('lazy_reload_attempted');
+            sessionStorage.removeItem('chunk_error_page_reload');
+            window.location.reload();
+          }}
           className="mt-6 px-5 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors"
         >
           Refresh now
@@ -29,11 +33,19 @@ export const ChunkLoadErrorPage: React.FC = () => {
 };
 
 // Helper function to handle lazy loading with retry mechanism
+const isChunkLoadError = (error: any): boolean => {
+  const msg = error?.message || error?.toString() || '';
+  return msg.includes('Failed to fetch dynamically imported module') ||
+         msg.includes('Unexpected token') ||
+         msg.includes('Unexpected end of JSON input') ||
+         msg.includes('NetworkError when attempting to fetch resource');
+};
+
 const lazyWithRetry = (componentImport: () => Promise<any>) => {
   return lazy(() =>
     componentImport().catch((error) => {
       console.error('[lazyWithRetry] Failed to load chunk:', error?.message);
-      if (error?.message?.includes('Failed to fetch dynamically imported module')) {
+      if (isChunkLoadError(error)) {
         const reloadKey = 'lazy_reload_attempted';
         if (!sessionStorage.getItem(reloadKey)) {
           sessionStorage.setItem(reloadKey, 'true');
