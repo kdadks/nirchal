@@ -330,7 +330,7 @@ const OrderConfirmationPage: React.FC = () => {
                   <p className="text-sm font-medium text-gray-900 mb-2">📌 What happens next?</p>
                   <ul className="text-sm text-gray-700 space-y-2 list-disc list-inside">
                     <li>Your order is saved and reserved for you</li>
-                    <li>Check your email for a payment link to complete your order</li>
+                    <li>Check your email for a recovery link to complete your order</li>
                     <li>Click the <strong>"Retry Payment"</strong> link in the email to return to checkout</li>
                     <li>Complete payment within 24 hours to avoid order cancellation</li>
                   </ul>
@@ -469,7 +469,7 @@ const OrderConfirmationPage: React.FC = () => {
             <div className="bg-blue-50 border-2 border-blue-300 text-blue-900 rounded-lg p-5 text-left">
               <p className="font-semibold mb-3 text-lg">💡 Complete Your Payment:</p>
               <p className="text-sm mb-4">
-                We've sent you a payment link via email. Click the <strong>"🔄 Retry Payment"</strong> button in that email to return to checkout with all your details pre-filled.
+                We've sent you a recovery link via email. Click the <strong>"🔄 Retry Payment"</strong> button in that email to return to checkout with all your details pre-filled.
               </p>
               <p className="text-xs text-blue-800 bg-blue-100 p-3 rounded">
                 ⏰ <strong>Note:</strong> Orders with pending payment will be automatically cancelled after 24 hours. 

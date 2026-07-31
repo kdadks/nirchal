@@ -86,6 +86,8 @@ export class TransactionalEmailService {
       const subjectSuffix = customer.temp_password ? ' - Login Details Included' : '';
       const emailPayload = {
         to: customer.email,
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `🎉 Welcome to Nirchal, ${customer.first_name}!${subjectSuffix}`,
         html
       };
@@ -126,6 +128,8 @@ export class TransactionalEmailService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: customer.email,
+          from: 'Nirchal <support@nirchal.com>',
+          fromName: 'Nirchal',
           subject: '🔒 Password Reset Request - Nirchal',
           html
         })
@@ -151,6 +155,8 @@ export class TransactionalEmailService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: customer.email,
+          from: 'Nirchal <support@nirchal.com>',
+          fromName: 'Nirchal',
           subject: '✅ Password Updated Successfully - Nirchal',
           html
         })
@@ -183,6 +189,8 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: order.customer_email,
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `✅ Order Confirmed ${orderNumber} - Nirchal`,
         html
       };
@@ -226,6 +234,8 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: order.customer_email,
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `Order Received for Processing - ${orderNumber}`,
         html: html
       };
@@ -269,6 +279,8 @@ export class TransactionalEmailService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: order.customer_email,
+          from: 'Nirchal <support@nirchal.com>',
+          fromName: 'Nirchal',
           subject: `📦 Order Update ${orderNumber} - ${order.status.toUpperCase()} - Nirchal`,
           html
         })
@@ -311,6 +323,8 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: order.customer_email,
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `🚚 Your Order ${orderNumber} is Shipped! - Track: ${order.tracking_number} - Nirchal`,
         html
       };
@@ -360,6 +374,8 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: paymentData.customer_email,
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `✅ Payment Successful - Order ${paymentData.order_number} - Nirchal`,
         html
       };
@@ -411,6 +427,8 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: paymentData.customer_email,
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `❌ Payment Failed - Order ${paymentData.order_number} - Nirchal`,
         html
       };
@@ -492,6 +510,8 @@ export class TransactionalEmailService {
 
         const adminEmailPayload = {
           to: 'amit.ranjan78@gmail.com',
+          from: 'Nirchal <support@nirchal.com>',
+          fromName: 'Nirchal',
           subject: `⚠️ Payment Failed - Order #${paymentData.order_number} - ${currencySymbol}${paymentData.amount.toLocaleString()} - Nirchal`,
           html: adminHtml
         };
@@ -585,6 +605,8 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: 'amit.ranjan78@gmail.com', // Primary admin email
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `🛍️ New Order #${orderData.order_number} - ${currencySymbol}${orderData.total_amount.toLocaleString()} - Nirchal`,
         html
       };
@@ -670,6 +692,8 @@ export class TransactionalEmailService {
 
       const emailPayload = {
         to: 'support@nirchal.com',
+        from: 'Nirchal <support@nirchal.com>',
+        fromName: 'Nirchal',
         subject: `👋 New Customer Signup - ${customerData.customer_name} - Nirchal`,
         html
       };

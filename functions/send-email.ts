@@ -69,7 +69,11 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
 
     // Prepare from address
     const fromName = emailData.fromName || env.EMAIL_FROM_NAME || 'Nirchal';
-    const fromAddress = emailData.from || env.EMAIL_FROM;
+    const fromAddress = emailData.from || env.EMAIL_FROM || 'support@nirchal.com';
+
+    if (!emailData.from && !env.EMAIL_FROM) {
+      console.warn('No from address provided in payload or env, falling back to support@nirchal.com');
+    }
 
     // Format from field
     const fromField = `${fromName} <${fromAddress}>`;
