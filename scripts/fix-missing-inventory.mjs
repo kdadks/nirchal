@@ -1,11 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
+import { getSupabasePublishableKey } from './_utils/supabase-key.mjs';
 
 // Load environment variables
 dotenv.config();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = getSupabasePublishableKey();
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase credentials in .env file');

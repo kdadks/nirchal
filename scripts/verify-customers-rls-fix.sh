@@ -14,11 +14,15 @@ if [ -f .env ]; then
 fi
 
 SUPABASE_URL="${VITE_SUPABASE_URL}"
-SUPABASE_ANON_KEY="${VITE_SUPABASE_ANON_KEY}"
+SUPABASE_PUBLISHABLE_KEYS_RAW="${SUPABASE_PUBLISHABLE_KEYS}"
+SUPABASE_ANON_KEY=""
+if [ -n "$SUPABASE_PUBLISHABLE_KEYS_RAW" ]; then
+  SUPABASE_ANON_KEY=$(echo "$SUPABASE_PUBLISHABLE_KEYS_RAW" | grep -o '"default"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"default"[[:space:]]*:[[:space:]]*"//;s/"$//')
+fi
 
 if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
   echo -e "${RED}ERROR: Missing Supabase environment variables${NC}"
-  echo "Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in .env"
+  echo "Please ensure VITE_SUPABASE_URL and SUPABASE_PUBLISHABLE_KEYS are set in .env"
   exit 1
 fi
 

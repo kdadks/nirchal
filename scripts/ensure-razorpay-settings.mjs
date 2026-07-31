@@ -1,11 +1,12 @@
 // Script to ensure all Razorpay settings are properly configured in the database
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceKey } from './_utils/supabase-key.mjs';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key';
+const supabaseServiceKey = getSupabaseServiceKey();
 
 if (!supabaseServiceKey) {
-  console.error('❌ SUPABASE_SERVICE_ROLE_KEY is required');
+  console.error('❌ SUPABASE_SECRET_KEYS is required');
   process.exit(1);
 }
 

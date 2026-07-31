@@ -1,12 +1,9 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createSupabaseClient } from '../_shared/supabase-client.ts';
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+const supabase = createSupabaseClient(Deno.env);
 const resendApiKey = Deno.env.get("RESEND_API_KEY") || "";
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface SendRequest {
   campaign_id: string;

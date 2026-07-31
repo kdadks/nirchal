@@ -55,7 +55,7 @@ export const useAdminHeroSlides = () => {
   const fetchHeroSlides = async () => {
     // Check if admin client is available
     if (!adminClient) {
-      setError('Admin client not available. Please check VITE_SUPABASE_SERVICE_ROLE_KEY environment variable.');
+      setError('Admin client not available. Please check VITE_SUPABASE_SECRET_KEYS environment variable.');
       setLoading(false);
       return;
     }

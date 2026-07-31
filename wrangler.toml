@@ -8,7 +8,13 @@ binding = "PRODUCT_IMAGES"
 bucket_name = "product-images"
 preview_bucket_name = "product-images"
 
-# Environment Variables (set these in Cloudflare Pages dashboard)
+# Environment Variables (set these in Cloudflare Pages dashboard → Settings → Environment Variables)
+#
+# R2_PUBLIC_URL    = https://pub-def558ac10b64a6bb80dc1beedeafe2c.r2.dev
+#   The base public URL for your R2 bucket (from Cloudflare R2 dashboard → Manage R2 → Public access)
+#
+# R2_ACCOUNT_ID    = (your Cloudflare account ID — used for fallback URL construction)
+# R2_BUCKET_NAME   = product-images (already defined in the bucket binding above)
 [env.production]
 vars = { }
 

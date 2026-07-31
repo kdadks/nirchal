@@ -2,17 +2,18 @@ import { createClient } from '@supabase/supabase-js';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { config } from 'dotenv';
+import { getSupabasePublishableKey } from './_utils/supabase-key.mjs';
 
 // Load environment variables from .env file
 config();
 
 // Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = getSupabasePublishableKey();
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase environment variables');
-  console.error('Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in .env file');
+  console.error('Please ensure VITE_SUPABASE_URL and SUPABASE_PUBLISHABLE_KEYS are set in .env file');
   process.exit(1);
 }
 

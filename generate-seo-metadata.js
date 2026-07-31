@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { getSupabaseServiceKey } from './scripts/_utils/supabase-key.mjs';
 
 dotenv.config();
 
 // Use service role for admin operations
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  getSupabaseServiceKey()
 );
 
 /**

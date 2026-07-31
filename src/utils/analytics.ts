@@ -67,9 +67,9 @@ const checkExcludedIP = async (): Promise<boolean> => {
   ipCheckInProgress = true;
   
   try {
-    const { data, error } = await supabase.functions.invoke('fetch-location');
-    if (!error && data) {
-      detectedIPAddress = data.ip;
+     const { data, error } = await supabase.rpc('fetch_location_data');
+     if (!error && data) {
+       detectedIPAddress = data.ip;
       ipCheckInProgress = false;
       return detectedIPAddress ? EXCLUDED_IP_ADDRESSES.includes(detectedIPAddress) : false;
     }

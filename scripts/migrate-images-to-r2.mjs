@@ -23,6 +23,7 @@ import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import dotenv from 'dotenv';
+import { getSupabaseServiceKey } from './_utils/supabase-key.mjs';
 
 // Node 18+ has fetch built-in, but for older versions we'd need node-fetch
 // For this script, we'll use native fetch available in Node 18+
@@ -33,7 +34,7 @@ dotenv.config();
 // Configuration
 const config = {
   supabaseUrl: process.env.VITE_SUPABASE_URL,
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY,
+  supabaseServiceKey: getSupabaseServiceKey(),
   r2AccountId: process.env.R2_ACCOUNT_ID,
   r2AccessKeyId: process.env.R2_ACCESS_KEY_ID,
   r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
@@ -50,7 +51,7 @@ function validateConfig() {
   const errors = [];
   
   if (!config.supabaseUrl) errors.push('VITE_SUPABASE_URL');
-  if (!config.supabaseServiceKey) errors.push('SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_ANON_KEY');
+  if (!config.supabaseServiceKey) errors.push('SUPABASE_SECRET_KEYS');
   if (!config.r2AccountId) errors.push('R2_ACCOUNT_ID');
   if (!config.r2AccessKeyId) errors.push('R2_ACCESS_KEY_ID');
   if (!config.r2SecretAccessKey) errors.push('R2_SECRET_ACCESS_KEY');

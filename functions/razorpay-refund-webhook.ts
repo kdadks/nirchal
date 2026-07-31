@@ -4,14 +4,16 @@
  * This function handles webhook events from Razorpay for refund status updates.
  * It verifies the webhook signature and updates the database accordingly.
  */
-
+ 
+import { getSupabaseAdminKey } from './_utils/supabase-client';
+ 
 interface Env {
   // Razorpay
   RAZORPAY_WEBHOOK_SECRET: string;
   
   // Supabase
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SECRET_KEYS: string;
 }
 
 interface WebhookPayload {
@@ -141,7 +143,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
     }
 
     // Validate Supabase credentials
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SECRET_KEYS) {
       console.error('[Razorpay Webhook] Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Database not configured' }),
@@ -149,14 +151,17 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
+    // Extract service role key from new or deprecated env var
+    const supabaseServiceKey = getSupabaseAdminKey(env);
+
     // Update refund transaction in database
     const updateResponse = await fetch(
       `${env.SUPABASE_URL}/rest/v1/razorpay_refund_transactions?razorpay_refund_id=eq.${refund.id}`,
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
@@ -200,8 +205,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         {
           method: 'PATCH',
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -223,8 +228,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         {
           method: 'POST',
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },

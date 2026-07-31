@@ -26,7 +26,7 @@ const AuthDebug: React.FC = () => {
     PROD: import.meta.env.PROD,
     DEV: import.meta.env.DEV,
     VITE_SUPABASE_URL: mask(import.meta.env.VITE_SUPABASE_URL),
-    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'present' : 'missing',
+    VITE_SUPABASE_PUBLISHABLE_KEYS: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEYS ? 'present' : 'missing',
     ORIGIN: typeof window !== 'undefined' ? window.location.origin : 'n/a',
   }), []);
 
@@ -35,7 +35,7 @@ const AuthDebug: React.FC = () => {
     const out: CheckResult[] = [];
     try {
       out.push({ name: 'Env: Supabase URL', status: envInfo.VITE_SUPABASE_URL !== 'missing' ? 'pass' : 'fail', details: envInfo.VITE_SUPABASE_URL });
-      out.push({ name: 'Env: Supabase Anon Key', status: envInfo.VITE_SUPABASE_ANON_KEY === 'present' ? 'pass' : 'fail' });
+      out.push({ name: 'Env: Supabase Publishable Key', status: envInfo.VITE_SUPABASE_PUBLISHABLE_KEYS === 'present' ? 'pass' : 'fail' });
       out.push({ name: 'Env: Origin', status: 'info', details: envInfo.ORIGIN });
 
       // Check session

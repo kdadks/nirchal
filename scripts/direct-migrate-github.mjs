@@ -8,11 +8,12 @@
 import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { getSupabaseServiceKey } from './_utils/supabase-key.mjs';
 
 // Configuration
 const config = {
   supabaseUrl: process.env.VITE_SUPABASE_URL,
-  supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  supabaseServiceKey: getSupabaseServiceKey(),
   r2AccountId: process.env.R2_ACCOUNT_ID,
   r2AccessKeyId: process.env.R2_ACCESS_KEY_ID,
   r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY,

@@ -175,8 +175,8 @@ class CookieConsentManager {
    */
   private async getGeolocation(): Promise<string | undefined> {
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-location');
-      if (!error && data) {
+      const { data, error } = await supabase.rpc('fetch_location_data');
+      if (!error && data && !data.error) {
         return data.country_code;
       }
     } catch (error) {

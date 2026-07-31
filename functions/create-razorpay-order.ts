@@ -4,11 +4,13 @@
  * This function creates a Razorpay payment order with server-side security.
  * Razorpay credentials are stored in Cloudflare environment variables (secrets).
  */
-
+ 
+import { getSupabaseAdminKey } from './_utils/supabase-client';
+ 
 interface Env {
   // Supabase
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SECRET_KEYS: string;
   
   // Razorpay (stored as secrets in Cloudflare)
   RAZORPAY_KEY_ID: string;
@@ -68,7 +70,7 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SECRET_KEYS) {
       console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Database not configured' }),
@@ -76,13 +78,16 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
+    // Extract service role key from new or deprecated env var
+    const supabaseServiceKey = getSupabaseAdminKey(env);
+
     // Fetch Razorpay settings from Supabase
     const settingsResponse = await fetch(
       `${env.SUPABASE_URL}/rest/v1/settings?category=eq.payment&key=in.(razorpay_enabled,razorpay_auto_capture,razorpay_company_name,razorpay_company_logo,razorpay_theme_color,razorpay_description,razorpay_timeout)`,
       {
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
         }
       }
     );

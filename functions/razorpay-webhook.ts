@@ -4,11 +4,13 @@
  * This function receives and processes webhook events from Razorpay
  * to update order statuses in real-time.
  */
-
+ 
+import { getSupabaseAdminKey } from './_utils/supabase-client';
+ 
 interface Env {
   // Supabase
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SECRET_KEYS: string;
   
   // Razorpay
   RAZORPAY_KEY_ID: string;
@@ -151,13 +153,16 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SECRET_KEYS) {
       console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Database not configured' }),
         { status: 500, headers: corsHeaders }
       );
     }
+
+    // Extract service role key from new or deprecated env var
+    const supabaseServiceKey = getSupabaseAdminKey(env);
 
     // Get request body as text for signature verification
     const bodyText = await request.text();
@@ -286,8 +291,8 @@ async function handleRefundEvent(env: Env, webhookPayload: any) {
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
         },
@@ -323,7 +328,7 @@ async function handleRefundEvent(env: Env, webhookPayload: any) {
         const emailResponse = await fetch(`${env.SUPABASE_URL}/functions/v1/send-email`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -360,8 +365,8 @@ async function handleRefundEvent(env: Env, webhookPayload: any) {
         {
           method: 'PATCH',
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -383,8 +388,8 @@ async function handleRefundEvent(env: Env, webhookPayload: any) {
         {
           method: 'POST',
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },
@@ -425,8 +430,8 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?razorpay_payment_id=eq.${payment.id}&select=id,order_number,payment_status`,
       {
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
         }
       }
     );
@@ -448,8 +453,8 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?razorpay_order_id=eq.${payment.order_id}&select=*`,
       {
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
         }
       }
     );
@@ -530,8 +535,8 @@ async function handlePaymentCaptured(env: Env, payment: any) {
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
@@ -591,8 +596,8 @@ async function handlePaymentFailed(env: Env, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?razorpay_order_id=eq.${payment.order_id}&select=*`,
       {
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
         }
       }
     );
@@ -616,8 +621,8 @@ async function handlePaymentFailed(env: Env, payment: any) {
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
@@ -749,8 +754,8 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
       `${env.SUPABASE_URL}/rest/v1/orders?razorpay_order_id=eq.${order.id}&select=*`,
       {
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
         }
       }
     );
@@ -852,8 +857,8 @@ async function handleOrderPaid(env: Env, order: any, payment: any) {
         {
           method: 'PATCH',
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },
@@ -894,8 +899,8 @@ async function updateInventoryForOrder(env: Env, orderId: string) {
       `${env.SUPABASE_URL}/rest/v1/order_items?order_id=eq.${orderId}&select=*`,
       {
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
         }
       }
     );
@@ -920,8 +925,8 @@ async function updateInventoryForOrder(env: Env, orderId: string) {
 
         const inventoryResponse = await fetch(inventoryUrl, {
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`
           }
         });
 
@@ -947,8 +952,8 @@ async function updateInventoryForOrder(env: Env, orderId: string) {
           {
             method: 'PATCH',
             headers: {
-              'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-              'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+              'apikey': supabaseServiceKey,
+              'Authorization': `Bearer ${supabaseServiceKey}`,
               'Content-Type': 'application/json',
               'Prefer': 'return=minimal'
             },
@@ -970,8 +975,8 @@ async function updateInventoryForOrder(env: Env, orderId: string) {
           {
             method: 'POST',
             headers: {
-              'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-              'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+              'apikey': supabaseServiceKey,
+              'Authorization': `Bearer ${supabaseServiceKey}`,
               'Content-Type': 'application/json',
               'Prefer': 'return=minimal'
             },

@@ -4,11 +4,13 @@
  * This function verifies the payment signature from Razorpay to ensure
  * payment authenticity and prevent fraud.
  */
-
+ 
+import { getSupabaseAdminKey } from './_utils/supabase-client';
+ 
 interface Env {
   // Supabase
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SECRET_KEYS: string;
   
   // Razorpay
   RAZORPAY_KEY_ID: string;
@@ -68,13 +70,16 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       );
     }
 
-    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SECRET_KEYS) {
       console.error('Missing Supabase credentials');
       return new Response(
         JSON.stringify({ error: 'Database not configured' }),
         { status: 500, headers: corsHeaders }
       );
     }
+
+    // Extract service role key from new or deprecated env var
+    const supabaseServiceKey = getSupabaseAdminKey(env);
 
     console.log('Verifying payment:', {
       order_id,
@@ -119,8 +124,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         {
           method: 'PATCH',
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
             'Prefer': 'return=minimal'
           },
@@ -169,8 +174,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}&select=payment_status`,
       {
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
         }
       }
     );
@@ -236,8 +241,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
@@ -271,8 +276,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         `${env.SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}&select=order_number,billing_first_name,billing_last_name,billing_email,total_amount,payment_method`,
         {
           headers: {
-            'apikey': env.SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`
           }
         }
       );

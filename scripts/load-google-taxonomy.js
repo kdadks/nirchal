@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { getSupabaseServiceKey } from './_utils/supabase-key.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,14 +22,13 @@ const TAXONOMY_URL = 'https://www.google.com/basepages/producttype/taxonomy-with
 
 // Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-// Use service role key for bypassing RLS during data loading
-const supabaseKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+const supabaseKey = getSupabaseServiceKey();
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Error: Supabase credentials not found in environment variables');
   console.error('Please ensure your .env file contains:');
   console.error('  VITE_SUPABASE_URL=your_supabase_url');
-  console.error('  VITE_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key (for data loading)');
+  console.error('  SUPABASE_SECRET_KEYS={"default":"your_service_role_key"} (for data loading)');
   process.exit(1);
 }
 

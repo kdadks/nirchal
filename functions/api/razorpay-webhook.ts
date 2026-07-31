@@ -4,13 +4,14 @@
  * Handles webhook events from Razorpay for payment and refund status updates.
  * Webhook URL: https://your-domain.com/api/razorpay-webhook
  */
-
+ 
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdminKey } from '../_utils/supabase-client';
 
 interface Env {
   RAZORPAY_WEBHOOK_SECRET: string;
   SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_SECRET_KEYS: string;
 }
 
 interface RazorpayWebhookEvent {
@@ -89,10 +90,11 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       contains: webhookEvent.contains,
     });
 
-    // Initialize Supabase client with service role (bypass RLS)
+    // Extract service role key from new or deprecated env var
+    const supabaseServiceKey = getSupabaseAdminKey(env);
     const supabase = createClient(
       env.SUPABASE_URL,
-      env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseServiceKey,
       {
         auth: {
           autoRefreshToken: false,
@@ -245,7 +247,7 @@ async function handleRefundProcessed(
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
           },
           body: JSON.stringify({
             type: 'refund_completed',

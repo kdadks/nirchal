@@ -11,9 +11,10 @@
 
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
+import { getSupabaseServiceKey } from './_utils/supabase-key.mjs';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = getSupabaseServiceKey();
 
 if (!supabaseUrl) {
   console.error('❌ Missing Supabase URL. Please check your .env file.');
@@ -30,7 +31,7 @@ if (!supabaseServiceKey) {
   console.error('      Project Settings > API > Project API keys > service_role key');
   console.error('   ');
   console.error('   2. Run the script with the key as an environment variable:');
-  console.error('      $env:SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"; node scripts/generate-fake-reviews.mjs');
+   console.error('      $env:SUPABASE_SECRET_KEYS='{"default":"your_service_role_key"}'; node scripts/generate-fake-reviews.mjs');
   console.error('   ');
   console.error('   ⚠️  IMPORTANT: Never commit the service role key to git!');
   process.exit(1);

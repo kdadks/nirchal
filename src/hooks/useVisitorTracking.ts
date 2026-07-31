@@ -124,14 +124,19 @@ const isExcludedIP = (ipAddress?: string): boolean => {
   return EXCLUDED_IP_ADDRESSES.includes(ipAddress);
 };
 
-// Fetch IP and location data via Supabase Edge Function (avoids CORS/rate-limit)
+// Fetch IP and location data via Supabase SQL function (server-side HTTP call, no CORS)
 const fetchLocationData = async (): Promise<LocationInfo | null> => {
   try {
     console.log('🌍 Fetching location data...');
-    const { data, error } = await supabase.functions.invoke('fetch-location');
+    const { data, error } = await supabase.rpc('fetch_location_data');
     
     if (error || !data) {
-      console.warn('⚠️ fetch-location function failed:', error?.message);
+      console.warn('⚠️ Location fetch failed:', error?.message);
+      return null;
+    }
+    
+    if (data.error) {
+      console.warn('⚠️ Location data unavailable:', data.error);
       return null;
     }
     

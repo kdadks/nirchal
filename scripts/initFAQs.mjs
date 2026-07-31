@@ -1,15 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
+import { getSupabasePublishableKey } from './_utils/supabase-key.mjs';
 
 // Load environment variables from .env file
 config();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseAnonKey = getSupabasePublishableKey();
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Error: Missing Supabase environment variables');
-  console.error('Please make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
+  console.error('Please make sure VITE_SUPABASE_URL and SUPABASE_PUBLISHABLE_KEYS are set in your .env file');
   process.exit(1);
 }
 

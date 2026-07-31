@@ -6,6 +6,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const { getSupabaseServiceKey } = require('./_utils/supabase-key.cjs');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,12 +14,12 @@ const path = require('path');
 require('dotenv').config();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = getSupabaseServiceKey();
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Missing required environment variables:');
   console.error('   VITE_SUPABASE_URL:', supabaseUrl ? '✓' : '✗');
-  console.error('   SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_ANON_KEY:', supabaseServiceKey ? '✓' : '✗');
+  console.error('   SUPABASE_SECRET_KEYS (JSON):', supabaseServiceKey ? '✓' : '✗');
   console.error('\nPlease check your .env file and try again.');
   process.exit(1);
 }

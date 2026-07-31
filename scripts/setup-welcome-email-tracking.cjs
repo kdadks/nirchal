@@ -1,13 +1,14 @@
 const { readFileSync } = require('fs');
 const { createClient } = require('@supabase/supabase-js');
+const { getSupabasePublishableKey } = require('./_utils/supabase-key.cjs');
 require('dotenv').config();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = getSupabasePublishableKey();
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Error: Missing Supabase environment variables');
-  console.error('Please make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
+  console.error('Please make sure VITE_SUPABASE_URL and SUPABASE_PUBLISHABLE_KEYS are set in your .env file');
   process.exit(1);
 }
 

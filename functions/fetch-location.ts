@@ -1,28 +1,41 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+// Cloudflare Pages Function for fetching IP geolocation data from ipapi.co
+// Path: /functions/fetch-location
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// In-memory cache keyed by client IP (TTL 30 min) to avoid hitting ipapi.co rate limits
+// In-memory cache keyed by client IP (TTL 30 min) to reduce ipapi.co rate-limit hits
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_TTL = 30 * 60 * 1000;
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+export async function onRequest(context: { request: Request; env: any }) {
+  const { request } = context;
+
+  // CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // Only allow GET / POST (supabase.functions.invoke sends POST)
+  if (request.method !== 'GET' && request.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
-    // Determine the visitor's real IP from Cloudflare/Deno headers
+    // Determine client IP for caching
     const clientIP =
-      req.headers.get('cf-connecting-ip') ||
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      req.headers.get('x-real-ip') ||
+      request.headers.get('cf-connecting-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
       'unknown';
 
-    // Return cached result if still fresh
+    // Return cached result if fresh
     const cached = cache.get(clientIP);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return new Response(JSON.stringify(cached.data), {
@@ -51,11 +64,13 @@ serve(async (req) => {
     console.error('[fetch-location] Error:', error);
 
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch location data' }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Failed to fetch location data',
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
       }
     );
   }
-});
+}

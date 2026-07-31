@@ -146,7 +146,7 @@ const OrderConfirmationPage: React.FC = () => {
 
       const supabase = createClient(
         import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
+        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEYS
       );
 
       // Note: Customer record already exists (created after payment)

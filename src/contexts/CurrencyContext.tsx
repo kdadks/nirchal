@@ -159,9 +159,9 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return;
         }
 
-        // Get IP location via Supabase Edge Function (avoids CORS/rate-limit)
-        const { data, error: locationError } = await supabase.functions.invoke('fetch-location');
-        if (locationError || !data) {
+        // Get IP location via Supabase SQL function (server-side HTTP call, no CORS)
+        const { data, error: rpcError } = await supabase.rpc('fetch_location_data');
+        if (rpcError || !data || data.error) {
           throw new Error('Location detection failed');
         }
         const countryCode = data.country_code || '';
