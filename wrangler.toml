@@ -1,6 +1,7 @@
 # Cloudflare Pages Configuration for R2 Integration
 name = "nirchal"
 compatibility_date = "2024-01-01"
+account_id = "a7e0b5881f5c583b0f842c579a8b0c9c"
 
 # R2 Bucket Binding
 [[r2_buckets]]
