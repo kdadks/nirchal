@@ -62,6 +62,19 @@ export const useRazorpay = (): UseRazorpayReturn => {
       return;
     }
 
+    // Check if script is already being loaded
+    const existingScript = document.querySelector('script[src*="checkout.razorpay.com"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => {
+        setIsLoaded(true);
+      });
+      existingScript.addEventListener('error', () => {
+        console.error('Failed to load Razorpay script');
+        setIsLoaded(false);
+      });
+      return;
+    }
+
     // Load Razorpay script
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';

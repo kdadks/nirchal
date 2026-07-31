@@ -37,10 +37,3 @@ export const loadRazorpay = (): Promise<boolean> => {
     document.head.appendChild(script);
   });
 };
-
-// Auto-load Razorpay when this module is imported
-if (typeof window !== 'undefined') {
-  loadRazorpay().catch(() => {
-    console.warn('Failed to load Razorpay script');
-  });
-}
