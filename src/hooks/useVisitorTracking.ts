@@ -148,7 +148,7 @@ const fetchLocationData = async (): Promise<LocationInfo | null> => {
     const locationInfo: LocationInfo = {
       ip_address: data.ip,
       city: data.city || undefined,
-      country: data.country_name || undefined,
+      country: data.country_name || data.country || undefined,
       country_code: data.country_code || undefined,
       region: data.region || undefined,
       latitude: data.latitude ? parseFloat(data.latitude) : undefined,

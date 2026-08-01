@@ -1,4 +1,4 @@
-// Cloudflare Pages Function for fetching IP geolocation data from ipapi.co
+// Cloudflare Pages Function for fetching IP geolocation data from ipwhois.app (ipwhois.io)
 // Path: /functions/fetch-location
 
 const corsHeaders = {
@@ -44,19 +44,24 @@ export async function onRequest(context: { request: Request; env: any }) {
       });
     }
 
-    // Fetch fresh location data from ipapi.co (server-side — no CORS issues)
-    // IMPORTANT: Pass the client IP in the URL so ipapi.co returns the visitor's location
-    // NOT the server's location. This is the fix for the production issue where
-    // ip: "0.0.0.0", city: undefined, country: undefined
-    const response = await fetch(`https://ipapi.co/${clientIP}/json/`, {
+    // Fetch fresh location data from ipwhois.app (server-side — no CORS issues, no API key)
+    // Pass the client IP so the API returns the visitor's location, not the server's
+    const response = await fetch(`https://ipwhois.app/json/${clientIP}`, {
       headers: { Accept: 'application/json' },
     });
 
     if (!response.ok) {
-      throw new Error(`ipapi.co returned status ${response.status}`);
+      throw new Error(`ipwhois.app returned status ${response.status}`);
     }
 
     const data = await response.json();
+
+    if (data.success === false) {
+      throw new Error(data.message || 'Location lookup failed');
+    }
+
+    // Normalize: add country_name alias to match legacy ipapi.co field name
+    data.country_name = data.country;
     cache.set(clientIP, { data, timestamp: Date.now() });
 
     return new Response(JSON.stringify(data), {
