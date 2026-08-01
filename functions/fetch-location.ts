@@ -45,7 +45,10 @@ export async function onRequest(context: { request: Request; env: any }) {
     }
 
     // Fetch fresh location data from ipapi.co (server-side — no CORS issues)
-    const response = await fetch('https://ipapi.co/json/', {
+    // IMPORTANT: Pass the client IP in the URL so ipapi.co returns the visitor's location
+    // NOT the server's location. This is the fix for the production issue where
+    // ip: "0.0.0.0", city: undefined, country: undefined
+    const response = await fetch(`https://ipapi.co/${clientIP}/json/`, {
       headers: { Accept: 'application/json' },
     });
 

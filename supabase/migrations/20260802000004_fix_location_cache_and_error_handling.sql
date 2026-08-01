@@ -1,28 +1,31 @@
 -- =====================================================================================
--- Fix: IPv6 address corruption + ipapi.co error handling in fetch_location_data
+-- Fix: Clear stale ipapi.co error cache + improve error handling in fetch_location_data
 -- =====================================================================================
--- Two bugs are fixed:
+-- After applying migration 20260802000003 (inet cast for IPv6), some visitors
+-- still receive {"error": true} because the location_cache table contains stale
+-- cached error responses from ipapi.co (e.g. for invalid/unresolvable IPs on
+-- localhost or private networks). When the function found these cached entries,
+-- it returned them directly without checking whether they were ipapi.co errors.
 --
--- 1. IPv6 address corruption
---    The split_part(client_ip, ':', 1) on line 31 of migration
---    20260802000001_fix_location_client_ip.sql was intended to strip port
---    numbers from IPv4 addresses (e.g. 192.168.1.1:54321 → 192.168.1.1).
---    However, IPv6 addresses contain colons as part of the address itself,
---    so this split destroyed them:
---      ::1           → ''  (empty string — malformed URL, crashed JSON cast)
---      2001:db8::1   → '2001'  (truncated — also malformed)
---    This caused HTTP 500 errors in the fetch_location_data RPC.
---    Fix: use the inet type cast which correctly handles both IPv4 and IPv6.
---
--- 2. ipapi.co error responses cached and returned
---    When ipapi.co returns an error JSON (e.g. {"error": true} for invalid
---    or unresolvable IPs), the old function cached and returned that response
---    directly. The client saw data.error === true and treated it as a
---    location failure.
---    Fix: check for an "error" key in the ipapi.co response before
---    caching. If present, fall through to the expired cache or return
---    the function's own fallback error message.
+-- This migration:
+--   1. Clears ALL entries from location_cache (30-minute TTL means data will be
+--      re-fetched on the next request)
+--   2. Recreates the function with proactive checking: ipapi.co responses that
+--      contain an "error" key are NOT cached and NOT returned to the client
+--      — the function falls through to the expired-cache fallback or returns
+--      its own {"error": "Location data unavailable"} message
 
+-- ---------------------------------------------------------------------------
+-- 1. Clear stale cache entries
+-- ---------------------------------------------------------------------------
+-- Remove all cached entries, including any that contain ipapi.co error responses
+-- ({"error": true}) that were cached by the previous function version.
+-- The cache is only 30-minute TTL anyway, so clearing it has minimal impact.
+delete from public.location_cache;
+
+-- ---------------------------------------------------------------------------
+-- 2. Recreate the function with ipapi.co error response checking
+-- ---------------------------------------------------------------------------
 create or replace function public.fetch_location_data()
 returns json
 language plpgsql
@@ -31,7 +34,7 @@ declare
     client_ip      text;
     cached_data    json;
     api_response   jsonb;
-    response_text   text;
+    response_text  text;
 begin
     client_ip := coalesce(
         current_setting('request.header.cf-connecting-ip', true),
@@ -41,14 +44,12 @@ begin
     );
 
     -- Clean up the IP: take the first address in a comma-separated list
-    -- (e.g. X-Forwarded-For can contain "client, proxy1, proxy2")
     client_ip := split_part(client_ip, ',', 1);
     client_ip := trim(both ' ', client_ip);
 
-    -- Parse the IP with the inet type to strip port suffixes for IPv4
-    -- while preserving IPv6 addresses that contain colons.
-    -- The previous approach, split_part(client_ip, ':', 1), corrupted
-    -- IPv6 addresses (e.g. ::1 → empty, 2001:db8::1 → 2001).
+    -- Use inet type to strip port suffixes for IPv4 while preserving
+    -- full IPv6 addresses. The old split_part(client_ip, ':', 1) destroyed
+    -- IPv6 addresses (::1 → '', 2001:db8::1 → '2001').
     begin
         client_ip := nullif(client_ip, '')::inet::text;
     exception
@@ -81,9 +82,8 @@ begin
             api_response := response_text::jsonb;
 
             -- Check if ipapi.co returned an error response
-            -- (e.g. {"error": true} for rate-limited or invalid IPs).
-            -- Do not cache or return these — fall through to the
-            -- expired cache fallback instead.
+            -- (e.g. {"error": true} for rate-limited, invalid, or
+            -- unresolvable IPs). Do not cache or return these.
             if api_response ? 'error' then
                 -- ipapi.co error — skip caching, fall through to fallback
             else
@@ -122,6 +122,7 @@ $$;
 grant execute on function public.fetch_location_data() to anon;
 grant execute on function public.fetch_location_data() to authenticated;
 
+-- Re-apply the delete policy (idempotent)
 drop policy if exists "public_delete_location_cache" on public.location_cache;
 create policy "public_delete_location_cache"
 on public.location_cache
