@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 import { formatCurrency as formatCurrencyUtil } from '../utils/formatCurrency';
+import { fetchLocationData } from '../utils/locationData';
 
 export type Currency = 'INR' | 'USD' | 'EUR';
 
@@ -159,12 +160,20 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return;
         }
 
-        // Get IP location via Supabase SQL function (server-side HTTP call, no CORS)
-        const { data, error: rpcError } = await supabase.rpc('fetch_location_data');
-        if (rpcError || !data || data.error) {
-          throw new Error('Location detection failed');
+        // On localhost the Cloudflare function isn't available — default to INR for dev
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
+          setCurrencyState('INR');
+          setIsInternational(false);
+          setAllowedCurrencies(['INR', 'USD', 'EUR']);
+          setDetectedCountry('IN');
+          return;
         }
-        const countryCode = data.country_code || '';
+
+        // Get IP location via Cloudflare Pages function (cf-connecting-ip guaranteed)
+        const locationData = await fetchLocationData();
+        // null means CF function unavailable — treat as unknown country (falls through to USD default)
+        const countryCode = locationData?.country_code ?? '';
 
         // EU countries list
         const euCountries = [

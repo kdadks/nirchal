@@ -17,7 +17,7 @@
  * - Cookie policy generator integration
  */
 
-import { supabase } from '../config/supabase';
+import { fetchLocationData } from './locationData';
 
 // Cookie categories
 export enum CookieCategory {
@@ -175,8 +175,8 @@ class CookieConsentManager {
    */
   private async getGeolocation(): Promise<string | undefined> {
     try {
-      const { data, error } = await supabase.rpc('fetch_location_data');
-      if (!error && data && !data.error) {
+      const data = await fetchLocationData();
+      if (data?.country_code) {
         return data.country_code;
       }
     } catch (error) {

@@ -24,6 +24,16 @@ console.warn = (...args) => {
   originalWarn.apply(console, args);
 };
 
+// Suppress the stale-token refresh error on localhost (Supabase clears it automatically)
+const originalError = console.error;
+console.error = (...args) => {
+  if (window.location.hostname === 'localhost' &&
+      args[0]?.message?.includes?.('Invalid Refresh Token')) {
+    return;
+  }
+  originalError.apply(console, args);
+};
+
 // Regular client for public operations
 function getSupabaseClient() {
   if (!supabaseInstance) {

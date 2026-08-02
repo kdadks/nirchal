@@ -15,7 +15,7 @@
  */
 
 import { cookieConsentManager, CookieCategory } from './cookieConsentManager';
-import { supabase } from '../config/supabase';
+import { fetchLocationData } from './locationData';
 
 // Excluded IP addresses (admin/developer IPs that should not be tracked)
 const EXCLUDED_IP_ADDRESSES = [
@@ -61,22 +61,22 @@ const checkExcludedIP = async (): Promise<boolean> => {
   }
 
   if (ipCheckInProgress) {
-    return false; // Don't block if check is in progress
+    return false;
   }
 
   ipCheckInProgress = true;
-  
+
   try {
-     const { data, error } = await supabase.rpc('fetch_location_data');
-     if (!error && data) {
-       detectedIPAddress = data.ip;
+    const data = await fetchLocationData();
+    if (data?.ip) {
+      detectedIPAddress = data.ip;
       ipCheckInProgress = false;
-      return detectedIPAddress ? EXCLUDED_IP_ADDRESSES.includes(detectedIPAddress) : false;
+      return EXCLUDED_IP_ADDRESSES.includes(detectedIPAddress);
     }
-  } catch (error) {
+  } catch {
     console.warn('Failed to check IP address for analytics exclusion');
   }
-  
+
   ipCheckInProgress = false;
   return false;
 };

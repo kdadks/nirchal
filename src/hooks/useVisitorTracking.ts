@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../config/supabase';
+import { fetchLocationData as fetchLocationDataUtil } from '../utils/locationData';
 
 interface LocationInfo {
   ip_address?: string;
@@ -124,48 +125,38 @@ const isExcludedIP = (ipAddress?: string): boolean => {
   return EXCLUDED_IP_ADDRESSES.includes(ipAddress);
 };
 
-// Fetch IP and location data via Supabase SQL function (server-side HTTP call, no CORS)
+// Fetch IP and location data via Cloudflare Pages function (cf-connecting-ip always set by CF)
 const fetchLocationData = async (): Promise<LocationInfo | null> => {
-  try {
-    console.log('🌍 Fetching location data...');
-    const { data, error } = await supabase.rpc('fetch_location_data');
-    
-    if (error || !data) {
-      console.warn('⚠️ Location fetch failed:', error?.message);
-      return null;
-    }
-    
-    if (data.error) {
-      console.warn('⚠️ Location data unavailable:', data.error);
-      return null;
-    }
-    
-    if (!data.ip) {
-      console.warn('⚠️ No IP address in response');
-      return null;
-    }
-    
-    const locationInfo: LocationInfo = {
-      ip_address: data.ip,
-      city: data.city || undefined,
-      country: data.country_name || data.country || undefined,
-      country_code: data.country_code || undefined,
-      region: data.region || undefined,
-      latitude: data.latitude ? parseFloat(data.latitude) : undefined,
-      longitude: data.longitude ? parseFloat(data.longitude) : undefined
-    };
-    
-    console.log('✅ Location data fetched:', {
-      ip: locationInfo.ip_address,
-      city: locationInfo.city,
-      country: locationInfo.country
-    });
-    
-    return locationInfo;
-  } catch (error) {
-    console.error('❌ Failed to fetch location data:', error instanceof Error ? error.message : error);
+  console.log('🌍 Fetching location data...');
+  const data = await fetchLocationDataUtil();
+
+  if (!data) {
+    console.warn('⚠️ Location fetch failed');
     return null;
   }
+
+  if (!data.ip) {
+    console.warn('⚠️ No IP address in response');
+    return null;
+  }
+
+  const locationInfo: LocationInfo = {
+    ip_address: data.ip,
+    city: data.city || undefined,
+    country: data.country_name || data.country || undefined,
+    country_code: data.country_code || undefined,
+    region: data.region || undefined,
+    latitude: data.latitude != null ? Number(data.latitude) : undefined,
+    longitude: data.longitude != null ? Number(data.longitude) : undefined,
+  };
+
+  console.log('✅ Location data fetched:', {
+    ip: locationInfo.ip_address,
+    city: locationInfo.city,
+    country: locationInfo.country,
+  });
+
+  return locationInfo;
 };
 
 export const useVisitorTracking = () => {
