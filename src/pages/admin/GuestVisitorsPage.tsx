@@ -82,11 +82,19 @@ const GuestVisitorsPage: React.FC = () => {
 
   // Filter visitors based on search term
   const filteredVisitors = visitors.filter(visitor => {
-    // Filter out "Unknown" browser or OS
-    if (visitor.browser === 'Unknown' || visitor.os === 'Unknown') {
+    // Drop records with undetectable UA — always bots
+    if (visitor.browser === 'Unknown' || visitor.os === 'Unknown') return false;
+
+    // Drop zero-engagement anonymous records: no contact info, 0s on site, 1 page, 1 visit
+    // These are server-side crawlers/bots that executed JS but left instantly
+    const hasContact = visitor.info_captured || visitor.guest_email || visitor.guest_phone;
+    if (!hasContact &&
+        (visitor.time_spent || 0) === 0 &&
+        (visitor.pages_visited || 0) <= 1 &&
+        (visitor.visit_count || 0) <= 1) {
       return false;
     }
-    
+
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
     return (

@@ -125,6 +125,17 @@ const isExcludedIP = (ipAddress?: string): boolean => {
   return EXCLUDED_IP_ADDRESSES.includes(ipAddress);
 };
 
+// Detect bots/crawlers/headless browsers using reliable browser signals
+const isBot = (): boolean => {
+  // WebDriver flag is set by Selenium, Puppeteer, Playwright, etc.
+  if (navigator.webdriver) return true;
+  // Headless Chrome/Firefox reports 0x0 outer window dimensions
+  if (window.outerWidth === 0 && window.outerHeight === 0) return true;
+  // Real browsers always have at least one language; bots often have none
+  if (!navigator.languages || navigator.languages.length === 0) return true;
+  return false;
+};
+
 // Fetch IP and location data via Cloudflare Pages function (cf-connecting-ip always set by CF)
 const fetchLocationData = async (): Promise<LocationInfo | null> => {
   console.log('🌍 Fetching location data...');
@@ -172,6 +183,9 @@ export const useVisitorTracking = () => {
       console.log('Visitor tracking disabled on localhost');
       return;
     }
+
+    // Don't track bots/headless browsers
+    if (isBot()) return;
 
     // Get or create visitor ID
     visitorIdRef.current = getVisitorId();
