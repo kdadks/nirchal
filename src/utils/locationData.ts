@@ -9,11 +9,36 @@ export interface LocationData {
   longitude?: number | null;
 }
 
+/** Fallback: free public IP geolocation (no API key, ~45k req/day free tier). */
+async function fetchLocationFallback(): Promise<LocationData | null> {
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch('https://ipwho.is/', {
+      headers: { Accept: 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(tid);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.success || !data?.country_code) return null;
+    return {
+      ip: data.ip,
+      country_code: data.country_code,
+      country: data.country_code,
+      country_name: data.country,
+      city: data.city,
+      region: data.region,
+    } satisfies LocationData;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Fetch geolocation via the Cloudflare Pages function (/fetch-location).
- * Cloudflare injects cf-connecting-ip on every request, so the worker
- * always sees the real client IP — no header-format issues.
- * Returns null on any failure so callers can use their own fallback.
+ * Falls back to ipwho.is if the CF function is unavailable or returns no data.
+ * Returns null only when both sources fail.
  */
 export async function fetchLocationData(): Promise<LocationData | null> {
   try {
@@ -22,14 +47,15 @@ export async function fetchLocationData(): Promise<LocationData | null> {
       headers: { Accept: 'application/json' },
     });
 
-    if (!response.ok) return null;
-
-    const data = await response.json();
-
-    if (!data || data.error || data.success === false) return null;
-
-    return data as LocationData;
+    if (response.ok) {
+      const data = await response.json();
+      if (data && !data.error && data.success !== false) {
+        return data as LocationData;
+      }
+    }
   } catch {
-    return null;
+    // CF function unreachable — fall through to public fallback
   }
+
+  return fetchLocationFallback();
 }
