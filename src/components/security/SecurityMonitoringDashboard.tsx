@@ -208,7 +208,10 @@ const SecurityMonitoringDashboard: React.FC = () => {
   };
 
   const checkPaymentTokenization = (): boolean => {
-    return typeof window.Razorpay !== 'undefined';
+    // Verify Razorpay is configured and we're on HTTPS; SDK only loads on-demand at checkout
+    const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    const hasRazorpayKey = !!(import.meta.env.VITE_RAZORPAY_KEY_ID);
+    return isSecureContext && hasRazorpayKey;
   };
 
   const checkAccessControls = (): boolean => {

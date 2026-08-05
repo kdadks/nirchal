@@ -267,34 +267,12 @@ const PCIDSSCompliance: React.FC = () => {
   };
 
   const checkPaymentTokenization = (): boolean => {
-    // Comprehensive payment tokenization validation
-    if (typeof window !== 'undefined') {
-      // Check if we're in a secure environment for payment processing
-      const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-      
-      // Check for Razorpay availability - multiple methods
-      const razorpayChecks = {
-        // 1. Check if Razorpay is globally available
-        globalRazorpay: typeof (window as any).Razorpay !== 'undefined',
-        
-        // 2. Check if Razorpay script is loaded in DOM
-        scriptLoaded: !!document.querySelector('script[src*="razorpay"]') || 
-                     !!document.querySelector('script[src*="checkout.razorpay.com"]'),
-        
-        // 3. Check if we're in development environment (assume proper setup)
-        isDevelopment: window.location.hostname === 'localhost' || 
-                      window.location.hostname === '127.0.0.1' ||
-                      process.env.NODE_ENV === 'development'
-      };
-      
-      // Payment tokenization passes if secure context AND at least one Razorpay check passes
-      const hasPaymentSupport = razorpayChecks.globalRazorpay || 
-                               razorpayChecks.scriptLoaded || 
-                               razorpayChecks.isDevelopment;
-      
-      return isSecureContext && hasPaymentSupport;
-    }
-    return true;
+    // PCI DSS Requirement 4: Verify the app uses a certified payment tokenization
+    // provider (Razorpay) over HTTPS. The SDK loads on-demand at checkout only —
+    // checking for window.Razorpay here would always fail on non-checkout pages.
+    const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    const hasRazorpayKey = !!(import.meta.env.VITE_RAZORPAY_KEY_ID);
+    return isSecureContext && hasRazorpayKey;
   };
 
   const checkAccessControls = (): boolean => {
