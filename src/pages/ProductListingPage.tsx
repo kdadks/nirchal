@@ -237,11 +237,29 @@ const ProductListingPage: React.FC = () => {
 
   const fabricTypes = [
     { value: '', label: 'All Fabrics' },
-    { value: 'Silk', label: 'Silk' },
     { value: 'Cotton', label: 'Cotton' },
+    { value: 'Rayon', label: 'Rayon' },
+    { value: 'Viscose', label: 'Viscose' },
+    { value: 'Linen', label: 'Linen' },
+    { value: 'Silk', label: 'Silk' },
+    { value: 'Banarasi', label: 'Banarasi' },
+    { value: 'Mul Chanderi', label: 'Mul Chanderi' },
+    { value: 'Satin', label: 'Satin' },
+    { value: 'Velvet', label: 'Velvet' },
+    { value: 'Crush', label: 'Crush' },
     { value: 'Georgette', label: 'Georgette' },
     { value: 'Chiffon', label: 'Chiffon' },
-    { value: 'Velvet', label: 'Velvet' },
+    { value: 'Organza', label: 'Organza' },
+    { value: 'Crepe', label: 'Crepe' },
+    { value: 'Tissue', label: 'Tissue' },
+    { value: 'Crinkle', label: 'Crinkle' },
+    { value: 'Net', label: 'Net' },
+    { value: 'Lace', label: 'Lace' },
+    { value: 'Brocade', label: 'Brocade' },
+    { value: 'Jacquard', label: 'Jacquard' },
+    { value: 'Muslin', label: 'Muslin' },
+    { value: 'Cambric', label: 'Cambric' },
+    { value: 'Fandi', label: 'Fandi' },
   ];
 
   const occasions = [

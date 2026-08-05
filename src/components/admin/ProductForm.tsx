@@ -646,11 +646,29 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, isLoad
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 >
                   <option value="">Select Fabric Type</option>
-                  <option value="Silk">Silk</option>
                   <option value="Cotton">Cotton</option>
+                  <option value="Rayon">Rayon</option>
+                  <option value="Viscose">Viscose</option>
+                  <option value="Linen">Linen</option>
+                  <option value="Silk">Silk</option>
+                  <option value="Banarasi">Banarasi</option>
+                  <option value="Mul Chanderi">Mul Chanderi</option>
+                  <option value="Satin">Satin</option>
+                  <option value="Velvet">Velvet</option>
+                  <option value="Crush">Crush</option>
                   <option value="Georgette">Georgette</option>
                   <option value="Chiffon">Chiffon</option>
-                  <option value="Velvet">Velvet</option>
+                  <option value="Organza">Organza</option>
+                  <option value="Crepe">Crepe</option>
+                  <option value="Tissue">Tissue</option>
+                  <option value="Crinkle">Crinkle</option>
+                  <option value="Net">Net</option>
+                  <option value="Lace">Lace</option>
+                  <option value="Brocade">Brocade</option>
+                  <option value="Jacquard">Jacquard</option>
+                  <option value="Muslin">Muslin</option>
+                  <option value="Cambric">Cambric</option>
+                  <option value="Fandi">Fandi</option>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
                   Helps customers filter products by fabric type
