@@ -115,7 +115,7 @@ const PaymentSecurityWrapper: React.FC<PaymentSecurityWrapperProps> = ({
       infrastructureIssues.push(...infraRecommendations);
       
       // Validate CSP implementation
-      const cspValidation = SecurityUtils.validateCSP();
+      const cspValidation = await SecurityUtils.validateCSP();
       if (!cspValidation.hasCSP) {
         infrastructureIssues.push('Content Security Policy not implemented');
       }

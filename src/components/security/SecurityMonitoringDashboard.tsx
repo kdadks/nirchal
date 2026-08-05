@@ -141,8 +141,8 @@ const SecurityMonitoringDashboard: React.FC = () => {
         checkSessionSecurity(),
         checkDataProtection(),
         await checkSecurityHeaders(),
-        checkCSP(),
-        checkPaymentTokenization(),
+        await checkCSP(),
+        await checkPaymentTokenization(),
         checkAccessControls(),
         checkAuditLogging()
       ];
@@ -202,16 +202,13 @@ const SecurityMonitoringDashboard: React.FC = () => {
     return Object.values(check.headers).every(Boolean);
   };
 
-  const checkCSP = (): boolean => {
-    const validation = SecurityUtils.validateCSP();
+  const checkCSP = async (): Promise<boolean> => {
+    const validation = await SecurityUtils.validateCSP();
     return validation.hasCSP;
   };
 
-  const checkPaymentTokenization = (): boolean => {
-    // Verify Razorpay is configured and we're on HTTPS; SDK only loads on-demand at checkout
-    const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    const hasRazorpayKey = !!(import.meta.env.VITE_RAZORPAY_KEY_ID);
-    return isSecureContext && hasRazorpayKey;
+  const checkPaymentTokenization = async (): Promise<boolean> => {
+    return SecurityUtils.checkPaymentTokenization();
   };
 
   const checkAccessControls = (): boolean => {

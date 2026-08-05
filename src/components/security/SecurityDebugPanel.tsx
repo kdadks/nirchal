@@ -108,7 +108,7 @@ const SecurityDebugPanel: React.FC = () => {
       });
 
       // 5. CSP Check
-      const cspValidation = SecurityUtils.validateCSP();
+      const cspValidation = await SecurityUtils.validateCSP();
       results.push({
         name: 'Content Security Policy',
         status: cspValidation.hasCSP,
@@ -122,32 +122,17 @@ const SecurityDebugPanel: React.FC = () => {
       });
 
       // 6. Payment Tokenization Check
-      const razorpayCheck = () => {
-        // Primary check: Razorpay object exists
-        if (typeof window.Razorpay !== 'undefined') {
-          return { status: true, reason: 'Razorpay library is loaded and available.' };
-        }
-        
-        // Secondary check: Script tag exists
-        const scripts = Array.from(document.getElementsByTagName('script'));
-        const razorpayScript = scripts.find(script => 
-          script.src && script.src.includes('checkout.razorpay.com')
-        );
-        
-        if (razorpayScript) {
-          return { 
-            status: false, 
-            reason: 'Razorpay script tag found but library not loaded yet. May need page refresh or network check.' 
-          };
-        }
-        
-        return { 
-          status: false, 
-          reason: 'Razorpay payment library is not loaded.' 
+      const razorpayCheck = async () => {
+        const status = await SecurityUtils.checkPaymentTokenization();
+        return {
+          status,
+          reason: status
+            ? 'Razorpay payment tokenization is configured and whitelisted in CSP.'
+            : 'Razorpay checkout endpoint not found in CSP, or site is not on HTTPS.',
         };
       };
       
-      const paymentCheck = razorpayCheck();
+      const paymentCheck = await razorpayCheck();
       results.push({
         name: 'Payment Tokenization',
         status: paymentCheck.status,

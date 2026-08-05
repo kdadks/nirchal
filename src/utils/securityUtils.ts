@@ -436,45 +436,57 @@ export class SecurityUtils {
     };
   }
 
-  /**
-   * CSP (Content Security Policy) validation
-   */
-  static validateCSP(): {
+  // 1-minute TTL cache so repeated compliance checks don't hammer the server
+  private static _headersCache: { data: Record<string, string | null>; ts: number } | null = null;
+
+  private static async fetchPageHeaders(): Promise<Record<string, string | null>> {
+    const now = Date.now();
+    if (this._headersCache && now - this._headersCache.ts < 60_000) {
+      return this._headersCache.data;
+    }
+    try {
+      const res = await fetch(window.location.href, { method: 'HEAD' });
+      const data: Record<string, string | null> = {
+        'X-Frame-Options': res.headers.get('X-Frame-Options'),
+        'X-Content-Type-Options': res.headers.get('X-Content-Type-Options'),
+        'Referrer-Policy': res.headers.get('Referrer-Policy'),
+        'Permissions-Policy': res.headers.get('Permissions-Policy'),
+        'Content-Security-Policy': res.headers.get('Content-Security-Policy'),
+      };
+      this._headersCache = { data, ts: now };
+      return data;
+    } catch {
+      return {};
+    }
+  }
+
+  static async validateCSP(): Promise<{
     hasCSP: boolean;
     recommendations: string[];
-  } {
-    const recommendations: string[] = [];
-    let hasCSP = false;
-
-    // Skip CSP validation in development
+  }> {
     if (process.env.NODE_ENV === 'development' || (SECURITY_CONFIG.IS_ENABLED && SECURITY_CONFIG.BYPASS_CSP_VALIDATION)) {
       if (SECURITY_CONFIG.ENABLE_SECURITY_DEBUGGING) {
         console.log('[SECURITY] Development mode: Bypassing CSP validation');
       }
-      return {
-        hasCSP: true,
-        recommendations: []
-      };
+      return { hasCSP: true, recommendations: [] };
     }
 
+    // Prefer meta tag (no network round-trip)
     if (typeof document !== 'undefined') {
-      const cspMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-      hasCSP = !!cspMeta;
-
-      if (!hasCSP) {
-        recommendations.push('Implement Content Security Policy to prevent XSS attacks');
+      if (document.querySelector('meta[http-equiv="Content-Security-Policy"]')) {
+        return { hasCSP: true, recommendations: [] };
       }
     }
 
+    // CSP is served as HTTP header (via _headers file) — check actual response
+    const fetched = await this.fetchPageHeaders();
+    const hasCSP = !!(fetched['Content-Security-Policy']);
     return {
       hasCSP,
-      recommendations
+      recommendations: hasCSP ? [] : ['Implement Content Security Policy to prevent XSS attacks'],
     };
   }
 
-  /**
-   * Check for common security headers
-   */
   static async checkSecurityHeaders(): Promise<{
     headers: Record<string, boolean>;
     recommendations: string[];
@@ -487,47 +499,44 @@ export class SecurityUtils {
       'Permissions-Policy': false,
     };
 
-    // Skip security header checks in development
     if (process.env.NODE_ENV === 'development' || (SECURITY_CONFIG.IS_ENABLED && SECURITY_CONFIG.BYPASS_SECURITY_HEADERS)) {
       if (SECURITY_CONFIG.ENABLE_SECURITY_DEBUGGING) {
         console.log('[SECURITY] Development mode: Bypassing security headers validation');
       }
       return {
-        headers: {
-          'X-Frame-Options': true,
-          'X-Content-Type-Options': true,
-          'Referrer-Policy': true,
-          'Permissions-Policy': true,
-        },
-        recommendations: []
+        headers: { 'X-Frame-Options': true, 'X-Content-Type-Options': true, 'Referrer-Policy': true, 'Permissions-Policy': true },
+        recommendations: [],
       };
     }
 
     try {
-      // This is a simplified check - in a real implementation,
-      // you'd need to check actual HTTP headers
-      if (typeof document !== 'undefined') {
-        // These checks are approximations since we can't access HTTP headers from client-side
-        headers['X-Frame-Options'] = true; // Assume Cloudflare Pages provides this
-        headers['X-Content-Type-Options'] = true; // Assume Cloudflare Pages provides this
-        headers['Referrer-Policy'] = !!document.querySelector('meta[name="referrer"]');
-        headers['Permissions-Policy'] = true; // Modern browsers have this
-      }
+      // Read actual HTTP response headers — avoids false negatives from meta-tag lookups
+      const fetched = await this.fetchPageHeaders();
+      headers['X-Frame-Options'] = !!(fetched['X-Frame-Options']);
+      headers['X-Content-Type-Options'] = !!(fetched['X-Content-Type-Options']);
+      headers['Referrer-Policy'] = !!(fetched['Referrer-Policy']);
+      headers['Permissions-Policy'] = !!(fetched['Permissions-Policy']);
     } catch (error) {
       console.warn('Unable to check security headers:', error);
     }
 
-    // Generate recommendations
     Object.entries(headers).forEach(([header, present]) => {
-      if (!present) {
-        recommendations.push(`Configure ${header} header for enhanced security`);
-      }
+      if (!present) recommendations.push(`Configure ${header} header for enhanced security`);
     });
 
-    return {
-      headers,
-      recommendations
-    };
+    return { headers, recommendations };
+  }
+
+  static async checkPaymentTokenization(): Promise<boolean> {
+    const isSecureContext = typeof window !== 'undefined' &&
+      (window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+    if (!isSecureContext) return false;
+    if (process.env.NODE_ENV === 'development') return true;
+    // Razorpay key lives in Supabase settings, not VITE_ env vars.
+    // Presence of checkout.razorpay.com in CSP confirms it is the configured payment tokenizer.
+    const fetched = await this.fetchPageHeaders();
+    const csp = fetched['Content-Security-Policy'] ?? '';
+    return csp.includes('checkout.razorpay.com');
   }
 }
 

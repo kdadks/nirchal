@@ -70,7 +70,7 @@ const PCIDSSCompliance: React.FC = () => {
         dataProtection: dataProtectionResult || false,
         
         // Requirement 4: Encrypt transmission of cardholder data
-        paymentTokenization: checkPaymentTokenization(),
+        paymentTokenization: await SecurityUtils.checkPaymentTokenization(),
         
         // Requirement 7: Restrict access to cardholder data by business need-to-know
         accessControls: checkAccessControls(),
@@ -264,15 +264,6 @@ const PCIDSSCompliance: React.FC = () => {
     const hasSecureEndpoints = secureEndpoints.length > 0 && isSecureContext;
     
     return hasSecureEndpoints; // CSP configuration ensures secure endpoints
-  };
-
-  const checkPaymentTokenization = (): boolean => {
-    // PCI DSS Requirement 4: Verify the app uses a certified payment tokenization
-    // provider (Razorpay) over HTTPS. The SDK loads on-demand at checkout only —
-    // checking for window.Razorpay here would always fail on non-checkout pages.
-    const isSecureContext = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    const hasRazorpayKey = !!(import.meta.env.VITE_RAZORPAY_KEY_ID);
-    return isSecureContext && hasRazorpayKey;
   };
 
   const checkAccessControls = (): boolean => {
